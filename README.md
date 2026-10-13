@@ -1,6 +1,6 @@
 # NOVA Cinema — Infinity Experience
 
-Website điện ảnh bằng **React, Vite, Tailwind CSS 3 và Lucide Icons**, giao diện tối obsidian với điểm nhấn hổ phách. Toàn bộ mã nguồn đã được triển khai trong repository, không cần API key để chạy demo.
+Website điện ảnh bằng **React, Vite, Tailwind CSS 3 và Lucide Icons**, giao diện tối obsidian với màu **Electric Cyan #00F2FE, Hot Coral #FF3366 và Emerald #10B981**. Toàn bộ mã nguồn đã được triển khai trong repository, không cần API key để chạy demo.
 
 ## Ba điểm cốt lõi từ tài liệu
 
@@ -39,13 +39,13 @@ npm run dev -- --port 5173 --strictPort
 
 ## Cách thử luồng đặt vé
 
-1. Chọn rạp → phim → ngày → suất chiếu. Chọn bước trước sẽ xóa lựa chọn không còn phù hợp ở các bước sau. Các suất đã qua trong ngày hiện tại được ẩn theo múi giờ Việt Nam.
+1. Chọn thẻ rạp → thẻ phim kèm poster nhỏ → nút ngày → nút suất chiếu, thay cho thanh dropdown cũ. Chọn bước trước sẽ xóa lựa chọn không còn phù hợp ở các bước sau. Màu xanh/xanh lá, cam và coral của suất chiếu dựa trên số ghế thực tế trong kho dữ liệu demo tại thiết bị. Các suất đã qua trong ngày hiện tại được ẩn theo múi giờ Việt Nam.
 2. Bật **Xếp cụm nhóm** nếu đi cùng nhóm, rồi nhấn **Tìm ghế đẹp**.
 3. Chọn ghế thường/VIP/Sweetbox. Sweetbox luôn được chọn hoặc bỏ theo cặp. Với nhóm, chọn 2–20 người và nhấn **Xếp ghế** để tự tìm dải ghế trống trong một hàng. Nếu không có dải ghế phù hợp, giao diện thông báo rõ.
 4. Ghế được giữ trong 5 phút tính từ lựa chọn đầu tiên; thêm ghế hoặc thay cụm không gia hạn thời gian này. Thêm/bớt Party Combo 69K ngay trong tóm tắt đơn.
-5. Chọn **Tiếp tục thanh toán**, chọn phương thức rồi **Thanh toán mô phỏng**. QR thực được tạo bằng thư viện `qrcode` với UUID riêng cho mỗi giao dịch. Có thể tải QR PNG và tra cứu vé trong tài khoản hoặc footer.
+5. Chọn **Tiếp tục chọn combo** để tới bước 3, tùy chỉnh combo/ưu đãi, sau đó **Tiếp tục thanh toán** để tới bước 4. Chọn MoMo, ZaloPay hoặc Visa/Mastercard Sandbox rồi **Thanh toán mô phỏng**. QR thực được tạo bằng thư viện `qrcode` với UUID riêng cho mỗi giao dịch. Có thể tải QR PNG và tra cứu vé trong tài khoản hoặc footer.
 6. Thử **Hủy đặt vé**, nút mô phỏng thanh toán thất bại hoặc đợi hết thời gian để kiểm tra ghế được giải phóng. Ghế đã thanh toán sẽ bị khóa ở lần đặt tiếp theo.
-7. Mở cùng suất chiếu trong một tab khác trên cùng trình duyệt để kiểm tra ghế đang giữ. Hồ sơ C’MEMBER demo áp dụng giảm 5% tiền vé, không giảm giá combo.
+7. Mở cùng suất chiếu trong một tab khác trên cùng trình duyệt để kiểm tra ghế đang giữ. Hồ sơ C’MEMBER demo mặc định giảm 5% tiền vé, không giảm giá combo; có thể đổi sang điểm hoặc voucher ở bước 3.
 
 ## Kiểm tra & build
 
@@ -62,15 +62,23 @@ npx playwright install chromium
 npm test
 ```
 
+Bộ kiểm thử hiện có 10 ca nghiệp vụ, bao gồm cả xác thực biểu mẫu, nút mật khẩu, VN/EN, voucher NOVA10 và đổi điểm.
+
 Cloud đã có Chromium tại `/usr/bin/chromium`, nên không cần tải browser lần nữa. `playwright.config.mjs` tự nhận Chromium tại đường dẫn này. Có thể đặt biến `PLAYWRIGHT_CHROMIUM_PATH` nếu dùng trình duyệt ở vị trí khác. Các kiểm tra bao gồm reset lựa chọn, tìm kiếm, tính tổng, QR, Sweetbox, giới hạn 20 ghế, hủy/thất bại/hết hạn, đồng bộ tab và bố cục mobile.
+
+## Tài khoản & ưu đãi mới
+
+Modal tài khoản có tab đăng nhập/đăng ký, label nổi, kiểm tra email/mật khẩu/xác nhận, nút hiện/ẩn mật khẩu và ghi nhớ hồ sơ. Hồ sơ demo được lưu ở localStorage nếu chọn ghi nhớ, hoặc sessionStorage nếu không chọn. **Mật khẩu không được lưu**; không nhập mật khẩu thật. Google/Apple và quên mật khẩu thông báo cần dịch vụ OAuth/backend, không giả lập xác thực thành công.
+
+Ở bước **Combo & Ưu đãi**, chọn một trong các phương án: không giảm; C’MEMBER giảm 5% tiền vé; đổi điểm demo (1 điểm = 100đ); hoặc mã `NOVA10` giảm 10% tiền vé, tối đa 30.000đ. Các ưu đãi không cộng chồng. Đăng ký hồ sơ demo nhận 100 điểm minh họa; đổi điểm được trừ và điểm mới được cộng sau thanh toán thành công (1 điểm / 1.000đ tổng tiền). Cần backend để bảo đảm số dư giữa nhiều người dùng/thiết bị.
 
 ## Những phần đã có
 
-- Header kính mờ cố định, menu mobile, tìm kiếm bằng phím tắt, hồ sơ demo và lịch sử vé.
+- Header kính mờ cố định, tìm kiếm phim/rạp có kết quả tức thì, phím tắt, VN/EN lưu trên thiết bị, menu mobile, hồ sơ demo và lịch sử vé.
 - Hero carousel Dune / Oppenheimer / Godzilla x Kong, trailer YouTube, thông tin phim chi tiết.
-- Thanh đặt vé 4 bước và công tắc xếp cụm nhóm.
+- Wizard đặt vé trực quan bằng thẻ rạp/phim, nút ngày và suất chiếu có chỉ báo ghế trống. Công tắc xếp nhóm, nút chọn nhanh 3 ghế và stepper 4 bước trong checkout.
 - Poster tỉ lệ 2:3, tab phim, thông tin đạo diễn/diễn viên và hành động đặt vé.
-- Party Combo 69K, C’MEMBER, hệ thống rạp theo thành phố, suất chiếu đặc biệt, footer.
+- Party Combo 69K, C’MEMBER, tab phim sắp chiếu (tái chiếu minh họa chưa mở bán), hệ thống rạp theo thành phố, suất chiếu đặc biệt, footer.
 - Sơ đồ ghế cong, phân loại ghế, giữ ghế 5 phút, tổng tiền và thanh toán Sandbox.
 - Font đóng gói cục bộ, responsive và hỗ trợ giảm chuyển động, focus bàn phím, dialog/ARIA.
 
@@ -93,6 +101,10 @@ Các miền cần cho ảnh/trailer từ xa: `image.tmdb.org`, `www.youtube-noco
 ## Cấu trúc mã nguồn
 
 - `src/App.jsx`: trang chủ, tìm kiếm, chi tiết phim, trailer, hồ sơ và lịch sử.
+- `src/components/QuickBooking.jsx`: wizard thẻ rạp/phim và ngày/suất có số ghế còn lại.
+- `src/components/AuthForm.jsx`: biểu mẫu tài khoản demo và kiểm tra lỗi.
+- `src/components/HeaderSearch.jsx`: tìm kiếm phim/rạp tức thì.
+- `src/i18n.js`: chuỗi VN/EN và context ngôn ngữ.
 - `src/components/SeatBooking.jsx`: sơ đồ ghế, combo, tính tiền, thanh toán và QR.
 - `src/components/Modal.jsx`: dialog, focus bàn phím và phím Escape.
 - `src/bookingStore.js`: trạng thái ghế, thời hạn giữ, Web Locks và thuật toán xếp nhóm.

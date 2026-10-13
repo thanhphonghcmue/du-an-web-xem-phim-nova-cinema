@@ -136,6 +136,51 @@ export const movies = [
       "Kiệt tác của Christopher Nolan trở lại màn ảnh rộng. Khám phá câu chuyện về J. Robert Oppenheimer và khoảnh khắc thay đổi thế giới mãi mãi.",
   },
 ];
+// Lịch tái chiếu sắp tới là dữ liệu minh họa, chưa mở bán.
+movies.push(
+  {
+    id: "interstellar-return",
+    title: "Interstellar: Infinity Return",
+    original: "INTERSTELLAR",
+    short: "INTERSTELLAR",
+    part: "INFINITY RETURN",
+    genre: "Khoa học viễn tưởng",
+    duration: 169,
+    age: "T13",
+    rating: "8.7",
+    format: "IMAX",
+    year: 2014,
+    director: "Christopher Nolan",
+    cast: "Matthew McConaughey, Anne Hathaway",
+    poster: "/images/interstellar-poster.jpg",
+    localPoster: "/images/interstellar-poster.jpg",
+    status: "soon",
+    trailer: "zSWdZVtXT7E",
+    description:
+      "Hành trình xuyên không gian trở lại màn ảnh Infinity. Suất tái chiếu minh họa sắp mở bán.",
+  },
+  {
+    id: "dark-knight-midnight",
+    title: "The Dark Knight: Midnight Screening",
+    original: "THE DARK KNIGHT",
+    short: "THE DARK KNIGHT",
+    part: "MIDNIGHT SCREENING",
+    genre: "Hành động · Bí ẩn",
+    duration: 152,
+    age: "T16",
+    rating: "9.0",
+    format: "Dolby Vision",
+    year: 2008,
+    director: "Christopher Nolan",
+    cast: "Christian Bale, Heath Ledger",
+    poster: "/images/batman-poster.jpg",
+    localPoster: "/images/batman-poster.jpg",
+    status: "soon",
+    trailer: "EXeTwQWrcwY",
+    description:
+      "Đêm Gotham trở lại trong chương trình chiếu đặc biệt minh họa. Chưa mở bán vé.",
+  },
+);
 export const cinemas = [
   {
     id: "landmark",
@@ -170,7 +215,7 @@ export const cinemas = [
     movies: ["mai", "panda", "exhuma", "kong"],
   },
 ];
-export function getDates() {
+export function getDates(language = "vi") {
   const base = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
     year: "numeric",
@@ -182,7 +227,7 @@ export function getDates() {
     d.setUTCDate(d.getUTCDate() + i);
     return {
       id: d.toISOString().slice(0, 10),
-      label: `${i === 0 ? "Hôm nay" : i === 1 ? "Ngày mai" : new Intl.DateTimeFormat("vi", { weekday: "long", timeZone: "Asia/Ho_Chi_Minh" }).format(d)}, ${new Intl.DateTimeFormat("vi", { day: "2-digit", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).format(d)}`,
+      label: `${i === 0 ? (language === "en" ? "Today" : "Hôm nay") : i === 1 ? (language === "en" ? "Tomorrow" : "Ngày mai") : new Intl.DateTimeFormat(language, { weekday: "long", timeZone: "Asia/Ho_Chi_Minh" }).format(d)}, ${new Intl.DateTimeFormat("vi", { day: "2-digit", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).format(d)}`,
     };
   });
 }

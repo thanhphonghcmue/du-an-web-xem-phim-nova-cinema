@@ -13,3 +13,6 @@ Local fallbacks were sourced from publicly accessible copies because the onboard
 - `kong-banner.jpg`: Godzilla x Kong banner, https://github.com/ywhnaht/CinemaWeb/blob/fe9a290f4d5d1282fce2e6cb17cbcc4f6523a282/assets/images/slider/kong.jpg
 
 Availability of a public copy does not confer commercial use rights. Review licensing with rights holders before a commercial release. Local popcorn/drink and auditorium visuals are original CSS illustrations.
+
+- `interstellar-poster.jpg`: Interstellar poster, https://github.com/BegzatMamatkarimov/Movie_poster/blob/e0ee4547349d7971a7c2ff68ed0e669eab3e581b/posters/interstellar.jpg
+- `batman-poster.jpg`: The Dark Knight poster, https://github.com/BegzatMamatkarimov/Movie_poster/blob/e0ee4547349d7971a7c2ff68ed0e669eab3e581b/posters/the-dark-knight.jpg

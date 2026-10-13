@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
-  CalendarDays,
-  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -28,6 +26,10 @@ import {
 import { movies, cinemas, getDates, getShowtimes, money } from "./data.js";
 import Modal from "./components/Modal.jsx";
 import SeatBooking from "./components/SeatBooking.jsx";
+import QuickBooking from "./components/QuickBooking.jsx";
+import AuthForm from "./components/AuthForm.jsx";
+import HeaderSearch from "./components/HeaderSearch.jsx";
+import { useI18n } from "./i18n.js";
 
 function Brand() {
   return (
@@ -66,6 +68,7 @@ function MoviePoster({ movie, className = "" }) {
   );
 }
 function TicketHistory({ tickets }) {
+  const { t } = useI18n();
   return tickets.length ? (
     <div className="history-list">
       {[...tickets].reverse().map((t) => (
@@ -77,12 +80,14 @@ function TicketHistory({ tickets }) {
               {t.cinema} · {t.date} · {t.time}
             </p>
             <p>
-              Ghế: {t.seats.join(", ")} · {money(t.total)}
+              {t("Ghế:")} {t.seats.join(", ")} · {money(t.total)}
             </p>
-            <small>Vé mô phỏng · {t.code.slice(0, 18)}</small>
+            <small>
+              {t("Vé mô phỏng ·")} {t.code.slice(0, 18)}
+            </small>
           </div>
           <a href={t.qr} download={`${t.code}.png`} className="text-button">
-            Tải QR
+            {t("Tải QR")}{" "}
           </a>
         </article>
       ))}
@@ -90,16 +95,20 @@ function TicketHistory({ tickets }) {
   ) : (
     <div className="empty-state">
       <Ticket size={40} />
-      <h3>Màn ảnh lớn đang chờ bạn.</h3>
+      <h3>{t("Màn ảnh lớn đang chờ bạn.")} </h3>
       <p>
-        Vé điện tử sẽ xuất hiện tại đây sau khi bạn hoàn tất đặt vé mô phỏng.
+        {t(
+          "Vé điện tử sẽ xuất hiện tại đây sau khi bạn hoàn tất đặt vé mô phỏng.",
+        )}{" "}
       </p>
     </div>
   );
 }
 
 export default function App() {
+  const { language, setLanguage, t } = useI18n();
   const [slide, setSlide] = useState(0);
+  const [wizardVersion, setWizardVersion] = useState(0);
   const featured = [movies[0], movies[5], movies[1]];
   const hero = featured[slide];
   const [cinemaId, setCinemaId] = useState("");
@@ -116,7 +125,10 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [member, setMember] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("nova-member"));
+      return JSON.parse(
+        localStorage.getItem("nova-member") ||
+          sessionStorage.getItem("nova-member"),
+      );
     } catch {
       return null;
     }
@@ -129,13 +141,9 @@ export default function App() {
     }
   });
   const [city, setCity] = useState("Tất cả");
-  const dateRef = useRef(null);
-  const dates = getDates();
+
+  const dates = getDates(language);
   const cinema = cinemas.find((c) => c.id === cinemaId);
-  const availableMovies = movies.filter((m) => cinema?.movies.includes(m.id));
-  const showtimes =
-    dateId && movieId ? getShowtimes(cinemaId, movieId, dateId) : [];
-  const progress = [cinemaId, movieId, dateId, timeId].filter(Boolean).length;
   useEffect(() => {
     const shortcut = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -148,7 +156,12 @@ export default function App() {
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
   function bookMovie(movie, combo = false) {
+    if (movie.status === "soon") {
+      openMovie(movie);
+      return;
+    }
     if (!cinema?.movies.includes(movie.id)) setCinemaId("landmark");
+    setWizardVersion((v) => v + 1);
     setMovieId(movie.id);
     setDateId("");
     setTimeId("");
@@ -157,7 +170,6 @@ export default function App() {
     document
       .getElementById("booking")
       .scrollIntoView({ behavior: "smooth", block: "center" });
-    dateRef.current?.focus({ preventScroll: true });
   }
   function openSeats(e) {
     e.preventDefault();
@@ -191,7 +203,12 @@ export default function App() {
   const visibleMovies =
     filter === "all" ? movies : movies.filter((m) => m.status === filter);
   const results = movies.filter((m) =>
-    `${m.title} ${m.original} ${m.director}`
+    `${t(m.title)} ${m.original} ${m.director}`
+      .toLocaleLowerCase("vi")
+      .includes(query.toLocaleLowerCase("vi")),
+  );
+  const cinemaResults = cinemas.filter((c) =>
+    `${c.name} ${c.city}`
       .toLocaleLowerCase("vi")
       .includes(query.toLocaleLowerCase("vi")),
   );
@@ -202,24 +219,36 @@ export default function App() {
           <Brand />
           <nav className="desktop-nav" aria-label="Điều hướng chính">
             <a href="#movies" className="nav-active">
-              Lịch chiếu
+              {t("Lịch chiếu")}{" "}
             </a>
-            <a href="#cinemas">Rạp Cinema</a>
-            <a href="#offers">
-              Ưu đãi <span className="nav-pill">69K</span>
-            </a>
-            <button onClick={jumpGroup}>Xếp cụm nhóm</button>
+            <a href="#cinemas">{t("Rạp Cinema")} </a>
+            <a href="#offers">{t("Ưu đãi & Khuyến mãi")}</a>
+            <a href="#offers">Party Combo 69K</a>
             <a href="#membership">C’MEMBER</a>
-            <a href="#events">Sự kiện</a>
+            <a href="#events">{t("Sự kiện")} </a>
           </nav>
           <div className="header-actions">
+            <HeaderSearch
+              onMovie={openMovie}
+              onCinema={(c) => {
+                setCinemaId(c.id);
+                setMovieId("");
+                setDateId("");
+                setTimeId("");
+                document
+                  .getElementById("booking")
+                  .scrollIntoView({ behavior: "smooth" });
+              }}
+              onExpand={() => setModal("search")}
+            />
             <button
-              className="search-trigger"
-              onClick={() => setModal("search")}
-              aria-label="Tìm phim Ctrl K"
+              className="language-toggle"
+              onClick={() => setLanguage(language === "vi" ? "en" : "vi")}
+              aria-label="VN / EN"
             >
-              <Search size={19} />
-              <kbd>⌘ K</kbd>
+              <span className={language === "vi" ? "active" : ""}>VN</span>
+              <i />
+              <span className={language === "en" ? "active" : ""}>EN</span>
             </button>
             <span className="nav-divider" />
             <button
@@ -232,16 +261,16 @@ export default function App() {
                   {member.name.split(" ").at(-1)}
                 </>
               ) : (
-                "Đăng nhập"
+                t("Đăng nhập")
               )}
             </button>
-            <a href="#booking" className="button button-gold header-book">
+            <a href="#booking" className="button button-primary header-book">
               <Ticket size={15} />
-              Đặt vé ngay
+              {t("Đặt vé ngay")}{" "}
             </a>
             <button
               className="icon-button mobile-toggle"
-              aria-label={menu ? "Đóng menu" : "Mở menu"}
+              aria-label={menu ? t("Đóng menu") : t("Mở menu")}
               aria-expanded={menu}
               onClick={() => setMenu(!menu)}
             >
@@ -252,20 +281,19 @@ export default function App() {
         {menu && (
           <nav className="mobile-nav" aria-label="Điều hướng di động">
             {[
-              ["#movies", "Lịch chiếu"],
-              ["#cinemas", "Rạp Cinema"],
-              ["#offers", "Khuyến mãi 69K"],
+              ["#movies", t("Lịch chiếu")],
+              ["#cinemas", t("Rạp Cinema")],
+              ["#offers", t("Khuyến mãi 69K")],
               ["#membership", "C’MEMBER"],
-              ["#events", "Sự kiện"],
+              ["#events", t("Sự kiện")],
             ].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMenu(false)}>
-                {label}
+                {t(label)}
                 <ArrowUpRight size={16} />
               </a>
             ))}
             <button onClick={jumpGroup}>
-              Xếp cụm nhóm
-              <UsersRound size={16} />
+              {t("Xếp cụm nhóm")} <UsersRound size={16} />
             </button>
             <button
               onClick={() => {
@@ -273,8 +301,7 @@ export default function App() {
                 setMenu(false);
               }}
             >
-              Tài khoản
-              <Ticket size={16} />
+              {t("Tài khoản")} <Ticket size={16} />
             </button>
           </nav>
         )}
@@ -294,8 +321,8 @@ export default function App() {
             <div className="hero-copy" key={hero.id}>
               <span className="hero-exclusive">
                 <span className="live-dot" />
-                NOVA EXCLUSIVE <span className="exclusive-divider" /> TRẢI
-                NGHIỆM ĐIỆN ẢNH ĐỈNH CAO
+                NOVA EXCLUSIVE <span className="exclusive-divider" />{" "}
+                {t("TRẢI NGHIỆM ĐIỆN ẢNH ĐỈNH CAO")}{" "}
               </span>
               <p className="hero-kicker">
                 {hero.id === "dune"
@@ -321,18 +348,17 @@ export default function App() {
                 <span className="age-badge">{hero.age}</span>
                 <span className="duration">
                   <Clock3 size={14} />
-                  {hero.duration} phút
+                  {hero.duration} {t("phút")}{" "}
                 </span>
               </div>
-              <p className="hero-description">{hero.description}</p>
+              <p className="hero-description">{t(hero.description)}</p>
               <div className="hero-buttons">
                 <button
-                  className="button button-gold"
+                  className="button button-primary"
                   onClick={() => bookMovie(hero)}
                 >
                   <Ticket size={18} />
-                  Đặt vé bây giờ
-                  <ArrowUpRight size={18} />
+                  {t("Đặt vé bây giờ")} <ArrowUpRight size={18} />
                 </button>
                 <button
                   className="button button-glass"
@@ -342,7 +368,27 @@ export default function App() {
                   Xem trailer 4K
                 </button>
               </div>
-              <p className="hero-tagline">{hero.tagline}</p>
+              <p className="hero-tagline">{t(hero.tagline)}</p>
+              <div className="hero-shortcuts">
+                <a href="#movies">
+                  {language === "en"
+                    ? "Now showing"
+                    : "Phim hot tháng " +
+                      new Date().toLocaleDateString("vi-VN", {
+                        month: "2-digit",
+                        timeZone: "Asia/Ho_Chi_Minh",
+                      })}
+                  <ArrowRight size={13} />
+                </a>
+                <a href="#offers">
+                  Party Combo 69K
+                  <Popcorn size={13} />
+                </a>
+                <button onClick={jumpGroup}>
+                  {t("Xếp cụm nhóm")}
+                  <UsersRound size={13} />
+                </button>
+              </div>
             </div>
             <div className="hero-side-note">
               <span>THE INFINITY EXPERIENCE</span>
@@ -352,7 +398,7 @@ export default function App() {
           </div>
           <div className="hero-bottom content-width">
             <a href="#booking" className="scroll-label">
-              <ArrowDown size={16} /> KHÁM PHÁ TRẢI NGHIỆM
+              <ArrowDown size={16} /> {t("KHÁM PHÁ TRẢI NGHIỆM")}{" "}
             </a>
             <div className="carousel-controls">
               <button
@@ -367,7 +413,7 @@ export default function App() {
                   <button
                     className={i === slide ? "active" : ""}
                     onClick={() => setSlide(i)}
-                    aria-label={`Xem banner ${m.title}`}
+                    aria-label={`Xem banner ${t(m.title)}`}
                     aria-current={i === slide ? "true" : undefined}
                     key={m.id}
                   >
@@ -386,165 +432,60 @@ export default function App() {
             </div>
           </div>
         </section>
-        <section id="booking" className="quick-booking content-width">
-          <div className="booking-topline">
-            <div>
-              <span className="booking-lightning">
-                <Sparkles size={16} />
-              </span>
-              <h2>Đặt vé nhanh</h2>
-              <span className="booking-30">30 giây để chạm đến điện ảnh</span>
-            </div>
-            <span className="booking-progress">
-              {progress}/4 bước <span className="live-dot" />
-            </span>
-          </div>
-          <form onSubmit={openSeats} className="booking-dock">
-            <div className="booking-fields">
-              {[
-                {
-                  label: "Chọn cụm rạp",
-                  value: cinemaId,
-                  icon: MapPin,
-                  options: cinemas.map((c) => ({ id: c.id, label: c.name })),
-                  change: (v) => {
-                    setCinemaId(v);
-                    setMovieId("");
-                    setDateId("");
-                    setTimeId("");
-                  },
-                },
-                {
-                  label: "Chọn phim",
-                  value: movieId,
-                  icon: Film,
-                  options: availableMovies.map((m) => ({
-                    id: m.id,
-                    label: m.title,
-                  })),
-                  disabled: !cinemaId,
-                  change: (v) => {
-                    setMovieId(v);
-                    setDateId("");
-                    setTimeId("");
-                  },
-                },
-                {
-                  label: "Chọn ngày",
-                  value: dateId,
-                  icon: CalendarDays,
-                  options: dates,
-                  disabled: !movieId,
-                  change: (v) => {
-                    setDateId(v);
-                    setTimeId("");
-                  },
-                  ref: dateRef,
-                },
-                {
-                  label: "Chọn suất chiếu",
-                  value: timeId,
-                  icon: Clock3,
-                  options: showtimes,
-                  disabled: !dateId,
-                  change: setTimeId,
-                },
-              ].map((field, i) => (
-                <label
-                  className={`booking-field ${field.disabled ? "is-disabled" : ""}`}
-                  key={field.label}
-                >
-                  <field.icon size={19} />
-                  <div>
-                    <span>
-                      0{i + 1} <small>{field.label.toUpperCase()}</small>
-                    </span>
-                    <select
-                      ref={field.ref}
-                      aria-label={field.label}
-                      value={field.value}
-                      disabled={field.disabled}
-                      onChange={(e) => field.change(e.target.value)}
-                      required
-                    >
-                      <option value="">
-                        {i === 3 && dateId && !showtimes.length
-                          ? "Hết suất hôm nay"
-                          : field.label}
-                      </option>
-                      {field.options.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <ChevronDown size={14} />
-                </label>
-              ))}
-              <button
-                className="button button-gold booking-submit"
-                disabled={!timeId}
-                type="submit"
-              >
-                <Ticket size={18} />
-                Tìm ghế đẹp
-                <ArrowRight size={16} />
-              </button>
-            </div>
-            <div className="booking-options">
-              <label className="switch-label">
-                <input
-                  type="checkbox"
-                  checked={group}
-                  onChange={(e) => setGroup(e.target.checked)}
-                />
-                <span className="switch-track" />
-                <UsersRound size={15} />
-                <span>Xếp cụm nhóm</span>
-                <small>Ngồi cạnh nhau, vui cùng nhau · ≤ 20 ghế</small>
-              </label>
-              <span className="hold-label">
-                <ShieldCheck size={14} />
-                Giữ ghế an toàn trong 5 phút
-              </span>
-            </div>
-          </form>
-          {withCombo && (
-            <div className="combo-attached">
-              <Check size={14} />
-              Party Combo 69K đã thêm vào lựa chọn của bạn
-              <button onClick={() => setWithCombo(false)}>Bỏ combo</button>
-            </div>
-          )}
-        </section>
+        <QuickBooking
+          key={wizardVersion}
+          cinemaId={cinemaId}
+          movieId={movieId}
+          dateId={dateId}
+          timeId={timeId}
+          onCinema={(v) => {
+            setCinemaId(v);
+            setMovieId("");
+            setDateId("");
+            setTimeId("");
+          }}
+          onMovie={(v) => {
+            setMovieId(v);
+            setDateId("");
+            setTimeId("");
+          }}
+          onDate={(v) => {
+            setDateId(v);
+            setTimeId("");
+          }}
+          onTime={setTimeId}
+          group={group}
+          onGroup={setGroup}
+          onSubmit={openSeats}
+          withCombo={withCombo}
+          onRemoveCombo={() => setWithCombo(false)}
+        />
         <div className="experience-strip content-width">
           <span>
             <InfinityIcon size={23} />
             <b>
-              Không chỉ xem phim.
-              <br />
-              <em>Sống trong từng khung hình.</em>
+              {t("Không chỉ xem phim.")} <br />
+              <em>{t("Sống trong từng khung hình.")} </em>
             </b>
           </span>
           <span>
             <i>IMAX</i>
-            <small>MÀN ẢNH VÔ CỰC</small>
+            <small>{t("MÀN ẢNH VÔ CỰC")} </small>
           </span>
           <span>
             <i className="dolby-type">▣ Dolby Atmos</i>
-            <small>ÂM THANH ĐA CHIỀU</small>
+            <small>{t("ÂM THANH ĐA CHIỀU")} </small>
           </span>
           <span>
             <ShieldCheck size={22} />
             <b>
-              5 phút giữ ghế<small>AN TÂM MỖI LỰA CHỌN</small>
+              {t("5 phút giữ ghế")} <small>{t("AN TÂM MỖI LỰA CHỌN")} </small>
             </b>
           </span>
           <span>
             <Ticket size={22} />
             <b>
-              Vé điện tử QR<small>CHẠM LÀ VÀO RẠP</small>
+              {t("Vé điện tử QR")} <small>{t("CHẠM LÀ VÀO RẠP")} </small>
             </b>
           </span>
         </div>
@@ -556,21 +497,20 @@ export default function App() {
             <div>
               <p className="eyebrow">
                 <span />
-                SPOTLIGHT / TRÊN MÀN ẢNH LỚN
+                {t("SPOTLIGHT / TRÊN MÀN ẢNH LỚN")}{" "}
               </p>
               <h2>
-                Câu chuyện tiếp theo <em>của bạn.</em>
+                {t("Câu chuyện tiếp theo")} <em>{t("của bạn.")} </em>
               </h2>
               <p className="section-description">
-                Những thước phim đáng xem. Những cảm xúc đáng nhớ.
+                {t("Những thước phim đáng xem. Những cảm xúc đáng nhớ.")}{" "}
               </p>
             </div>
             <button
               className="text-button view-all"
               onClick={() => setFilter("all")}
             >
-              Khám phá tất cả
-              <ArrowUpRight size={18} />
+              {t("Khám phá tất cả")} <ArrowUpRight size={18} />
             </button>
           </div>
           <div className="movie-toolbar">
@@ -580,9 +520,10 @@ export default function App() {
               aria-label="Danh mục phim"
             >
               {[
-                ["now", "Đang chiếu"],
-                ["special", "Suất chiếu đặc biệt"],
-                ["all", "Tất cả phim"],
+                ["now", t("Đang chiếu")],
+                ["soon", t("Sắp chiếu")],
+                ["special", t("Suất chiếu đặc biệt")],
+                ["all", t("Tất cả phim")],
               ].map(([id, label]) => (
                 <button
                   key={id}
@@ -612,52 +553,54 @@ export default function App() {
                   <div className="poster-overlay">
                     <button
                       className="poster-play"
-                      aria-label={`Xem trailer ${m.title}`}
+                      aria-label={`Xem trailer ${t(m.title)}`}
                       onClick={() => openMovie(m, "trailer")}
                     >
-                      <Play size={23} fill="currentColor" />
+                      <Play size={18} fill="currentColor" />
+                      <span>{t("Xem Trailer")}</span>
                     </button>
                     <div>
                       <p>
-                        ĐẠO DIỄN<span>{m.director}</span>
+                        {t("ĐẠO DIỄN")} <span>{m.director}</span>
                       </p>
                       <p>
-                        DIỄN VIÊN<span>{m.cast}</span>
+                        {t("DIỄN VIÊN")} <span>{m.cast}</span>
                       </p>
                       <button
-                        className="button button-gold"
+                        className="button button-primary"
                         onClick={() => bookMovie(m)}
+                        disabled={m.status === "soon"}
                       >
                         <Ticket size={15} />
-                        Đặt vé suất này
+                        {t("Đặt Vé")}{" "}
                       </button>
                       <button
                         className="poster-detail"
                         onClick={() => openMovie(m)}
                       >
-                        Thông tin phim
-                        <ArrowRight size={14} />
+                        {t("Thông tin phim")} <ArrowRight size={14} />
                       </button>
                     </div>
                   </div>
                 </div>
                 <div className="movie-card-meta">
-                  <span>{m.genre}</span>
+                  <span>{t(m.genre)}</span>
                   <b>
                     <Star size={12} fill="currentColor" />
                     {m.rating}
                   </b>
                 </div>
                 <button className="movie-title" onClick={() => openMovie(m)}>
-                  {m.title}
+                  {t(m.title)}
                 </button>
                 <p className="movie-duration">
                   <Clock3 size={12} />
-                  {m.duration} phút<span>·</span>
+                  {m.duration} {t("phút")} <span>·</span>
                   {m.year}
                   <button
                     onClick={() => bookMovie(m)}
-                    aria-label={`Đặt vé ${m.title}`}
+                    disabled={m.status === "soon"}
+                    aria-label={`Đặt vé ${t(m.title)}`}
                   >
                     <ArrowUpRight size={16} />
                   </button>
@@ -668,10 +611,12 @@ export default function App() {
           <div className="movie-note">
             <span className="live-dot" />
             <p>
-              Lịch chiếu và dữ liệu phim minh họa cho trải nghiệm NOVA Cinema.
+              {t(
+                "Lịch chiếu và dữ liệu phim minh họa cho trải nghiệm NOVA Cinema.",
+              )}{" "}
             </p>
             <span className="age-guide">
-              Phân loại: P · K · T13 · T16 · T18
+              {t("Phân loại: P · K · T13 · T16 · T18")}{" "}
             </span>
           </div>
         </section>
@@ -687,34 +632,34 @@ export default function App() {
                 FLASH SALE · PARTY COMBO 69K
               </div>
               <h2>
-                Phim hay.
+                {t("Phim hay.")}
                 <br />
-                Bắp ngon. <em>Vui hết cỡ.</em>
+                {t("Bắp ngon.")} <em>{t("Vui hết cỡ.")} </em>
               </h2>
               <p>
-                Một bắp lớn, hai ly mát lạnh.
-                <br />
-                Đủ vị cho một buổi hẹn hoàn hảo.
+                {t("Một bắp lớn, hai ly mát lạnh.")} <br />
+                {t("Đủ vị cho một buổi hẹn hoàn hảo.")}{" "}
               </p>
               <div className="offer-price">
                 <strong>
                   69<span>K</span>
                 </strong>
                 <div>
-                  <del>109.000đ</del>
-                  <span>CHO CẢ COMBO</span>
+                  <del>{t("109.000đ")} </del>
+                  <span>{t("CHO CẢ COMBO")} </span>
                 </div>
               </div>
               <button
-                className="button button-gold"
+                className="button button-primary"
                 onClick={() => bookMovie(hero, true)}
               >
                 <Popcorn size={17} />
-                Thêm combo vào vé
-                <ArrowUpRight size={17} />
+                {t("Thêm combo vào vé")} <ArrowUpRight size={17} />
               </button>
               <small className="offer-fineprint">
-                Giá combo minh họa · Áp dụng khi đặt cùng vé xem phim
+                {t(
+                  "Giá combo minh họa · Áp dụng khi đặt cùng vé xem phim",
+                )}{" "}
               </small>
             </div>
             <div
@@ -772,14 +717,12 @@ export default function App() {
             <UsersRound size={34} strokeWidth={1.2} />
             <span className="eyebrow">BETTER TOGETHER</span>
             <h3>
-              Một nhóm bạn.
-              <br />
-              <em>Vạn niềm vui.</em>
+              {t("Một nhóm bạn.")} <br />
+              <em>{t("Vạn niềm vui.")} </em>
             </h3>
             <p>
-              Cùng một hàng ghế.
-              <br />
-              Cùng một thế giới điện ảnh.
+              {t("Cùng một hàng ghế.")} <br />
+              {t("Cùng một thế giới điện ảnh.")}{" "}
             </p>
             <div className="group-avatar-stack">
               {["P", "H", "M", "N"].map((l, i) => (
@@ -794,10 +737,11 @@ export default function App() {
               ))}
               <span>+16</span>
             </div>
-            <span className="group-max">Xếp cụm tối đa 20 ghế liền nhau</span>
+            <span className="group-max">
+              {t("Xếp cụm tối đa 20 ghế liền nhau")}{" "}
+            </span>
             <button className="button button-glass" onClick={jumpGroup}>
-              Đặt vé cho cả nhóm
-              <ArrowUpRight size={17} />
+              {t("Đặt vé cho cả nhóm")} <ArrowUpRight size={17} />
             </button>
           </div>
         </section>
@@ -811,34 +755,34 @@ export default function App() {
               THE INNER CIRCLE
             </p>
             <h2>
-              Điện ảnh là đam mê.
-              <br />
-              <em>Đặc quyền là của bạn.</em>
+              {t("Điện ảnh là đam mê.")} <br />
+              <em>{t("Đặc quyền là của bạn.")} </em>
             </h2>
             <p className="section-description">
-              Gia nhập C’MEMBER. Để mỗi lần đến rạp
-              <br />
-              đều là một trải nghiệm xứng đáng hơn.
+              {t("Gia nhập C’MEMBER. Để mỗi lần đến rạp")} <br />
+              {t("đều là một trải nghiệm xứng đáng hơn.")}{" "}
             </p>
             <div className="member-benefits">
               <span>
                 <Crown size={18} />
-                Ưu đãi dành riêng
+                {t("Ưu đãi dành riêng")}{" "}
               </span>
               <span>
                 <Sparkles size={18} />
-                Tích điểm mỗi vé
+                {t("Tích điểm mỗi vé")}{" "}
               </span>
               <span>
                 <Ticket size={18} />
-                Lưu vé trong tài khoản
+                {t("Lưu vé trong tài khoản")}{" "}
               </span>
             </div>
             <button
               className="button button-glass"
               onClick={() => setModal(member ? "account" : "login")}
             >
-              {member ? "Khám phá tài khoản của bạn" : "Trở thành C’MEMBER"}
+              {member
+                ? t("Khám phá tài khoản của bạn")
+                : t("Trở thành C’MEMBER")}
               <ArrowUpRight size={17} />
             </button>
           </div>
@@ -874,7 +818,7 @@ export default function App() {
                 FIND YOUR NEXT DESTINATION
               </p>
               <h2>
-                Màn ảnh lớn. <em>Ngay gần bạn.</em>
+                {t("Màn ảnh lớn.")} <em>{t("Ngay gần bạn.")} </em>
               </h2>
             </div>
             <label className="city-select">
@@ -885,7 +829,9 @@ export default function App() {
                 aria-label="Lọc rạp theo thành phố"
               >
                 {["Tất cả", "TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng"].map((c) => (
-                  <option key={c}>{c}</option>
+                  <option key={c} value={c}>
+                    {t(c)}
+                  </option>
                 ))}
               </select>
               <ChevronDown size={14} />
@@ -918,16 +864,13 @@ export default function App() {
                         setMovieId("");
                         setDateId("");
                         setTimeId("");
-                        document
-                          .getElementById("booking")
-                          .scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                          });
+                        document.getElementById("booking").scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
                       }}
                     >
-                      Xem lịch chiếu
-                      <ArrowUpRight size={17} />
+                      {t("Xem lịch chiếu")} <ArrowUpRight size={17} />
                     </button>
                   </div>
                 </article>
@@ -941,9 +884,8 @@ export default function App() {
               NOVA SPECIAL SCREENINGS
             </p>
             <h2>
-              Những thước phim.
-              <br />
-              <em>Không thể bỏ lỡ.</em>
+              {t("Những thước phim.")} <br />
+              <em>{t("Không thể bỏ lỡ.")} </em>
             </h2>
           </div>
           <article className="event-card">
@@ -964,15 +906,14 @@ export default function App() {
               <h3>
                 Oppenheimer.
                 <br />
-                Trở lại, hoành tráng hơn.
+                {t("Trở lại, hoành tráng hơn.")}{" "}
               </h3>
-              <p>Kiệt tác của Christopher Nolan trên màn ảnh IMAX.</p>
+              <p>{t("Kiệt tác của Christopher Nolan trên màn ảnh IMAX.")} </p>
               <button
                 className="text-button"
                 onClick={() => bookMovie(movies[5])}
               >
-                Khám phá suất chiếu
-                <ArrowUpRight size={17} />
+                {t("Khám phá suất chiếu")} <ArrowUpRight size={17} />
               </button>
             </div>
           </article>
@@ -983,18 +924,18 @@ export default function App() {
             <InfinityIcon size={18} />
           </div>
           <div>
-            <h3>Cả rạp phim, trong tầm tay.</h3>
+            <h3>{t("Cả rạp phim, trong tầm tay.")} </h3>
             <p>
-              NOVA đồng hành trên mọi màn hình. Đặt vé trực tiếp từ trình duyệt
-              điện thoại.
+              {t(
+                "NOVA đồng hành trên mọi màn hình. Đặt vé trực tiếp từ trình duyệt điện thoại.",
+              )}{" "}
             </p>
           </div>
           <button
             className="button button-glass"
             onClick={() => setModal("app")}
           >
-            Khám phá NOVA Mobile
-            <ArrowUpRight size={16} />
+            {t("Khám phá NOVA Mobile")} <ArrowUpRight size={16} />
           </button>
         </section>
       </main>
@@ -1004,46 +945,47 @@ export default function App() {
             <div className="footer-brand">
               <Brand />
               <p>
-                Không giới hạn cảm xúc.
-                <br />
-                Không giới hạn trải nghiệm.
+                {t("Không giới hạn cảm xúc.")} <br />
+                {t("Không giới hạn trải nghiệm.")}{" "}
               </p>
               <span>INFINITY EXPERIENCE.</span>
             </div>
             <div>
-              <h4>KHÁM PHÁ NOVA</h4>
-              <a href="#movies">Phim & lịch chiếu</a>
-              <a href="#cinemas">Hệ thống rạp</a>
-              <a href="#offers">Ưu đãi & bắp nước</a>
-              <a href="#membership">Thành viên C’MEMBER</a>
+              <h4>{t("KHÁM PHÁ NOVA")} </h4>
+              <a href="#movies">{t("Phim & lịch chiếu")} </a>
+              <a href="#cinemas">{t("Hệ thống rạp")} </a>
+              <a href="#offers">{t("Ưu đãi & bắp nước")} </a>
+              <a href="#membership">{t("Thành viên C’MEMBER")} </a>
             </div>
             <div>
-              <h4>ĐỒNG HÀNH CÙNG BẠN</h4>
-              <button onClick={() => setModal("help")}>Hướng dẫn đặt vé</button>
+              <h4>{t("ĐỒNG HÀNH CÙNG BẠN")} </h4>
+              <button onClick={() => setModal("help")}>
+                {t("Hướng dẫn đặt vé")}{" "}
+              </button>
               <button onClick={() => setModal("policy")}>
-                Điều khoản & chính sách
+                {t("Điều khoản & chính sách")}{" "}
               </button>
               <button onClick={() => setModal("history")}>
-                Tra cứu vé đã đặt
+                {t("Tra cứu vé đã đặt")}{" "}
               </button>
               <span className="footer-contact">
-                NOVA Cinema · Đồ án Nhóm 03
+                {t("NOVA Cinema · Đồ án Nhóm 03")}{" "}
               </span>
             </div>
             <div className="footer-payment">
-              <h4>THANH TOÁN SANDBOX</h4>
+              <h4>{t("THANH TOÁN SANDBOX")} </h4>
               <div>
                 <b>VISA</b>
                 <b>Mastercard</b>
                 <b>MoMo</b>
-                <b>VNPay</b>
+                <b>ZaloPay</b>
               </div>
               <p>
                 <ShieldCheck size={16} />
-                Giao dịch mô phỏng, không thu tiền thật.
+                {t("Giao dịch mô phỏng, không thu tiền thật.")}{" "}
               </p>
               <span className="footer-project-label">
-                DỰ ÁN HỌC PHẦN / HCMUE
+                {t("DỰ ÁN HỌC PHẦN / HCMUE")}{" "}
               </span>
             </div>
           </div>
@@ -1052,10 +994,13 @@ export default function App() {
               © {new Date().getFullYear()} NOVA Cinema. Crafted for the big
               screen.
             </p>
-            <span>Dữ liệu rạp, giá vé và quyền lợi được dùng để minh họa.</span>
+            <span>
+              {t(
+                "Dữ liệu rạp, giá vé và quyền lợi được dùng để minh họa.",
+              )}{" "}
+            </span>
             <a href="#top">
-              VỀ ĐẦU TRANG
-              <ArrowUpRight size={13} />
+              {t("VỀ ĐẦU TRANG")} <ArrowUpRight size={13} />
             </a>
           </div>
         </div>
@@ -1070,6 +1015,13 @@ export default function App() {
           ].join("|")}
           booking={booking}
           member={member}
+          onMemberUpdate={(next) => {
+            setMember(next);
+            (localStorage.getItem("nova-member")
+              ? localStorage
+              : sessionStorage
+            ).setItem("nova-member", JSON.stringify(next));
+          }}
           onClose={() => setBooking(null)}
           onTicket={(t) => setTickets((prev) => [...prev, t])}
         />
@@ -1078,28 +1030,30 @@ export default function App() {
         <Modal
           title={
             modal === "search"
-              ? "Tìm câu chuyện của bạn"
+              ? t("Tìm câu chuyện của bạn")
               : modal === "login"
-                ? "Chào mừng đến C’MEMBER"
+                ? t("Chào mừng đến C’MEMBER")
                 : modal === "account"
-                  ? "Đặc quyền của bạn"
+                  ? t("Đặc quyền của bạn")
                   : modal === "history"
-                    ? "Vé của bạn"
+                    ? t("Vé của bạn")
                     : modal === "movie"
-                      ? activeMovie.title
+                      ? t(activeMovie.title)
                       : modal === "trailer"
-                        ? `Trailer · ${activeMovie.title}`
+                        ? `Trailer · ${t(activeMovie.title)}`
                         : modal === "help"
-                          ? "Đặt vé, thật đơn giản"
+                          ? t("Đặt vé, thật đơn giản")
                           : modal === "app"
-                            ? "NOVA trên mọi màn hình"
-                            : "Điều khoản & thông tin dự án"
+                            ? t("NOVA trên mọi màn hình")
+                            : t("Điều khoản & thông tin dự án")
           }
           onClose={() => {
             setModal(null);
             setQuery("");
           }}
-          wide={["movie", "trailer", "history", "account"].includes(modal)}
+          wide={["movie", "trailer", "history", "account", "login"].includes(
+            modal,
+          )}
         >
           {modal === "search" && (
             <div className="search-modal">
@@ -1107,14 +1061,18 @@ export default function App() {
                 <Search size={20} />
                 <input
                   autoFocus
-                  placeholder="Tên phim, đạo diễn…"
+                  placeholder={t("Tên phim, đạo diễn…")}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
                 <kbd>ESC</kbd>
               </label>
               <p className="eyebrow">
-                {query ? `${results.length} KẾT QUẢ` : "ĐANG ĐƯỢC QUAN TÂM"}
+                {query
+                  ? `${results.length + cinemaResults.length} ${language === "en" ? "RESULTS" : "KẾT QUẢ"}`
+                  : language === "en"
+                    ? "TRENDING NOW"
+                    : "ĐANG ĐƯỢC QUAN TÂM"}
               </p>
               {results.map((m) => (
                 <button
@@ -1124,88 +1082,68 @@ export default function App() {
                 >
                   <MoviePoster movie={m} />
                   <span>
-                    <strong>{m.title}</strong>
+                    <strong>{t(m.title)}</strong>
                     <small>
-                      {m.genre} · {m.duration} phút · {m.age}
+                      {t(m.genre)} · {m.duration} {t("phút ·")} {m.age}
                     </small>
                   </span>
                   <ArrowUpRight size={18} />
                 </button>
               ))}
-              {!results.length && (
+              {cinemaResults.map((c) => (
+                <button
+                  className="search-cinema-result"
+                  key={c.id}
+                  onClick={() => {
+                    setCinemaId(c.id);
+                    setMovieId("");
+                    setDateId("");
+                    setTimeId("");
+                    setModal(null);
+                    document
+                      .getElementById("booking")
+                      .scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  <MapPin size={21} />
+                  <span>
+                    <strong>{c.name}</strong>
+                    <small>
+                      {c.city} · {c.formats}
+                    </small>
+                  </span>
+                  <ArrowUpRight size={17} />
+                </button>
+              ))}
+              {!results.length && !cinemaResults.length && (
                 <p className="muted">
-                  Chưa có phim phù hợp. Hãy thử tên phim hoặc đạo diễn khác.
+                  {t(
+                    "Chưa có phim phù hợp. Hãy thử tên phim hoặc đạo diễn khác.",
+                  )}{" "}
                 </p>
               )}
             </div>
           )}
           {modal === "login" && (
-            <form
-              className="login-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const fields = new FormData(e.currentTarget);
-                const next = {
-                  name: fields.get("name").trim(),
-                  email: fields.get("email").trim(),
-                };
-                if (!next.name) return;
-                localStorage.setItem("nova-member", JSON.stringify(next));
+            <AuthForm
+              onSuccess={(next) => {
                 setMember(next);
                 setModal("account");
               }}
-            >
-              <div className="login-emblem">
-                <Crown size={35} />
-              </div>
-              <h3>Mỗi tấm vé, một đặc quyền.</h3>
-              <p className="muted">
-                Tạo hồ sơ demo để trải nghiệm ưu đãi 5% tiền vé và lưu lịch sử
-                đặt vé trên thiết bị này.
-              </p>
-              <label>
-                Họ và tên
-                <input
-                  name="name"
-                  required
-                  minLength={2}
-                  maxLength={60}
-                  placeholder="Tên của bạn"
-                  autoComplete="name"
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  placeholder="ban@example.com"
-                  autoComplete="email"
-                />
-              </label>
-              <button className="button button-gold w-full">
-                Tiếp tục với hồ sơ demo
-                <ArrowRight size={17} />
-              </button>
-              <p className="small muted">
-                Đây là hồ sơ minh họa lưu trong trình duyệt, chưa phải tài khoản
-                được xác thực.
-              </p>
-            </form>
+            />
           )}
           {modal === "account" && (
             <div className="account-view">
               <div className="account-welcome">
                 <Crown size={28} />
-                <h3>Xin chào, {member?.name}.</h3>
+                <h3>
+                  {t("Xin chào,")} {member?.name}.
+                </h3>
                 <span className="format-badge">C’MEMBER</span>
                 <p>{member?.email}</p>
                 <p className="muted">
-                  Ưu đãi minh họa: giảm 5% tiền vé. Điểm demo đã tích:{" "}
-                  {tickets
-                    .reduce((s, t) => s + Math.floor(t.total / 1000), 0)
-                    .toLocaleString("vi-VN")}
+                  {t("Ưu đãi minh họa: giảm 5% tiền vé. Điểm demo đã tích:")}{" "}
+                  {(member?.points || 0).toLocaleString("vi-VN")}
                 </p>
               </div>
               <TicketHistory tickets={tickets} />
@@ -1213,11 +1151,12 @@ export default function App() {
                 className="text-button"
                 onClick={() => {
                   localStorage.removeItem("nova-member");
+                  sessionStorage.removeItem("nova-member");
                   setMember(null);
                   setModal(null);
                 }}
               >
-                Đăng xuất hồ sơ demo
+                {t("Đăng xuất hồ sơ demo")}{" "}
               </button>
             </div>
           )}
@@ -1233,22 +1172,22 @@ export default function App() {
                   <span className="age-badge">{activeMovie.age}</span>
                   <span>
                     <Clock3 size={14} />
-                    {activeMovie.duration} phút
+                    {activeMovie.duration} {t("phút")}{" "}
                   </span>
                   <span className="rating">
                     <Star size={14} />
                     {activeMovie.rating}
                   </span>
                 </div>
-                <p>{activeMovie.description}</p>
+                <p>{t(activeMovie.description)}</p>
                 <dl>
-                  <dt>Thể loại</dt>
-                  <dd>{activeMovie.genre}</dd>
-                  <dt>Đạo diễn</dt>
+                  <dt>{t("Thể loại")} </dt>
+                  <dd>{t(activeMovie.genre)}</dd>
+                  <dt>{t("Đạo diễn")} </dt>
                   <dd>{activeMovie.director}</dd>
-                  <dt>Diễn viên</dt>
+                  <dt>{t("Diễn viên")} </dt>
                   <dd>{activeMovie.cast}</dd>
-                  <dt>Định dạng</dt>
+                  <dt>{t("Định dạng")} </dt>
                   <dd>
                     {activeMovie.format === "IMAX"
                       ? "IMAX Laser · Dolby Atmos 12.1"
@@ -1259,11 +1198,12 @@ export default function App() {
                 </dl>
                 <div className="detail-actions">
                   <button
-                    className="button button-gold"
+                    className="button button-primary"
+                    disabled={activeMovie.status === "soon"}
                     onClick={() => bookMovie(activeMovie)}
                   >
                     <Ticket size={17} />
-                    Đặt vé ngay
+                    {t("Đặt vé ngay")}{" "}
                   </button>
                   <button
                     className="button button-glass"
@@ -1280,12 +1220,12 @@ export default function App() {
             <div className="trailer-modal">
               <iframe
                 src={`https://www.youtube-nocookie.com/embed/${activeMovie.trailer}`}
-                title={`Trailer ${activeMovie.title}`}
+                title={`Trailer ${t(activeMovie.title)}`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
               <p className="muted small">
-                Chất lượng phát phụ thuộc video gốc và kết nối mạng.
+                {t("Chất lượng phát phụ thuộc video gốc và kết nối mạng.")}{" "}
               </p>
               <a
                 href={`https://www.youtube.com/watch?v=${activeMovie.trailer}`}
@@ -1293,14 +1233,14 @@ export default function App() {
                 rel="noreferrer"
                 className="text-button"
               >
-                Mở trailer trên YouTube
-                <ArrowUpRight size={17} />
+                {t("Mở trailer trên YouTube")} <ArrowUpRight size={17} />
               </a>
               <button
-                className="button button-gold"
+                className="button button-primary"
+                disabled={activeMovie.status === "soon"}
                 onClick={() => bookMovie(activeMovie)}
               >
-                Đặt vé {activeMovie.title}
+                {t("Đặt vé")} {t(activeMovie.title)}
                 <Ticket size={16} />
               </button>
             </div>
@@ -1342,14 +1282,14 @@ export default function App() {
           {modal === "app" && (
             <div className="info-modal app-modal-content">
               <Smartphone size={48} />
-              <h3>Trải nghiệm NOVA trên điện thoại</h3>
+              <h3>{t("Trải nghiệm NOVA trên điện thoại")} </h3>
               <p>
-                Giao diện tự điều chỉnh cho điện thoại, máy tính bảng và máy
-                tính. Mở địa chỉ website trong trình duyệt và bắt đầu đặt vé. Dự
-                án hiện chưa phát hành ứng dụng iOS/Android.
+                {t(
+                  "Giao diện tự điều chỉnh cho điện thoại, máy tính bảng và máy tính. Mở địa chỉ website trong trình duyệt và bắt đầu đặt vé. Dự án hiện chưa phát hành ứng dụng iOS/Android.",
+                )}{" "}
               </p>
               <button
-                className="button button-gold"
+                className="button button-primary"
                 onClick={() => {
                   setModal(null);
                   document
@@ -1357,38 +1297,35 @@ export default function App() {
                     .scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                Bắt đầu đặt vé
-                <ArrowRight size={17} />
+                {t("Bắt đầu đặt vé")} <ArrowRight size={17} />
               </button>
             </div>
           )}
           {modal === "policy" && (
             <div className="info-modal policy-copy">
-              <h3>Thông tin dự án</h3>
+              <h3>{t("Thông tin dự án")} </h3>
               <p>
-                NOVA Cinema (Infinity) là giao diện minh họa cho đồ án Website
-                Đặt Vé Xem Phim Trực Tuyến, Nhóm 03, HCMUE. Hệ thống không vận
-                hành rạp thật, không thu tiền và chưa có chứng nhận Bộ Công
-                Thương.
+                {t(
+                  "NOVA Cinema (Infinity) là giao diện minh họa cho đồ án Website Đặt Vé Xem Phim Trực Tuyến, Nhóm 03, HCMUE. Hệ thống không vận hành rạp thật, không thu tiền và chưa có chứng nhận Bộ Công Thương.",
+                )}{" "}
               </p>
-              <h3>Dữ liệu & quyền riêng tư</h3>
+              <h3>{t("Dữ liệu & quyền riêng tư")} </h3>
               <p>
-                Hồ sơ demo, trạng thái ghế và vé được lưu bằng localStorage trên
-                thiết bị. Không nhập thông tin nhạy cảm. Xóa dữ liệu website
-                trong trình duyệt để xóa toàn bộ thông tin demo.
+                {t(
+                  "Hồ sơ demo, trạng thái ghế và vé được lưu bằng localStorage trên thiết bị. Không nhập thông tin nhạy cảm. Xóa dữ liệu website trong trình duyệt để xóa toàn bộ thông tin demo.",
+                )}{" "}
               </p>
-              <h3>Giữ ghế & thanh toán</h3>
+              <h3>{t("Giữ ghế & thanh toán")} </h3>
               <p>
-                Ghế được giữ 5 phút và giải phóng khi hết hạn, hủy hoặc thanh
-                toán thất bại. Đồng bộ demo chỉ giữa các tab cùng trình duyệt;
-                hệ thống thực cần backend để khóa ghế giữa nhiều người dùng.
-                Giá, ưu đãi và lịch chiếu là dữ liệu minh họa.
+                {t(
+                  "Ghế được giữ 5 phút và giải phóng khi hết hạn, hủy hoặc thanh toán thất bại. Đồng bộ demo chỉ giữa các tab cùng trình duyệt; hệ thống thực cần backend để khóa ghế giữa nhiều người dùng. Giá, ưu đãi và lịch chiếu là dữ liệu minh họa.",
+                )}{" "}
               </p>
-              <h3>Hình ảnh & nội dung</h3>
+              <h3>{t("Hình ảnh & nội dung")} </h3>
               <p>
-                Hình ảnh phim từ TMDB; trailer từ YouTube. Nội dung và hình ảnh
-                thuộc chủ sở hữu tương ứng. Điểm đánh giá được dùng để minh họa
-                giao diện.
+                {t(
+                  "Hình ảnh phim từ TMDB; trailer từ YouTube. Nội dung và hình ảnh thuộc chủ sở hữu tương ứng. Điểm đánh giá được dùng để minh họa giao diện.",
+                )}{" "}
               </p>
             </div>
           )}

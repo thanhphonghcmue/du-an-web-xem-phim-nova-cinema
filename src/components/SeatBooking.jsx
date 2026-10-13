@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  Crown,
   Check,
   Clock3,
   Download,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 import Modal from "./Modal.jsx";
+import FoodArt from "./FoodArt.jsx";
 import {
   HOLD_MS,
   seats,
@@ -22,15 +24,27 @@ import {
   findGroup,
 } from "../bookingStore.js";
 import { money } from "../data.js";
+import { useI18n } from "../i18n.js";
 
-export default function SeatBooking({ booking, member, onClose, onTicket }) {
+export default function SeatBooking({
+  booking,
+  member,
+  onClose,
+  onTicket,
+  onMemberUpdate,
+}) {
+  const { language, t } = useI18n();
   const { movie, cinema, date, time, group, combo: initialCombo } = booking;
+  const [reward, setReward] = useState(member ? "member" : "none");
+  const [voucherInput, setVoucherInput] = useState(""),
+    [voucherValid, setVoucherValid] = useState(false),
+    [voucherNotice, setVoucherNotice] = useState("");
   const showId = [cinema.id, movie.id, date.id, time.id].join("|");
   const [owner] = useState(() => crypto.randomUUID());
   const [data, setData] = useState(() => readSeats(showId));
   const [now, setNow] = useState(Date.now);
   const [combo, setCombo] = useState(initialCombo ? 1 : 0);
-  const [count, setCount] = useState(4);
+  const [count, setCount] = useState(3);
   const [notice, setNotice] = useState("");
   const [stage, setStage] = useState("seats");
   const [method, setMethod] = useState("MoMo");
@@ -44,7 +58,19 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
   const seatTotal = seats
     .filter((s) => chosen.includes(s.id))
     .reduce((sum, s) => sum + s.price, 0);
-  const discount = member ? Math.round(seatTotal * 0.05) : 0;
+  // Chỉ áp dụng một ưu đãi mỗi đơn: tránh cộng chồng điểm, voucher và giảm giá hội viên.
+  const usedPoints =
+    reward === "points"
+      ? Math.min(member?.points || 0, Math.floor(seatTotal / 100))
+      : 0;
+  const discount =
+    reward === "member" && member
+      ? Math.round(seatTotal * 0.05)
+      : reward === "points"
+        ? usedPoints * 100
+        : reward === "voucher" && voucherValid
+          ? Math.min(30000, Math.round(seatTotal * 0.1))
+          : 0;
   const total = seatTotal + combo * 69000 - discount;
   useEffect(() => {
     const refresh = () => {
@@ -113,7 +139,7 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
       setBusy(false);
     }
   }
-  async function selectGroup() {
+  async function selectGroup(groupCount = count) {
     setBusy(true);
     setNotice("");
     try {
@@ -121,10 +147,10 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
         const emptyOwn = Object.fromEntries(
           Object.entries(current).filter(([, s]) => s.owner !== owner),
         );
-        const ids = findGroup(emptyOwn, count);
+        const ids = findGroup(emptyOwn, groupCount);
         if (!ids)
           throw Error(
-            `Không có ${count} ghế liền nhau. Hãy giảm số người hoặc chọn suất khác.`,
+            `Không có ${groupCount} ghế liền nhau. Hãy giảm số người hoặc chọn suất khác.`,
           );
         const previous = ownSeats(current, owner);
         const expires = previous.length
@@ -193,6 +219,11 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
       setTicket(result);
       setStage("success");
       onTicket(result);
+      if (member)
+        onMemberUpdate?.({
+          ...member,
+          points: (member.points || 0) - usedPoints + Math.floor(total / 1000),
+        });
     } catch (e) {
       setNotice(e.message);
     } finally {
@@ -204,20 +235,52 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
     <Modal
       title={
         stage === "success"
-          ? "Hẹn gặp bạn tại rạp!"
+          ? t("Hẹn gặp bạn tại rạp!")
           : stage === "payment"
-            ? "Hoàn tất trải nghiệm"
-            : "Chọn vị trí của bạn"
+            ? t("Hoàn tất trải nghiệm")
+            : stage === "combo"
+              ? t("Combo & Ưu đãi")
+              : t("Chọn vị trí của bạn")
       }
       onClose={close}
       wide
     >
+      {stage !== "success" && (
+        <div className="flow-stepper">
+          {["Chọn Rạp & Suất", "Chọn Ghế", "Combo & Ưu đãi", "Thanh toán"].map(
+            (label, i) => {
+              const current = stage === "seats" ? 1 : stage === "combo" ? 2 : 3;
+              return (
+                <button
+                  key={label}
+                  disabled={busy || i > current}
+                  className={
+                    i === current ? "active" : i < current ? "done" : ""
+                  }
+                  onClick={() =>
+                    i === 0
+                      ? close()
+                      : setStage(["", "seats", "combo", "payment"][i])
+                  }
+                >
+                  <span>{i < current ? <Check size={13} /> : i + 1}</span>
+                  {t(label)}
+                </button>
+              );
+            },
+          )}
+        </div>
+      )}
       {stage === "success" ? (
         <div className="ticket-success">
           <div className="success-mark">
             <Check size={30} />
           </div>
-          <span className="eyebrow">ĐẶT VÉ MÔ PHỎNG THÀNH CÔNG</span>
+          <span className="eyebrow">
+            {language === "en"
+              ? "DEMO BOOKING CONFIRMED"
+              : "ĐẶT VÉ MÔ PHỎNG THÀNH CÔNG"}
+          </span>
           <h3>{ticket.movie}</h3>
           <p>
             {ticket.cinema} · {ticket.date} · {ticket.time}
@@ -225,39 +288,47 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
           <img
             className="ticket-qr"
             src={ticket.qr}
-            alt={`Mã QR vé ${ticket.code}`}
+            alt={`QR ${ticket.code}`}
           />
           <p className="ticket-seats">
-            GHẾ {ticket.seats.join(", ")} · {money(ticket.total)}
+            {language === "en" ? "SEATS" : "GHẾ"} {ticket.seats.join(", ")} ·{" "}
+            {money(ticket.total)}
           </p>
           <code>{ticket.code}</code>
           <p className="muted small">
-            Vé demo dùng cho đồ án, không có giá trị check-in tại rạp thật.
+            {language === "en"
+              ? "Demo ticket only. Not valid for entry to a real cinema."
+              : "Vé demo dùng cho đồ án, không có giá trị check-in tại rạp thật."}
           </p>
           <a
-            className="button button-gold"
+            className="button button-primary"
             href={ticket.qr}
             download={`${ticket.code}.png`}
           >
-            <Download size={17} /> Tải mã QR
+            <Download size={17} />
+            {t("Tải QR")}
           </a>
         </div>
       ) : (
         <>
           <div className="booking-context">
-            <img src={movie.poster} alt="" />
             <div>
-              <h3>{movie.title}</h3>
-              <p>{cinema.name} · Phòng Infinity 01</p>
+              <h3>{language === "en" ? movie.original : movie.title}</h3>
+              <p>
+                {cinema.name} · {language === "en" ? "Room" : "Phòng"} Infinity
+                01
+              </p>
               <span>
                 {date.label} · {time.label} · {movie.age}
               </span>
             </div>
             <div className={`hold-timer ${remaining < 60 ? "urgent" : ""}`}>
-              <Clock3 size={17} />
+              <Clock3 size={18} />
               <div>
                 <small>
-                  {chosen.length ? "Ghế được giữ trong" : "Thời gian giữ ghế"}
+                  {language === "en"
+                    ? "Your seats are held safely"
+                    : "Giữ ghế an toàn trong"}
                 </small>
                 <strong>
                   {String(Math.floor(remaining / 60)).padStart(2, "0")}:
@@ -267,24 +338,49 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
             </div>
           </div>
           <p className="sandbox-note">
-            <ShieldCheck size={15} /> Mô phỏng Sandbox · Trạng thái ghế đồng bộ
-            giữa các tab trên cùng trình duyệt.
+            <ShieldCheck size={15} />
+            {language === "en"
+              ? "Sandbox demo · Seat status syncs across tabs on this device."
+              : "Mô phỏng Sandbox · Trạng thái ghế đồng bộ giữa các tab trên thiết bị này."}
           </p>
           <div className="checkout-layout">
             <div className="seat-area">
               {stage === "seats" ? (
                 <>
+                  <div className="seat-helper">
+                    <div>
+                      <UsersRound size={20} />
+                      <span>
+                        {language === "en"
+                          ? "Good company. Great seats."
+                          : "Cùng bạn bè. Cùng hàng ghế."}
+                      </span>
+                    </div>
+                    <button
+                      className="button button-glass"
+                      onClick={() => selectGroup(3)}
+                      disabled={busy}
+                    >
+                      {t("Chọn nhanh 3 ghế liền nhau")}
+                    </button>
+                  </div>
                   {group && (
                     <div className="group-picker">
                       <UsersRound size={20} />
                       <div>
-                        <strong>Cả nhóm, ngồi cùng nhau.</strong>
+                        <strong>
+                          {language === "en"
+                            ? "Everyone, together."
+                            : "Cả nhóm, ngồi cùng nhau."}
+                        </strong>
                         <small>
-                          Tự động chọn một dải ghế liền kề, tối đa 20 ghế.
+                          {language === "en"
+                            ? "One continuous row, up to 20 people."
+                            : "Tự động chọn một dải ghế liền kề, tối đa 20 ghế."}
                         </small>
                       </div>
                       <label className="sr-only" htmlFor="group-count">
-                        Số người trong nhóm
+                        {t("Số người trong nhóm")}
                       </label>
                       <select
                         id="group-count"
@@ -293,23 +389,23 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                       >
                         {Array.from({ length: 19 }, (_, i) => (
                           <option value={i + 2} key={i}>
-                            {i + 2} người
+                            {i + 2} {language === "en" ? "people" : "người"}
                           </option>
                         ))}
                       </select>
                       <button
-                        className="button button-gold"
-                        onClick={selectGroup}
+                        className="button button-primary"
+                        onClick={() => selectGroup()}
                         disabled={busy}
                       >
-                        Xếp ghế
+                        {t("Xếp ghế")}
                       </button>
                     </div>
                   )}
                   <div className="seat-map-scroll">
                     <div className="seat-map">
                       <div className="curved-screen" />
-                      <p className="screen-label">MÀN HÌNH / INFINITY SCREEN</p>
+                      <p className="screen-label">INFINITY / IMAX SCREEN</p>
                       {rows.map((row) => (
                         <div className="seat-row" key={row}>
                           <span className="row-label">{row}</span>
@@ -321,6 +417,28 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                                 record?.owner === owner
                                   ? "selected"
                                   : record?.status || seat.type;
+                              const stateText =
+                                state === "selected"
+                                  ? language === "en"
+                                    ? "selected"
+                                    : "đang chọn"
+                                  : state === "sold"
+                                    ? language === "en"
+                                      ? "sold"
+                                      : "đã bán"
+                                    : state === "held"
+                                      ? language === "en"
+                                        ? "held"
+                                        : "đang giữ"
+                                      : seat.type === "vip"
+                                        ? "VIP"
+                                        : seat.type === "sweet"
+                                          ? language === "en"
+                                            ? "Sweetbox pair"
+                                            : "Sweetbox đôi"
+                                          : language === "en"
+                                            ? "standard"
+                                            : "thường";
                               return (
                                 <button
                                   key={seat.id}
@@ -329,7 +447,7 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                                     (!!record && record.owner !== owner) || busy
                                   }
                                   onClick={() => toggleSeat(seat)}
-                                  aria-label={`Ghế ${seat.id}, ${state === "selected" ? "đang chọn" : state === "sold" ? "đã bán" : state === "held" ? "đang giữ" : seat.type === "vip" ? "VIP" : seat.type === "sweet" ? "Sweetbox đôi" : "thường"}`}
+                                  aria-label={`${language === "en" ? "Seat" : "Ghế"} ${seat.id}, ${stateText}`}
                                   aria-pressed={state === "selected"}
                                   title={`${seat.id} · ${money(seat.price)}`}
                                 >
@@ -344,12 +462,32 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                   </div>
                   <div className="seat-legend">
                     {[
-                      ["standard", "Thường · 90K"],
+                      [
+                        "standard",
+                        language === "en" ? "Standard · 90K" : "Thường · 90K",
+                      ],
                       ["vip", "VIP · 120K"],
-                      ["sweet", "Sweetbox · 220K/đôi"],
-                      ["selected", "Bạn đang chọn"],
-                      ["held", "Đang giữ"],
-                      ["sold", "Đã bán"],
+                      [
+                        "sweet",
+                        language === "en"
+                          ? "Sweetbox · 220K/pair"
+                          : "Sweetbox · 220K/đôi",
+                      ],
+                      [
+                        "available",
+                        language === "en" ? "Available" : "Còn trống",
+                      ],
+                      [
+                        "selected",
+                        language === "en" ? "Selected" : "Bạn đang chọn",
+                      ],
+                      [
+                        "held",
+                        language === "en"
+                          ? "Held by others"
+                          : "Người khác đang giữ",
+                      ],
+                      ["sold", language === "en" ? "Sold" : "Đã bán"],
                     ].map(([c, l]) => (
                       <span key={c}>
                         <i className={c} />
@@ -358,16 +496,173 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                     ))}
                   </div>
                 </>
+              ) : stage === "combo" ? (
+                <div className="addons-step">
+                  <p className="eyebrow">THE PERFECT MOVIE PAIRING</p>
+                  <h3>
+                    {language === "en"
+                      ? "Make a great film even better."
+                      : "Thêm chút ngon. Trọn niềm vui."}
+                  </h3>
+                  <div className="checkout-combo-card">
+                    <FoodArt />
+                    <div>
+                      <span className="coral-tag">PARTY COMBO 69K</span>
+                      <h4>
+                        {language === "en"
+                          ? "Share the good times."
+                          : "Chia sẻ vị ngon."}
+                      </h4>
+                      <p>
+                        {language === "en"
+                          ? "1 large popcorn + 2 ice-cold drinks"
+                          : "1 bắp lớn + 2 ly mát lạnh"}
+                      </p>
+                      <strong>{money(69000)}</strong>
+                      <button
+                        className="button button-primary"
+                        disabled={combo >= 10}
+                        onClick={() => setCombo(Math.min(10, combo + 1))}
+                      >
+                        <Plus size={16} />
+                        {language === "en"
+                          ? "Add combo to tickets"
+                          : "Thêm Combo vào vé"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="reward-options">
+                    <div>
+                      <Crown size={22} />
+                      <h4>
+                        C’MEMBER /{" "}
+                        {language === "en"
+                          ? "YOUR REWARDS"
+                          : "ĐẶC QUYỀN CỦA BẠN"}
+                      </h4>
+                    </div>
+                    <p>
+                      {language === "en"
+                        ? "Choose one reward. Your total updates instantly."
+                        : "Chọn một ưu đãi. Tổng tiền cập nhật ngay."}
+                    </p>
+                    {[
+                      [
+                        "none",
+                        language === "en"
+                          ? "No discount"
+                          : "Không áp dụng ưu đãi",
+                        false,
+                      ],
+                      [
+                        "member",
+                        language === "en"
+                          ? "C’MEMBER · 5% off tickets"
+                          : "C’MEMBER · Giảm 5% tiền vé",
+                        !member,
+                      ],
+                      [
+                        "points",
+                        language === "en"
+                          ? `Use ${member?.points || 0} demo points`
+                          : `Dùng ${member?.points || 0} điểm demo`,
+                        !member?.points,
+                      ],
+                      [
+                        "voucher",
+                        language === "en"
+                          ? "Apply a promotion code"
+                          : "Áp dụng mã ưu đãi",
+                        false,
+                      ],
+                    ].map(([id, label, disabled]) => (
+                      <label key={id} className={reward === id ? "active" : ""}>
+                        <input
+                          type="radio"
+                          name="reward"
+                          value={id}
+                          checked={reward === id}
+                          disabled={disabled}
+                          onChange={() => setReward(id)}
+                        />
+                        <span>{label}</span>
+                        {disabled && (
+                          <small>
+                            {language === "en"
+                              ? "Not available"
+                              : "Chưa đủ điều kiện"}
+                          </small>
+                        )}
+                      </label>
+                    ))}
+                    {reward === "voucher" && (
+                      <div className="voucher-input">
+                        <label className="sr-only" htmlFor="voucher-code">
+                          {language === "en" ? "Voucher code" : "Mã ưu đãi"}
+                        </label>
+                        <input
+                          id="voucher-code"
+                          value={voucherInput}
+                          onChange={(e) => {
+                            setVoucherInput(e.target.value.toUpperCase());
+                            setVoucherValid(false);
+                            setVoucherNotice("");
+                          }}
+                          placeholder="NOVA10"
+                        />
+                        <button
+                          className="button button-glass"
+                          onClick={() => {
+                            const valid = voucherInput.trim() === "NOVA10";
+                            setVoucherValid(valid);
+                            setVoucherNotice(
+                              valid
+                                ? language === "en"
+                                  ? "10% off tickets, up to 30,000đ."
+                                  : "Giảm 10% tiền vé, tối đa 30.000đ."
+                                : language === "en"
+                                  ? "This demo accepts NOVA10 only."
+                                  : "Mã chưa hợp lệ. Dùng mã demo NOVA10.",
+                            );
+                          }}
+                        >
+                          {language === "en" ? "Apply" : "Áp dụng"}
+                        </button>
+                        <p role="status">{voucherNotice}</p>
+                      </div>
+                    )}
+                    <small>
+                      {language === "en"
+                        ? "Demo: 1 point = 100đ; points and discounts apply to tickets only."
+                        : "Demo: 1 điểm = 100đ; điểm và giảm giá chỉ áp dụng tiền vé."}
+                    </small>
+                  </div>
+                  <button
+                    className="text-button"
+                    onClick={() => setStage("seats")}
+                  >
+                    ← {t("Quay lại chọn ghế")}
+                  </button>
+                </div>
               ) : (
                 <div className="payment-section">
-                  <span className="eyebrow">PHƯƠNG THỨC THANH TOÁN</span>
-                  <h3>Một bước nữa đến màn ảnh lớn.</h3>
+                  <span className="eyebrow">
+                    {language === "en"
+                      ? "PAYMENT METHOD"
+                      : "PHƯƠNG THỨC THANH TOÁN"}
+                  </span>
+                  <h3>
+                    {language === "en"
+                      ? "One step from the big screen."
+                      : "Một bước nữa đến màn ảnh lớn."}
+                  </h3>
                   <p className="muted">
-                    Chọn phương thức để thử luồng thanh toán. Không thu tiền
-                    thật.
+                    {language === "en"
+                      ? "Choose a Sandbox method. No money is charged."
+                      : "Chọn phương thức để thử luồng thanh toán. Không thu tiền thật."}
                   </p>
                   <div className="payment-methods">
-                    {["MoMo", "VNPay", "Thẻ ngân hàng"].map((m) => (
+                    {["MoMo", "ZaloPay", "Visa / Mastercard"].map((m) => (
                       <button
                         key={m}
                         className={method === m ? "active" : ""}
@@ -375,57 +670,79 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                       >
                         <ShieldCheck size={20} />
                         {m}
+                        <small>Sandbox</small>
                         {method === m && <Check size={17} />}
                       </button>
                     ))}
                   </div>
                   <button
                     className="text-button"
-                    onClick={() => setStage("seats")}
+                    onClick={() => setStage("combo")}
                   >
-                    ← Quay lại chọn ghế
+                    ← {t("Combo & Ưu đãi")}
                   </button>
                   <button
                     className="payment-failure"
                     onClick={() =>
                       release(
-                        "Thanh toán mô phỏng thất bại. Các ghế đã được giải phóng.",
+                        language === "en"
+                          ? "Demo payment failed. Your seats have been released."
+                          : "Thanh toán mô phỏng thất bại. Các ghế đã được giải phóng.",
                       )
                     }
                     disabled={busy}
                   >
-                    Thử trường hợp thanh toán thất bại
+                    {language === "en"
+                      ? "Test payment failure"
+                      : "Thử trường hợp thanh toán thất bại"}
                   </button>
                 </div>
               )}
-              {(notice || (stage === "payment" && blockedPayment)) && (
+              {(notice || (stage !== "seats" && blockedPayment)) && (
                 <p role="alert" className="form-notice">
                   {notice ||
-                    "Thời gian giữ ghế đã hết. Vui lòng quay lại chọn ghế."}
+                    (language === "en"
+                      ? "Your seat hold expired. Please select seats again."
+                      : "Thời gian giữ ghế đã hết. Vui lòng quay lại chọn ghế.")}
                 </p>
               )}
             </div>
             <aside className="order-summary">
-              <span className="eyebrow">TRẢI NGHIỆM CỦA BẠN</span>
-              <h3>Tóm tắt đặt vé</h3>
+              <div className="summary-film">
+                <img src={movie.localPoster || movie.poster} alt="" />
+                <div>
+                  <span className="eyebrow">YOUR MOVIE NIGHT</span>
+                  <h3>{language === "en" ? movie.original : movie.title}</h3>
+                  <p>{cinema.name}</p>
+                  <small>Infinity 01 · {movie.age}</small>
+                </div>
+              </div>
+              <p className="summary-show">
+                {date.label}
+                <br />
+                <b>{time.label}</b>
+              </p>
               <div className="selected-seats">
                 <Ticket size={17} />
                 <span>
-                  {chosen.length ? chosen.join(", ") : "Chưa chọn ghế"}
+                  {chosen.length ? chosen.join(", ") : t("Chưa chọn ghế")}
                 </span>
               </div>
               <div className="summary-line">
-                <span>{chosen.length} vé xem phim</span>
+                <span>
+                  {chosen.length}{" "}
+                  {language === "en" ? "movie tickets" : "vé xem phim"}
+                </span>
                 <b>{money(seatTotal)}</b>
               </div>
               <div className="combo-picker">
                 <Popcorn size={28} />
                 <div>
                   <b>Party Combo</b>
-                  <small>1 bắp + 2 nước · 69K</small>
+                  <small>69K / combo</small>
                 </div>
                 <button
-                  aria-label="Giảm combo"
+                  aria-label={t("Giảm combo")}
                   className="icon-button"
                   onClick={() => setCombo(Math.max(0, combo - 1))}
                   disabled={!combo}
@@ -434,7 +751,7 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                 </button>
                 <span>{combo}</span>
                 <button
-                  aria-label="Tăng combo"
+                  aria-label={t("Tăng combo")}
                   className="icon-button"
                   onClick={() => setCombo(Math.min(10, combo + 1))}
                   disabled={combo >= 10}
@@ -443,30 +760,47 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                 </button>
               </div>
               <div className="summary-line">
-                <span>Bắp nước</span>
+                <span>{t("Bắp nước")}</span>
                 <b>{money(combo * 69000)}</b>
               </div>
               <div className="summary-line">
-                <span>C’MEMBER {member ? "−5% vé" : "(chưa đăng nhập)"}</span>
+                <span>
+                  {reward === "member"
+                    ? "C’MEMBER −5%"
+                    : reward === "points"
+                      ? language === "en"
+                        ? "Reward points"
+                        : "Điểm thưởng"
+                      : reward === "voucher"
+                        ? "NOVA10"
+                        : language === "en"
+                          ? "Discount"
+                          : "Ưu đãi"}
+                </span>
                 <b>−{money(discount)}</b>
               </div>
-              <p className="muted small">
-                Ưu đãi và giá vé là dữ liệu minh họa của đồ án.
-              </p>
               <div className="summary-total">
-                <span>TỔNG THANH TOÁN</span>
+                <span>{t("TỔNG THANH TOÁN")}</span>
                 <strong>{money(total)}</strong>
               </div>
               <button
-                className="button button-gold w-full"
+                className="button button-primary w-full"
                 disabled={blockedPayment || busy}
-                onClick={stage === "seats" ? () => setStage("payment") : pay}
+                onClick={
+                  stage === "seats"
+                    ? () => setStage("combo")
+                    : stage === "combo"
+                      ? () => setStage("payment")
+                      : pay
+                }
               >
                 {busy
-                  ? "Đang xử lý…"
+                  ? t("Đang xử lý…")
                   : stage === "seats"
-                    ? "Tiếp tục thanh toán"
-                    : "Thanh toán mô phỏng"}
+                    ? t("Tiếp tục chọn combo")
+                    : stage === "combo"
+                      ? t("Tiếp tục thanh toán")
+                      : t("Thanh toán mô phỏng")}
                 <Ticket size={17} />
               </button>
               <button
@@ -474,10 +808,13 @@ export default function SeatBooking({ booking, member, onClose, onTicket }) {
                 disabled={busy}
                 onClick={close}
               >
-                Hủy đặt vé & giải phóng ghế
+                {t("Hủy đặt vé & giải phóng ghế")}
               </button>
               <p className="secure-caption">
-                <ShieldCheck size={13} /> Vé QR duy nhất sau mỗi giao dịch
+                <ShieldCheck size={13} />
+                {language === "en"
+                  ? "Secure 5-minute hold · Demo QR ticket"
+                  : "Giữ ghế 5 phút · Vé QR mô phỏng"}
               </p>
             </aside>
           </div>

@@ -39,6 +39,24 @@ export function readSeats(showId) {
     ].forEach((id) => {
       data[id] = { status: "sold" };
     });
+    // Dữ liệu demo cố định theo suất; màu chỉ báo luôn dựa trên trạng thái ghế được lưu.
+    const showTime = showId.split("|").at(-1);
+    if (showTime === "22:30")
+      seats
+        .filter((s) => s.row !== "A")
+        .forEach((s) => {
+          data[s.id] = { status: "sold" };
+        });
+    if (showTime === "16:45")
+      seats
+        .filter(
+          (s) =>
+            "BCDEF".includes(s.row) ||
+            (s.row === "G" && s.number >= 5 && s.number <= 10),
+        )
+        .forEach((s) => {
+          data[s.id] = { status: "sold" };
+        });
     ["D10", "D11", "E7", "E8"].forEach((id) => {
       data[id] = {
         status: "held",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   Check,
@@ -30,7 +31,9 @@ export default function QuickBooking({
   onRemoveCombo,
 }) {
   const { language, t } = useI18n();
+  const reduced = useReducedMotion();
   const [step, setStep] = useState(null);
+  const [expanded, setExpanded] = useState(true);
   const [, setRefresh] = useState(0);
   // Đồng bộ số ghế còn lại với các tab, không dùng số ngẫu nhiên hay báo trạng thái giả.
   useEffect(() => {
@@ -67,11 +70,18 @@ export default function QuickBooking({
   function choose(fn, value, next) {
     fn(value);
     setStep(next);
+    setExpanded(true);
+    requestAnimationFrame(() =>
+      document
+        .getElementById(`booking-step-${next}`)
+        ?.focus({ preventScroll: true }),
+    );
   }
   return (
     <section
       id="booking"
       className="quick-booking content-width visual-booking"
+      data-ui
     >
       <div className="booking-topline">
         <div>
@@ -89,16 +99,29 @@ export default function QuickBooking({
             : "ĐỒNG BỘ TRÊN THIẾT BỊ · DEMO"}
         </span>
       </div>
-      <div className="wizard-shell">
+      <motion.div
+        className="wizard-shell"
+        layout
+        transition={{ type: "spring", stiffness: 300, damping: 28 }}
+      >
         <div className="wizard-steps">
           {labels.map((label, i) => {
             const Icon = icons[i];
             return (
               <button
                 key={label}
+                id={`booking-step-${i}`}
+                aria-controls="booking-options"
+                aria-expanded={expanded && active === i}
                 className={`wizard-step ${active === i ? "active" : ""} ${values[i] ? "complete" : ""}`}
                 disabled={i > inferred}
-                onClick={() => setStep(i)}
+                onClick={() => {
+                  if (i === active) setExpanded((v) => !v);
+                  else {
+                    setStep(i);
+                    setExpanded(true);
+                  }
+                }}
                 aria-current={active === i ? "step" : undefined}
               >
                 <span className="wizard-number">
@@ -118,177 +141,196 @@ export default function QuickBooking({
                   </strong>
                 </div>
                 <Icon size={17} />
+                {active === i && (
+                  <motion.span
+                    className="wizard-tab-glow"
+                    layoutId="booking-tab-glow"
+                    transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                  />
+                )}
               </button>
             );
           })}
         </div>
-        <div className="wizard-panel" aria-label={t(labels[active])}>
-          <div className="wizard-panel-heading">
-            <span>
-              {language === "en"
-                ? [
-                    "FIND YOUR CINEMA",
-                    "WHAT ARE WE WATCHING?",
-                    "PICK YOUR DAY",
-                    "THE PERFECT SHOWTIME",
-                  ][active]
-                : [
-                    "CHỌN ĐIỂM HẸN ĐIỆN ẢNH",
-                    "HÔM NAY XEM GÌ?",
-                    "CHỌN NGÀY CỦA BẠN",
-                    "SUẤT CHIẾU DÀNH CHO BẠN",
-                  ][active]}
-            </span>
-            <small>
-              {language === "en"
-                ? "Select a card to continue"
-                : "Chạm vào lựa chọn để tiếp tục"}
-              <ChevronRight size={12} />
-            </small>
-          </div>
-          {active === 0 && (
-            <div className="cinema-choice-grid">
-              {cinemas.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => choose(onCinema, c.id, 1)}
-                  className={`cinema-choice ${cinemaId === c.id ? "selected" : ""}`}
-                  aria-label={c.name}
-                >
-                  <MapPin size={22} />
-                  <div>
-                    <strong>{c.name}</strong>
-                    <small>{c.city}</small>
-                    <span>{c.formats}</span>
-                  </div>
-                  <i />
-                  <b>{language === "en" ? "Open" : "Đang mở"}</b>
-                </button>
-              ))}
+        {expanded && (
+          <motion.div
+            id="booking-options"
+            role="region"
+            key={active}
+            className="wizard-panel"
+            aria-label={t(labels[active])}
+            initial={false}
+            animate={reduced ? undefined : { opacity: [0.7, 1], y: [6, 0] }}
+            transition={{ type: "spring", stiffness: 300, damping: 28 }}
+          >
+            <div className="wizard-panel-heading">
+              <span>
+                {language === "en"
+                  ? [
+                      "FIND YOUR CINEMA",
+                      "WHAT ARE WE WATCHING?",
+                      "PICK YOUR DAY",
+                      "THE PERFECT SHOWTIME",
+                    ][active]
+                  : [
+                      "CHỌN ĐIỂM HẸN ĐIỆN ẢNH",
+                      "HÔM NAY XEM GÌ?",
+                      "CHỌN NGÀY CỦA BẠN",
+                      "SUẤT CHIẾU DÀNH CHO BẠN",
+                    ][active]}
+              </span>
+              <small>
+                {language === "en"
+                  ? "Select a card to continue"
+                  : "Chạm vào lựa chọn để tiếp tục"}
+                <ChevronRight size={12} />
+              </small>
             </div>
-          )}
-          {active === 1 && (
-            <div className="mini-movie-grid">
-              {movies
-                .filter(
-                  (m) => cinema?.movies.includes(m.id) && m.status !== "soon",
-                )
-                .map((m) => (
+            {active === 0 && (
+              <div className="cinema-choice-grid">
+                {cinemas.map((c) => (
                   <button
-                    key={m.id}
-                    className={`mini-movie ${movieId === m.id ? "selected" : ""}`}
-                    onClick={() => choose(onMovie, m.id, 2)}
-                    aria-label={m.title}
+                    key={c.id}
+                    onClick={() => choose(onCinema, c.id, 1)}
+                    className={`cinema-choice ${cinemaId === c.id ? "selected" : ""}`}
+                    aria-label={c.name}
                   >
-                    <img
-                      src={m.localPoster || m.poster}
-                      alt=""
-                      onError={(e) => {
-                        e.currentTarget.style.opacity = 0;
-                      }}
-                    />
-                    <span>
-                      <strong>
-                        {language === "en" ? m.original : m.title}
-                      </strong>
-                      <small>
-                        {m.age} · {m.duration}{" "}
-                        {language === "en" ? "min" : "phút"} · {m.format}
-                      </small>
-                    </span>
-                    <ChevronRight size={16} />
+                    <MapPin size={22} />
+                    <div>
+                      <strong>{c.name}</strong>
+                      <small>{c.city}</small>
+                      <span>{c.formats}</span>
+                    </div>
+                    <i />
+                    <b>{language === "en" ? "Open" : "Đang mở"}</b>
                   </button>
                 ))}
-            </div>
-          )}
-          {active === 2 && (
-            <div className="date-pills">
-              {dates.map((d, i) => {
-                const jsDate = new Date(`${d.id}T12:00:00+07:00`);
-                return (
-                  <button
-                    key={d.id}
-                    className={dateId === d.id ? "selected" : ""}
-                    onClick={() => choose(onDate, d.id, 3)}
-                    aria-label={d.label}
-                  >
-                    <small>
-                      {i === 0
-                        ? language === "en"
-                          ? "Today"
-                          : "Hôm nay"
-                        : i === 1
+              </div>
+            )}
+            {active === 1 && (
+              <div className="mini-movie-grid">
+                {movies
+                  .filter(
+                    (m) => cinema?.movies.includes(m.id) && m.status !== "soon",
+                  )
+                  .map((m) => (
+                    <button
+                      key={m.id}
+                      className={`mini-movie ${movieId === m.id ? "selected" : ""}`}
+                      onClick={() => choose(onMovie, m.id, 2)}
+                      aria-label={m.title}
+                    >
+                      <img
+                        src={m.localPoster || m.poster}
+                        alt=""
+                        onError={(e) => {
+                          e.currentTarget.style.opacity = 0;
+                        }}
+                      />
+                      <span>
+                        <strong>
+                          {language === "en" ? m.original : m.title}
+                        </strong>
+                        <small>
+                          {m.age} · {m.duration}{" "}
+                          {language === "en" ? "min" : "phút"} · {m.format}
+                        </small>
+                      </span>
+                      <ChevronRight size={16} />
+                    </button>
+                  ))}
+              </div>
+            )}
+            {active === 2 && (
+              <div className="date-pills">
+                {dates.map((d, i) => {
+                  const jsDate = new Date(`${d.id}T12:00:00+07:00`);
+                  return (
+                    <button
+                      key={d.id}
+                      className={dateId === d.id ? "selected" : ""}
+                      onClick={() => choose(onDate, d.id, 3)}
+                      aria-label={d.label}
+                    >
+                      <small>
+                        {i === 0
                           ? language === "en"
-                            ? "Tomorrow"
-                            : "Ngày mai"
-                          : jsDate.toLocaleDateString(
-                              language === "en" ? "en-GB" : "vi-VN",
-                              {
-                                weekday: "short",
+                            ? "Today"
+                            : "Hôm nay"
+                          : i === 1
+                            ? language === "en"
+                              ? "Tomorrow"
+                              : "Ngày mai"
+                            : jsDate.toLocaleDateString(
+                                language === "en" ? "en-GB" : "vi-VN",
+                                {
+                                  weekday: "short",
+                                  timeZone: "Asia/Ho_Chi_Minh",
+                                },
+                              )}
+                      </small>
+                      <strong>{d.id.slice(-2)}</strong>
+                      <span>
+                        {language === "en"
+                          ? jsDate
+                              .toLocaleDateString("en-GB", {
+                                month: "short",
                                 timeZone: "Asia/Ho_Chi_Minh",
-                              },
-                            )}
+                              })
+                              .toUpperCase()
+                          : "THÁNG " + d.id.slice(5, 7)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {active === 3 && (
+              <div className="showtime-pills">
+                {availability.map((time) => (
+                  <button
+                    key={time.id}
+                    className={`showtime-pill ${time.status} ${timeId === time.id ? "selected" : ""}`}
+                    onClick={() => onTime(time.id)}
+                    aria-label={time.label}
+                    aria-pressed={timeId === time.id}
+                  >
+                    <strong>{time.id}</strong>
+                    <span>{time.label.split(" · ")[1]}</span>
+                    <small>
+                      <i />
+                      {time.free}{" "}
+                      {language === "en" ? "seats left" : "ghế trống"}
                     </small>
-                    <strong>{d.id.slice(-2)}</strong>
-                    <span>
-                      {language === "en"
-                        ? jsDate
-                            .toLocaleDateString("en-GB", {
-                              month: "short",
-                              timeZone: "Asia/Ho_Chi_Minh",
-                            })
-                            .toUpperCase()
-                        : "THÁNG " + d.id.slice(5, 7)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {active === 3 && (
-            <div className="showtime-pills">
-              {availability.map((time) => (
-                <button
-                  key={time.id}
-                  className={`showtime-pill ${time.status} ${timeId === time.id ? "selected" : ""}`}
-                  onClick={() => onTime(time.id)}
-                  aria-label={time.label}
-                  aria-pressed={timeId === time.id}
-                >
-                  <strong>{time.id}</strong>
-                  <span>{time.label.split(" · ")[1]}</span>
-                  <small>
-                    <i />
-                    {time.free} {language === "en" ? "seats left" : "ghế trống"}
-                  </small>
-                  <b>
-                    {time.status === "plenty"
-                      ? language === "en"
-                        ? "Plenty of seats"
-                        : "Còn nhiều ghế"
-                      : time.status === "filling"
+                    <b>
+                      {time.status === "plenty"
                         ? language === "en"
-                          ? "Filling fast"
-                          : "Sắp kín"
-                        : language === "en"
-                          ? "Almost full"
-                          : "Gần hết ghế"}
-                  </b>
-                </button>
-              ))}
-              {!times.length && (
-                <p className="muted">
-                  {language === "en"
-                    ? "No remaining shows today. Please choose another day."
-                    : "Đã hết suất hôm nay. Hãy chọn ngày khác."}
-                  <button className="text-button" onClick={() => setStep(2)}>
-                    {t("Chọn ngày")}
+                          ? "Plenty of seats"
+                          : "Còn nhiều ghế"
+                        : time.status === "filling"
+                          ? language === "en"
+                            ? "Filling fast"
+                            : "Sắp kín"
+                          : language === "en"
+                            ? "Almost full"
+                            : "Gần hết ghế"}
+                    </b>
                   </button>
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+                ))}
+                {!times.length && (
+                  <p className="muted">
+                    {language === "en"
+                      ? "No remaining shows today. Please choose another day."
+                      : "Đã hết suất hôm nay. Hãy chọn ngày khác."}
+                    <button className="text-button" onClick={() => setStep(2)}>
+                      {t("Chọn ngày")}
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
         <div className="wizard-bottom">
           <label className="switch-label">
             <input
@@ -312,11 +354,12 @@ export default function QuickBooking({
             onClick={() => onSubmit({ preventDefault() {} })}
             disabled={!timeId}
           >
+            <Sparkles size={17} />
             {t("Tìm ghế đẹp")}
             <ArrowRight size={18} />
           </button>
         </div>
-      </div>
+      </motion.div>
       {withCombo && (
         <div className="combo-attached">
           <Check size={14} />

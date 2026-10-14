@@ -116,7 +116,9 @@ test("Sweetbox pairs, cancellation and failed payment release held seats", async
   await page
     .getByRole("button", { name: "Thử trường hợp thanh toán thất bại" })
     .click();
-  await expect(page.getByRole("alert")).toContainText("đã được giải phóng");
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "đã được giải phóng",
+  );
   await expect(
     page.getByRole("button", { name: "Ghế A1, thường", exact: true }),
   ).toBeEnabled();
@@ -139,7 +141,9 @@ test("groups support 20 consecutive seats and reject 21", async ({ page }) => {
   await page
     .getByRole("button", { name: "Ghế B1, thường", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toContainText("tối đa 20 ghế");
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
+    "tối đa 20 ghế",
+  );
   await expect(page.locator(".seat.selected")).toHaveCount(20);
 });
 
@@ -152,7 +156,7 @@ test("five-minute holds expire and prevent payment", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Thanh toán mô phỏng", exact: true }),
   ).toBeDisabled();
-  await expect(page.getByRole("alert")).toContainText(
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
     "Thời gian giữ ghế đã hết",
   );
   await page
@@ -219,7 +223,7 @@ test("auth validates fields, password toggle works and social login reports demo
   await page.getByRole("tab", { name: "Đăng ký thành viên" }).click();
   await page.getByRole("button", { name: "Tạo tài khoản demo" }).click();
   await expect(
-    page.getByRole("alert").filter({ hasText: "email" }),
+    page.getByRole("dialog").getByRole("alert").filter({ hasText: "email" }),
   ).toBeVisible();
   await page.getByLabel("Mật khẩu", { exact: true }).fill("DemoPassword123");
   await page
@@ -308,4 +312,71 @@ test("quick three-seat helper and C’MEMBER points update after successful chec
       () => JSON.parse(localStorage.getItem("nova-member")).points,
     ),
   ).toBe(80);
+});
+
+test("timeline reports real capacity and opens the selected screening", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const timeline = page.locator("#showtimes");
+  await timeline.getByRole("button", { name: /Tomorrow|Ngày mai/ }).click();
+  await expect(timeline.locator(".timeline-show")).toHaveCount(5);
+  const late = timeline.locator(".timeline-show").filter({ hasText: "22:30" });
+  await expect(late).toHaveAttribute("aria-label", /20\/160/);
+  await timeline.locator(".timeline-show").filter({ hasText: "19:30" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.locator(".booking-context")).toContainText("19:30");
+  await expect(page.locator(".booking-context")).toContainText("Dune");
+});
+test("reduced motion keeps booking functional and Next.js serves a branded 404", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await prepare(page);
+  await expect(page.locator(".cinematic-canvas")).toHaveCount(0);
+  await hold(page);
+  await expect(page.locator(".summary-total")).toContainText("90.000");
+  await page.getByRole("button", { name: "Đóng", exact: true }).click();
+  const response = await page.goto("/screening-that-does-not-exist");
+  expect(response.status()).toBe(404);
+  await expect(
+    page.getByRole("heading", { name: /Suất chiếu này/ }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: /Về trang chủ/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "DUNE", exact: true }),
+  ).toBeVisible();
+});
+
+test("floating dock opens and closes steps without dropping selections", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const first = page.locator(".wizard-step").first();
+  await expect(first).toHaveAttribute("aria-expanded", "true");
+  await first.click();
+  await expect(page.locator(".wizard-panel")).toHaveCount(0);
+  await first.click();
+  await expect(page.locator(".wizard-panel")).toBeVisible();
+  await page
+    .locator(".wizard-panel")
+    .getByRole("button", { name: "NOVA Landmark 81", exact: true })
+    .click();
+  await expect(page.locator(".wizard-step").nth(1)).toBeFocused();
+  await page
+    .locator(".wizard-panel")
+    .getByRole("button", { name: "Dune: Hành Tinh Cát 2", exact: true })
+    .click();
+  await page.locator(".date-pills button").nth(1).click();
+  await page
+    .locator(".showtime-pills")
+    .getByRole("button", { name: /19:30/ })
+    .click();
+  await page.locator(".wizard-step").nth(3).click();
+  await expect(page.locator(".wizard-panel")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Tìm ghế đẹp", exact: true }),
+  ).toBeEnabled();
+  await page.locator(".wizard-step").nth(3).click();
+  await expect(page.locator(".showtime-pill.selected")).toContainText("19:30");
 });

@@ -12,7 +12,14 @@ Local fallbacks were sourced from publicly accessible copies because the onboard
 - `kong-art.jpg`: Godzilla x Kong promotional artwork, https://github.com/ywhnaht/CinemaWeb/blob/fe9a290f4d5d1282fce2e6cb17cbcc4f6523a282/Admin/img/god-x-kong-750_1711942287259.jpg
 - `kong-banner.jpg`: Godzilla x Kong banner, https://github.com/ywhnaht/CinemaWeb/blob/fe9a290f4d5d1282fce2e6cb17cbcc4f6523a282/assets/images/slider/kong.jpg
 
-Availability of a public copy does not confer commercial use rights. Review licensing with rights holders before a commercial release. Local popcorn/drink and auditorium visuals are original CSS illustrations.
+Availability of a public copy does not confer commercial use rights. Review licensing with rights holders before a commercial release. Local popcorn/drink visuals are original CSS illustrations.
 
 - `interstellar-poster.jpg`: Interstellar poster, https://github.com/BegzatMamatkarimov/Movie_poster/blob/e0ee4547349d7971a7c2ff68ed0e669eab3e581b/posters/interstellar.jpg
 - `batman-poster.jpg`: The Dark Knight poster, https://github.com/BegzatMamatkarimov/Movie_poster/blob/e0ee4547349d7971a7c2ff68ed0e669eab3e581b/posters/the-dark-knight.jpg
+
+- `mai-title.svg`: original typographic title art created for this demo. This is not an official Mai poster.
+- `cinema-auditorium.jpg`: illustrative Galaxy Cinema auditorium, https://github.com/ywhnaht/CinemaWeb/blob/fe9a290f4d5d1282fce2e6cb17cbcc4f6523a282/assets/images/ohayou/galaxy-da-nang-3_1698052210667.jpg
+- `cinema-imax.jpg`: illustrative Galaxy Cinema interior, https://github.com/ywhnaht/CinemaWeb/blob/fe9a290f4d5d1282fce2e6cb17cbcc4f6523a282/assets/images/ohayou/galaxy-da-nang-4_1698052214666.jpg
+- `cinema-lobby.jpg`: illustrative Galaxy Cinema lobby, https://github.com/ywhnaht/CinemaWeb/blob/fe9a290f4d5d1282fce2e6cb17cbcc4f6523a282/assets/images/ohayou/galaxy-da-nang-5_1698052220835.jpg
+
+These venue photographs are references, not photographs of real NOVA properties.

@@ -26,6 +26,11 @@ import {
 import { movies, cinemas, getDates, getShowtimes, money } from "./data.js";
 import Modal from "./components/Modal.jsx";
 import SeatBooking from "./components/SeatBooking.jsx";
+import CinematicBackdrop from "./components/CinematicBackdrop.jsx";
+import GlassNavigation from "./components/GlassNavigation.jsx";
+import TiltPoster from "./components/TiltPoster.jsx";
+import ShowtimeTimeline from "./components/ShowtimeTimeline.jsx";
+import { motion, useReducedMotion } from "framer-motion";
 import QuickBooking from "./components/QuickBooking.jsx";
 import AuthForm from "./components/AuthForm.jsx";
 import HeaderSearch from "./components/HeaderSearch.jsx";
@@ -34,7 +39,18 @@ import { useI18n } from "./i18n.js";
 function Brand() {
   return (
     <a className="brand" href="#top" aria-label="NOVA Cinema trang chủ">
-      <InfinityIcon className="brand-symbol" strokeWidth={1.8} />
+      <InfinityIcon
+        className="brand-symbol"
+        strokeWidth={1.8}
+        stroke="url(#nova-brand-glow)"
+      >
+        <defs>
+          <linearGradient id="nova-brand-glow">
+            <stop stopColor="#E50914" />
+            <stop offset="1" stopColor="#F59E0B" />
+          </linearGradient>
+        </defs>
+      </InfinityIcon>
       <span>
         NOVA<span className="brand-subtitle">CINEMA</span>
       </span>
@@ -50,8 +66,10 @@ function MoviePoster({ movie, className = "" }) {
         <small>{movie.part}</small>
       </div>
       <img
-        src={movie.poster}
+        src={movie.localPoster || movie.poster}
         alt={`Poster ${movie.title}`}
+        width="400"
+        height="600"
         loading="lazy"
         onError={(e) => {
           if (
@@ -61,6 +79,9 @@ function MoviePoster({ movie, className = "" }) {
             e.currentTarget.src = movie.localPoster;
           } else {
             e.currentTarget.style.opacity = 0;
+            e.currentTarget.parentElement
+              .querySelector(".poster-fallback")
+              ?.style.setProperty("display", "flex");
           }
         }}
       />
@@ -107,6 +128,7 @@ function TicketHistory({ tickets }) {
 
 export default function App() {
   const { language, setLanguage, t } = useI18n();
+  const reducedMotion = useReducedMotion();
   const [slide, setSlide] = useState(0);
   const [wizardVersion, setWizardVersion] = useState(0);
   const featured = [movies[0], movies[5], movies[1]];
@@ -214,19 +236,14 @@ export default function App() {
   );
   return (
     <div id="top" className="app-shell">
+      <a href="#main-content" className="skip-link">
+        {language === "en" ? "Skip to content" : "Đến nội dung chính"}
+      </a>
+      <CinematicBackdrop />
       <header className="site-header">
         <div className="nav-inner">
           <Brand />
-          <nav className="desktop-nav" aria-label="Điều hướng chính">
-            <a href="#movies" className="nav-active">
-              {t("Lịch chiếu")}{" "}
-            </a>
-            <a href="#cinemas">{t("Rạp Cinema")} </a>
-            <a href="#offers">{t("Ưu đãi & Khuyến mãi")}</a>
-            <a href="#offers">Party Combo 69K</a>
-            <a href="#membership">C’MEMBER</a>
-            <a href="#events">{t("Sự kiện")} </a>
-          </nav>
+          <GlassNavigation />
           <div className="header-actions">
             <HeaderSearch
               onMovie={openMovie}
@@ -306,13 +323,13 @@ export default function App() {
           </nav>
         )}
       </header>
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section className={`hero hero-${hero.id}`} aria-label="Phim nổi bật">
           <div
             key={hero.id}
             className="hero-art"
             style={{
-              backgroundImage: `url("${hero.backdrop}"), ${hero.localBackdrop ? `url("${hero.localBackdrop}")` : "none"}`,
+              backgroundImage: `url("${hero.localBackdrop || hero.backdrop}")`,
             }}
           />
           <div className="hero-shade" />
@@ -544,12 +561,24 @@ export default function App() {
           </div>
           <div className="movie-grid">
             {visibleMovies.map((m, index) => (
-              <article className="movie-card" key={m.id}>
-                <div className="poster-wrap">
+              <motion.article
+                className="movie-card"
+                key={m.id}
+                initial={false}
+                whileInView={
+                  reducedMotion ? undefined : { y: [16, 0], opacity: [0.8, 1] }
+                }
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ duration: 0.5, delay: index * 0.055 }}
+              >
+                <TiltPoster>
                   <MoviePoster movie={m} />
                   <span className="poster-age">{m.age}</span>
-                  <span className="poster-format">{m.format}</span>
-                  <span className="poster-rank">0{index + 1}</span>
+                  <span className="poster-rating">
+                    <Star size={13} fill="currentColor" />
+                    {m.rating}
+                  </span>
+
                   <div className="poster-overlay">
                     <button
                       className="poster-play"
@@ -582,7 +611,7 @@ export default function App() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </TiltPoster>
                 <div className="movie-card-meta">
                   <span>{t(m.genre)}</span>
                   <b>
@@ -605,7 +634,7 @@ export default function App() {
                     <ArrowUpRight size={16} />
                   </button>
                 </p>
-              </article>
+              </motion.article>
             ))}
           </div>
           <div className="movie-note">
@@ -620,6 +649,7 @@ export default function App() {
             </span>
           </div>
         </section>
+        <ShowtimeTimeline onBook={setBooking} />
         <section id="offers" className="offers-section content-width">
           <div className="combo-offer">
             <div className="combo-copy">
@@ -632,9 +662,9 @@ export default function App() {
                 FLASH SALE · PARTY COMBO 69K
               </div>
               <h2>
-                {t("Phim hay.")}
+                {language === "en" ? "Great films." : "Phim hay."}
                 <br />
-                {t("Bắp ngon.")} <em>{t("Vui hết cỡ.")} </em>
+                {language === "en" ? "Great company." : "Combo trọn vị."}
               </h2>
               <p>
                 {t("Một bắp lớn, hai ly mát lạnh.")} <br />
@@ -679,7 +709,7 @@ export default function App() {
                 <div className="drink-lid" />
                 <InfinityIcon size={30} />
                 <b>NOVA</b>
-                <small>REFRESH THE MOMENT</small>
+                <small>CINEMA</small>
               </div>
               <div className="drink drink-two">
                 <div className="drink-straw" />
@@ -704,12 +734,10 @@ export default function App() {
                 <div className="bucket-body">
                   <InfinityIcon size={48} />
                   <strong>NOVA</strong>
-                  <small>POPCORN & GOOD TIMES</small>
+                  <small>CINEMA</small>
                 </div>
               </div>
-              <span className="combo-visual-caption">
-                GOOD FILMS DESERVE GOOD COMPANY.
-              </span>
+              <span className="combo-visual-caption"></span>
             </div>
           </div>
           <div className="group-offer">
@@ -717,8 +745,9 @@ export default function App() {
             <UsersRound size={34} strokeWidth={1.2} />
             <span className="eyebrow">BETTER TOGETHER</span>
             <h3>
-              {t("Một nhóm bạn.")} <br />
-              <em>{t("Vạn niềm vui.")} </em>
+              {language === "en" ? "Together." : "Đi cùng."}
+              <br />
+              {language === "en" ? "Better." : "Vui cùng."}
             </h3>
             <p>
               {t("Cùng một hàng ghế.")} <br />
@@ -843,11 +872,30 @@ export default function App() {
               .map((c, i) => (
                 <article className="cinema-card" key={c.id}>
                   <div className={`cinema-graphic cinema-graphic-${i % 3}`}>
-                    <div className="cinema-screen" />
-                    <div className="cinema-seats-art" />
+                    <img
+                      className="cinema-photo"
+                      src={
+                        [
+                          "/images/cinema-imax.jpg",
+                          "/images/cinema-auditorium.jpg",
+                          "/images/cinema-lobby.jpg",
+                          "/images/cinema-auditorium.jpg",
+                        ][i]
+                      }
+                      alt={
+                        language === "en"
+                          ? "Illustrative cinema interior"
+                          : "Ảnh minh họa không gian rạp chiếu"
+                      }
+                      width="1000"
+                      height="600"
+                      loading="lazy"
+                    />
                     <span>{c.city}</span>
                     <span className="cinema-graphic-label">
-                      NOVA / INFINITY HALL
+                      {language === "en"
+                        ? "ILLUSTRATIVE CINEMA INTERIOR"
+                        : "KHÔNG GIAN RẠP THAM KHẢO"}
                     </span>
                   </div>
                   <div className="cinema-info">
@@ -884,13 +932,14 @@ export default function App() {
               NOVA SPECIAL SCREENINGS
             </p>
             <h2>
-              {t("Những thước phim.")} <br />
-              <em>{t("Không thể bỏ lỡ.")} </em>
+              {language === "en" ? "Special films." : "Suất đặc biệt."}
+              <br />
+              {language === "en" ? "Worth returning." : "Đáng trở lại."}
             </h2>
           </div>
           <article className="event-card">
             <img
-              src={movies[5].backdrop}
+              src={movies[5].localBackdrop || movies[5].backdrop}
               alt="Oppenheimer suất chiếu đặc biệt"
               loading="lazy"
               onError={(e) => {

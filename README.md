@@ -1,6 +1,6 @@
 # NOVA Cinema — Infinity Experience
 
-Website điện ảnh bằng **React, Vite, Tailwind CSS 3 và Lucide Icons**, giao diện tối obsidian với màu **Electric Cyan #00F2FE, Hot Coral #FF3366 và Emerald #10B981**. Toàn bộ mã nguồn đã được triển khai trong repository, không cần API key để chạy demo.
+Website điện ảnh bằng **Next.js App Router, React, Tailwind CSS 3, Framer Motion, React Three Fiber và Lucide Icons**, giao diện **Obsidian #08090C, Crimson #E50914 và Amber #F59E0B**. Toàn bộ mã nguồn đã được triển khai trong repository, không cần API key để chạy demo.
 
 ## Ba điểm cốt lõi từ tài liệu
 
@@ -12,7 +12,7 @@ Nguồn phân tích: PDF **Báo cáo tổng quan yêu cầu đề tài.pdf**, b�
 
 ## Chạy trên máy của bạn
 
-Cài **Node.js 24 LTS** (hoặc Node.js từ 22.12 trở lên tương thích Vite; tránh các bản Node lẻ). Mở Terminal trong thư mục dự án:
+Cài **Node.js 24 LTS** (hoặc Node.js từ 22.12 trở lên tương thích Next.js; tránh các bản Node lẻ). Mở Terminal trong thư mục dự án:
 
 ```bash
 npm ci
@@ -28,18 +28,18 @@ npm ci
 npm run dev
 ```
 
-Vite in địa chỉ truy cập khi khởi động. Mở địa chỉ đó trong trình duyệt. Nhấn **Ctrl + K** (Windows/Linux) hoặc **⌘ + K** (macOS) để tìm phim/đạo diễn. Nhấn `Ctrl + C` trong Terminal để dừng server.
+Mở **http://localhost:3000** trong trình duyệt. Next.js in địa chỉ truy cập khi khởi động. Nếu cổng 3000 đang được sử dụng, dùng địa chỉ Next.js hiển thị. Nhấn **Ctrl + K** (Windows/Linux) hoặc **⌘ + K** (macOS) để tìm phim/đạo diễn. Nhấn `Ctrl + C` trong Terminal để dừng server.
 
 Trong cloud này, dùng cache npm tại thư mục được phép ghi:
 
 ```bash
 npm ci --cache /workspace/.npm-cache --no-audit --no-fund
-npm run dev -- --port 5173 --strictPort
+npm run dev -- --port 5173
 ```
 
 ## Cách thử luồng đặt vé
 
-1. Chọn thẻ rạp → thẻ phim kèm poster nhỏ → nút ngày → nút suất chiếu, thay cho thanh dropdown cũ. Chọn bước trước sẽ xóa lựa chọn không còn phù hợp ở các bước sau. Màu xanh/xanh lá, cam và coral của suất chiếu dựa trên số ghế thực tế trong kho dữ liệu demo tại thiết bị. Các suất đã qua trong ngày hiện tại được ẩn theo múi giờ Việt Nam.
+1. Chọn thẻ rạp → thẻ phim kèm poster nhỏ → nút ngày → nút suất chiếu, thay cho thanh dropdown cũ. Chọn bước trước sẽ xóa lựa chọn không còn phù hợp ở các bước sau. Màu xanh lá, hổ phách và đỏ của suất chiếu dựa trên số ghế thực tế trong kho dữ liệu demo tại thiết bị. Các suất đã qua trong ngày hiện tại được ẩn theo múi giờ Việt Nam.
 2. Bật **Xếp cụm nhóm** nếu đi cùng nhóm, rồi nhấn **Tìm ghế đẹp**.
 3. Chọn ghế thường/VIP/Sweetbox. Sweetbox luôn được chọn hoặc bỏ theo cặp. Với nhóm, chọn 2–20 người và nhấn **Xếp ghế** để tự tìm dải ghế trống trong một hàng. Nếu không có dải ghế phù hợp, giao diện thông báo rõ.
 4. Ghế được giữ trong 5 phút tính từ lựa chọn đầu tiên; thêm ghế hoặc thay cụm không gia hạn thời gian này. Thêm/bớt Party Combo 69K ngay trong tóm tắt đơn.
@@ -62,7 +62,7 @@ npx playwright install chromium
 npm test
 ```
 
-Bộ kiểm thử hiện có 10 ca nghiệp vụ, bao gồm cả xác thực biểu mẫu, nút mật khẩu, VN/EN, voucher NOVA10 và đổi điểm.
+Bộ kiểm thử hiện có 13 ca nghiệp vụ, bao gồm cả xác thực biểu mẫu, nút mật khẩu, VN/EN, voucher NOVA10, đổi điểm, timeline lịch chiếu, đóng/mở dock, reduced-motion và trang 404.
 
 Cloud đã có Chromium tại `/usr/bin/chromium`, nên không cần tải browser lần nữa. `playwright.config.mjs` tự nhận Chromium tại đường dẫn này. Có thể đặt biến `PLAYWRIGHT_CHROMIUM_PATH` nếu dùng trình duyệt ở vị trí khác. Các kiểm tra bao gồm reset lựa chọn, tìm kiếm, tính tổng, QR, Sweetbox, giới hạn 20 ghế, hủy/thất bại/hết hạn, đồng bộ tab và bố cục mobile.
 
@@ -75,9 +75,9 @@ Modal tài khoản có tab đăng nhập/đăng ký, label nổi, kiểm tra ema
 ## Những phần đã có
 
 - Header kính mờ cố định, tìm kiếm phim/rạp có kết quả tức thì, phím tắt, VN/EN lưu trên thiết bị, menu mobile, hồ sơ demo và lịch sử vé.
-- Hero carousel Dune / Oppenheimer / Godzilla x Kong, trailer YouTube, thông tin phim chi tiết.
+- Hero carousel Dune / Oppenheimer / Godzilla x Kong, trailer YouTube, thông tin phim chi tiết. Nền 3D lazy-load với DPR giới hạn, dừng khi tab ẩn và không chạy khi bật reduced-motion.
 - Wizard đặt vé trực quan bằng thẻ rạp/phim, nút ngày và suất chiếu có chỉ báo ghế trống. Công tắc xếp nhóm, nút chọn nhanh 3 ghế và stepper 4 bước trong checkout.
-- Poster tỉ lệ 2:3, tab phim, thông tin đạo diễn/diễn viên và hành động đặt vé.
+- Poster tỉ lệ 2:3, nghiêng nhẹ theo con trỏ chuột, tab phim, thông tin đạo diễn/diễn viên và hành động đặt vé. Timeline lọc phim/rạp/ngày, số ghế lấy cùng kho dữ liệu với checkout.
 - Party Combo 69K, C’MEMBER, tab phim sắp chiếu (tái chiếu minh họa chưa mở bán), hệ thống rạp theo thành phố, suất chiếu đặc biệt, footer.
 - Sơ đồ ghế cong, phân loại ghế, giữ ghế 5 phút, tổng tiền và thanh toán Sandbox.
 - Font đóng gói cục bộ, responsive và hỗ trợ giảm chuyển động, focus bàn phím, dialog/ARIA.
@@ -92,7 +92,7 @@ Modal tài khoản có tab đăng nhập/đăng ký, label nổi, kiểm tra ema
 
 ## Hình ảnh & mạng
 
-Đường dẫn ảnh TMDB và ID trailer nằm trong `src/data.js`. Máy cloud hiện chặn `image.tmdb.org`; ảnh thật dự phòng cục bộ được đặt trong `public/images`. Nếu cả ảnh từ xa và ảnh dự phòng đều không có, poster dùng thẻ tiêu đề cùng tông màu. Poster Mai chưa có bản dự phòng cục bộ. Trailer cần mạng YouTube; nhãn nút 4K không bảo đảm chất lượng video gốc.
+Đường dẫn ảnh TMDB và ID trailer nằm trong `src/data.js`. Máy cloud hiện chặn `image.tmdb.org`; ảnh thật dự phòng cục bộ được đặt trong `public/images`. Nếu cả ảnh từ xa và ảnh dự phòng đều không có, poster dùng thẻ tiêu đề cùng tông màu. Mai dùng title art SVG tự dựng, không phải poster chính thức. Ảnh rạp Galaxy là ảnh tham khảo, không đại diện cho cơ sở NOVA thật. Trailer cần mạng YouTube; nhãn nút 4K không bảo đảm chất lượng video gốc.
 
 Các miền cần cho ảnh/trailer từ xa: `image.tmdb.org`, `www.youtube-nocookie.com`, `www.youtube.com`, `i.ytimg.com`, `*.googlevideo.com`. Nếu bị chặn, chỉnh mạng trong environment settings; việc lưu draft không tự áp dụng thay đổi vào máy đang chạy.
 
@@ -100,6 +100,10 @@ Các miền cần cho ảnh/trailer từ xa: `image.tmdb.org`, `www.youtube-noco
 
 ## Cấu trúc mã nguồn
 
+- `src/app/`: App Router layout/page và trang 404.
+- `src/components/CinemaExperience.jsx`: client boundary cho dữ liệu trình duyệt.
+- `src/components/CinematicCanvas.jsx`: point cloud Three.js và fallback WebGL.
+- `src/components/ShowtimeTimeline.jsx`: lịch chiếu và số ghế còn lại.
 - `src/App.jsx`: trang chủ, tìm kiếm, chi tiết phim, trailer, hồ sơ và lịch sử.
 - `src/components/QuickBooking.jsx`: wizard thẻ rạp/phim và ngày/suất có số ghế còn lại.
 - `src/components/AuthForm.jsx`: biểu mẫu tài khoản demo và kiểm tra lỗi.
@@ -113,3 +117,18 @@ Các miền cần cho ảnh/trailer từ xa: `image.tmdb.org`, `www.youtube-noco
 - `tests/booking.spec.mjs`: các kiểm thử nghiệp vụ bằng Playwright.
 
 Mã sử dụng Tailwind 3 qua PostCSS, không dùng CDN runtime. `package-lock.json` khóa các phiên bản để `npm ci` cài lại nhất quán.
+
+## Nghiên cứu ba skill theo yêu cầu
+
+Đã đọc trực tiếp Taste-Skill, UI/UX Pro Max và Three.js Skills. Nguồn/commit và quyết định áp dụng: [docs/design/skill-sources.md](docs/design/skill-sources.md). Hệ thiết kế: [docs/design/MASTER.md](docs/design/MASTER.md). Báo cáo kiểm chứng: [docs/design/validation.md](docs/design/validation.md).
+
+Plus Jakarta Sans dùng cho nội dung có tiếng Việt; Space Grotesk dùng cho dữ liệu. Các yêu cầu kính mờ, Crimson/Amber và Next.js của bạn được ưu tiên khi khác mặc định của skill.
+
+Để chạy bản production:
+
+```bash
+npm run build
+npm run start
+```
+
+Đặt `NEXT_PUBLIC_SITE_URL` bằng URL thật trước khi build cho một deployment công khai. Không cần biến này để chạy local. Trang chủ prerender phần khung; trải nghiệm booking được tải phía client vì dùng localStorage.

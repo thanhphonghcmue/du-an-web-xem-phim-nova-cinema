@@ -29,7 +29,7 @@ export default function FoodArt() {
         <div className="bucket-body">
           <InfinityIcon size={39} />
           <strong>NOVA</strong>
-          <small>POPCORN & GOOD TIMES</small>
+          <small>CINEMA</small>
         </div>
       </div>
       <span className="food-caption">FRESH POPCORN / COLD DRINKS</span>

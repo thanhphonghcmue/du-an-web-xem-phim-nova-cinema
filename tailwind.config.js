@@ -4,14 +4,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#0B0E14",
-        cyan: "#00F2FE",
-        coral: "#FF3366",
+        ink: "#08090C",
+        crimson: "#E50914",
+        amber: "#F59E0B",
         muted: "#94A3B8",
       },
       fontFamily: {
-        sans: ["DM Sans", "sans-serif"],
-        display: ["Barlow Condensed", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "sans-serif"],
+        display: ["Space Grotesk", "sans-serif"],
       },
     },
   },

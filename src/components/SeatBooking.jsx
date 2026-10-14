@@ -315,8 +315,7 @@ export default function SeatBooking({
             <div>
               <h3>{language === "en" ? movie.original : movie.title}</h3>
               <p>
-                {cinema.name} · {language === "en" ? "Room" : "Phòng"} Infinity
-                01
+                {cinema.name} · {time.room || "INFINITY HALL 01"}
               </p>
               <span>
                 {date.label} · {time.label} · {movie.age}
@@ -714,7 +713,9 @@ export default function SeatBooking({
                   <span className="eyebrow">YOUR MOVIE NIGHT</span>
                   <h3>{language === "en" ? movie.original : movie.title}</h3>
                   <p>{cinema.name}</p>
-                  <small>Infinity 01 · {movie.age}</small>
+                  <small>
+                    {time.room || "INFINITY HALL 01"} · {movie.age}
+                  </small>
                 </div>
               </div>
               <p className="summary-show">

@@ -51,6 +51,7 @@ export const movies = [
   },
   {
     id: "mai",
+    localPoster: "/images/mai-title.svg",
     title: "Mai",
     original: "MAI",
     short: "MAI",
@@ -63,7 +64,7 @@ export const movies = [
     year: 2024,
     director: "Trấn Thành",
     cast: "Phương Anh Đào, Tuấn Trần, Hồng Đào",
-    poster: tmdb("y2Aimt8XLcWvoFvZAEP6XdnKDnC.jpg"),
+    poster: "/images/mai-title.svg",
     status: "now",
     trailer: "EX6clvId19s",
     description:
@@ -252,7 +253,11 @@ export function getShowtimes(cinemaId, movieId, dateId) {
         : "2D Laser";
   return ["10:00", "13:30", "16:45", "19:30", "22:30"]
     .filter((t) => dateId !== today || Number(t.replace(":", "")) > now)
-    .map((time) => ({ id: time, label: `${time} · ${format}` }));
+    .map((time) => ({
+      id: time,
+      label: `${time} · ${format}`,
+      room: format.includes("IMAX") ? "IMAX HALL 01" : "INFINITY HALL 01",
+    }));
 }
 export const money = (value) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(

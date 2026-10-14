@@ -132,3 +132,16 @@ npm run start
 ```
 
 Đặt `NEXT_PUBLIC_SITE_URL` bằng URL thật trước khi build cho một deployment công khai. Không cần biến này để chạy local. Trang chủ prerender phần khung; trải nghiệm booking được tải phía client vì dùng localStorage.
+
+## Backend NestJS — triển khai theo phase
+
+Backend mới nằm trong [backend/](backend/README.md), dùng package/lockfile riêng. Phase 0 cung cấp kiến trúc và bootstrap HTTP TypeScript strict; frontend hiện chưa kết nối backend. PostgreSQL/Redis/auth/booking/payment sẽ triển khai lần lượt theo yêu cầu của bạn, dừng sau từng phase.
+
+```bash
+cd backend
+npm ci
+npm run check
+npm run start:dev
+```
+
+Backend mặc định cổng 4000, endpoint kiểm tra `/api/v1`. Hướng dẫn và trạng thái thực tế: [backend/README.md](backend/README.md).

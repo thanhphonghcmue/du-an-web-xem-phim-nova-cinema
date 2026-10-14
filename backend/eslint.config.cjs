@@ -6,14 +6,14 @@ module.exports = tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked.map((config) => ({
     ...config,
-    files: ["src/**/*.ts", "test/**/*.ts"],
+    files: ["src/**/*.ts", "test/**/*.ts", "prisma/**/*.ts"],
   })),
   {
     files: ["**/*.cjs"],
     languageOptions: { globals: globals.node, sourceType: "commonjs" },
   },
   {
-    files: ["src/**/*.ts", "test/**/*.ts"],
+    files: ["src/**/*.ts", "test/**/*.ts", "prisma/**/*.ts"],
     languageOptions: {
       parserOptions: { project: "./tsconfig.json", tsconfigRootDir: __dirname },
       globals: { ...globals.node, ...globals.jest },

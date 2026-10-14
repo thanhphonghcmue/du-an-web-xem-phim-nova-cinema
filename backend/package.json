@@ -14,13 +14,24 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint src test --max-warnings 0",
+    "lint": "eslint src test prisma scripts --max-warnings 0",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage --runInBand",
     "test:e2e": "jest --config test/jest-e2e.config.cjs --runInBand",
     "check": "npm run typecheck && npm run lint && npm test && npm run test:e2e && npm run build",
-    "format": "prettier --write src test docs *.json *.cjs README.md"
+    "format": "prettier --write src test prisma scripts docs *.json *.cjs *.yml README.md",
+    "prisma:validate": "prisma validate",
+    "prisma:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:status": "prisma migrate status",
+    "db:configure": "node scripts/configure-database.cjs",
+    "db:up": "docker compose --env-file .runtime/database.env -f compose.database.yml up -d --wait",
+    "db:up:test": "docker compose --env-file .runtime/database.env -f compose.database.yml --profile test up -d --wait",
+    "db:down": "docker compose --env-file .runtime/database.env -f compose.database.yml --profile test down",
+    "db:migrate:test": "node scripts/migrate-test-database.cjs",
+    "test:db": "jest --config test/jest-database.config.cjs --runInBand"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.0",
@@ -71,5 +82,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.0.0"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   }
 }

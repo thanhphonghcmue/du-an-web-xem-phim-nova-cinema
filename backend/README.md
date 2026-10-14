@@ -1,148 +1,168 @@
-# NOVA Cinema Backend — Phase 0
+# NOVA Cinema Backend — Phase 1
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai theo từng phase trong yêu cầu của bạn. **Phase 0 cung cấp kiến trúc và HTTP bootstrap chạy được**, chưa có schema/database, xác thực, booking, payment, QR, email hoặc frontend integration. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0 và Phase 1 hoàn tất**: kiến trúc, HTTP bootstrap, PostgreSQL, Prisma schema/migration/client và seed demo. Nest chưa kết nối DB trong request HTTP; Prisma module, Redis/BullMQ, global validation/error envelope và Swagger sẽ triển khai ở Phase 2. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-## Architecture
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence mới: [docs/validation-phase-1.md](docs/validation-phase-1.md).
 
-Controller → Service → Repository → Prisma. Ranh giới module, transaction, PostgreSQL partial unique index, Redis lock ngắn, outbox, HMAC/idempotency và showtime exclusion constraint được xác định trong [docs/architecture.md](docs/architecture.md). Kế hoạch và phụ thuộc từng phase: [docs/phases.md](docs/phases.md).
+## Requirements
 
-Chọn NestJS 11, TypeScript 5 strict, Prisma 6.19, Redis/BullMQ 5. Dependencies cho các phase tiếp theo đã khai báo và khóa trong `package-lock.json`; cài package không đồng nghĩa tính năng đã được triển khai. Tiền backend sẽ dùng Decimal(14,2), timestamp UTC/timestamptz. Một booking sẽ có một QR. Phase 0 không import PrismaClient khi chưa tạo schema. Trong cloud hiện tại, Prisma CLI bị HTTP 403 khi tải checksum từ `binaries.prisma.sh`; không tắt checksum để bỏ qua. Domain đã được thêm vào cấu hình mạng dạng bản nháp, cần áp dụng và kiểm tra lại trước Phase 1. Điều này không chặn HTTP bootstrap Phase 0.
+Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19 và PostgreSQL 17. Image PostgreSQL được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Phase 1 chưa cần Redis hoặc JWT/payment/SMTP secrets.
 
-## Requirements và installation
+Nếu đã có PostgreSQL riêng, xem hướng dẫn cuối trang thay vì tạo local containers.
 
-Node.js **24 LTS** theo `.nvmrc` ở root; package hỗ trợ Node ≥22.12.0. Cần npm và mạng registry khi cài lần đầu. Phase 0 không cần PostgreSQL, Redis, Docker hoặc secret.
+## Cài và chạy từ đầu
 
 Từ root repository:
 
 ```bash
 cd backend
 npm ci
+npm run db:configure
+npm run db:up:test
+npm run prisma:validate
+npm run prisma:generate
+npm run db:migrate
+npm run db:seed
+npm run db:migrate:test
 npm run check
+npm run test:db
 npm run start:dev
 ```
 
-Trong cloud này dùng cache được phép ghi:
+Trong cloud này thay `npm ci` bằng:
 
 ```bash
-cd /workspace/nova-cinema-skills-thanh-phong/backend
 npm ci --cache /workspace/.npm-cache --no-audit --no-fund
-npm run check
-npm run start:dev
 ```
 
-`npm run check` thực hiện typecheck, lint strict, unit, HTTP e2e và build. Expected result: TypeScript/ESLint không lỗi, Jest pass, Nest tạo `dist/main.js`. Backend mặc định lắng nghe cổng **4000**, không chiếm cổng 3000 của Next.js. Dừng bằng Ctrl+C.
+Expected result: hai PostgreSQL healthy, schema valid, client generated, migration deployed, seed thành công, TypeScript/lint/build không lỗi và các test pass. Backend HTTP mặc định cổng **4000**, Next.js mặc định cổng 3000.
 
-## .env
+`db:configure` tạo password random cho development/test và demo accounts; lưu ở `.env` và `.runtime/database.env`, đều ignored và có quyền 0600. Không in password/token hoặc URL có credential. Chạy lại giữ nguyên password; nếu `.env` đang có cấu hình khác, helper dừng và không ghi đè. Không xóa credential file khi volume còn tồn tại: PostgreSQL giữ password khởi tạo trong volume, không tự thay khi env đổi.
 
-`.env.example` chứa tên biến và cấu hình không bí mật. Có thể chạy Phase 0 với mặc định, không cần copy. Nếu muốn đổi cổng/origin:
+Database development `nova_development` ở port **55432**; database test `nova_test` ở port **55433**, với password riêng. Test runner yêu cầu tên test DB kết thúc `_test` và khác tên application DB, tránh hostname alias vô tình trỏ cùng dữ liệu. Test không truncate DB; chỉ xóa fixture do chính suite tạo.
+
+Port có thể đổi từ lần cấu hình đầu, ví dụ trên bash:
 
 ```bash
-cp .env.example .env
+DATABASE_PORT=55434 TEST_DATABASE_PORT=55435 npm run db:configure
 ```
 
-Sửa `PORT`, `HOST`, `CORS_ORIGINS` trong `.env` rồi chạy lại server. File `.env` đã ignore. Các biến database/JWT/payment/SMTP đang để trống, chỉ bắt buộc khi phase tương ứng được triển khai; không có secret hard-code. Lệnh tạo secret gợi ý: `openssl rand -hex 32`, tạo riêng cho từng mục đích và lưu vào `.env`, không đưa lên GitHub.
+Sau khi đã cấu hình, muốn đổi port cần sửa `.runtime/database.env` và connection URLs trong `.env` cho khớp. Các lệnh luôn chạy từ `backend/`.
 
-`PORT` phải là số nguyên 1–65535. `CORS_ORIGINS` là danh sách HTTP(S) origins phân cách dấu phẩy, không path/credentials hoặc wildcard. Mặc định chỉ frontend local 3000; chuỗi rỗng tắt quyền CORS trình duyệt. CORS không thay authentication/authorization. `APP_URL` và các biến Phase 1 trở đi chưa được Phase 0 đọc.
+## Prisma schema và migration
 
-## Chạy build và kiểm tra HTTP
+[prisma/schema.prisma](prisma/schema.prisma) có **14 model**: 13 model theo yêu cầu và OutboxEvent theo quyết định Phase 0. IDs UUID tạo tại PostgreSQL; tất cả DateTime dùng timestamptz(3), lưu UTC; tiền Numeric(14,2), multiplier Decimal(4,2). DB timezone đã kiểm tra UTC. Decimal được truyền từ chuỗi và khi trả API sẽ serialize thành chuỗi, không cộng tiền bằng JS number.
+
+Migration `20261014000100_initial` bao gồm enum, table, FK, unique/index và các SQL bổ sung:
+
+- Partial unique `uq_active_showtime_seat` trên `(showtime_id,seat_id)` khi HOLDING/SOLD. Row AVAILABLE sau release được giữ và không chặn booking mới.
+- GiST exclusion `showtimes_no_room_overlap`, extension `btree_gist`, time range `[startTime,endTime)`. Suất bắt đầu đúng lúc suất trước kết thúc được phép.
+- Composite FKs đảm bảo BookingSeat thuộc đúng booking/showtime/room và ghế thuộc phòng đó; không chỉ kiểm tra ID tồn tại.
+- CHECK cho tiền không âm/tổng booking nhất quán, thời gian, tọa độ ghế, multiplier BR05, quantity combo, trạng thái check-in và outbox lock.
+- Unique bookingId/ticketHash cho một QR mỗi booking, unique transactionCode và refresh token hash; Restrict delete/update bảo vệ dữ liệu tham chiếu.
+
+Migration bọc `BEGIN/COMMIT` để không áp dụng nửa chừng. Partial index/exclusion/CHECK là SQL thủ công vì Prisma schema không biểu diễn đầy đủ. Giữ chúng trong migration; không thay `migrate deploy` bằng `db push` hoặc reset để né lỗi. Model/schema drift đã kiểm tra: không khác biệt ở các phần Prisma biểu diễn được. Khi viết migration sau, phải kiểm tra các constraint SQL này tiếp tục tồn tại.
+
+```bash
+npm run db:migrate
+npm run db:status
+```
+
+Chạy deploy lần hai trả `No pending migrations`, không xóa dữ liệu. Role migration cần quyền tạo `btree_gist`; role runtime ít quyền hơn sẽ chuẩn bị trong giai đoạn triển khai. Role Docker local là role development, không phải cấu hình database production.
+
+## Seed và tài khoản demo
+
+```bash
+npm run db:seed
+```
+
+Seed trong một transaction, idempotent bằng ID ổn định/upsert, không reset password hoặc ghi đè dữ liệu tồn tại. Khi có lịch khác gây overlap, seed rollback; không xóa lịch để làm seed thành công. `NODE_ENV=production` từ chối demo seed.
+
+| Tài khoản           | Role     | Tier    |
+| ------------------- | -------- | ------- |
+| admin@nova.local    | ADMIN    | DIAMOND |
+| staff@nova.local    | STAFF    | GOLD    |
+| customer@nova.local | CUSTOMER | SILVER  |
+
+Password chung cho tài khoản demo là giá trị **SEED_DEMO_PASSWORD trong `.env` riêng của bạn**, do helper tạo hoặc tự đặt tối thiểu 12 ký tự. DB chỉ lưu Argon2id hash. Đổi env rồi chạy seed không reset password của account đã tồn tại. Chưa có login API ở Phase 1.
+
+Dữ liệu fresh seed: **6 phim, 2 rạp demo, 3 phòng, 480 ghế, 54 suất chiếu và Party Combo 69K**. Mỗi phòng A–H ×20 ghế; C–F VIP, H Sweetbox, các hàng còn lại STANDARD. Multiplier 1.00/1.20/1.50. Không tạo user giả GUEST, booking đã thanh toán, payment thành công hoặc ticket demo trong development seed.
+
+Phim: Dune: Hành Tinh Cát 2, Godzilla x Kong: Đế Chế Mới, Mai, Kung Fu Panda 4, Quật Mộ Trùng Ma, Oppenheimer — 70mm Special Re-release. Suất tái chiếu và rạp/giá là dữ liệu đồ án. Mai dùng title art từ frontend, không phải poster chính thức. Poster URL trỏ frontend `FRONTEND_URL` mặc định cổng 3000; cần frontend chạy để xem ảnh. Không copy asset vào API chưa có static module.
+
+Seed mặc định lấy ngày mai UTC, bắt đầu 03:00 UTC (=10:00 Việt Nam), tạo ba ngày. `SEED_BASE_DATE=YYYY-MM-DD` cho phép cố định mốc khi tạo lần đầu. endTime tính duration phim trong DB +15 phút cleaning; giữa suất có thêm 15 phút khoảng nghỉ. Chạy lại giữ ID/thời gian cũ, không tự dời lịch có thể đã được đặt; seed không là công cụ tự gia hạn lịch demo qua từng ngày.
+
+## .env và PostgreSQL riêng
+
+`.env.example` liệt kê đầy đủ biến. Với PostgreSQL đã được cấp, tự tạo `.env` từ example và điền `DATABASE_URL`, `TEST_DATABASE_URL`, `SEED_DEMO_PASSWORD`, không chạy helper local nếu muốn giữ cấu hình riêng. Dùng hai database tên khác nhau, test name kết thúc `_test`; PostgreSQL 17 có gen_random_uuid và btree_gist. Prisma không tạo database/role cho dịch vụ đã được cấp.
+
+```bash
+npm run prisma:validate
+npm run prisma:generate
+npm run db:migrate
+npm run db:seed
+npm run db:migrate:test
+npm run test:db
+```
+
+TLS tuân theo cấu hình của dịch vụ PostgreSQL. Không tắt certificate/checksum verification. Prisma CLI/client chạy được với engine hiện có trong cloud Phase 1. Kiểm tra tải checksum mới trực tiếp từ `binaries.prisma.sh` vẫn gặp HTTP 403; vì vậy chưa xác nhận fresh download trên một máy cloud mới. Domain đã có trong network draft; cần áp dụng cấu hình và kiểm tra lại khi phải tải mới. Không bật biến bỏ qua checksum. `package.json#prisma` có cảnh báo deprecation cho Prisma 7; phiên bản 6.19 đang được khóa và seed command vẫn hỗ trợ, không phải lỗi migration.
+
+## Tests và build
+
+```bash
+npm run check
+npm run test:db
+```
+
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **21 unit tests**, **5 HTTP e2e tests** và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule.
+
+Các test DB này chứng minh constraint/nền tảng, **không thay TC01–TC05 qua API** và không chứng minh payment/signature/seat timer/role/check-in window đã chạy. Các API đó sẽ được làm ở phase tương ứng.
+
+## HTTP bootstrap
 
 ```bash
 npm run build
 npm run start:prod
 ```
 
-Trong Terminal khác:
-
 ```bash
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-Expected HTTP 200 và JSON:
+HTTP 200 có `success:true`, `phase:0`, `status:bootstrap-ready`, database/redis `not-configured`: đây là trạng thái **Nest HTTP app chưa tích hợp DB**, dù PostgreSQL và Prisma CLI/client đã được chuẩn bị ở Phase 1. Health DB/Redis, global error envelope, validation và Swagger `/api/docs` thuộc Phase 2. Route nghiệp vụ chưa có trả 404; frontend chưa gọi API này.
 
-```json
-{
-  "success": true,
-  "data": {
-    "application": "NOVA CINEMA (INFINITY)",
-    "phase": 0,
-    "status": "bootstrap-ready",
-    "apiPrefix": "/api/v1",
-    "database": "not-configured",
-    "redis": "not-configured"
-  },
-  "message": "NOVA Cinema backend bootstrap is running."
-}
-```
-
-Root `/` và các route nghiệp vụ chưa triển khai trả 404. `bootstrap-ready` chỉ xác nhận HTTP application, không báo PostgreSQL/Redis đã khỏe. Global error envelope, validation, Helmet/rate limiting và Swagger nằm trong Phase 2; lỗi 404 Phase 0 còn dùng Nest default response.
-
-## Tests
+## Docker database lifecycle
 
 ```bash
-npm run typecheck
-npm run lint
-npm test
-npm run test:e2e
-npm run build
+npm run db:up:test
+npm run db:down
 ```
 
-Unit tests kiểm tra cấu hình cổng/origin, không chỉ một hàm trả hằng. HTTP e2e dùng application bootstrap thật qua Supertest: response versioned, route 404, CORS allow/reject. E2e Phase 0 không mock DB vì chưa có DB. Từ Phase 11 sẽ có PostgreSQL test database và Redis namespace/database riêng; TC-01 concurrency phải chạy trên DB thật.
+`db:down` dừng/xóa hai container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. File `compose.database.yml` chỉ phục vụ database Phase 1; Compose backend+postgres+redis/non-root/worker đầy đủ thuộc Phase 12. Không tự đánh dấu Docker backend/Redis là hoàn thành.
 
-Kết quả chạy thực tế: [docs/validation-phase-0.md](docs/validation-phase-0.md).
-
-## Cây file Phase 0 đã tạo
+## Cây mã nguồn mới của Phase 1
 
 ```text
 backend/
-  .env.example
-  .gitignore
-  .nvmrc
-  AGENTS.md
-  package.json
-  package-lock.json
-  tsconfig.json
-  tsconfig.build.json
-  nest-cli.json
-  eslint.config.cjs
-  jest.config.cjs
-  README.md
-  docs/
-    architecture.md
-    phases.md
-    validation-phase-0.md
-  src/
-    main.ts
-    bootstrap.ts
-    app.module.ts
-    app.controller.ts
-    app.service.ts
-    config/
-      bootstrap.config.ts
-      bootstrap.config.spec.ts
+  compose.database.yml
+  prisma/
+    schema.prisma
+    seed.ts
+    migrations/
+      migration_lock.toml
+      20261014000100_initial/
+        migration.sql
+  scripts/
+    configure-database.cjs
+    test-database-target.cjs
+    migrate-test-database.cjs
+  src/config/
+    test-database-target.spec.ts
   test/
-    app.e2e-spec.ts
-    jest-e2e.config.cjs
+    jest-database.config.cjs
+    schema.database-spec.ts
+  docs/
+    validation-phase-1.md
 ```
 
-Mỗi file trong cây là mã nguồn/tài liệu đầy đủ, không có module rỗng hoặc pseudocode. Controller chỉ gọi AppService; cấu hình được kiểm tra trước khi tạo application. `createApplication()` dùng chung giữa production entrypoint và HTTP tests để tránh test một bootstrap khác.
-
-## Các phần chưa chạy vì thuộc phase sau
-
-| Hạng mục                                                                                            | Phase |
-| --------------------------------------------------------------------------------------------------- | ----- |
-| PostgreSQL, Prisma schema/migrate/seed, test accounts hash                                          | 1     |
-| Redis/BullMQ infrastructure, error envelope, validation, Swagger `/api/docs`, health DB/Redis/queue | 2     |
-| Register/login, JWT/refresh rotation, RBAC, C’MEMBER                                                | 3     |
-| Movie/cinema/room/seat CRUD                                                                         | 4     |
-| Showtime BR03 và TC-02                                                                              | 5     |
-| Hold 5 phút, Decimal pricing, partial unique, Redis lock, expiry/outbox, TC-01                      | 6     |
-| WebSocket `/seats`, group-seat suggestion                                                           | 7     |
-| HMAC Sandbox payment, TC-03/TC-04                                                                   | 8     |
-| QR, SMTP, staff check-in, TC-05 và phần ticket của TC-03                                            | 9     |
-| Revenue chỉ PAID                                                                                    | 10    |
-| Unit/integration/e2e nghiệp vụ đầy đủ                                                               | 11    |
-| Dockerfile/Compose postgres+redis+backend healthcheck, validation cuối                              | 12    |
-
-Chưa có lệnh migration/seed/Docker hoặc tài khoản demo có thể dùng ở Phase 0. Sẽ cung cấp lệnh thực khi file tương ứng tồn tại. Events dự kiến `seat_locked`, `seat_released`, `seat_sold`; chỉ publish sau transaction commit, không chứa dữ liệu cá nhân. BR01–BR05 và TC01–TC05 đầy đủ được giữ trong kế hoạch, không đánh dấu pass khi chưa triển khai.
-
-Sau Phase 0, dừng và chờ **“TIẾP TỤC PHASE 1”** theo yêu cầu của bạn.
+Các bootstrap/config/test Phase 0 được giữ; package scripts, TS/lint include, `.env.example`, `.gitignore` và tài liệu đã cập nhật. Không có module API rỗng hoặc placeholder. Dừng sau Phase 1 và chờ **“TIẾP TỤC PHASE 2”**.

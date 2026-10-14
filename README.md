@@ -135,12 +135,19 @@ npm run start
 
 ## Backend NestJS — triển khai theo phase
 
-Backend mới nằm trong [backend/](backend/README.md), dùng package/lockfile riêng. Phase 0 cung cấp kiến trúc và bootstrap HTTP TypeScript strict; frontend hiện chưa kết nối backend. PostgreSQL/Redis/auth/booking/payment sẽ triển khai lần lượt theo yêu cầu của bạn, dừng sau từng phase.
+Backend mới nằm trong [backend/](backend/README.md), dùng package/lockfile riêng. Phase 0 cung cấp kiến trúc và bootstrap HTTP TypeScript strict; Phase 1 đã có PostgreSQL, Prisma schema/migration/seed và kiểm thử DB thật. Frontend hiện chưa kết nối backend. Redis/auth/booking/payment sẽ triển khai lần lượt theo yêu cầu của bạn, dừng sau từng phase.
 
 ```bash
 cd backend
 npm ci
+npm run db:configure
+npm run db:up:test
+npm run prisma:generate
+npm run db:migrate
+npm run db:seed
+npm run db:migrate:test
 npm run check
+npm run test:db
 npm run start:dev
 ```
 

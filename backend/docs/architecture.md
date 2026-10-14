@@ -1,6 +1,6 @@
 # Phase 0 — Architecture Decision Record
 
-Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. Chỉ Phase 0 được triển khai trong lần này; các phần mô tả tương lai dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
+Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. ADR được lập ở Phase 0; Phase 1 hiện đã triển khai schema/migration/seed. Các API và service nghiệp vụ dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
 
 ## Quyết định nền tảng
 
@@ -170,3 +170,9 @@ Các module nghiệp vụ dùng DTO/entity/service/repository/controller/module 
 ## Chấp nhận Phase 0
 
 Cài lockfile, TypeScript strict compile, lint, unit tests và HTTP e2e test, start build với response thật trên `/api/v1`. Không cần PostgreSQL, Redis hoặc secret để chạy Phase 0. Endpoint bootstrap không tuyên bố database/queue đã khỏe. Dừng sau Phase 0 và chờ `TIẾP TỤC PHASE 1` theo yêu cầu người dùng.
+
+## Database Phase 1 đã triển khai
+
+Prisma schema có 13 model theo đặc tả và OutboxEvent. Các FK ghép bổ sung `roomId` vào BookingSeat và unique reference keys `(seat.id,roomId)`, `(showtime.id,roomId)`, `(booking.id,showtimeId)` để DB bảo đảm ghế/phòng/suất/booking cùng phạm vi. Đây là lớp nhất quán dữ liệu, không đổi API hold IDs của phase sau. FK dùng Restrict để giữ lịch sử. SQL partial unique, exclusion `[)`, CHECK tiền/modifier/quantity/timestamp/check-in/outbox được lưu trong migration; Prisma schema không biểu diễn trọn các ràng buộc này.
+
+Seed chỉ thêm dữ liệu thiếu, giữ bản đã tồn tại, một transaction, không hard-code password. Image PostgreSQL 17 pin digest, hai local database tên/port/password khác nhau; credentials ignored 0600. Nest chưa có PrismaModule/Redis/Gateway đến Phase 2/7. DB conditional check-in test chỉ kiểm tra primitive update, chưa có role/window kiểm soát API.

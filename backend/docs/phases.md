@@ -20,10 +20,8 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Chỉ Phase 0 được triển khai. Các phase 1–12 chưa bắt đầu. Không có acceptance pass cho PostgreSQL, Redis, BullMQ worker, authentication, booking/payment/ticket/check-in/report hoặc Docker. Điều kiện Phase 0 được ghi trong `validation-phase-0.md` sau khi chạy thực.
+Phase 0 và Phase 1 đã triển khai và kiểm chứng. Phase 1 có 14 model, migration partial unique/exclusion/composite FK/check constraints, client generated và seed idempotent. PostgreSQL development và test riêng chạy healthy; schema validate/deploy/seed/check và 22 tests PostgreSQL thật pass. Evidence ở `validation-phase-1.md`. Các phase 2–12 chưa bắt đầu; TC01–TC05 qua API chưa được đánh dấu hoàn thành.
 
-## Điều kiện đầu vào Phase 1
+## Điều kiện đầu vào Phase 2
 
-Lockfile Phase 0 cài thành công và TypeScript build được. Chọn PostgreSQL local/Compose hoặc dịch vụ được người dùng cấp; cần DATABASE_URL hợp lệ và quyền tạo schema/extension cho btree_gist. Không lấy credential từ chat hoặc hard-code. Database test tách dữ liệu development. PrismaClient chỉ được import sau khi schema và `prisma generate` chạy thành công.
-
-Trong cloud hiện tại, `prisma --version` gặp 403 khi tải checksum `schema-engine.gz.sha256` từ `binaries.prisma.sh`. Network draft đã bổ sung domain, chưa chứng minh runtime đã cho phép. Phải kiểm tra lại engine với checksum verification bật trước migrate Phase 1. Không dùng `PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING` để né kiểm tra.
+Dùng lockfile và Prisma 6.19 đã pin. `npm run db:up:test`, `npm run prisma:generate`, `npm run db:migrate` đảm bảo DB/client sẵn sàng. Credential nằm trong ignored `.env`/`.runtime/database.env`, không đưa vào source hoặc output. Prisma engine hiện có chạy bình thường trong runtime Phase 1; tải checksum mới trực tiếp vẫn trả 403, không tắt checksum. Kiểm tra network settings khi cần fresh download. Chuẩn bị Redis và hạ tầng Nest theo phạm vi Phase 2, giữ nguyên migration SQL constraints. Dừng sau mỗi phase như người dùng yêu cầu.

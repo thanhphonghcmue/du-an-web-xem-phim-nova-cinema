@@ -20,8 +20,8 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase 0 và Phase 1 đã triển khai và kiểm chứng. Phase 1 có 14 model, migration partial unique/exclusion/composite FK/check constraints, client generated và seed idempotent. PostgreSQL development và test riêng chạy healthy; schema validate/deploy/seed/check và 22 tests PostgreSQL thật pass. Evidence ở `validation-phase-1.md`. Các phase 2–12 chưa bắt đầu; TC01–TC05 qua API chưa được đánh dấu hoàn thành.
+Phase 0–2 đã triển khai và kiểm chứng. Phase 1 có 14 model, migration partial unique/exclusion/composite FK/check constraints và seed idempotent. Phase 2 thêm Prisma dependency injection, Redis, BullMQ worker probe, distributed rate limiter, validation, error/response envelopes, Swagger và live/readiness health. PostgreSQL, Redis và worker đã được kiểm tra thật; 25 unit, 11 HTTP e2e và 22 PostgreSQL tests pass. Evidence ở `validation-phase-1.md` và `validation-phase-2.md`. Phase 3–12 chưa bắt đầu; TC01–TC05 qua API chưa được đánh dấu hoàn thành.
 
-## Điều kiện đầu vào Phase 2
+## Phase 2 đã triển khai
 
-Dùng lockfile và Prisma 6.19 đã pin. `npm run db:up:test`, `npm run prisma:generate`, `npm run db:migrate` đảm bảo DB/client sẵn sàng. Credential nằm trong ignored `.env`/`.runtime/database.env`, không đưa vào source hoặc output. Prisma engine hiện có chạy bình thường trong runtime Phase 1; tải checksum mới trực tiếp vẫn trả 403, không tắt checksum. Kiểm tra network settings khi cần fresh download. Chuẩn bị Redis và hạ tầng Nest theo phạm vi Phase 2, giữ nguyên migration SQL constraints. Dừng sau mỗi phase như người dùng yêu cầu.
+Database/Redis local và test có credentials, ports, volumes và BullMQ prefixes tách riêng. Test HTTP cưỡng bức dùng test DB/Redis. Health kiểm tra PostgreSQL SELECT 1, Redis PING và job probe được worker xử lý; 503 trả component state an toàn, còn liveness độc lập. Rate limiter Redis atomic Lua fail-closed khi storage lỗi. README có cài đặt/chạy/test commands. Auth/RBAC và API nghiệp vụ thuộc phase sau. Dừng và chờ `TIẾP TỤC PHASE 3`.

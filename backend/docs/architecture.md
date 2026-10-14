@@ -1,10 +1,10 @@
 # Phase 0 — Architecture Decision Record
 
-Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. ADR được lập ở Phase 0; Phase 1 hiện đã triển khai schema/migration/seed. Các API và service nghiệp vụ dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
+Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. ADR được lập ở Phase 0; Phase 1 đã triển khai schema/migration/seed; Phase 2 đã triển khai infrastructure HTTP/Prisma/Redis/BullMQ. Các API và service nghiệp vụ dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
 
 ## Quyết định nền tảng
 
-Backend NestJS chạy độc lập trong `backend/`, dùng package và lockfile riêng; frontend Next.js vẫn ở root repository. Cổng mặc định backend 4000, frontend 3000. API version `/api/v1`; Swagger `/api/docs` sẽ bật trong Phase 2. Không nối frontend demo vào backend chưa có nghiệp vụ.
+Backend NestJS chạy độc lập trong `backend/`, dùng package và lockfile riêng; frontend Next.js vẫn ở root repository. Cổng mặc định backend 4000, frontend 3000. API version `/api/v1`; Swagger UI `/api/docs` và OpenAPI JSON `/api/docs-json` đã bật. Không nối frontend demo vào backend chưa có nghiệp vụ.
 
 Node.js 24 LTS, TypeScript 5 strict, NestJS 11, PostgreSQL, Prisma 6.19, Redis, BullMQ 5, Socket.IO, JWT, Argon2, class-validator/class-transformer, Jest 29 và Supertest. Dùng các major tương thích có lockfile; không tự chuyển sang NestJS 12 hay Prisma 7 giữa các phase. Prisma 6 cho phép schema datasource và migration workflow như đặc tả; không sinh client khi chưa có schema Phase 1.
 
@@ -75,7 +75,7 @@ Giá STANDARD ×1.0, VIP ×1.2, SWEETBOX ×1.5. Party Combo 69K mỗi đơn vị
 
 ## Cây thư mục đích theo phase
 
-Đây là kế hoạch đầy đủ; chỉ cây Phase 0 trong README là file đã tạo. Không tạo sẵn module rỗng hoặc endpoint giả để đánh dấu hoàn thành.
+Đây là kế hoạch đầy đủ; chỉ module nền tảng Phase 0–2 và database Phase 1/2 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
 
 ```text
 backend/
@@ -175,4 +175,16 @@ Cài lockfile, TypeScript strict compile, lint, unit tests và HTTP e2e test, st
 
 Prisma schema có 13 model theo đặc tả và OutboxEvent. Các FK ghép bổ sung `roomId` vào BookingSeat và unique reference keys `(seat.id,roomId)`, `(showtime.id,roomId)`, `(booking.id,showtimeId)` để DB bảo đảm ghế/phòng/suất/booking cùng phạm vi. Đây là lớp nhất quán dữ liệu, không đổi API hold IDs của phase sau. FK dùng Restrict để giữ lịch sử. SQL partial unique, exclusion `[)`, CHECK tiền/modifier/quantity/timestamp/check-in/outbox được lưu trong migration; Prisma schema không biểu diễn trọn các ràng buộc này.
 
-Seed chỉ thêm dữ liệu thiếu, giữ bản đã tồn tại, một transaction, không hard-code password. Image PostgreSQL 17 pin digest, hai local database tên/port/password khác nhau; credentials ignored 0600. Nest chưa có PrismaModule/Redis/Gateway đến Phase 2/7. DB conditional check-in test chỉ kiểm tra primitive update, chưa có role/window kiểm soát API.
+Seed chỉ thêm dữ liệu thiếu, giữ bản đã tồn tại, một transaction, không hard-code password. Image PostgreSQL 17 pin digest, hai local database tên/port/password khác nhau; credentials ignored 0600. DB conditional check-in test chỉ kiểm tra primitive update, chưa có role/window kiểm soát API.
+
+## Infrastructure Phase 2 đã triển khai
+
+PrismaModule là global, cung cấp PrismaService lifecycle và DatabaseRepository probe; controllers không nhận Prisma trực tiếp. RedisModule dùng một ioredis connection cho readiness và Lua rate storage. Local Compose bổ sung Redis 7.4 với password bắt buộc, AOF, `noeviction`, healthcheck xác thực password và development/test service/volume tách riêng. Docker Compose chạy infrastructure; API vẫn chạy native trên host đến Phase 12.
+
+BullMQ đăng ký queue `infrastructure` với worker concurrency 2 và queue `seat-expiration` để phase sau. Health readiness thêm một `infrastructure-probe`, đợi worker trả `pong` rồi xóa job. Queue worker/events dùng Redis retry policy bắt buộc BullMQ; readiness có timeout độc lập. Queue này không xóa ghế hoặc xử lý expiry nghiệp vụ.
+
+Global ValidationPipe transform/whitelist/forbidNonWhitelisted validate nested DTO, 400/413 parser errors dùng envelope thống nhất, API exception filter mask 5xx internal detail, success interceptor bọc data/message. Request ID, `helmet`, CORS allowlist, HTTP status/duration logging và Swagger OpenAPI schemas được gắn bootstrap. JWT config nhận secret tùy chọn để validate cấu hình trước Phase 3, nhưng Phase 2 không phát hành token hoặc bật auth.
+
+Rate limiter dùng Lua script với per-identity SHA-256 namespaced key, atomic fixed-window count và block TTL; `ThrottlerGuard` gắn toàn cục, health routes skip. Redis failure trả 503 thay vì cho request đi qua bằng local-memory fallback. Test suite HTTP lấy connection từ các `TEST_*` env và BullMQ prefix per-run; không chạm dev Redis.
+
+Readiness `/api/v1/health` kiểm tra Postgres/Redis/BullMQ song song có timeout, trả 200 healthy hoặc 503 degraded kèm status, timestamp và component statuses. `/api/v1/health/live` chỉ xác nhận tiến trình. Unknown 500 không lộ exception text; health/rate-limit 503 chỉ phát safe messages. Swagger mô tả routes hiện có, không quảng bá route nghiệp vụ chưa code.

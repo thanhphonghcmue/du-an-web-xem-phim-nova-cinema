@@ -1,0 +1,56 @@
+services:
+  redis:
+    image: redis:7.4-bookworm@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85
+    user: redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_LOCAL_PASSWORD:?Run npm run infra:configure first}
+    command:
+      - sh
+      - -c
+      - |
+        umask 077
+        printf 'bind 0.0.0.0\nprotected-mode yes\nrequirepass %s\nappendonly yes\ndir /data\nmaxmemory-policy noeviction\n' "$$REDIS_PASSWORD" > /tmp/nova-redis.conf
+        exec redis-server /tmp/nova-redis.conf
+    ports:
+      - "127.0.0.1:${REDIS_LOCAL_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG',
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  redis-test:
+    image: redis:7.4-bookworm@sha256:4fa24486b8bcca8eec45ee0eb166edc674795e53a2b53d1a9ef263eecebaac85
+    user: redis
+    profiles: [test]
+    environment:
+      REDIS_PASSWORD: ${TEST_REDIS_LOCAL_PASSWORD:?Run npm run infra:configure first}
+    command:
+      - sh
+      - -c
+      - |
+        umask 077
+        printf 'bind 0.0.0.0\nprotected-mode yes\nrequirepass %s\nappendonly yes\ndir /data\nmaxmemory-policy noeviction\n' "$$REDIS_PASSWORD" > /tmp/nova-redis.conf
+        exec redis-server /tmp/nova-redis.conf
+    ports:
+      - "127.0.0.1:${TEST_REDIS_LOCAL_PORT:-6381}:6379"
+    volumes:
+      - redis_test_data:/data
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG',
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+volumes:
+  redis_data:
+  redis_test_data:

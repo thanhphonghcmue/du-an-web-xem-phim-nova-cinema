@@ -1,24 +1,22 @@
 import { Injectable } from "@nestjs/common";
-
-export interface BootstrapInfo {
-  application: "NOVA CINEMA (INFINITY)";
-  phase: 0;
-  status: "bootstrap-ready";
-  apiPrefix: "/api/v1";
-  database: "not-configured";
-  redis: "not-configured";
+export interface ApplicationInfo {
+  application: string;
+  phase: 2;
+  status: string;
+  apiPrefix: string;
+  health: string;
+  docs: string;
 }
-
 @Injectable()
 export class AppService {
-  getBootstrapInfo(): BootstrapInfo {
+  getInfo(): ApplicationInfo {
     return {
       application: "NOVA CINEMA (INFINITY)",
-      phase: 0,
-      status: "bootstrap-ready",
+      phase: 2,
+      status: "running",
       apiPrefix: "/api/v1",
-      database: "not-configured",
-      redis: "not-configured",
+      health: "/api/v1/health",
+      docs: "/api/docs",
     };
   }
 }

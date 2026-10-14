@@ -1,21 +1,25 @@
 import "dotenv/config";
 import { Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { createApplication } from "./bootstrap";
-import { readBootstrapConfig } from "./config/bootstrap.config";
-
+import { AppSettings } from "./config/app.config";
 async function bootstrap(): Promise<void> {
-  const config = readBootstrapConfig(process.env);
   const app = await createApplication();
-  await app.listen(config.port, config.host);
+  const config = app.get(ConfigService).getOrThrow<AppSettings>("app");
+  try {
+    await app.listen(config.port, config.host);
+  } catch {
+    await app.close();
+    throw new Error("Backend startup failed.");
+  }
   Logger.log(
-    `NOVA backend Phase 0 listening on port ${String(config.port)}`,
+    `NOVA backend Phase 2 listening on port ${String(config.port)}`,
     "Bootstrap",
   );
 }
-
-bootstrap().catch((error: unknown) => {
+bootstrap().catch(() => {
   Logger.error(
-    error instanceof Error ? error.message : "Backend startup failed.",
+    "Unable to start backend. Verify environment configuration and PostgreSQL/Redis availability.",
     undefined,
     "Bootstrap",
   );

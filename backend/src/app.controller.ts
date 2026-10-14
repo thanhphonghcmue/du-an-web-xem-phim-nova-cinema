@@ -1,22 +1,16 @@
 import { Controller, Get } from "@nestjs/common";
-import { AppService, BootstrapInfo } from "./app.service";
-
-interface BootstrapResponse {
-  success: true;
-  data: BootstrapInfo;
-  message: string;
-}
-
+import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { AppService, ApplicationInfo } from "./app.service";
+import { ResponseMessage } from "./common/decorators/response-message.decorator";
+import { SuccessResponseDto } from "./common/dto/api-response.dto";
+@ApiTags("Application")
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
-
   @Get()
-  getBootstrap(): BootstrapResponse {
-    return {
-      success: true,
-      data: this.appService.getBootstrapInfo(),
-      message: "NOVA Cinema backend bootstrap is running.",
-    };
+  @ResponseMessage("NOVA Cinema backend is running.")
+  @ApiOkResponse({ type: SuccessResponseDto })
+  getInfo(): ApplicationInfo {
+    return this.appService.getInfo();
   }
 }

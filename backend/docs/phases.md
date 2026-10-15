@@ -20,7 +20,7 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase 0–4 đã triển khai và kiểm chứng. Phase 4 thêm 22 catalog operations cho movies/cinemas/rooms/seats, pagination/filter, ADMIN-only writes, ma trận ghế atomic và bảo vệ referenced history. `npm run check`: 27 unit, 52 HTTP e2e (22 catalog +19 auth +11 infrastructure), typecheck/lint/build pass; `test:db`: 22 PostgreSQL tests pass. Evidence ở `validation-phase-1.md` đến `validation-phase-4.md`. Phase5–12 chưa bắt đầu; TC01–TC05 business API chưa được đánh dấu hoàn thành.
+Phase0–5 đã triển khai và kiểm chứng. Phase5 thêm5 showtime operations, BR03 duration+15min, chống overlap, lọc ngày và bảo vệ booking history. `npm run check`: 27 unit, 73 HTTP e2e (21 showtime +22 catalog +19 auth +11 infrastructure), typecheck/lint/build pass; `test:db`: 22 PostgreSQL tests pass. Tổng122 tests và compiled production HTTP smoke pass. Evidence ở `validation-phase-1.md` đến `validation-phase-5.md`. **TC-02 business API hoàn tất**; Phase6–12 và TC-01/03/04/05 business APIs chưa hoàn tất.
 
 ## Phase 2 đã triển khai
 
@@ -33,3 +33,9 @@ API đăng ký/login/refresh/logout, GET/PATCH hồ sơ và GET membership đã 
 ## Phase 4 đã triển khai
 
 Movies/Cinemas/Rooms/Seats có CRUD/pagination/filter và OpenAPI. GET public, mọi mutation ADMIN-only. Generate seats trên empty room, server Decimal multipliers, room.totalSeats derived, PostgreSQL row lock/transaction bảo vệ count và concurrent generate. Movie duration, room structural fields và seat layout bị khóa khi có showtimes tham chiếu; deletes không cascade lịch sử. Test thực concurrent duplicate room, seat coordinates, generation, capacity và in-flight showtime FK. Không cần migration/schema/dependency mới. Dừng và chờ `TIẾP TỤC PHASE 5`.
+
+## Phase 5 đã triển khai
+
+Showtime CRUD public reads/ADMIN writes. EndTime tính server từ locked movie duration+15 phút; service overlap check exclude self và GiST exclusion `[)` cùng bảo vệ schedule. Khóa movie IDs sorted → room IDs sorted → showtime, reload/retry snapshot đổi parents và bounded transaction conflicts. Price fixed2 Decimal strings, validation timezone/millisecond precision, filters movie/cinema/room/Vietnam day, stable pagination. Có booking bất kỳ trạng thái nào thì chặn sửa/xóa; no-op PATCH được giữ nguyên.
+
+TC-02 qua API: 10:00–12:15 chặn12:00, cho phép12:15. Năm concurrent creates một201/bốn409; concurrent updates một200/một409, independent patches không mất dữ liệu, concurrent room moves retry đúng. Movie-duration và in-flight booking FK locks được kiểm tra qua actual PostgreSQL lock waits. Không cần migration/schema/dependency/env mới. Dừng và chờ `TIẾP TỤC PHASE 6`.

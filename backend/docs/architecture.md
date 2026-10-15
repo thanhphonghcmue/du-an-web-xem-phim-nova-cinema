@@ -1,6 +1,6 @@
 # Phase 0 — Architecture Decision Record
 
-Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. ADR được lập ở Phase 0; Phase 1 đã triển khai schema/migration/seed; Phase 2 đã triển khai infrastructure HTTP/Prisma/Redis/BullMQ; Phase 3 triển khai auth/users/RBAC/C’MEMBER; Phase 4 triển khai CRUD catalog và physical seats. Các API và service nghiệp vụ dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
+Ngày: 14/10/2026, cập nhật Phase5 ngày15/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. Phase0–5 đã triển khai nền tảng, schema/migration/seed, infrastructure, auth/users/RBAC/C’MEMBER, catalog/physical seats và BR03 showtime CRUD. Các phần booking/payment/ticket/report bên dưới vẫn là hợp đồng thiết kế cho phase tiếp theo.
 
 ## Quyết định nền tảng
 
@@ -43,7 +43,7 @@ PricingService và DiscountService thuộc bookings, tách khỏi SeatBookingSer
 | QR generation          | kiểm tra PAID, tạo ticket unique bookingId/ticketHash hoặc trả bản cũ                            | enqueue email                                |
 | staff check-in         | kiểm tra thời gian/PAID và update WHERE isCheckedIn=false                                        | trả chi tiết vé                              |
 | refresh                | khóa refresh row, revoke token cũ và tạo hash token mới                                          | trả token rotation                           |
-| create/update showtime | khóa phòng, đọc thời lượng phim, tính endTime và check overlap, insert/update                    | trả lịch                                     |
+| create/update showtime | khóa movies → rooms → showtime, đọc duration, tính endTime và check overlap, insert/update       | trả lịch                                     |
 
 Mọi event chỉ phát sau commit thành công. SMTP hoặc Redis lỗi không rollback một payment đã thành công. Với thông báo/queue không thể commit atomically cùng PostgreSQL, transactional outbox ghi sự kiện trong transaction DB; relay publish với event ID và consumer idempotent. Các thao tác payment/cancel/expiry đều khóa booking theo cùng thứ tự trước khi đổi trạng thái, tránh expiry giải phóng ghế ngay sau khi payment bán.
 
@@ -75,7 +75,7 @@ Giá STANDARD ×1.0, VIP ×1.2, SWEETBOX ×1.5. Party Combo 69K mỗi đơn vị
 
 ## Cây thư mục đích theo phase
 
-Đây là kế hoạch đầy đủ; chỉ module nền tảng Phase 0–4 và database Phase 1/2 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
+Đây là kế hoạch đầy đủ; chỉ các module Phase0–5 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
 
 ```text
 backend/
@@ -214,3 +214,15 @@ SeatsService khóa room trước mọi layout mutation. Generate chỉ cho room 
 Bất kỳ showtime nào trong room đều đóng băng toàn layout và venue/format của room, cả showtime lịch sử. Test trực tiếp giữ FK transaction của một showtime mới rồi gọi duration/layout mutation: FOR UPDATE chờ writer commit, sau đó read committed thấy reference và trả409. Đây là protection catalog, không phải TC-02 schedule API.
 
 Hợp đồng cho Phase5: tạo/update showtime cần khóa movie(s) trước room(s), IDs sắp xếp ổn định, rồi đọc duration/room và tính endTime trong cùng transaction. Không được đọc duration bên ngoài transaction rồi insert sau khi lock. Kết hợp movie/room locks với GiST exclusion `[)` để bảo vệ cả catalog changes và schedule overlaps. Phase4 chưa có showtime endpoints, realtime availability hoặc booking holds.
+
+## Showtime engine Phase 5 đã triển khai
+
+ShowtimesController → ShowtimesService → ShowtimesRepository cùng MoviesRepository/RoomsRepository; UnitOfWork sở hữu transaction. GET public, writes ADMIN-only như catalog. DTO chỉ nhận movieId/roomId/startTime/baseTicketPrice; không cho client tính endTime. Timestamp có timezone và millisecond precision, giá dương Decimal(14,2) từ chuỗi và serialize fixed2. Không cần sửa schema/migration/dependencies/env.
+
+Create khóa movie rồi room, đọc duration/room sau lock, tính thời gian +15 phút cleaning, query overlap và INSERT trong transaction READ COMMITTED. Update/delete đọc snapshot để xác định parent IDs, khóa tất cả movie IDs sorted rồi room IDs sorted, cuối cùng showtime FOR UPDATE và đọc lại. Nếu movieId/roomId đã đổi so với snapshot thì rollback/retry với bộ parents mới; tránh giữ sai room lock hoặc deadlock khi các suất đổi phòng/phim. Merge PATCH từ fresh row để không mất independent concurrent changes. Tối đa3 attempts cho snapshot change hoặc P2034/SQL deadlock; hết trả409 SHOWTIME_CHANGED. Không retry business conflict hay external side effects.
+
+Overlap dùng strict `<`/`>` và exclude ID trên update. GiST exclusion từ Phase1 bảo vệ cả INSERT/UPDATE; riêng constraint showtimes_no_room_overlap được map409 SHOWTIME_CONFLICT, không chuyển mọi unknown DB error thành conflict. Không trả constraint/internal SQL ra client. No-op PATCH trả nguyên row. Khi có bất kỳ booking status nào, mọi thay đổi thực tế hoặc DELETE trả409 SHOWTIME_IN_USE; showtime row lock tương thích FK protection: chờ in-flight booking insert commit rồi kiểm tra lại trước mutation.
+
+List/count chung REPEATABLE READ snapshot, sort startTime/UUID; filters movieId/cinemaId/roomId/date và pagination. Không date chỉ upcoming starts; có date là trọn ngày Việt Nam UTC+07:00 và có thể đọc history. Detail trả lịch sử không nhạy cảm. ADMIN được quản lý lịch quá khứ chưa tham chiếu; quyền hold/đặt vé tương lai vẫn phải được Phase6 kiểm tra, không suy ra từ việc GET detail thành công. Booking writers Phase6 phải khóa/read showtime trước lấy giá và snapshot, cùng một transaction, để không dùng giá/lịch cũ khi có concurrent schedule mutation.
+
+TC-02 API đã kiểm chứng, gồm exact boundary và concurrent create/update trên PostgreSQL/Redis thật; fault injection chỉ bỏ advisory overlap precheck để xác nhận GiST rejection được map đúng. Chưa có holds/seat availability/payment/tickets. Evidence: validation-phase-5.md.

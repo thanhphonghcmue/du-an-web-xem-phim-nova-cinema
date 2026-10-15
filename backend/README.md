@@ -1,8 +1,8 @@
-# NOVA Cinema Backend — Phase 4
+# NOVA Cinema Backend — Phase 5
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–4 hoàn tất**: PostgreSQL/Prisma, Redis/BullMQ, validation, Swagger, health, đăng ký/đăng nhập, JWT, refresh rotation, hồ sơ, RBAC, C’MEMBER và CRUD phim/rạp/phòng/ghế. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–5 hoàn tất**: PostgreSQL/Prisma, Redis/BullMQ, validation, Swagger, health, auth/users/RBAC/C’MEMBER, CRUD phim/rạp/phòng/ghế và suất chiếu chống trùng lịch BR03. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md).
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md).
 
 ## Requirements
 
@@ -221,6 +221,37 @@ curl 'http://127.0.0.1:4000/api/v1/movies?status=NOW_SHOWING&page=1&limit=6'
 
 Phase4 không cần migration/dependency/env mới. Schema14 models và SQL constraints Phase1 được giữ nguyên. Showtimes/BR03/TC-02 thuộc Phase5; realtime seat status và hold thuộc các phase sau. Frontend Sandbox vẫn độc lập.
 
+## Phase 5: Showtimes — BR03, TC-02
+
+| Method | Endpoint                | Quyền                                   |
+| ------ | ----------------------- | --------------------------------------- |
+| GET    | `/api/v1/showtimes`     | Public; pagination và filters           |
+| GET    | `/api/v1/showtimes/:id` | Public; chi tiết, kể cả suất đã qua     |
+| POST   | `/api/v1/showtimes`     | ADMIN; tạo lịch, trả201                 |
+| PATCH  | `/api/v1/showtimes/:id` | ADMIN; sửa suất chưa có booking         |
+| DELETE | `/api/v1/showtimes/:id` | ADMIN; xóa suất chưa có booking, trả200 |
+
+Tạo suất trong Swagger bằng access token ADMIN từ login:
+
+```json
+{
+  "movieId": "UUID_PHIM_THAT_TU_API_MOVIES",
+  "roomId": "UUID_PHONG_THAT_TU_API_ROOMS",
+  "startTime": "2042-01-01T10:00:00+07:00",
+  "baseTicketPrice": "90000.00"
+}
+```
+
+Thay hai giá trị UUID bằng IDs thật; cấu hình ghế trước khi tạo lịch vì Phase4 đóng băng layout khi có showtime. `startTime` bắt buộc timestamp ISO đầy đủ giây và timezone Z/offset, tối đa3 chữ số milliseconds. Giá là **chuỗi Decimal dương**, tối đa12 chữ số nguyên và2 số thập phân; không nhận JSON number, exponent, giá0 hay client `endTime`. Response trả thời gian UTC và giá fixed2 string, kể cả `999999999999.99` không mất độ chính xác.
+
+Server tính `endTime = startTime + movie.durationMinutes + 15 phút dọn phòng` trong transaction sau khi khóa movie/room. Overlap trong cùng room là `other.startTime < newEnd AND other.endTime > newStart`, PATCH exclude chính ID đang sửa. Phim120 phút, suất10:00 kết thúc12:15: suất12:00 trả **409 SHOWTIME_CONFLICT**, suất12:15 được phép. Constraint GiST `[start,end)` vẫn bảo vệ writes ngoài service. Movie/room thiếu404; UUID/null/trường thừa/giá/ngày sai400.
+
+List nhận `movieId`, `cinemaId`, `roomId`, `date`, `page`, `limit`; filters kết hợp AND, sort startTime/UUID tăng dần, items/count cùng REPEATABLE READ snapshot. **Không có date: chỉ suất có startTime >= server now. Có date=YYYY-MM-DD: toàn ngày Việt Nam UTC+07:00, từ00:00 inclusive đến00:00 ngày sau exclusive**, cho phép đọc lịch sử. Ví dụ `?movieId=<UUID>&cinemaId=<UUID>&date=2042-01-01&page=1&limit=20`. Mặc định page1/limit20, tối đa100. ADMIN có thể tạo/sửa lịch quá khứ nếu chưa có booking; API này quản lý lịch, không xác nhận một suất còn đặt vé được. Điều kiện đặt vé tương lai và availability thuộc Phase6.
+
+Mọi sửa đổi thực tế về movie/room/thời gian/giá hoặc DELETE khi có **bất kỳ booking nào, kể cả CANCELLED/EXPIRED**, trả409 `SHOWTIME_IN_USE`; không cascade lịch sử. PATCH không thay giá trị thực tế trả nguyên bản, không đổi updatedAt. Locks movie IDs sorted → room IDs sorted → showtime row; reload row sau lock, retry tối đa3 transactions nếu concurrent move đổi parent IDs hoặc PostgreSQL báo deadlock/serialization conflict. Hết retry trả409 `SHOWTIME_CHANGED`. Không đọc duration từ ngoài transaction, không ghi đè các trường PATCH bị bỏ qua.
+
+Phase5 dùng lại schema/migration/dependencies/env hiện có. TC-02 đã qua HTTP API với PostgreSQL/Redis thật; chưa triển khai seat map theo suất, giữ ghế hay booking APIs.
+
 ## Tests và build
 
 ```bash
@@ -228,9 +259,9 @@ npm run check
 npm run test:db
 ```
 
-`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **27 unit tests**, **52 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule.
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **27 unit tests**, **73 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule.
 
-Các test DB này chứng minh constraint/nền tảng, **không thay TC01–TC05 qua API** và không chứng minh payment/signature/seat timer/role/check-in window đã chạy. Các API đó sẽ được làm ở phase tương ứng.
+Các test DB này chứng minh constraint/nền tảng, **không thay TC01–TC05 qua API** và không chứng minh payment/signature/seat timer/role/check-in window đã chạy. TC-02 đã được kiểm chứng riêng qua showtime HTTP suite Phase5; các acceptance nghiệp vụ còn lại sẽ được làm ở phase tương ứng.
 
 ## HTTP bootstrap
 
@@ -243,7 +274,7 @@ npm run start:prod
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-HTTP 200 trả `{success:true,data:{phase:4,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
+HTTP 200 trả `{success:true,data:{phase:5,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
 
 ## Docker database and Redis lifecycle
 
@@ -254,7 +285,7 @@ npm run infra:down
 
 `infra:down` dừng/xóa bốn container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. Compose hiện chạy PostgreSQL/Redis local; API Nest vẫn được chạy từ Node trên host. Docker hóa app/worker thuộc Phase 12.
 
-## Cây mã nguồn hiện tại đến Phase 4
+## Cây mã nguồn hiện tại đến Phase 5
 
 ```text
 backend/
@@ -287,10 +318,12 @@ backend/
       cinemas/
       rooms/
       seats/
+      showtimes/
   test/
     app.e2e-spec.ts
     auth.e2e-spec.ts
     catalog.e2e-spec.ts
+    showtime-conflict.e2e-spec.ts
     jest-database.config.cjs
     schema.database-spec.ts
     setup-environment.cjs
@@ -299,6 +332,7 @@ backend/
     validation-phase-2.md
     validation-phase-3.md
     validation-phase-4.md
+    validation-phase-5.md
 ```
 
-Các bootstrap/config/test Phase 0 được giữ; package scripts, TS/lint include, `.env.example`, `.gitignore` và tài liệu đã cập nhật. Không có module API rỗng hoặc placeholder. Dừng sau Phase 4 và chờ **“TIẾP TỤC PHASE 5”**.
+Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 5 và chờ **“TIẾP TỤC PHASE 6”**.

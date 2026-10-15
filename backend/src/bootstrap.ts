@@ -98,7 +98,7 @@ export function configureApplication(app: INestApplication): void {
     .setTitle("NOVA Cinema API")
     .setVersion("v1")
     .setDescription(
-      "Phase 4: authentication, membership and cinema catalog CRUD. Showtime/booking APIs belong to later phases.",
+      "Phase 5: authentication, membership, cinema catalog and BR03 showtime CRUD. Booking/seat-hold APIs belong to later phases.",
     )
     .addBearerAuth()
     .build();

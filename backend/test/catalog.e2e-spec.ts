@@ -851,7 +851,7 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
     ).toBeNull();
   });
 
-  it("publishes catalog schemas and role-protected writes without Phase 5 routes", async () => {
+  it("publishes catalog schemas and role-protected writes alongside showtimes", async () => {
     const response = await request(server).get("/api/docs-json").expect(200);
     const spec = JSON.parse(response.text) as {
       paths: Record<
@@ -886,7 +886,7 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
       "PageMetaDto",
     ])
       expect(spec.components.schemas).toHaveProperty(model);
-    expect(spec.paths).not.toHaveProperty("/api/v1/showtimes");
-    await request(server).get("/api/v1/showtimes").expect(404);
+    expect(spec.paths).toHaveProperty("/api/v1/showtimes");
+    await request(server).get("/api/v1/showtimes").expect(200);
   });
 });

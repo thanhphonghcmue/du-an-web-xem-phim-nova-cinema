@@ -1,12 +1,16 @@
 import { useState } from "react";
 import {
+  AlertCircle,
   ArrowRight,
   Check,
+  CheckCircle2,
   Crown,
   Eye,
   EyeOff,
+  Lock,
   Mail,
   ShieldCheck,
+  Sparkles,
   UserRound,
 } from "lucide-react";
 import { useI18n } from "../i18n.js";
@@ -26,6 +30,7 @@ export default function AuthForm({ onSuccess }) {
   });
   const [touched, setTouched] = useState({});
   const [notice, setNotice] = useState("");
+  const [noticeType, setNoticeType] = useState("error"); // "error" | "info"
 
   const error = {
     name:
@@ -52,6 +57,35 @@ export default function AuthForm({ onSuccess }) {
           : "Mật khẩu xác nhận chưa khớp."
         : " ",
   };
+
+  function translateNotice(raw) {
+    if (!raw) return "";
+    if (
+      raw.includes("Email or password is incorrect") ||
+      raw.includes("INVALID_CREDENTIALS")
+    ) {
+      return "Email hoặc mật khẩu không chính xác. Mật khẩu mẫu mặc định là: Nova@123456";
+    }
+    if (raw.includes("already registered") || raw.includes("exists")) {
+      return "Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.";
+    }
+    if (raw.includes("Password must be at least 12")) {
+      return "Mật khẩu cần tối thiểu 12 ký tự.";
+    }
+    return raw;
+  }
+
+  function handleQuickFill(email, roleName) {
+    setTab("signin");
+    setFields((prev) => ({
+      ...prev,
+      email,
+      password: "Nova@123456",
+    }));
+    setTouched({});
+    setNoticeType("info");
+    setNotice(`Đã điền tài khoản mẫu ${roleName}! Mật khẩu: Nova@123456`);
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -99,6 +133,7 @@ export default function AuthForm({ onSuccess }) {
         onSuccess(member);
       }
     } catch (err) {
+      setNoticeType("error");
       setNotice(
         err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
       );
@@ -109,6 +144,7 @@ export default function AuthForm({ onSuccess }) {
 
   return (
     <div className="auth-layout">
+      {/* Left Banner: VIP Club & Benefits */}
       <div className="auth-reward">
         <Crown size={34} />
         <span>C’MEMBER / INFINITY CLUB</span>
@@ -125,21 +161,23 @@ export default function AuthForm({ onSuccess }) {
         </div>
         <ul>
           <li>
-            <Check size={14} />
+            <Check size={15} />
             {t("Tích điểm mỗi vé")}
           </li>
           <li>
-            <Check size={14} />
+            <Check size={15} />
             {t("Lưu vé trong tài khoản")}
           </li>
           <li>
-            <Check size={14} />
+            <Check size={15} />
             {t("Xem lịch sử đặt vé")}
           </li>
         </ul>
       </div>
 
+      {/* Right Column: Form */}
       <div className="auth-main">
+        {/* Navigation Tabs */}
         <div className="auth-tabs" role="tablist" aria-label="Authentication">
           {[
             ["signin", "Đăng nhập"],
@@ -160,6 +198,42 @@ export default function AuthForm({ onSuccess }) {
           ))}
         </div>
 
+        {/* Quick Fill Demo Accounts (in Sign-in tab) */}
+        {tab === "signin" && (
+          <div className="auth-quick-accounts">
+            <div className="auth-quick-header">
+              <span>
+                <Sparkles size={14} style={{ display: "inline", marginRight: 4 }} />
+                Tài khoản mẫu trải nghiệm nhanh:
+              </span>
+            </div>
+            <div className="auth-quick-pills">
+              <button
+                type="button"
+                className="auth-quick-pill admin"
+                onClick={() => handleQuickFill("admin@nova.local", "Admin")}
+              >
+                👑 Admin
+              </button>
+              <button
+                type="button"
+                className="auth-quick-pill staff"
+                onClick={() => handleQuickFill("staff@nova.local", "Soát vé")}
+              >
+                🎫 Staff
+              </button>
+              <button
+                type="button"
+                className="auth-quick-pill customer"
+                onClick={() => handleQuickFill("customer@nova.local", "Khách hàng")}
+              >
+                👤 Khách hàng
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Main Authentication Form */}
         <form onSubmit={submit} noValidate className="auth-form">
           {[
             tab === "signup" && ["name", "Họ và tên", "text", "Nguyễn Văn A"],
@@ -174,80 +248,128 @@ export default function AuthForm({ onSuccess }) {
           ]
             .filter(Boolean)
             .map(([id, label, type, placeholder]) => (
-              <div key={id} className="field-block">
-                <label htmlFor={`field-${id}`}>{t(label)}</label>
-                <input
-                  id={`field-${id}`}
-                  type={
-                    id === "password" || id === "confirm"
-                      ? show
-                        ? "text"
-                        : "password"
-                      : type
-                  }
-                  placeholder={placeholder}
-                  value={fields[id]}
-                  onChange={(e) =>
-                    setFields({ ...fields, [id]: e.target.value })
-                  }
-                  onBlur={() => setTouched({ ...touched, [id]: true })}
-                  autoComplete={id === "password" ? "current-password" : id}
-                  aria-invalid={Boolean(touched[id] && error[id]?.trim())}
-                  aria-describedby={
-                    touched[id] && error[id]?.trim() ? `error-${id}` : undefined
-                  }
-                />
-                {(id === "password" || id === "confirm") && (
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    aria-label={show ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    onClick={() => setShow(!show)}
-                  >
-                    {show ? <EyeOff size={17} /> : <Eye size={17} />}
-                  </button>
-                )}
+              <div key={id} className="auth-field-group">
+                <div className="auth-field-header">
+                  <label htmlFor={`field-${id}`} className="auth-field-label">
+                    {t(label)}
+                  </label>
+                  {id === "password" && tab === "signup" && (
+                    <span className="auth-field-hint">Tối thiểu 12 ký tự</span>
+                  )}
+                </div>
+
+                <div className="auth-input-container">
+                  <span className="auth-input-icon">
+                    {id === "name" && <UserRound size={17} />}
+                    {id === "email" && <Mail size={17} />}
+                    {(id === "password" || id === "confirm") && (
+                      <Lock size={17} />
+                    )}
+                  </span>
+                  <input
+                    id={`field-${id}`}
+                    name={id}
+                    type={
+                      id === "password" || id === "confirm"
+                        ? show
+                          ? "text"
+                          : "password"
+                        : type
+                    }
+                    placeholder={placeholder}
+                    value={fields[id]}
+                    onChange={(e) =>
+                      setFields({ ...fields, [id]: e.target.value })
+                    }
+                    onBlur={() => setTouched({ ...touched, [id]: true })}
+                    autoComplete={
+                      id === "name"
+                        ? "name"
+                        : id === "email"
+                          ? "email"
+                          : tab === "signup"
+                            ? "new-password"
+                            : "current-password"
+                    }
+                    aria-invalid={Boolean(touched[id] && error[id]?.trim())}
+                    aria-describedby={
+                      touched[id] && error[id]?.trim() ? `error-${id}` : undefined
+                    }
+                    className={`auth-text-input ${
+                      touched[id] && error[id]?.trim() ? "is-invalid" : ""
+                    }`}
+                  />
+                  {(id === "password" || id === "confirm") && (
+                    <button
+                      type="button"
+                      className="auth-password-toggle"
+                      aria-label={show ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                      onClick={() => setShow(!show)}
+                    >
+                      {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  )}
+                </div>
+
                 {touched[id] && error[id]?.trim() && (
-                  <small id={`error-${id}`} role="alert">
-                    {error[id]}
-                  </small>
+                  <div id={`error-${id}`} className="auth-error-message" role="alert">
+                    <AlertCircle size={14} />
+                    <span>{error[id]}</span>
+                  </div>
                 )}
               </div>
             ))}
 
           <div className="auth-options">
-            <label>
+            <label className="auth-checkbox-label">
               <input
                 type="checkbox"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
               />
-              {t("Ghi nhớ đăng nhập")}
+              <span>{t("Ghi nhớ đăng nhập")}</span>
             </label>
+            {tab === "signin" && (
+              <span className="auth-demo-hint">
+                Mật khẩu mẫu: <strong>Nova@123456</strong>
+              </span>
+            )}
           </div>
 
           <button
-            className="button button-primary w-full"
+            className="auth-submit-btn"
             type="submit"
             disabled={loading}
           >
-            {loading
-              ? "Đang xác thực với server..."
-              : t(tab === "signin" ? "Đăng nhập ngay" : "Tạo tài khoản")}
-            <ArrowRight size={17} />
+            <span>
+              {loading
+                ? "Đang xác thực..."
+                : t(tab === "signin" ? "Đăng nhập ngay" : "Tạo tài khoản")}
+            </span>
+            <ArrowRight size={18} />
           </button>
         </form>
 
         {notice && (
-          <p className="auth-notice mt-3" role="status">
-            {notice}
-          </p>
+          <div
+            className={`auth-notice-banner ${
+              noticeType === "info" ? "success" : ""
+            }`}
+            role="status"
+          >
+            {noticeType === "info" ? (
+              <CheckCircle2 size={17} />
+            ) : (
+              <AlertCircle size={17} />
+            )}
+            <span>{translateNotice(notice)}</span>
+          </div>
         )}
 
-        <p className="auth-disclaimer mt-3">
-          <ShieldCheck size={13} />
-          Bảo mật mã hóa bằng Argon2id & JWT Token chuẩn NestJS.
-        </p>
+        <div className="auth-security-footer">
+          <ShieldCheck size={15} />
+          <span>Bảo mật mã hóa Argon2id & JWT Token chuẩn NestJS</span>
+        </div>
       </div>
     </div>
   );

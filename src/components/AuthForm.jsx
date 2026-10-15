@@ -64,7 +64,7 @@ export default function AuthForm({ onSuccess }) {
       raw.includes("Email or password is incorrect") ||
       raw.includes("INVALID_CREDENTIALS")
     ) {
-      return "Email hoặc mật khẩu không chính xác. Mật khẩu mẫu mặc định là: Nova@123456";
+      return "Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.";
     }
     if (raw.includes("already registered") || raw.includes("exists")) {
       return "Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.";
@@ -80,11 +80,11 @@ export default function AuthForm({ onSuccess }) {
     setFields((prev) => ({
       ...prev,
       email,
-      password: "Nova@123456",
+      // Không tự động điền mật khẩu để bảo vệ tài khoản cấp cao
     }));
-    setTouched({});
+    setTouched((prev) => ({ ...prev, email: true }));
     setNoticeType("info");
-    setNotice(`Đã điền tài khoản mẫu ${roleName}! Mật khẩu: Nova@123456`);
+    setNotice(`Đã chọn tài khoản ${roleName}. Vui lòng nhập mật khẩu.`);
   }
 
   async function submit(e) {
@@ -198,36 +198,39 @@ export default function AuthForm({ onSuccess }) {
           ))}
         </div>
 
-        {/* Quick Fill Demo Accounts (in Sign-in tab) */}
+        {/* Cinema Operational Accounts (in Sign-in tab) */}
         {tab === "signin" && (
           <div className="auth-quick-accounts">
             <div className="auth-quick-header">
               <span>
-                <Sparkles size={14} style={{ display: "inline", marginRight: 4 }} />
-                Tài khoản mẫu trải nghiệm nhanh:
+                <Sparkles size={14} style={{ display: "inline", marginRight: 5 }} />
+                Tài khoản nghiệp vụ rạp chiếu phim:
               </span>
             </div>
             <div className="auth-quick-pills">
               <button
                 type="button"
                 className="auth-quick-pill admin"
-                onClick={() => handleQuickFill("admin@nova.local", "Admin")}
+                onClick={() => handleQuickFill("admin@nova.local", "Quản trị viên")}
+                title="admin@nova.local"
               >
-                👑 Admin
+                👑 Quản trị viên
               </button>
               <button
                 type="button"
                 className="auth-quick-pill staff"
-                onClick={() => handleQuickFill("staff@nova.local", "Soát vé")}
+                onClick={() => handleQuickFill("staff@nova.local", "Nhân viên soát vé")}
+                title="staff@nova.local"
               >
-                🎫 Staff
+                🎫 Nhân viên soát vé
               </button>
               <button
                 type="button"
                 className="auth-quick-pill customer"
-                onClick={() => handleQuickFill("customer@nova.local", "Khách hàng")}
+                onClick={() => handleQuickFill("customer@nova.local", "Thành viên rạp")}
+                title="customer@nova.local"
               >
-                👤 Khách hàng
+                👤 Thành viên rạp
               </button>
             </div>
           </div>
@@ -329,11 +332,6 @@ export default function AuthForm({ onSuccess }) {
               />
               <span>{t("Ghi nhớ đăng nhập")}</span>
             </label>
-            {tab === "signin" && (
-              <span className="auth-demo-hint">
-                Mật khẩu mẫu: <strong>Nova@123456</strong>
-              </span>
-            )}
           </div>
 
           <button

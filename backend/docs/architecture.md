@@ -1,6 +1,6 @@
 # Phase 0 — Architecture Decision Record
 
-Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. ADR được lập ở Phase 0; Phase 1 đã triển khai schema/migration/seed; Phase 2 đã triển khai infrastructure HTTP/Prisma/Redis/BullMQ; Phase 3 triển khai auth/users/RBAC/C’MEMBER. Các API và service nghiệp vụ dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
+Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. ADR được lập ở Phase 0; Phase 1 đã triển khai schema/migration/seed; Phase 2 đã triển khai infrastructure HTTP/Prisma/Redis/BullMQ; Phase 3 triển khai auth/users/RBAC/C’MEMBER; Phase 4 triển khai CRUD catalog và physical seats. Các API và service nghiệp vụ dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
 
 ## Quyết định nền tảng
 
@@ -75,7 +75,7 @@ Giá STANDARD ×1.0, VIP ×1.2, SWEETBOX ×1.5. Party Combo 69K mỗi đơn vị
 
 ## Cây thư mục đích theo phase
 
-Đây là kế hoạch đầy đủ; chỉ module nền tảng Phase 0–3 và database Phase 1/2 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
+Đây là kế hoạch đầy đủ; chỉ module nền tảng Phase 0–4 và database Phase 1/2 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
 
 ```text
 backend/
@@ -200,3 +200,17 @@ JWT HS256 được ký bằng secret riêng access/refresh, kiểm tra algorithm
 Refresh JWT có random JTI, DB chỉ lưu SHA-256 digest token có entropy cao. Transaction thực hiện parameterized conditional UPDATE `revoked_at IS NULL AND expires_at > clock_timestamp()`, sau đó tạo successor trong cùng transaction. PostgreSQL row lock/condition làm 5 concurrent request chỉ 1 winner, không dùng memory lock. Nếu tạo successor lỗi, transaction rollback cả revoke; old token vẫn dùng được. Logout idempotently revoke token được trình; không revoke toàn bộ phiên hoặc access JWT đã phát hành (hết hạn ngắn). Token-family reuse revocation chưa được thêm vì nằm ngoài hợp đồng hiện tại.
 
 Config JWT mandatory, distinct secrets >=32 ký tự; helper tạo random 48 bytes/secret và giữ trong `.env` 0600. Access default 15m/max1h, refresh default7d/max90d và dài hơn access. Tests dùng secrets ephemeral. Auth/profile responses `Cache-Control: no-store`, không log request bodies. Redis throttler login/register 5/IP/min, refresh30/min. Membership dùng shared DiscountService rates SILVER5%/GOLD7%/DIAMOND10%; chỉ đọc points/tier, reward khi payment success ở Phase 8 theo conversion ADR.
+
+## Catalog Phase 4 đã triển khai
+
+Movies/Cinemas/Rooms/Seats mỗi domain có controller, service, repository, DTO và module thực. UnitOfWork trong global PrismaModule cho service mở transaction xuyên repositories. Repository sở hữu parameterized SQL/Prisma; không có Prisma trong controllers. Không thay14 models/migration/lockfile. Single INSERT/UPDATE metadata không có business checks chạy atomic statement; mutation có dependency/structure/count checks dùng transaction và row lock.
+
+GET catalog (kể cả physical seats) public, POST/PATCH/DELETE ADMIN-only, STAFF read-only. Đây là lựa chọn quyền đọc cho dữ liệu danh mục không có user/booking information, giữ admin mutation được bảo vệ mặc định. DTO validator strict, PartialType skipNullProperties=false cho non-null fields; media URL nullable rõ ràng. API response pagination chuẩn, list/count cùng REPEATABLE READ snapshot, stable tie-break UUID. Decimal priceModifier serialize thành fixed2 string.
+
+Movie update/delete khóa movie FOR UPDATE trước load/check; duration thay đổi bị409 nếu có bất kỳ showtime tham chiếu. Room structure update/delete khóa room; roomType/cinemaId khóa khi đã có showtime. Cinema delete khóa cinema và từ chối còn child rooms. FK RESTRICT bổ sung protection cho insertion/deletion races. Không có soft-delete column nên API chỉ xóa record chưa tham chiếu; movie ENDED dùng để ngừng quảng bá.
+
+SeatsService khóa room trước mọi layout mutation. Generate chỉ cho room rỗng, tối đa26 row labels ×50 columns; không overwrite IDs. Row labels uppercase unique; VIP và Sweetbox là subset disjoint của rows. SeatType ánh xạ multiplier ở server từ string Decimal constants. Generate/create/delete và recount/update room.totalSeats nằm cùng transaction; duplicate hoặc lỗi counter rollback toàn bộ. PATCH seatType cập nhật multiplier cùng statement; coordinate unique vẫn do DB bảo vệ. Không cho client ghi totalSeats, priceModifier, status, IDs/foreign IDs tùy ý.
+
+Bất kỳ showtime nào trong room đều đóng băng toàn layout và venue/format của room, cả showtime lịch sử. Test trực tiếp giữ FK transaction của một showtime mới rồi gọi duration/layout mutation: FOR UPDATE chờ writer commit, sau đó read committed thấy reference và trả409. Đây là protection catalog, không phải TC-02 schedule API.
+
+Hợp đồng cho Phase5: tạo/update showtime cần khóa movie(s) trước room(s), IDs sắp xếp ổn định, rồi đọc duration/room và tính endTime trong cùng transaction. Không được đọc duration bên ngoài transaction rồi insert sau khi lock. Kết hợp movie/room locks với GiST exclusion `[)` để bảo vệ cả catalog changes và schedule overlaps. Phase4 chưa có showtime endpoints, realtime availability hoặc booking holds.

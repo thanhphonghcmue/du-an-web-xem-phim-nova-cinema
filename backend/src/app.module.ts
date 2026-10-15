@@ -17,6 +17,10 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
+import { MoviesModule } from "./modules/movies/movies.module";
+import { CinemasModule } from "./modules/cinemas/cinemas.module";
+import { RoomsModule } from "./modules/rooms/rooms.module";
+import { SeatsModule } from "./modules/seats/seats.module";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,6 +35,10 @@ import { RolesGuard } from "./common/guards/roles.guard";
     RateLimitModule,
     HealthModule,
     AuthModule,
+    MoviesModule,
+    CinemasModule,
+    RoomsModule,
+    SeatsModule,
   ],
   controllers: [AppController],
   providers: [

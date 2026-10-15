@@ -1,12 +1,12 @@
-# NOVA Cinema Backend — Phase 3
+# NOVA Cinema Backend — Phase 4
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–3 hoàn tất**: PostgreSQL/Prisma, Redis/BullMQ, validation, Swagger, health, đăng ký/đăng nhập, JWT, refresh rotation, hồ sơ, RBAC và C’MEMBER. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–4 hoàn tất**: PostgreSQL/Prisma, Redis/BullMQ, validation, Swagger, health, đăng ký/đăng nhập, JWT, refresh rotation, hồ sơ, RBAC, C’MEMBER và CRUD phim/rạp/phòng/ghế. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md).
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md).
 
 ## Requirements
 
-Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Phase 3 cần hai JWT signing secrets độc lập; payment/SMTP secrets dành cho phase sau.
+Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets độc lập; payment/SMTP secrets dành cho phase sau.
 
 Nếu đã có PostgreSQL/Redis riêng, điền connection settings vào `.env` thay vì ghi đè cấu hình bằng các helper local.
 
@@ -168,6 +168,59 @@ C’MEMBER rates: SILVER 0.05, GOLD 0.07, DIAMOND 0.10, tập trung trong `Disco
 
 Đăng nhập demo bằng `customer@nova.local`, `staff@nova.local`, `admin@nova.local` và password riêng `SEED_DEMO_PASSWORD` trong `.env`. Trong Swagger, copy `data.accessToken` từ login vào Authorize; refresh/logout nhận refresh token trong JSON body. Frontend Sandbox chưa được nối vào API này.
 
+## Phase 4: Movies, Cinemas, Rooms và Seats
+
+**22 operations mới** theo Controller → Service → Repository → Prisma. GET danh mục và ghế vật lý là public để GUEST/CUSTOMER/STAFF đều có thể xem; mọi POST/PATCH/DELETE chỉ ADMIN, kiểm tra bằng global JWT/role guards. STAFF có quyền đọc, không được thay danh mục. Các DTO từ chối trường thừa, null trên trường bắt buộc, UUID/enum sai và pagination ngoài giới hạn.
+
+| Resource | Endpoints                                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Movies   | `GET/POST /api/v1/movies`, `GET/PATCH/DELETE /api/v1/movies/:id`                                                          |
+| Cinemas  | `GET/POST /api/v1/cinemas`, `GET/PATCH/DELETE /api/v1/cinemas/:id`                                                        |
+| Rooms    | `GET/POST /api/v1/rooms`, `GET/PATCH/DELETE /api/v1/rooms/:id`, `GET /api/v1/cinemas/:cinemaId/rooms`                     |
+| Seats    | `GET/POST /api/v1/rooms/:roomId/seats`, `POST /api/v1/rooms/:roomId/seats/generate`, `GET/PATCH/DELETE /api/v1/seats/:id` |
+
+List responses nằm trong `data.items` và `data.meta = {page,limit,total,totalPages}`. Mặc định page1/limit20, limit tối đa100; page tối đa1.000.000. Item query và count dùng chung snapshot REPEATABLE READ, sort có UUID tie-breaker để thứ tự ổn định. Các filters kết hợp với nhau:
+
+- Movies: `status`, `ageRating`, `keyword` (title, không phân biệt hoa thường).
+- Cinemas: `city` (exact, không phân biệt hoa thường), `keyword` (name/address).
+- Rooms: `cinemaId`, `roomType`, `keyword` (name); nested cinema route nhận `roomType`, `keyword` và pagination.
+- Seats theo room: `seatRow`, `seatType` và pagination; sort row/column/UUID. Đây là **ghế vật lý**, chưa có status ghế theo suất chiếu.
+
+Movie create nhận title, description, durationMinutes (integer1–600), releaseDate (ISO timestamp có Z/offset), ageRating, status tùy chọn (COMING_SOON mặc định), posterUrl/trailerUrl HTTP(S) nullable. Ngày được trả UTC; PATCH URL=null để xóa link. Thời lượng phim đã có showtime tham chiếu không được thay đổi, kể cả suất đã qua; có thể sửa metadata/status hoặc giữ nguyên duration. DELETE phim đang có showtime trả409; dùng status ENDED khi muốn ngừng hiển thị trong danh sách NOW_SHOWING.
+
+Room create nhận `{cinemaId,name,roomType}` và bắt đầu `totalSeats:0`; tên phòng unique trong cùng cinema. `totalSeats` luôn được tính từ số seat rows thật, không cho client truyền. Phòng có showtime không được chuyển cinema hoặc đổi roomType; vẫn có thể đổi name. Xóa cinema còn phòng, room còn showtimes/seats, hoặc movie còn showtimes đều409, không cascade xóa lịch sử. Dữ liệu thiếu404; duplicate name/seat coordinate409. FK vẫn bảo vệ các race xảy ra sau precheck.
+
+Ví dụ sinh ma trận ghế bằng ADMIN trong Swagger:
+
+```json
+{
+  "rows": ["A", "B", "C", "D", "E", "F", "G", "H"],
+  "columns": 20,
+  "vipRows": ["C", "D", "E", "F"],
+  "sweetboxRows": ["H"]
+}
+```
+
+Chỉ sinh cho phòng rỗng, chưa có showtime; lần thứ hai409 và giữ nguyên IDs. Row labels được trim/uppercase, unique, gồm1–8 chữ A–Z; tối đa26 hàng và50 cột (1300 ghế). VIP/Sweetbox rows phải nằm trong rows và không chồng nhau; các hàng còn lại STANDARD. Server tự lưu multiplier Decimal1.00/1.20/1.50 và trả string có2 chữ số, không nhận priceModifier từ client.
+
+Single-seat create/PATCH nhận seatRow/seatColumn/seatType; không nhận roomId để di chuyển ghế, status hoặc giá frontend. Sinh/thêm/xóa ghế và cập nhật sức chứa cùng transaction, khóa room bằng PostgreSQL FOR UPDATE. Hai generate đồng thời có đúng một winner; thêm/xóa ghế đồng thời không mất count. Khi room đã có bất kỳ showtime nào, API đóng băng toàn bộ layout (generate/create/PATCH/DELETE409), bảo vệ ghế/snapshot của các phase sau. Không tự thay ID hoặc tái sinh layout đang dùng.
+
+Chạy thử sau khi setup theo đầu README:
+
+```bash
+npm run check
+npm run test:db
+npm run start:dev
+```
+
+Swagger `/api/docs`: login `admin@nova.local` với password riêng SEED_DEMO_PASSWORD trong `.env`, dùng data.accessToken tại Authorize rồi thao tác catalog. Public list có thể gọi trực tiếp:
+
+```bash
+curl 'http://127.0.0.1:4000/api/v1/movies?status=NOW_SHOWING&page=1&limit=6'
+```
+
+Phase4 không cần migration/dependency/env mới. Schema14 models và SQL constraints Phase1 được giữ nguyên. Showtimes/BR03/TC-02 thuộc Phase5; realtime seat status và hold thuộc các phase sau. Frontend Sandbox vẫn độc lập.
+
 ## Tests và build
 
 ```bash
@@ -175,7 +228,7 @@ npm run check
 npm run test:db
 ```
 
-`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **27 unit tests**, **30 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule.
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **27 unit tests**, **52 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule.
 
 Các test DB này chứng minh constraint/nền tảng, **không thay TC01–TC05 qua API** và không chứng minh payment/signature/seat timer/role/check-in window đã chạy. Các API đó sẽ được làm ở phase tương ứng.
 
@@ -190,7 +243,7 @@ npm run start:prod
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-HTTP 200 trả `{success:true,data:{phase:3,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
+HTTP 200 trả `{success:true,data:{phase:4,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
 
 ## Docker database and Redis lifecycle
 
@@ -201,7 +254,7 @@ npm run infra:down
 
 `infra:down` dừng/xóa bốn container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. Compose hiện chạy PostgreSQL/Redis local; API Nest vẫn được chạy từ Node trên host. Docker hóa app/worker thuộc Phase 12.
 
-## Cây mã nguồn mới của Phase 3
+## Cây mã nguồn hiện tại đến Phase 4
 
 ```text
 backend/
@@ -230,9 +283,14 @@ backend/
     modules/
       auth/
       users/
+      movies/
+      cinemas/
+      rooms/
+      seats/
   test/
     app.e2e-spec.ts
     auth.e2e-spec.ts
+    catalog.e2e-spec.ts
     jest-database.config.cjs
     schema.database-spec.ts
     setup-environment.cjs
@@ -240,6 +298,7 @@ backend/
     validation-phase-1.md
     validation-phase-2.md
     validation-phase-3.md
+    validation-phase-4.md
 ```
 
-Các bootstrap/config/test Phase 0 được giữ; package scripts, TS/lint include, `.env.example`, `.gitignore` và tài liệu đã cập nhật. Không có module API rỗng hoặc placeholder. Dừng sau Phase 3 và chờ **“TIẾP TỤC PHASE 4”**.
+Các bootstrap/config/test Phase 0 được giữ; package scripts, TS/lint include, `.env.example`, `.gitignore` và tài liệu đã cập nhật. Không có module API rỗng hoặc placeholder. Dừng sau Phase 4 và chờ **“TIẾP TỤC PHASE 5”**.

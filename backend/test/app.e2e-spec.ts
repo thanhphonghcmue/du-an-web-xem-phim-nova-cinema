@@ -128,7 +128,7 @@ describe("Phase 2 HTTP and infrastructure", () => {
     const response = await request(server).get("/api/v1").expect(200);
     expect(responseBody(response).data).toMatchObject({
       application: "NOVA CINEMA (INFINITY)",
-      phase: 3,
+      phase: 4,
       status: "running",
       apiPrefix: "/api/v1",
       health: "/api/v1/health",

@@ -20,7 +20,7 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase 0–3 đã triển khai và kiểm chứng. Phase 3 bổ sung 7 auth/users endpoints, Argon2id, JWT HS256, refresh rotation bằng transaction, logout, global JwtAuthGuard/RolesGuard và C’MEMBER membership. `npm run check`: 27 unit, 30 HTTP e2e tests, typecheck/lint/build pass; `test:db`: 22 PostgreSQL tests pass. Evidence ở `validation-phase-1.md`, `validation-phase-2.md`, `validation-phase-3.md`. Phase 4–12 chưa bắt đầu; TC01–TC05 business API chưa được đánh dấu hoàn thành.
+Phase 0–4 đã triển khai và kiểm chứng. Phase 4 thêm 22 catalog operations cho movies/cinemas/rooms/seats, pagination/filter, ADMIN-only writes, ma trận ghế atomic và bảo vệ referenced history. `npm run check`: 27 unit, 52 HTTP e2e (22 catalog +19 auth +11 infrastructure), typecheck/lint/build pass; `test:db`: 22 PostgreSQL tests pass. Evidence ở `validation-phase-1.md` đến `validation-phase-4.md`. Phase5–12 chưa bắt đầu; TC01–TC05 business API chưa được đánh dấu hoàn thành.
 
 ## Phase 2 đã triển khai
 
@@ -28,4 +28,8 @@ Database/Redis local và test có credentials, ports, volumes và BullMQ prefixe
 
 ## Phase 3 đã triển khai
 
-API đăng ký/login/refresh/logout, GET/PATCH hồ sơ và GET membership đã chạy. Mandatory signing secrets được tạo riêng bằng `npm run auth:configure`; hash-only refresh sessions sử dụng schema hiện có, không cần migration mới. Concurrent registration có 1 winner; concurrent refresh 5 request có 1 winner; lỗi insert successor rollback revoke cũ. JWT access giữ thời hạn ngắn; logout chỉ revoke refresh được gửi lên, các phiên khác độc lập. Role lấy từ DB và profile không cho sửa role/tier/points. Dừng và chờ `TIẾP TỤC PHASE 4`.
+API đăng ký/login/refresh/logout, GET/PATCH hồ sơ và GET membership đã chạy. Mandatory signing secrets được tạo riêng bằng `npm run auth:configure`; hash-only refresh sessions sử dụng schema hiện có, không cần migration mới. Concurrent registration có 1 winner; concurrent refresh 5 request có 1 winner; lỗi insert successor rollback revoke cũ. JWT access giữ thời hạn ngắn; logout chỉ revoke refresh được gửi lên, các phiên khác độc lập. Role lấy từ DB và profile không cho sửa role/tier/points.
+
+## Phase 4 đã triển khai
+
+Movies/Cinemas/Rooms/Seats có CRUD/pagination/filter và OpenAPI. GET public, mọi mutation ADMIN-only. Generate seats trên empty room, server Decimal multipliers, room.totalSeats derived, PostgreSQL row lock/transaction bảo vệ count và concurrent generate. Movie duration, room structural fields và seat layout bị khóa khi có showtimes tham chiếu; deletes không cascade lịch sử. Test thực concurrent duplicate room, seat coordinates, generation, capacity và in-flight showtime FK. Không cần migration/schema/dependency mới. Dừng và chờ `TIẾP TỤC PHASE 5`.

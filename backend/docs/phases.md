@@ -20,7 +20,7 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase0–9 đã triển khai và kiểm chứng. Phase9 thêm QR ticket idempotent, owner list/detail/ICS, durable email SMTP/BullMQ và STAFF/ADMIN conditional check-in. `npm run check`:61 unit +173 HTTP/Socket.IO tests, typecheck/lint/build pass; `test:db`:22 PostgreSQL tests. Tổng256 tests; compiled production payment→QR→SMTP→check-in smoke và actual Mailpit probe pass. TC-01–TC-05 hoàn tất; Phase10–12 chưa triển khai. Evidence validation-phase-1.md đến validation-phase-9.md.
+Phase0–10 đã triển khai và kiểm chứng. Phase10 thêm ADMIN revenue report theo ngày tạo booking, lọc cinema/movie, chỉ PAID và Decimal snapshot aggregation. `npm run check`:66 unit +192 HTTP/Socket.IO tests, typecheck/lint/build pass; `test:db`:22 PostgreSQL tests. Tổng280 tests; compiled production booking/payment→QR→SMTP→check-in→ADMIN report smoke pass. TC-01–TC-05 hoàn tất; Phase11–12 chưa triển khai. Evidence validation-phase-1.md đến validation-phase-10.md.
 
 ## Phase 2 đã triển khai
 
@@ -63,3 +63,9 @@ Ba payment APIs create-sandbox-url/webhook/owner status, cùng signed HTML Sandb
 Consumer booking.ticket.requested chỉ tạo ETicket khi PAID và toàn bộ child seats SOLD; booking row lock +unique constraints giữ1 ticket/hash/QR và1 email request ngay khi concurrent/retry. QR PNG encode crypto.randomBytes32 hex, không PII; GET owner tickets/me, tickets/:id và optional private ICS. SMTP qua Nodemailer/BullMQ, DB outbox processedAt chỉ sau SMTP acceptance, lease/fencing/backoff/lost-queue recovery; không rollback payment/ticket khi SMTP lỗi. Stable Message-ID hỗ trợ dedup nhưng SMTP không exactly-once: accepted-before-DB-ack crash có thể gửi lại thư cùng QR. Check-in STAFF/ADMIN kiểm tra DB role/PAID/SOLD/configurable UTC window, conditional update false→true có1 winner khi6 scans qua2 instances.
 
 27 integration cases với PG/Redis/BullMQ/SMTP thật và2 API instances;7 unit cases cho config/window boundaries. Compiled production verify automatic payment→one QR→actual MIME/PNG/ICS→owner APIs→concurrent staff check-in, cleanup owned fixtures. Mailpit localhost SMTP1025/inbox8025 có compose riêng và image pin digest. Không migration/schema/runtime dependency mới;3 dev deps để decode QR thật trong tests/smoke. Dừng và chờ `TIẾP TỤC PHASE 10`.
+
+## Phase 10 đã triển khai
+
+GET /api/v1/admin/reports/revenue chỉ ADMIN với current DB role. Required from/to strict real YYYY-MM-DD, inclusive Vietnam calendar days, áp dụng Booking.createdAt; optional UUID cinemaId/movieId AND. PAID-only, SUM bốn booking money snapshots thành Decimal fixed2 strings, COUNT bookings và SOLD BookingSeat rows (không đếm QR). Một parameterized SQL/materialized CTE statement giữ MVCC snapshot, không nhân money khi có nhiều seat/combo/payment. Unknown valid IDs trả0; validation400, anonymous401, CUSTOMER/STAFF403, internal errors masked500.
+
+5 unit và19 integration cases mới gồm calendar/leap/boundaries năm0001–9999, current role, filter combinations, immutable history, no fan-out, exact cents,10.000 rows/tổng9999999999999900.00, precommit/rollback và Swagger. Kiểm tra existing composite booking index/seat index bằng catalog và transaction-local forced EXPLAIN; chứng minh eligibility, không benchmark production. Không migration/schema/index/dependency/env mới. Full280 tests và production smoke pass: real Sandbox payment/QR/SMTP/check-in rồi filtered ADMIN report đúng1 paid booking/2SOLD, các hold cancel/expire bị loại. Dừng và chờ `TIẾP TỤC PHASE 11`.

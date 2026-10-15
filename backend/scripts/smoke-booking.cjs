@@ -18,7 +18,7 @@ const backend = resolve(__dirname, "..");
 const databaseUrl = testDatabaseTarget();
 for (const key of ["TEST_REDIS_HOST", "TEST_REDIS_PORT", "TEST_REDIS_DB"])
   if (!process.env[key]) throw new Error(`${key} is required for smoke tests.`);
-const prefix = `p9-smoke-${randomUUID()}`;
+const prefix = `p10-smoke-${randomUUID()}`;
 const paymentSecret = randomBytes(48).toString("hex");
 const queuePrefix = `nova:smoke:${randomUUID().replaceAll("-", "")}`;
 const connection = {
@@ -60,14 +60,19 @@ async function main() {
   const password = randomBytes(24).toString("hex");
   const passwordHash = await hash(password);
   const users = [];
-  for (const label of ["a", "b", "staff", "staff2"])
+  for (const label of ["a", "b", "staff", "staff2", "admin"])
     users.push(
       await prisma.user.create({
         data: {
           email: `${prefix}-${label}@example.test`,
           passwordHash,
           fullName: "Booking smoke",
-          role: label.startsWith("staff") ? "STAFF" : "CUSTOMER",
+          role:
+            label === "admin"
+              ? "ADMIN"
+              : label.startsWith("staff")
+                ? "STAFF"
+                : "CUSTOMER",
         },
       }),
     );
@@ -182,7 +187,7 @@ async function main() {
       return false;
     }
   });
-  assert.equal((await api("GET", "/api/v1", 200)).data.phase, 9);
+  assert.equal((await api("GET", "/api/v1", 200)).data.phase, 10);
   const tokens = [];
   for (const user of users)
     tokens.push(
@@ -609,11 +614,36 @@ async function main() {
     holding: 0,
     sold: 2,
   });
+  stage = "production ADMIN-only exact snapshot revenue report";
+  const day = new Date(new Date(paidBooking.createdAt).getTime() + 7 * 3600000)
+    .toISOString()
+    .slice(0, 10);
+  const reportQuery = new URLSearchParams({
+    from: day,
+    to: day,
+    cinemaId: cinema.id,
+    movieId: movie.id,
+  });
+  const reportPath = `/api/v1/admin/reports/revenue?${reportQuery.toString()}`;
+  await api("GET", reportPath, 401);
+  await api("GET", reportPath, 403, undefined, tokens[1]);
+  await api("GET", reportPath, 403, undefined, tokens[2]);
+  const revenue = (await api("GET", reportPath, 200, undefined, tokens[4]))
+    .data;
+  assert.deepEqual(revenue, {
+    ticketRevenue: paidBooking.totalTicketAmount,
+    comboRevenue: paidBooking.totalComboAmount,
+    discountAmount: paidBooking.discountAmount,
+    netRevenue: paidBooking.finalAmount,
+    paidBookingCount: 1,
+    ticketCount: 2,
+  });
   const spec = await api("GET", "/api/docs-json", 200);
   assert(spec.paths["/api/v1/bookings/hold"].post.security);
   assert(spec.paths["/api/v1/payments/webhook"]);
+  assert(spec.paths["/api/v1/admin/reports/revenue"].get.security);
   console.log(
-    "PASS compiled Phase9 production smoke: booking/payment/realtime/expiry, automatic one QR +decoded PNG, actual SMTP MIME/PNG/ICS delivery, owner tickets/calendar/privacy, duplicate payment effects once, STAFF role checks and concurrent single-winner QR admission.",
+    "PASS compiled Phase10 production smoke: full booking/payment/realtime/QR/SMTP/check-in chain plus ADMIN-only filtered Decimal revenue, one paid booking/two sold seats, and exclusion of cancelled/expired holds.",
   );
 }
 async function cleanup() {

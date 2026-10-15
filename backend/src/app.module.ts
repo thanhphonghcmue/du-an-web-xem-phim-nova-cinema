@@ -28,6 +28,7 @@ import { SeatsModule } from "./modules/seats/seats.module";
 import { ShowtimesModule } from "./modules/showtimes/showtimes.module";
 import { BookingsModule } from "./modules/bookings/bookings.module";
 import { RealtimeModule } from "./realtime/realtime.module";
+import { ReportsModule } from "./modules/reports/reports.module";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -58,6 +59,7 @@ import { RealtimeModule } from "./realtime/realtime.module";
     RealtimeModule,
     PaymentsModule,
     NotificationsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

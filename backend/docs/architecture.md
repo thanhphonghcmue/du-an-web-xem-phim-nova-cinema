@@ -1,6 +1,6 @@
 # Phase 0 — Architecture Decision Record
 
-Ngày: 14/10/2026, cập nhật Phase9 ngày15/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. Phase0–9 đã triển khai nền tảng/auth/catalog/showtimes, booking/payment/realtime và QR ticket/email/staff check-in. Revenue reports vẫn dành cho Phase10.
+Ngày: 14/10/2026, cập nhật Phase10 ngày15/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. Phase0–10 đã triển khai nền tảng/auth/catalog/showtimes, booking/payment/realtime, QR ticket/email/staff check-in và báo cáo doanh thu ADMIN. Phase11–12 chưa bắt đầu.
 
 ## Quyết định nền tảng
 
@@ -279,4 +279,18 @@ SMTP transport Nodemailer sở hữu TCP/TLS socket cho mỗi lần gửi, absol
 
 processedAt của email nghĩa SMTP accepted, không chứng minh người nhận đã đọc hoặc inbox delivery ngoài. Exactly-once email không khả thi với SMTP: accepted-before-ack crash, lease expiration/process stalls có thể gửi lại; Message-ID stable theo email event và QR luôn giữ nguyên. Fault-injected ack failure test xác nhận2 accepted messages cùng Message-ID,1 ticket/hash. Không quảng cáo duplicate suppression của SMTP provider. PAID/QR không rollback do mail failure; actual451 và stalled SMTP retry đã kiểm tra.
 
-27 Phase9 HTTP/SMTP integration cases,7 unit cases (inclusive boundaries/zero window, config). Test SMTP là owned loopback TCP fixture thực, không mock Nodemailer sendMail; kiểm tra actual MIME/SMTP451/timeout. Compiled NODE_ENV=production child chạy automatic relay/worker từ payment đếnQR/email/check-in với ephemeral SMTP; actual dev Mailpit capture/API probe riêng pass và xóa đúng owned probe. Không dependency runtime mới; dev pngjs7/jsqr/@types/pngjs để decode, qrcode giữ nested runtime pngjs5 từ lockfile. Evidence validation-phase-9.md. Frontend chưa nối API; Phase10 chưa bắt đầu.
+27 Phase9 HTTP/SMTP integration cases,7 unit cases (inclusive boundaries/zero window, config). Test SMTP là owned loopback TCP fixture thực, không mock Nodemailer sendMail; kiểm tra actual MIME/SMTP451/timeout. Compiled NODE_ENV=production child chạy automatic relay/worker từ payment đếnQR/email/check-in với ephemeral SMTP; actual dev Mailpit capture/API probe riêng pass và xóa đúng owned probe. Không dependency runtime mới; dev pngjs7/jsqr/@types/pngjs để decode, qrcode giữ nested runtime pngjs5 từ lockfile. Evidence validation-phase-9.md. Frontend chưa nối API.
+
+## Phase10 — Report contract và database snapshot
+
+Đặc tả yêu cầu from/to nhưng chưa nêu cột thời gian hoặc format. Chốt báo cáo theo **ngày tạo Booking.createdAt**, hai ngày inclusive theo UTC+07 Việt Nam, strict real YYYY-MM-DD (năm0001–9999). Service tạo UTC half-open interval `[from@00+07, (to+1day)@00+07)`; reversed range400, một ngày hợp lệ. Điều này phù hợp index Phase1 `(status,createdAt,showtimeId)` đã lên kế hoạch, không cần paidAt mới. Report là cohort ngày tạo với trạng thái PAID hiện tại; không đại diện dòng tiền ngày thanh toán. Booking tạo hôm trước và trả tiền hôm sau vẫn thuộc ngày tạo. Không suy ra paidAt từ Payment.createdAt/updatedAt vì chúng không phải snapshot thời điểm successful settlement.
+
+GET admin/reports/revenue chỉ ADMIN qua current DB role guard. Optional UUID cinemaId/movieId kết hợp AND qua showtime→room→cinema; valid unknown ID trả0. Controller nhận DTO, service chuyển ngày/serialize, repository chạy SQL parameterized Prisma.sql. Validation từ chối thiếu ngày/invalid calendar/date-time strings/arrays/UUID/field lạ; không nội suy chuỗi SQL. Không trả PII, QR hoặc payment identifiers; global no-store/error masking áp dụng.
+
+Một materialized matching_bookings CTE chọn PAID bookings và bốn amount snapshots, sau đó SUM/COUNT bookings và scalar subquery đếm BookingSeat SOLD. Cả6 chỉ số nằm trong **một statement snapshot MVCC**, không cần transaction nhiều query hoặc row lock cho reader. Writer payment commit PAID/SOLD nguyên tử; reader không thấy nửa transaction, rollback không được tính. Không join 1:N payment/combo/seat vào money SUM. Giá/tier/line-item catalog đổi không làm thay đổi lịch sử; không SUM Payment amounts (có thể có nhiều attempts). ticketCount đếm SOLD seats, không ETicket rows, nên independent với asynchronous QR/email fulfillment; AVAILABLE history không làm tăng số vé.
+
+PostgreSQL NUMERIC SUM được cast text, Decimal.toFixed(2) xuất bốn chuỗi VND chính xác, kể cả tổng vượt Number.MAX_SAFE_INTEGER. Không chuyển money sang JS number và không áp precision14 của từng row lên tổng nhiều rows. COUNT bigint text chỉ chuyển sang JSON number sau kiểm tra digits và safe integer; overflow gây masked500 thay vì trả số mất chính xác.
+
+Giữ index hiện có: bookings_status_created_at_showtime_id_idx, booking_seats_booking_id_idx và indexes parent FK. Test kiểm tra pg_indexes và EXPLAIN đúng query bằng SET LOCAL enable_seqscan=off trong transaction: chứng minh index eligibility, không thay planner setting toàn cục. Không coi forced-plan test hoặc fixture10000 rows là production performance benchmark. Có thể cần bổ sung/tối ưu index sau EXPLAIN ANALYZE với cardinality thật; hiện không tạo duplicate index/migration. Không schema/dependency/env change.
+
+19 HTTP/PG integration cases và5 unit cases mới; raw aggregation fixtures chỉ dùng kiểm tra query, không giả định đã đi qua payment/QR workflow. Compiled production smoke riêng tạo hold/payment/QR/SMTP/check-in qua app thực rồi ADMIN đọc filtered report đối chiếu snapshots, đồng thời kiểm tra anonymous401 và CUSTOMER/STAFF403. Evidence validation-phase-10.md. Dừng Phase10; Phase11–12 chưa triển khai.

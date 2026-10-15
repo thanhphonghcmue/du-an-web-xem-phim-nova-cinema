@@ -100,7 +100,7 @@ export function configureApplication(app: INestApplication): void {
     .setTitle("NOVA Cinema API")
     .setVersion("v1")
     .setDescription(
-      "Phase 9: one opaque QR ticket per paid booking, owner ticket/calendar APIs, durable SMTP email workers and STAFF/ADMIN atomic single-use check-in. Booking/payment/realtime APIs are available. Revenue reports belong to Phase 10.",
+      "Phase 10: ADMIN-only revenue report for PAID booking creation dates in Vietnam, optional cinema/movie filters and exact Decimal snapshot aggregates. Booking/payment/realtime/ticket/email/staff APIs are available.",
     )
     .addBearerAuth()
     .build();

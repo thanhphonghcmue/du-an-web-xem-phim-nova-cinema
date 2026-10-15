@@ -13,7 +13,7 @@ async function bootstrap(): Promise<void> {
     throw new Error("Backend startup failed.");
   }
   Logger.log(
-    `NOVA backend Phase 9 listening on port ${String(config.port)}`,
+    `NOVA backend Phase 10 listening on port ${String(config.port)}`,
     "Bootstrap",
   );
 }

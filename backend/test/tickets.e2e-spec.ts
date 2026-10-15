@@ -999,7 +999,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     expect(email.html).not.toContain("<script>");
     expect(email.html).toContain("&lt;script&gt;");
   });
-  it("documents owner ticket/calendar APIs and protected staff admission without revenue reports", async () => {
+  it("documents owner ticket/calendar APIs and protected staff admission alongside Phase10 revenue reports", async () => {
     const spec = JSON.parse(
       (await request(server).get("/api/docs-json").expect(200)).text,
     ) as {
@@ -1014,6 +1014,6 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     expect(spec.paths["/api/v1/staff/check-in"]?.post?.security).toEqual([
       { bearer: [] },
     ]);
-    expect(spec.paths).not.toHaveProperty("/api/v1/admin/reports/revenue");
+    expect(spec.paths).toHaveProperty("/api/v1/admin/reports/revenue");
   });
 });

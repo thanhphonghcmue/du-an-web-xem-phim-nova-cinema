@@ -1,8 +1,8 @@
-# NOVA Cinema Backend — Phase 9
+# NOVA Cinema Backend — Phase 10
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–9 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR mỗi booking PAID, email SMTP có durable retry, owner ticket/calendar APIs và check-in STAFF/ADMIN nguyên tử. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–10 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR mỗi booking PAID, email SMTP có durable retry, owner ticket/calendar APIs, check-in STAFF/ADMIN nguyên tử và báo cáo doanh thu ADMIN. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md) · [Phase 9](docs/validation-phase-9.md).
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md) · [Phase 9](docs/validation-phase-9.md) · [Phase 10](docs/validation-phase-10.md).
 
 ## Requirements
 
@@ -598,6 +598,57 @@ compose.mail.yml
 docs/validation-phase-9.md
 ```
 
+## Phase 10 — Báo cáo doanh thu ADMIN
+
+`GET /api/v1/admin/reports/revenue` yêu cầu Bearer access token của **ADMIN**. Role được đọc lại từ database; CUSTOMER/STAFF trả403, chưa đăng nhập trả401. Đăng nhập admin demo và Authorize trong Swagger `/api/docs`, rồi thử query:
+
+```text
+/api/v1/admin/reports/revenue?from=2026-10-01&to=2026-10-31
+```
+
+| Query        | Hợp đồng                                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `from`, `to` | Bắt buộc, ngày thực theo `YYYY-MM-DD`, tính cả hai ngày theo Việt Nam UTC+07; `from <= to`, cho phép cùng ngày |
+| `cinemaId`   | UUID tùy chọn, lọc qua showtime.room.cinemaId                                                                  |
+| `movieId`    | UUID tùy chọn, lọc qua showtime.movieId; kết hợp cinemaId bằng AND                                             |
+
+Ngày áp dụng cho **Booking.createdAt**: chuyển sang UTC với khoảng nửa mở `[from 00:00+07, ngày sau to 00:00+07)`. Đây là báo cáo nhóm booking theo ngày tạo, với trạng thái PAID tại thời điểm đọc. Không phải báo cáo tiền thu theo thời điểm thanh toán hoặc ngày chiếu; booking tạo trước kỳ rồi mới thanh toán trong kỳ vẫn thuộc ngày tạo ban đầu. Đặc tả chưa có paidAt snapshot. Query sai format/ngày/UUID, field lạ, giá trị lặp hoặc range đảo trả400; UUID hợp lệ nhưng không khớp trả tổng0.
+
+`data` luôn có đúng6 trường sau; envelope thành công chung vẫn giữ nguyên:
+
+```json
+{
+  "ticketRevenue": "180000.00",
+  "comboRevenue": "138000.00",
+  "discountAmount": "15900.00",
+  "netRevenue": "302100.00",
+  "paidBookingCount": 1,
+  "ticketCount": 2
+}
+```
+
+Chỉ tính booking **PAID**. Bốn amount là SUM của snapshot `totalTicketAmount`, `totalComboAmount`, `discountAmount`, `finalAmount`, trả chuỗi VND fixed2 bằng Decimal; không tính lại từ giá phim/combo, tier hoặc Payment hiện tại. `paidBookingCount` đếm booking; `ticketCount` đếm các BookingSeat **SOLD** thuộc booking khớp bộ lọc, không đếm ETicket QR (mỗi booking có một QR cho nhiều ghế). Cả hai counts là JSON safe integers; overflow bị từ chối thay vì làm tròn. Booking chưa có QR do fulfillment chậm vẫn được tính; AVAILABLE history không được tính.
+
+Một SQL parameterized với materialized CTE chọn booking khớp filter; money/count và SOLD count dùng cùng statement snapshot PostgreSQL. Không join các dòng seat/combo/payment vào SUM nên không nhân doanh thu. Response không chứa customer/QR/payment details, có no-store; lỗi500 che diagnostic nội bộ.
+
+Index đã có `bookings_status_created_at_showtime_id_idx(status,created_at,showtime_id)`, `booking_seats_booking_id_idx` và các FK indexes của showtimes/rooms. Integration test kiểm tra catalog và EXPLAIN truy vấn với `SET LOCAL enable_seqscan=off` trong transaction để chứng minh index đủ điều kiện sử dụng. Đây không phải benchmark production hoặc cam kết planner luôn dùng index: trên bảng nhỏ planner có thể chọn sequential scan; cần đo `EXPLAIN ANALYZE` với dữ liệu deployment trước khi bổ sung index. Phase10 không thêm index trùng, migration, dependency hoặc env.
+
+Nâng cấp từ Phase9:
+
+```bash
+git pull origin main
+cd backend
+npm ci
+npm run infra:up:test
+npm run mail:up
+npm run check
+npm run test:db
+node scripts/smoke-booking.cjs
+npm run start:dev
+```
+
+Fresh setup vẫn dùng hướng dẫn ở đầu README. Mã Phase10 nằm trong `src/modules/reports/` (controller/service/repository/module, query/DTO và unit tests), `test/revenue.e2e-spec.ts`; smoke bản build kiểm tra báo cáo ADMIN từ booking thanh toán qua webhook thật của Sandbox.
+
 ## Tests và build
 
 ```bash
@@ -605,7 +656,7 @@ npm run check
 npm run test:db
 ```
 
-`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **61 unit tests**, **173 HTTP/Socket.IO e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng256 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency.
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **66 unit tests**, **192 HTTP/Socket.IO e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng280 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency. Phase10 bổ sung5 unit +19 HTTP report cases, bao gồm10.000 raw snapshot bookings và tổng Decimal vượt Number.MAX_SAFE_INTEGER, RBAC, dates/filter, query isolation và index eligibility.
 
 Các test DB chứng minh constraint/nền tảng, không thay TC01–TC05 qua API. **TC-01/TC-02 đã kiểm chứng qua HTTP**, Phase7 kiểm tra Socket.IO qua2 API instances +Redis Pub/Sub thật, delayed expiry qua worker BullMQ thật; TC-03/TC-04/TC-05 hoàn tất: PAID/SOLD/points/events/ticket idempotency, failure release/rehold và single-use staff admission đều có real API/DB/SMTP/worker acceptance. Test expiry dịch chuyển timestamps của fixture cùng nhau để đi qua deadline, không đợi5 phút hoặc rút ngắn TTL production.
 
@@ -627,7 +678,7 @@ npm run start:prod
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-HTTP 200 trả `{success:true,data:{phase:9,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
+HTTP 200 trả `{success:true,data:{phase:10,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
 
 ## Docker database and Redis lifecycle
 
@@ -638,7 +689,7 @@ npm run infra:down
 
 `infra:down` dừng/xóa bốn container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. Compose hiện chạy PostgreSQL/Redis local; API Nest vẫn được chạy từ Node trên host. Docker hóa app/worker thuộc Phase 12.
 
-## Cây mã nguồn hiện tại đến Phase 9
+## Cây mã nguồn hiện tại đến Phase 10
 
 ```text
 backend/
@@ -686,6 +737,7 @@ backend/
       payments/
       tickets/
       notifications/
+      reports/
   test/
     app.e2e-spec.ts
     auth.e2e-spec.ts
@@ -695,6 +747,7 @@ backend/
     seats-realtime.e2e-spec.ts
     payments.e2e-spec.ts
     tickets.e2e-spec.ts
+    revenue.e2e-spec.ts
     support/
       smtp-fixture.cjs
       smtp-fixture.d.cts
@@ -711,6 +764,7 @@ backend/
     validation-phase-7.md
     validation-phase-8.md
     validation-phase-9.md
+    validation-phase-10.md
 ```
 
-Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 9 và chờ **“TIẾP TỤC PHASE 10”**.
+Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 10 và chờ **“TIẾP TỤC PHASE 11”**.

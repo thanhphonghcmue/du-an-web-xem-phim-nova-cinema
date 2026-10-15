@@ -13,6 +13,8 @@ import {
   X,
   Sparkles,
   Calendar,
+  ShieldAlert,
+  Coins,
 } from "lucide-react";
 import Modal from "./Modal.jsx";
 import { useCatalog } from "../catalog.js";
@@ -30,6 +32,124 @@ import {
   apiGetProfile,
   memberProfile,
 } from "../api/client.js";
+
+function getAgeRestriction(ageRating) {
+  const str = String(ageRating || "").trim().toUpperCase();
+  if (str.includes("18") || str === "T18" || str === "C18") {
+    return {
+      code: "T18",
+      age: 18,
+      name: "Phim dành cho khán giả từ đủ 18 tuổi trở lên (18+)",
+      tagText: "T18 · Đủ 18 tuổi",
+      color: "#ef4444",
+      bg: "rgba(239, 68, 68, 0.12)",
+      border: "rgba(239, 68, 68, 0.35)",
+      shortNotice: "Phim giới hạn độ tuổi T18 (18+). Bắt buộc xuất trình CCCD/VNeID tại cửa phòng chiếu.",
+    };
+  }
+  if (str.includes("16") || str === "T16" || str === "C16") {
+    return {
+      code: "T16",
+      age: 16,
+      name: "Phim dành cho khán giả từ đủ 16 tuổi trở lên (16+)",
+      tagText: "T16 · Đủ 16 tuổi",
+      color: "#f97316",
+      bg: "rgba(249, 115, 22, 0.12)",
+      border: "rgba(249, 115, 22, 0.35)",
+      shortNotice: "Phim giới hạn độ tuổi T16 (16+). Bắt buộc xuất trình CCCD/VNeID tại cửa phòng chiếu.",
+    };
+  }
+  if (str.includes("13") || str === "T13" || str === "C13") {
+    return {
+      code: "T13",
+      age: 13,
+      name: "Phim dành cho khán giả từ đủ 13 tuổi trở lên (13+)",
+      tagText: "T13 · Đủ 13 tuổi",
+      color: "#eab308",
+      bg: "rgba(234, 179, 8, 0.12)",
+      border: "rgba(234, 179, 8, 0.35)",
+      shortNotice: "Phim giới hạn độ tuổi T13 (13+). Vui lòng mang giấy tờ chứng minh độ tuổi.",
+    };
+  }
+  return null;
+}
+
+function AgeRatingModal({ ageInfo, movieTitle, onConfirm, onCancel }) {
+  const [agreed, setAgreed] = useState(false);
+  return (
+    <div className="age-modal-backdrop" onClick={onCancel}>
+      <div className="age-modal-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="age-modal-header" style={{ borderColor: ageInfo.border }}>
+          <div className="age-modal-icon-wrap" style={{ background: ageInfo.bg, color: ageInfo.color }}>
+            <ShieldAlert size={28} />
+          </div>
+          <div>
+            <div className="age-modal-tag" style={{ background: ageInfo.color }}>
+              {ageInfo.code}
+            </div>
+            <h3>Xác Nhận Độ Tuổi Khán Giả</h3>
+            <p className="age-modal-sub">Quy chuẩn kiểm duyệt Điện ảnh Việt Nam</p>
+          </div>
+        </div>
+
+        <div className="age-modal-body">
+          <div className="age-film-box">
+            <span>Phim:</span> <b>{movieTitle}</b>
+          </div>
+
+          <div className="age-law-quote">
+            <p>
+              Theo <b>Thông tư 05/2023/TT-BVHTTDL</b> của Bộ Văn hóa, Thể thao và Du lịch:
+            </p>
+            <p className="age-rule-highlight" style={{ color: ageInfo.color }}>
+              {ageInfo.name}
+            </p>
+          </div>
+
+          <ul className="age-checklist">
+            <li>
+              <b>🪪 Giấy tờ hợp lệ:</b> Khán giả cần mang theo CCCD, Hộ chiếu, Thẻ HSSV hoặc tài khoản định danh VNeID mức 2 (có ảnh & ngày sinh).
+            </li>
+            <li>
+              <b>👥 Quy định từng khán giả:</b> Toàn bộ khán giả trong đơn vé đều phải chứng minh đủ độ tuổi quy định tại cửa kiểm soát rạp.
+            </li>
+            <li>
+              <b>🛑 Quyền từ chối của rạp:</b> Nhân viên soát vé có quyền từ chối cho vào phòng chiếu nếu khán giả không xuất trình được giấy tờ hợp lệ.
+            </li>
+            <li>
+              <b>💸 Không hoàn tiền:</b> Vé đã thanh toán thành công sẽ không được hoàn lại trong trường hợp bị từ chối do không đủ tuổi.
+            </li>
+          </ul>
+
+          <label className="age-checkbox-label">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+            />
+            <span>
+              Tôi và tất cả người đi cùng cam kết đã đủ <b>{ageInfo.age} tuổi</b> và hoàn toàn đồng ý xuất trình giấy tờ tùy thân tại rạp.
+            </span>
+          </label>
+        </div>
+
+        <div className="age-modal-actions">
+          <button type="button" className="button button-outline" onClick={onCancel}>
+            Quay lại
+          </button>
+          <button
+            type="button"
+            className="button button-primary age-confirm-btn"
+            disabled={!agreed}
+            onClick={onConfirm}
+          >
+            Tôi Đã Hiểu & Tiếp Tục Thanh Toán
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const PROMO_COUPONS = [
   { code: "NOVA20", desc: "Giảm 20.000đ mọi đơn", value: 20000, type: "fixed" },
@@ -135,6 +255,25 @@ export default function SeatBooking({
   const requestKey = useRef(null);
   const mounted = useRef(true);
   const activeOrderId = useRef(booking.orderId);
+
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [showAgeModal, setShowAgeModal] = useState(false);
+  const [usePoints, setUsePoints] = useState(false);
+  const [pointsInput, setPointsInput] = useState("");
+
+  const ageInfo = getAgeRestriction(booking.movie?.age);
+  const memberPoints = Number(member?.points || 0);
+  const rawFinalAmount = order ? Number(order.finalAmount) : 0;
+  const maxRedeemablePoints = Math.min(
+    memberPoints,
+    Math.floor(rawFinalAmount / 1000),
+  );
+  const parsedPoints = parseInt(pointsInput, 10) || 0;
+  const actualRedeemPoints = usePoints
+    ? Math.max(0, Math.min(parsedPoints, maxRedeemablePoints))
+    : 0;
+  const pointsDiscount = actualRedeemPoints * 1000;
+  const effectiveFinalAmount = Math.max(0, rawFinalAmount - pointsDiscount);
 
   const isWeekend =
     booking.date?.label?.includes("Thứ 7") ||
@@ -387,12 +526,35 @@ export default function SeatBooking({
       await refresh();
       const updated = await apiGetBooking(order.id);
       setOrder(updated);
-      setNotice("Thanh toán thành công! Vé đã được phát hành và lưu vào mục Vé của bạn.");
+      if (actualRedeemPoints > 0 && member) {
+        const remainingPoints = Math.max(
+          0,
+          (member.points || 0) - actualRedeemPoints,
+        );
+        onMemberUpdate({ ...member, points: remainingPoints });
+      }
+      setNotice(
+        `Thanh toán thành công! Vé đã được phát hành và lưu vào mục Vé của bạn.${
+          actualRedeemPoints > 0
+            ? ` Đã đổi ${actualRedeemPoints} điểm C-Member (tiết kiệm ${money(pointsDiscount)}).`
+            : ""
+        }`,
+      );
     } catch (err) {
-      setNotice(err.message || "Xác nhận thanh toán chưa thành công. Vui lòng thử lại!");
+      setNotice(
+        err.message || "Xác nhận thanh toán chưa thành công. Vui lòng thử lại!",
+      );
     } finally {
       setBusy(false);
     }
+  }
+
+  function handlePaymentClick() {
+    if (ageInfo && !ageConfirmed) {
+      setShowAgeModal(true);
+      return;
+    }
+    void handleInstantPay();
   }
 
   useEffect(() => {
@@ -657,6 +819,37 @@ export default function SeatBooking({
               </div>
             )}
 
+            {/* Age Rating Compliance Card */}
+            {ageInfo && (
+              <div
+                className="age-compliance-card"
+                style={{ borderColor: ageInfo.border, background: ageInfo.bg }}
+              >
+                <div className="age-card-top">
+                  <span className="age-badge-pill" style={{ background: ageInfo.color }}>
+                    {ageInfo.code}
+                  </span>
+                  <span className="age-card-title">{ageInfo.name}</span>
+                </div>
+                <p className="age-card-desc">{ageInfo.shortNotice}</p>
+                <label className="age-card-confirm">
+                  <input
+                    type="checkbox"
+                    checked={ageConfirmed}
+                    onChange={(e) => setAgeConfirmed(e.target.checked)}
+                  />
+                  <span>Tôi xác nhận bản thân và người đi cùng đã đủ tuổi</span>
+                </label>
+                <button
+                  type="button"
+                  className="age-detail-link"
+                  onClick={() => setShowAgeModal(true)}
+                >
+                  Xem quy định kiểm duyệt chi tiết →
+                </button>
+              </div>
+            )}
+
             {holding ? (
               <>
                 <p>
@@ -672,12 +865,120 @@ export default function SeatBooking({
                   Ưu đãi {order.membershipTier}{" "}
                   <b>−{money(order.discountAmount)}</b>
                 </p>
+                {actualRedeemPoints > 0 && (
+                  <p className="points-discount-summary-row">
+                    <span>Đổi {actualRedeemPoints} điểm C-Member:</span>{" "}
+                    <b>−{money(pointsDiscount)}</b>
+                  </p>
+                )}
                 <p className="summary-total">
                   Tổng thanh toán{" "}
                   <strong data-testid="server-total">
-                    {money(order.finalAmount)}
+                    {money(effectiveFinalAmount)}
                   </strong>
                 </p>
+
+                {/* Loyalty Points Redemption Panel */}
+                {member && memberPoints > 0 && (
+                  <div className="points-redeem-card">
+                    <div className="points-redeem-header">
+                      <div className="points-title-wrap">
+                        <Coins size={16} />
+                        <span>Điểm thưởng C-Member</span>
+                      </div>
+                      <span className="points-balance-badge">
+                        {memberPoints.toLocaleString("vi-VN")} điểm
+                      </span>
+                    </div>
+
+                    <label className="points-toggle-label">
+                      <input
+                        type="checkbox"
+                        checked={usePoints}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setUsePoints(checked);
+                          if (checked && !parsedPoints) {
+                            setPointsInput(String(Math.min(maxRedeemablePoints, 20)));
+                          }
+                        }}
+                      />
+                      <span>Dùng điểm để giảm giá đơn hàng (1 điểm = 1.000đ)</span>
+                    </label>
+
+                    {usePoints && (
+                      <div className="points-controls">
+                        <div className="points-input-group">
+                          <input
+                            type="number"
+                            min="1"
+                            max={maxRedeemablePoints}
+                            value={pointsInput}
+                            onChange={(e) => setPointsInput(e.target.value)}
+                            className="points-number-input"
+                            placeholder={`Tối đa ${maxRedeemablePoints} điểm`}
+                          />
+                          <span className="points-unit">điểm</span>
+                        </div>
+
+                        <div className="points-quick-actions">
+                          {maxRedeemablePoints >= 10 && (
+                            <button
+                              type="button"
+                              className="quick-point-btn"
+                              onClick={() => {
+                                setUsePoints(true);
+                                setPointsInput("10");
+                              }}
+                            >
+                              10 điểm (-10k)
+                            </button>
+                          )}
+                          {maxRedeemablePoints >= 20 && (
+                            <button
+                              type="button"
+                              className="quick-point-btn"
+                              onClick={() => {
+                                setUsePoints(true);
+                                setPointsInput("20");
+                              }}
+                            >
+                              20 điểm (-20k)
+                            </button>
+                          )}
+                          {maxRedeemablePoints >= 50 && (
+                            <button
+                              type="button"
+                              className="quick-point-btn"
+                              onClick={() => {
+                                setUsePoints(true);
+                                setPointsInput("50");
+                              }}
+                            >
+                              50 điểm (-50k)
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="quick-point-btn highlight"
+                            onClick={() => {
+                              setUsePoints(true);
+                              setPointsInput(String(maxRedeemablePoints));
+                            }}
+                          >
+                            Dùng tối đa ({maxRedeemablePoints} điểm)
+                          </button>
+                        </div>
+
+                        {actualRedeemPoints > 0 && (
+                          <div className="points-discount-preview">
+                            Quy đổi thành công: <strong className="text-emerald-400">−{money(pointsDiscount)}</strong>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Real Payment Methods UI */}
                 <div className="payment-options-panel">
@@ -717,7 +1018,7 @@ export default function SeatBooking({
                     <div className="vietqr-box">
                       <div className="vietqr-preview">
                         <img
-                          src={`https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${Math.round(Number(order.finalAmount))}&addInfo=${order.orderCode}&accountName=NOVA%20CINEMA%20VIETNAM`}
+                          src={`https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${Math.round(effectiveFinalAmount)}&addInfo=${order.orderCode}&accountName=NOVA%20CINEMA%20VIETNAM`}
                           alt="VietQR Napas 24/7"
                           className="vietqr-img"
                         />
@@ -751,10 +1052,10 @@ export default function SeatBooking({
                         <div className="vq-detail-row">
                           <span>Số tiền:</span>
                           <div className="vq-copy-wrap">
-                            <strong className="text-gold">{money(order.finalAmount)}</strong>
+                            <strong className="text-gold">{money(effectiveFinalAmount)}</strong>
                             <button
                               type="button"
-                              onClick={() => copyText(String(Math.round(Number(order.finalAmount))), "amt")}
+                              onClick={() => copyText(String(Math.round(effectiveFinalAmount)), "amt")}
                               title="Sao chép"
                             >
                               {copiedKey === "amt" ? <Check size={13} color="#22c55e" /> : <Copy size={13} />}
@@ -779,7 +1080,7 @@ export default function SeatBooking({
                       <button
                         className="button button-primary checkout-btn-pulse"
                         disabled={busy || !remaining}
-                        onClick={handleInstantPay}
+                        onClick={handlePaymentClick}
                       >
                         {busy ? "Đang xác thực giao dịch…" : "Xác nhận đã chuyển khoản VietQR"}
                       </button>
@@ -790,7 +1091,7 @@ export default function SeatBooking({
                     <div className="vietqr-box momo-theme">
                       <div className="vietqr-preview">
                         <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=2|99|0987654321|NOVA%20CINEMA||0|0|${Math.round(Number(order.finalAmount))}|${order.orderCode}|transfer_p2p`}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=2|99|0987654321|NOVA%20CINEMA||0|0|${Math.round(effectiveFinalAmount)}|${order.orderCode}|transfer_p2p`}
                           alt="MoMo QR"
                           className="vietqr-img"
                         />
@@ -801,7 +1102,7 @@ export default function SeatBooking({
                       <button
                         className="button button-primary momo-theme-btn"
                         disabled={busy || !remaining}
-                        onClick={handleInstantPay}
+                        onClick={handlePaymentClick}
                       >
                         {busy ? "Đang xử lý…" : "Xác nhận đã thanh toán MoMo"}
                       </button>
@@ -812,7 +1113,7 @@ export default function SeatBooking({
                     <div className="vietqr-box vnpay-theme">
                       <div className="vietqr-preview">
                         <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://vnpay.vn/pay?code=${order.orderCode}%26amount=${Math.round(Number(order.finalAmount))}`}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://vnpay.vn/pay?code=${order.orderCode}%26amount=${Math.round(effectiveFinalAmount)}`}
                           alt="VNPAY QR"
                           className="vietqr-img"
                         />
@@ -823,7 +1124,7 @@ export default function SeatBooking({
                       <button
                         className="button button-primary vnpay-theme-btn"
                         disabled={busy || !remaining}
-                        onClick={handleInstantPay}
+                        onClick={handlePaymentClick}
                       >
                         {busy ? "Đang xử lý…" : "Xác nhận đã thanh toán VNPAY"}
                       </button>
@@ -892,6 +1193,19 @@ export default function SeatBooking({
             )}
           </aside>
         </div>
+      )}
+
+      {showAgeModal && ageInfo && (
+        <AgeRatingModal
+          ageInfo={ageInfo}
+          movieTitle={booking.movie?.title}
+          onConfirm={() => {
+            setAgeConfirmed(true);
+            setShowAgeModal(false);
+            void handleInstantPay();
+          }}
+          onCancel={() => setShowAgeModal(false)}
+        />
       )}
     </Modal>
   );

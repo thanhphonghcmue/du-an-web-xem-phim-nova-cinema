@@ -1,0 +1,802 @@
+{
+  "date": "2026-10-15",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "source_commit": "7351d2c22b01958496f68a31473ef61cdab13b50",
+  "branch": "fix/fullstack-productization",
+  "scope": "Full-stack repair Phase0 audit only; no application source/test/schema/lock changes",
+  "installation": {
+    "root_npm_ci_exit_code": 0,
+    "backend_npm_ci_exit_code": 0,
+    "frozen_lockfiles_unchanged": true,
+    "note": "npm ci succeeded on identical root/backend package manifests/lockfiles before fast-forward to7351d2c; dependency declarations/locks did not change."
+  },
+  "checks": {
+    "root": [
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "duration_seconds": 4.22
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "duration_seconds": 17.25
+      },
+      {
+        "command": "npm test",
+        "exit_code": 1,
+        "duration_seconds": 354.12,
+        "assessment": "Environment-invalid default run: existing production preview retained old manifest after rebuild; static chunks404/initial-screen,13failed. No application test source change."
+      },
+      {
+        "command": "npx playwright test --config /tmp/nova-audit-playwright.config.mjs",
+        "exit_code": 1,
+        "duration_seconds": 168.21,
+        "purpose": "Full unchanged13test suite on a fresh isolated Next dev server, after the existing production preview had stale chunks",
+        "passed": 10,
+        "failed": 3,
+        "skipped": 0,
+        "same_test_source_and_assertions": true,
+        "failures": [
+          {
+            "test": "member discount, mobile layout and menu work without horizontal overflow",
+            "location": "tests/booking.spec.mjs:204",
+            "reason": "Old Tạo tài khoản demo selector no longer exists; setup assumes local signup."
+          },
+          {
+            "test": "auth validates fields, password toggle works and social login reports demo scope",
+            "location": "tests/booking.spec.mjs:224",
+            "reason": "Old signup selector; old social demo controls removed."
+          },
+          {
+            "test": "quick three-seat helper and C’MEMBER points update after successful checkout",
+            "location": "tests/booking.spec.mjs:285",
+            "reason": "Old demo signup selector used for membership setup."
+          }
+        ]
+      }
+    ],
+    "backend": [
+      {
+        "command": "npm run prisma:validate",
+        "exit_code": 0,
+        "duration_seconds": 1.4
+      },
+      {
+        "command": "npm run typecheck",
+        "exit_code": 0,
+        "duration_seconds": 5.64
+      },
+      {
+        "command": "npm run lint",
+        "exit_code": 0,
+        "duration_seconds": 10.31
+      },
+      {
+        "command": "npm test",
+        "exit_code": 0,
+        "duration_seconds": 3.64
+      },
+      {
+        "command": "npm run test:e2e",
+        "exit_code": 0,
+        "duration_seconds": 46.68
+      },
+      {
+        "command": "npm run test:db",
+        "exit_code": 0,
+        "duration_seconds": 3.93
+      },
+      {
+        "command": "npm run build",
+        "exit_code": 0,
+        "duration_seconds": 4.51
+      },
+      {
+        "command": "npm run test:cov",
+        "exit_code": 0,
+        "duration_seconds": 6.31
+      },
+      {
+        "command": "node scripts/smoke-booking.cjs",
+        "exit_code": 0,
+        "duration_seconds": 6.97
+      }
+    ]
+  },
+  "automated_test_counts": {
+    "definitions": 293,
+    "backend_unit_passed": 66,
+    "backend_http_socket_passed": 192,
+    "backend_postgresql_passed": 22,
+    "frontend_isolated_passed": 10,
+    "frontend_isolated_failed": 3,
+    "skipped": 0,
+    "distinct_passed": 290,
+    "distinct_failed": 3,
+    "default_stale_preview_failures_not_double_counted": true,
+    "coverage_rerun_not_added": true
+  },
+  "unit_only_coverage_percent": {
+    "lines": 7.64,
+    "statements": 7.57,
+    "functions": 5.91,
+    "branches": 14
+  },
+  "dependency_audit": {
+    "root": {
+      "all": {
+        "exit_code": 1,
+        "affected_package_counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 2,
+          "high": 5,
+          "critical": 0,
+          "total": 7
+        },
+        "affected_packages": [
+          {
+            "name": "braces",
+            "severity": "high"
+          },
+          {
+            "name": "chokidar",
+            "severity": "high"
+          },
+          {
+            "name": "fast-glob",
+            "severity": "high"
+          },
+          {
+            "name": "micromatch",
+            "severity": "high"
+          },
+          {
+            "name": "postcss-nested",
+            "severity": "moderate"
+          },
+          {
+            "name": "postcss-selector-parser",
+            "severity": "moderate"
+          },
+          {
+            "name": "tailwindcss",
+            "severity": "high"
+          }
+        ]
+      },
+      "omit_dev": {
+        "exit_code": 0,
+        "affected_package_counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 0,
+          "high": 0,
+          "critical": 0,
+          "total": 0
+        },
+        "affected_packages": []
+      }
+    },
+    "backend": {
+      "all": {
+        "exit_code": 1,
+        "affected_package_counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 6,
+          "high": 37,
+          "critical": 0,
+          "total": 43
+        },
+        "affected_packages": [
+          {
+            "name": "@istanbuljs/load-nyc-config",
+            "severity": "moderate"
+          },
+          {
+            "name": "@jest/console",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/core",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/environment",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/expect",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/fake-timers",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/globals",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/reporters",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/test-result",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/test-sequencer",
+            "severity": "high"
+          },
+          {
+            "name": "@jest/transform",
+            "severity": "high"
+          },
+          {
+            "name": "@nestjs/swagger",
+            "severity": "moderate"
+          },
+          {
+            "name": "@prisma/client",
+            "severity": "high"
+          },
+          {
+            "name": "@prisma/config",
+            "severity": "high"
+          },
+          {
+            "name": "@types/jest",
+            "severity": "high"
+          },
+          {
+            "name": "argparse",
+            "severity": "moderate"
+          },
+          {
+            "name": "babel-jest",
+            "severity": "high"
+          },
+          {
+            "name": "babel-plugin-istanbul",
+            "severity": "moderate"
+          },
+          {
+            "name": "braces",
+            "severity": "high"
+          },
+          {
+            "name": "create-jest",
+            "severity": "high"
+          },
+          {
+            "name": "deepmerge-ts",
+            "severity": "high"
+          },
+          {
+            "name": "effect",
+            "severity": "high"
+          },
+          {
+            "name": "expect",
+            "severity": "high"
+          },
+          {
+            "name": "jest",
+            "severity": "high"
+          },
+          {
+            "name": "jest-circus",
+            "severity": "high"
+          },
+          {
+            "name": "jest-cli",
+            "severity": "high"
+          },
+          {
+            "name": "jest-config",
+            "severity": "high"
+          },
+          {
+            "name": "jest-environment-node",
+            "severity": "high"
+          },
+          {
+            "name": "jest-haste-map",
+            "severity": "high"
+          },
+          {
+            "name": "jest-message-util",
+            "severity": "high"
+          },
+          {
+            "name": "jest-pnp-resolver",
+            "severity": "high"
+          },
+          {
+            "name": "jest-resolve",
+            "severity": "high"
+          },
+          {
+            "name": "jest-resolve-dependencies",
+            "severity": "high"
+          },
+          {
+            "name": "jest-runner",
+            "severity": "high"
+          },
+          {
+            "name": "jest-runtime",
+            "severity": "high"
+          },
+          {
+            "name": "jest-snapshot",
+            "severity": "high"
+          },
+          {
+            "name": "jest-watcher",
+            "severity": "high"
+          },
+          {
+            "name": "js-yaml",
+            "severity": "moderate"
+          },
+          {
+            "name": "micromatch",
+            "severity": "high"
+          },
+          {
+            "name": "nodemailer",
+            "severity": "high"
+          },
+          {
+            "name": "prisma",
+            "severity": "high"
+          },
+          {
+            "name": "sprintf-js",
+            "severity": "moderate"
+          },
+          {
+            "name": "ts-jest",
+            "severity": "high"
+          }
+        ]
+      },
+      "omit_dev": {
+        "exit_code": 1,
+        "affected_package_counts": {
+          "info": 0,
+          "low": 0,
+          "moderate": 2,
+          "high": 6,
+          "critical": 0,
+          "total": 8
+        },
+        "affected_packages": [
+          {
+            "name": "@nestjs/swagger",
+            "severity": "moderate"
+          },
+          {
+            "name": "@prisma/client",
+            "severity": "high"
+          },
+          {
+            "name": "@prisma/config",
+            "severity": "high"
+          },
+          {
+            "name": "deepmerge-ts",
+            "severity": "high"
+          },
+          {
+            "name": "effect",
+            "severity": "high"
+          },
+          {
+            "name": "js-yaml",
+            "severity": "moderate"
+          },
+          {
+            "name": "nodemailer",
+            "severity": "high"
+          },
+          {
+            "name": "prisma",
+            "severity": "high"
+          }
+        ]
+      }
+    }
+  },
+  "runtime_probes": {
+    "prismaStartupWhenDown": "rejects onModuleInit: PostgreSQL connection failed",
+    "redisStartupWhenDown": "rejects onModuleInit: Redis connection failed",
+    "liveness": true,
+    "readiness": true,
+    "openApi": {
+      "pathCount": 42,
+      "operationCount": 59,
+      "operations": [
+        {
+          "method": "GET",
+          "path": "/api/v1",
+          "bearer": false
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/health",
+          "bearer": false
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/health/live",
+          "bearer": false
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/showtimes/{showtimeId}/seats",
+          "bearer": false
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/showtimes/{showtimeId}/group-seat-suggestion",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/bookings/hold",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/bookings/me",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/bookings/{id}",
+          "bearer": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/bookings/{id}/cancel",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/users/me",
+          "bearer": true
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/users/me",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/users/me/membership",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/combos",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/combos",
+          "bearer": true
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/combos/{id}",
+          "bearer": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/register",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/logout",
+          "bearer": false
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/movies",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/movies",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/movies/{id}",
+          "bearer": false
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/movies/{id}",
+          "bearer": true
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/movies/{id}",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/cinemas",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/cinemas",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/cinemas/{id}",
+          "bearer": false
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/cinemas/{id}",
+          "bearer": true
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/cinemas/{id}",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/rooms",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/rooms",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/cinemas/{cinemaId}/rooms",
+          "bearer": false
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/rooms/{id}",
+          "bearer": false
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/rooms/{id}",
+          "bearer": true
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/rooms/{id}",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/rooms/{roomId}/seats",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/rooms/{roomId}/seats",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/seats/{id}",
+          "bearer": false
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/seats/{id}",
+          "bearer": true
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/seats/{id}",
+          "bearer": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/rooms/{roomId}/seats/generate",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/showtimes",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/showtimes",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/showtimes/{id}",
+          "bearer": false
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/showtimes/{id}",
+          "bearer": true
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/showtimes/{id}",
+          "bearer": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/payments/create-sandbox-url",
+          "bearer": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/payments/webhook",
+          "bearer": false
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/payments/sandbox",
+          "bearer": false
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/payments/sandbox/complete",
+          "bearer": false
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/payments/{bookingId}/status",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/tickets/me",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/tickets/{id}/calendar",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/tickets/{id}",
+          "bearer": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/staff/check-in",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/admin/reports/revenue",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/admin/reports/overview",
+          "bearer": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/admin/reports/users",
+          "bearer": true
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/admin/reports/purge-outbox",
+          "bearer": true
+        }
+      ]
+    },
+    "endedMovieFutureSchedule": {
+      "result": "accepted201",
+      "movieStatus": "ENDED"
+    },
+    "groupSuggestions": [
+      {
+        "quantity": 1,
+        "returnedCount": 1
+      },
+      {
+        "quantity": 2,
+        "returnedCount": 2
+      },
+      {
+        "quantity": 5,
+        "returnedCount": 5
+      },
+      {
+        "quantity": 20,
+        "returnedCount": 20
+      }
+    ],
+    "sweetboxHalfHold": {
+      "httpStatus": 201,
+      "requestedSeats": 1,
+      "persistedSeats": 1,
+      "pairStatuses": ["HOLDING", "AVAILABLE"]
+    },
+    "endedMovieBooking": "future ENDED-movie showtime accepts a hold201",
+    "movieGenreFilter": "genre query rejected400; not supported",
+    "newAdminRoutes": "overview/users200 for ADMIN; anonymous401/customer403; customer purge403",
+    "signupContract": {
+      "returnsProfileDirectly": true,
+      "hasUserWrapperExpectedByForm": false
+    },
+    "clientAccessTokenStorage": "login writes access token to localStorage; no refresh persistence/rotation client",
+    "clientGroupQuery": "groupSize query rejected400; API requires quantity",
+    "clientLogout": {
+      "httpStatus": 400,
+      "reason": "helper omits required refreshToken body",
+      "serverRefreshSessionStillActive": true
+    },
+    "outboxPurge": {
+      "implementation": "manual ADMIN route and bulk deleteMany; default1day",
+      "isolatedSchema": true,
+      "purgedOldProcessed": 1,
+      "retainedRecentProcessed": true,
+      "retainedOldPending": true,
+      "scheduledBoundedRetention": false
+    },
+    "cleanup": "owned app, fixtures, SMTP and Redis prefix removed; existing services preserved"
+  },
+  "frontend_browser_probe": {
+    "browserContexts": 2,
+    "sameShowtimeSameSeat": "A1",
+    "checkoutOutcome": "both independent contexts report success",
+    "backendApiRequests": 0,
+    "conclusion": "browser-local demo does not provide cross-device seat ownership",
+    "cleanup": "private contexts/browser closed; only owned dev server stopped",
+    "adminHealthOnApiFailure": {
+      "failedTransport": "aborted in owned browser context",
+      "displayedStatusLabels": [
+        "Trạng thái: UP",
+        "Trạng thái: UP",
+        "Trạng thái: UP",
+        "Trạng thái: UP"
+      ],
+      "conclusion": "UI defaults all dependencies to UP despite failed API calls; not a backend auth bypass"
+    }
+  },
+  "limitations": [
+    "Dependency audit findings are open; no exploit or reachability claim.",
+    "Unit coverage excludes integration/e2e/smoke instrumentation.",
+    "Browser contexts simulate independent devices; no physical-device full-stack acceptance.",
+    "Group quantities1/2/5/20 audit probe is not a new permanent regression suite.",
+    "External inbox/payment-provider and fresh cloud restore not verified.",
+    "The original default-port frontend test run was invalidated by a preexisting stale production preview. A complete unchanged suite was rerun on a clean isolated dev server.",
+    "Manual outbox predicate probe used an owned isolated PostgreSQL schema and actual ReportsRepository, not a public/global purge.",
+    "Actual client helpers used a transport bridge to the owned live API; register/logout/group HTTP contracts were not mocked."
+  ],
+  "overall_assessment": "Audit complete; implementation not changed; full-stack regression is not green. Do not advance repair phases until the3frontend regressions and contract defects have a reviewed fix."
+}

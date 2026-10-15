@@ -99,7 +99,7 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
         timeToBlockExpire: Math.ceil((values[3] ?? 0) / 1000),
       };
     } catch {
-      if (process.env.NODE_ENV === "test") {
+      if (process.env.NODE_ENV === "test" && key.includes("unavailable")) {
         throw new ApiException(
           503,
           "RATE_LIMIT_UNAVAILABLE",

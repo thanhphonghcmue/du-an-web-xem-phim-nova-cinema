@@ -40,11 +40,24 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
   }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(
-      Array.isArray(payload.message)
-        ? payload.message.join(", ")
-        : payload.message || "Yêu cầu không thành công.",
-    );
+    if (
+      retry &&
+      (response.status === 503 ||
+        payload.error === "RATE_LIMIT_UNAVAILABLE" ||
+        payload.code === "RATE_LIMIT_UNAVAILABLE")
+    ) {
+      await new Promise((r) => setTimeout(r, 350));
+      return apiRequest(endpoint, options, false);
+    }
+    const rawMsg = Array.isArray(payload.message)
+      ? payload.message.join(", ")
+      : payload.message;
+    const msg =
+      rawMsg === "Rate limiting is temporarily unavailable." ||
+      payload.error === "RATE_LIMIT_UNAVAILABLE"
+        ? "Hệ thống đang bận. Vui lòng thử lại sau giây lát."
+        : rawMsg || "Yêu cầu không thành công.";
+    const error = new Error(msg);
     error.status = response.status;
     error.code = payload.error || payload.errorCode || payload.code;
     throw error;

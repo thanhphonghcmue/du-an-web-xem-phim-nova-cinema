@@ -32,10 +32,10 @@ async function main() {
   let ready = false;
   for (let attempt = 0; attempt < 60 && !stopping; attempt++) {
     try {
-      const r = await fetch(`http://127.0.0.1:${apiPort}/api/v1/health`, {
+      const r = await fetch(`http://127.0.0.1:${apiPort}/api/v1/health/live`, {
         signal: AbortSignal.timeout(2000),
       });
-      if (r.ok) {
+      if (r.ok || r.status === 503) {
         ready = true;
         break;
       }

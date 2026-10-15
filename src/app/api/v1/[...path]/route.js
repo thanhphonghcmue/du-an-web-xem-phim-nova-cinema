@@ -91,6 +91,12 @@ async function proxy(request, context) {
     let response;
     if (type.includes("application/json")) {
       const payload = await result.json();
+      if (
+        payload?.error === "RATE_LIMIT_UNAVAILABLE" ||
+        payload?.message === "Rate limiting is temporarily unavailable."
+      ) {
+        payload.message = "Hệ thống đang bận. Vui lòng thử lại sau giây lát.";
+      }
       const session = payload.data;
       response = NextResponse.json(payload, { status: result.status });
       if (

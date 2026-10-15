@@ -4,6 +4,7 @@ import { ApiException } from "../../common/exceptions/api.exception";
 import { ReportsRepository } from "./reports.repository";
 import { RevenueQueryDto, RevenueReportDto } from "./revenue.dto";
 import { RevenueAggregate, RevenueFilters } from "./revenue-query";
+
 export function revenueFilters(query: RevenueQueryDto): RevenueFilters {
   const fromInclusive = new Date(`${query.from}T00:00:00+07:00`);
   const toExclusive = new Date(
@@ -26,14 +27,29 @@ export function revenueFilters(query: RevenueQueryDto): RevenueFilters {
     ...(query.movieId ? { movieId: query.movieId } : {}),
   };
 }
+
 @Injectable()
 export class ReportsService {
   constructor(private readonly reports: ReportsRepository) {}
+
   async revenue(query: RevenueQueryDto): Promise<RevenueReportDto> {
     const row = await this.reports.revenue(revenueFilters(query));
     return serializeRevenue(row);
   }
+
+  async overview() {
+    return this.reports.overview();
+  }
+
+  async listUsers() {
+    return this.reports.listUsers();
+  }
+
+  async purgeOutbox(daysOld: number) {
+    return this.reports.purgeOutbox(daysOld);
+  }
 }
+
 export function serializeRevenue(row: RevenueAggregate): RevenueReportDto {
   return {
     ticketRevenue: new Prisma.Decimal(row.ticketRevenue).toFixed(2),
@@ -44,6 +60,7 @@ export function serializeRevenue(row: RevenueAggregate): RevenueReportDto {
     ticketCount: count(row.ticketCount),
   };
 }
+
 function count(value: string): number {
   const parsed = Number(value);
   if (!/^\d+$/.test(value) || !Number.isSafeInteger(parsed) || parsed < 0)

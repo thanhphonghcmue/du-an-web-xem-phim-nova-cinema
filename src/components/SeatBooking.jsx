@@ -69,7 +69,13 @@ export default function SeatBooking({
       : reward === "points"
         ? usedPoints * 100
         : reward === "voucher" && voucherValid
-          ? Math.min(30000, Math.round(seatTotal * 0.1))
+          ? voucherInput === "NOVA20"
+            ? Math.min(50000, Math.round(seatTotal * 0.2))
+            : voucherInput === "CINEMA50"
+              ? Math.min(seatTotal, 50000)
+              : voucherInput === "CHAOBANMOI"
+                ? Math.min(seatTotal, 30000)
+                : Math.min(30000, Math.round(seatTotal * 0.1))
           : 0;
   const total = seatTotal + combo * 69000 - discount;
   useEffect(() => {
@@ -612,17 +618,20 @@ export default function SeatBooking({
                         <button
                           className="button button-glass"
                           onClick={() => {
-                            const valid = voucherInput.trim() === "NOVA10";
-                            setVoucherValid(valid);
-                            setVoucherNotice(
-                              valid
-                                ? language === "en"
-                                  ? "10% off tickets, up to 30,000đ."
-                                  : "Giảm 10% tiền vé, tối đa 30.000đ."
-                                : language === "en"
-                                  ? "This demo accepts NOVA10 only."
-                                  : "Mã chưa hợp lệ. Dùng mã demo NOVA10.",
-                            );
+                            const code = voucherInput.trim().toUpperCase();
+                            const vouchers = {
+                              "NOVA10": "Giảm 10% tiền vé (tối đa 30K).",
+                              "NOVA20": "Giảm 20% tiền vé (tối đa 50K).",
+                              "CINEMA50": "Giảm trực tiếp 50.000đ.",
+                              "CHAOBANMOI": "Ưu đãi chào bạn mới: Giảm 30.000đ.",
+                            };
+                            if (vouchers[code]) {
+                              setVoucherValid(true);
+                              setVoucherNotice(`Áp dụng thành công: ${vouchers[code]}`);
+                            } else {
+                              setVoucherValid(false);
+                              setVoucherNotice("Mã chưa đúng. Thử: NOVA10, NOVA20, CINEMA50, CHAOBANMOI");
+                            }
                           }}
                         >
                           {language === "en" ? "Apply" : "Áp dụng"}
@@ -661,7 +670,7 @@ export default function SeatBooking({
                       : "Chọn phương thức để thử luồng thanh toán. Không thu tiền thật."}
                   </p>
                   <div className="payment-methods">
-                    {["MoMo", "ZaloPay", "Visa / Mastercard"].map((m) => (
+                    {["VietQR (Napas 24/7)", "MoMo", "ZaloPay", "Visa / Mastercard"].map((m) => (
                       <button
                         key={m}
                         className={method === m ? "active" : ""}
@@ -669,11 +678,54 @@ export default function SeatBooking({
                       >
                         <ShieldCheck size={20} />
                         {m}
-                        <small>Sandbox</small>
+                        <small>{m.startsWith("VietQR") ? "Chuyển khoản tức thì" : "Sandbox"}</small>
                         {method === m && <Check size={17} />}
                       </button>
                     ))}
                   </div>
+
+                  {method.startsWith("VietQR") && (
+                    <div className="vietqr-box">
+                      <div className="vietqr-header">
+                        <span className="vietqr-badge">VIETQR · NAPAS 24/7</span>
+                        <small className="muted">Quét mã bằng mọi App Ngân Hàng</small>
+                      </div>
+                      <div className="vietqr-qr-wrap">
+                        <img
+                          src={`https://api.vietqr.io/image/970422-0987654321-compact2.png?amount=${total}&addInfo=NOVA%20VE%20XEM%20PHIM&accountName=NOVA%20CINEMA%20VIETNAM`}
+                          alt="Mã VietQR"
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                          }}
+                        />
+                      </div>
+                      <div className="vietqr-info-grid">
+                        <div>
+                          <span>Ngân hàng:</span>
+                          <br />
+                          <strong>MB Bank (Quân Đội)</strong>
+                        </div>
+                        <div>
+                          <span>Số tài khoản:</span>
+                          <br />
+                          <strong>0987654321</strong>
+                        </div>
+                        <div>
+                          <span>Chủ tài khoản:</span>
+                          <br />
+                          <strong>NOVA CINEMA THEATRES</strong>
+                        </div>
+                        <div>
+                          <span>Số tiền chuyển:</span>
+                          <br />
+                          <strong className="gold">{money(total)}</strong>
+                        </div>
+                      </div>
+                      <p className="small muted">
+                        Mở App Ngân hàng bất kỳ (MB, Vietcombank, Techcombank, VPBank...) quét mã QR để thanh toán.
+                      </p>
+                    </div>
+                  )}
                   <button
                     className="text-button"
                     onClick={() => setStage("combo")}

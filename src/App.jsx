@@ -33,6 +33,7 @@ import ShowtimeTimeline from "./components/ShowtimeTimeline.jsx";
 import { motion, useReducedMotion } from "framer-motion";
 import QuickBooking from "./components/QuickBooking.jsx";
 import AuthForm from "./components/AuthForm.jsx";
+import AdminDashboard from "./components/AdminDashboard.jsx";
 import HeaderSearch from "./components/HeaderSearch.jsx";
 import { useI18n } from "./i18n.js";
 
@@ -268,6 +269,16 @@ export default function App() {
               <span className={language === "en" ? "active" : ""}>EN</span>
             </button>
             <span className="nav-divider" />
+            {member?.role === "ADMIN" && (
+              <button
+                className="admin-header-trigger"
+                onClick={() => setModal("admin")}
+                title="Mở Bảng Quản Trị Admin & Doanh Thu"
+              >
+                <Crown size={15} />
+                Quản Trị Rạp
+              </button>
+            )}
             <button
               className="login-trigger"
               onClick={() => setModal(member ? "account" : "login")}
@@ -1195,6 +1206,21 @@ export default function App() {
                   {(member?.points || 0).toLocaleString("vi-VN")}
                 </p>
               </div>
+              {member?.role === "ADMIN" && (
+                <div style={{ margin: "14px 0" }}>
+                  <button
+                    className="button button-primary w-full"
+                    onClick={() => setModal("admin")}
+                    style={{
+                      background: "linear-gradient(135deg, #d97706, #b45309)",
+                      color: "#fff",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <Crown size={16} /> Mở Bảng Quản Trị Admin & Doanh Thu
+                  </button>
+                </div>
+              )}
               <TicketHistory tickets={tickets} />
               <button
                 className="text-button"
@@ -1379,6 +1405,12 @@ export default function App() {
             </div>
           )}
         </Modal>
+      )}
+      {modal === "admin" && (
+        <AdminDashboard
+          onClose={() => setModal(null)}
+          adminUser={member}
+        />
       )}
     </div>
   );

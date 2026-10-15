@@ -8,21 +8,26 @@ import {
   Mail,
   ShieldCheck,
   UserRound,
+  Zap,
 } from "lucide-react";
 import { useI18n } from "../i18n.js";
+import { apiLogin, apiRegister } from "../api/client.js";
+
 export default function AuthForm({ onSuccess }) {
   const { language, t } = useI18n();
-  const [tab, setTab] = useState("signin"),
-    [show, setShow] = useState(false),
-    [remember, setRemember] = useState(true),
-    [fields, setFields] = useState({
-      name: "",
-      email: "",
-      password: "",
-      confirm: "",
-    }),
-    [touched, setTouched] = useState({}),
-    [notice, setNotice] = useState("");
+  const [tab, setTab] = useState("signin");
+  const [show, setShow] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [fields, setFields] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
+  const [touched, setTouched] = useState({});
+  const [notice, setNotice] = useState("");
+
   const error = {
     name:
       fields.name.trim().length < 2
@@ -48,29 +53,75 @@ export default function AuthForm({ onSuccess }) {
           : "Mật khẩu xác nhận chưa khớp."
         : " ",
   };
-  function submit(e) {
+
+  async function submit(e) {
     e.preventDefault();
     setTouched({ name: true, email: true, password: true, confirm: true });
+    setNotice("");
+
     if (
       error.email ||
       error.password ||
       (tab === "signup" && (error.name || error.confirm.trim()))
     )
       return;
-    // Chỉ lưu hồ sơ demo. Tuyệt đối không lưu mật khẩu hay giả lập kết nối OAuth thành công.
-    const member = {
-      name: tab === "signup" ? fields.name.trim() : fields.email.split("@")[0],
-      email: fields.email.trim(),
-      points: tab === "signup" ? 100 : 0,
-    };
-    localStorage.removeItem("nova-member");
-    sessionStorage.removeItem("nova-member");
-    (remember ? localStorage : sessionStorage).setItem(
-      "nova-member",
-      JSON.stringify(member),
-    );
-    onSuccess(member);
+
+    setLoading(true);
+    try {
+      if (tab === "signin") {
+        const data = await apiLogin(fields.email, fields.password);
+        const user = data.user;
+        const member = {
+          id: user.id,
+          name: user.fullName || user.email.split("@")[0],
+          email: user.email,
+          role: user.role, // 'ADMIN' | 'STAFF' | 'CUSTOMER'
+          tier: user.cMemberTier || "SILVER",
+          points: user.cMemberPoints || 0,
+        };
+        localStorage.removeItem("nova-member");
+        sessionStorage.removeItem("nova-member");
+        (remember ? localStorage : sessionStorage).setItem(
+          "nova-member",
+          JSON.stringify(member),
+        );
+        onSuccess(member);
+      } else {
+        const data = await apiRegister(fields.email, fields.password, fields.name.trim());
+        const user = data.user;
+        const member = {
+          id: user.id,
+          name: user.fullName || fields.name.trim(),
+          email: user.email,
+          role: user.role || "CUSTOMER",
+          tier: user.cMemberTier || "SILVER",
+          points: user.cMemberPoints || 100,
+        };
+        localStorage.removeItem("nova-member");
+        sessionStorage.removeItem("nova-member");
+        (remember ? localStorage : sessionStorage).setItem(
+          "nova-member",
+          JSON.stringify(member),
+        );
+        onSuccess(member);
+      }
+    } catch (err) {
+      setNotice(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
+    } finally {
+      setLoading(false);
+    }
   }
+
+  function handleQuickFill(email, roleName) {
+    setTab("signin");
+    setFields({
+      ...fields,
+      email,
+      password: "Nova@123456",
+    });
+    setNotice(`Đã điền sẵn tài khoản ${roleName} (Mật khẩu: Nova@123456)`);
+  }
+
   return (
     <div className="auth-layout">
       <div className="auth-reward">
@@ -98,15 +149,45 @@ export default function AuthForm({ onSuccess }) {
           </li>
           <li>
             <Check size={14} />
-            {t("Ưu đãi dành riêng")}
+            {t("Quyền quản trị số liệu rạp")}
           </li>
         </ul>
-        <p className="small muted">
-          {language === "en"
-            ? "Demo rewards. No verified account or real payment."
-            : "Ưu đãi minh họa. Chưa xác thực tài khoản, không thu tiền thật."}
+
+        {/* Quick Demo Logins */}
+        <div className="quick-login-box">
+          <span className="quick-title">
+            <Zap size={14} /> Chọn nhanh tài khoản mẫu:
+          </span>
+          <div className="quick-buttons">
+            <button
+              type="button"
+              className="quick-btn admin"
+              onClick={() => handleQuickFill("admin@nova.local", "Quản Trị Admin")}
+            >
+              👑 Admin
+            </button>
+            <button
+              type="button"
+              className="quick-btn staff"
+              onClick={() => handleQuickFill("staff@nova.local", "Soát Vé Staff")}
+            >
+              🎫 Staff
+            </button>
+            <button
+              type="button"
+              className="quick-btn customer"
+              onClick={() => handleQuickFill("customer@nova.local", "Khách Hàng")}
+            >
+              👤 Khách Hàng
+            </button>
+          </div>
+        </div>
+
+        <p className="small muted mt-2">
+          Kết nối trực tiếp NestJS Backend & PostgreSQL 17 (port 4000).
         </p>
       </div>
+
       <div className="auth-main">
         <div className="auth-tabs" role="tablist" aria-label="Authentication">
           {[
@@ -120,7 +201,6 @@ export default function AuthForm({ onSuccess }) {
               className={tab === id ? "active" : ""}
               onClick={() => {
                 setTab(id);
-                setTouched({});
                 setNotice("");
               }}
             >
@@ -128,78 +208,43 @@ export default function AuthForm({ onSuccess }) {
             </button>
           ))}
         </div>
-        <h3>
-          {tab === "signin"
-            ? t("Chào mừng trở lại.")
-            : t("Điện ảnh, dành riêng cho bạn.")}
-        </h3>
-        <p>
-          {language === "en"
-            ? "Your next big-screen moment starts here."
-            : "Một trải nghiệm điện ảnh mới đang chờ bạn."}
-        </p>
-        <form onSubmit={submit} noValidate>
-          {["name", "email", "password", "confirm"]
-            .filter(
-              (id) => tab === "signup" || !["name", "confirm"].includes(id),
-            )
-            .map((id) => (
-              <div className="auth-field" key={id}>
+
+        <form onSubmit={submit} noValidate className="auth-form">
+          {[
+            tab === "signup" && ["name", "Họ và tên", "text", "Nguyễn Văn A"],
+            ["email", "Email", "email", "example@nova.local"],
+            ["password", "Mật khẩu", "password", "••••••••"],
+            tab === "signup" && [
+              "confirm",
+              "Xác nhận mật khẩu",
+              "password",
+              "••••••••",
+            ],
+          ]
+            .filter(Boolean)
+            .map(([id, label, type, placeholder]) => (
+              <div key={id} className="field-block">
+                <label htmlFor={`field-${id}`}>{t(label)}</label>
                 <input
-                  id={`auth-${id}`}
-                  name={id}
-                  type={
-                    ["password", "confirm"].includes(id)
-                      ? show
-                        ? "text"
-                        : "password"
-                      : id === "email"
-                        ? "email"
-                        : "text"
-                  }
-                  placeholder=" "
+                  id={`field-${id}`}
+                  type={id === "password" || id === "confirm" ? (show ? "text" : "password") : type}
+                  placeholder={placeholder}
                   value={fields[id]}
-                  autoComplete={
-                    id === "name"
-                      ? "name"
-                      : id === "email"
-                        ? "email"
-                        : tab === "signup"
-                          ? "new-password"
-                          : "current-password"
-                  }
                   onChange={(e) =>
                     setFields({ ...fields, [id]: e.target.value })
                   }
                   onBlur={() => setTouched({ ...touched, [id]: true })}
-                  aria-invalid={!!(touched[id] && error[id]?.trim())}
+                  autoComplete={id === "password" ? "current-password" : id}
+                  aria-invalid={Boolean(touched[id] && error[id]?.trim())}
                   aria-describedby={
                     touched[id] && error[id]?.trim() ? `error-${id}` : undefined
                   }
                 />
-                <label htmlFor={`auth-${id}`}>
-                  {t(
-                    {
-                      name: "Họ và tên",
-                      email: "Email",
-                      password: "Mật khẩu",
-                      confirm: "Xác nhận mật khẩu",
-                    }[id],
-                  )}
-                </label>
-                {["password", "confirm"].includes(id) && (
+                {(id === "password" || id === "confirm") && (
                   <button
                     type="button"
-                    className="password-eye"
-                    aria-label={
-                      language === "en"
-                        ? show
-                          ? "Hide password"
-                          : "Show password"
-                        : show
-                          ? "Ẩn mật khẩu"
-                          : "Hiện mật khẩu"
-                    }
+                    className="password-toggle"
+                    aria-label={show ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                     onClick={() => setShow(!show)}
                   >
                     {show ? <EyeOff size={17} /> : <Eye size={17} />}
@@ -212,6 +257,7 @@ export default function AuthForm({ onSuccess }) {
                 )}
               </div>
             ))}
+
           <div className="auth-options">
             <label>
               <input
@@ -221,61 +267,38 @@ export default function AuthForm({ onSuccess }) {
               />
               {t("Ghi nhớ đăng nhập")}
             </label>
-            <button
-              type="button"
-              onClick={() =>
-                setNotice(
-                  language === "en"
-                    ? "Password recovery requires the account backend. This demo never stores passwords."
-                    : "Khôi phục mật khẩu cần dịch vụ tài khoản. Bản demo không lưu mật khẩu.",
-                )
-              }
-            >
-              {t("Quên mật khẩu?")}
-            </button>
+            <span className="text-gold-light small">
+              Mật khẩu mẫu: <b>Nova@123456</b>
+            </span>
           </div>
-          <button className="button button-primary w-full" type="submit">
-            {t(tab === "signin" ? "Đăng nhập demo" : "Tạo tài khoản demo")}
+
+          <button
+            className="button button-primary w-full"
+            type="submit"
+            disabled={loading}
+          >
+            {loading
+              ? "Đang xác thực với server..."
+              : t(tab === "signin" ? "Đăng nhập ngay" : "Tạo tài khoản")}
             <ArrowRight size={17} />
           </button>
         </form>
-        <div className="auth-or">
-          <span />
-          {t("Hoặc tiếp tục với")}
-          <span />
-        </div>
-        <div className="social-buttons">
-          {["Google", "Apple"].map((p) => (
-            <button
-              key={p}
-              onClick={() =>
-                setNotice(
-                  language === "en"
-                    ? `${p} sign-in requires a configured OAuth backend. No connection is made in this demo.`
-                    : `Đăng nhập ${p} cần cấu hình OAuth và backend. Bản demo chưa kết nối dịch vụ này.`,
-                )
-              }
-            >
-              <b aria-hidden="true">{p === "Google" ? "G" : "●"}</b>
-              {p}
-            </button>
-          ))}
-        </div>
+
         {notice && (
-          <p className="auth-notice" role="status">
+          <p className="auth-notice mt-3" role="status">
             {notice}
           </p>
         )}
-        <p className="auth-disclaimer">
+
+        <p className="auth-disclaimer mt-3">
           <ShieldCheck size={13} />
-          {language === "en"
-            ? "Frontend demo · Never enter a real password."
-            : "Demo giao diện · Không nhập mật khẩu thật."}
+          Bảo mật mã hóa bằng Argon2id & JWT Token chuẩn NestJS.
         </p>
       </div>
     </div>
   );
 }
+
 function Sparkle() {
   return (
     <span className="auth-perk-symbol">

@@ -429,8 +429,12 @@ export default function SeatBooking({
                     {money(order.finalAmount)}
                   </strong>
                 </p>
+                <div className="holding-step-banner">
+                  <span>⚠️ Đang giữ chỗ ({String(Math.floor(remaining / 60)).padStart(2, "0")}:{String(remaining % 60).padStart(2, "0")})</span>
+                  <small>Vui lòng bấm nút <b>"Thanh toán Sandbox"</b> bên dưới để hoàn tất đơn và nhận vé!</small>
+                </div>
                 <button
-                  className="button button-primary"
+                  className="button button-primary checkout-btn-pulse"
                   disabled={busy || !remaining}
                   onClick={checkout}
                 >

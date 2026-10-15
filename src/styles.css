@@ -6244,6 +6244,97 @@ button:focus-visible {
 .status-badge.paid { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
 .status-badge.pending, .status-badge.holding { background: rgba(234, 179, 8, 0.2); color: #facc15; }
 .status-badge.cancelled { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.status-badge.expired { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); }
+
+/* Presets & Header for Admin Tab 1 */
+.filter-presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.preset-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #cbd5e1;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.preset-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.preset-btn.refresh {
+  background: rgba(229, 9, 20, 0.15);
+  border-color: rgba(229, 9, 20, 0.35);
+  color: #fca5a5;
+}
+.preset-btn.refresh:hover {
+  background: rgba(229, 9, 20, 0.3);
+  color: #fff;
+}
+.preset-btn .spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.admin-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.admin-box-sub {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.badge-note {
+  font-size: 12.5px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+/* Holding step banner in SeatBooking */
+.holding-step-banner {
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 12px 0 14px;
+  color: #fde047;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.holding-step-banner small {
+  color: #fef08a;
+  font-size: 12px;
+}
+.checkout-btn-pulse {
+  animation: pulseNeon 2s infinite ease-in-out;
+}
+@keyframes pulseNeon {
+  0%, 100% { box-shadow: 0 0 10px rgba(229, 9, 20, 0.4); }
+  50% { box-shadow: 0 0 22px rgba(229, 9, 20, 0.8); }
+}
 
 .catalog-summary-cards {
   display: grid;

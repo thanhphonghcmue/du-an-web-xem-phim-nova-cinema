@@ -26,6 +26,17 @@ import {
   apiGetHealth,
 } from "../api/client.js";
 
+function getVietnamDate(offsetDays = 0) {
+  const target = new Date(Date.now() + offsetDays * 86400000);
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(target);
+}
+
 export default function AdminDashboard({ onClose, adminUser }) {
   const [activeTab, setActiveTab] = useState("revenue"); // revenue | users | catalog | maintenance
   const [loading, setLoading] = useState(true);
@@ -34,13 +45,9 @@ export default function AdminDashboard({ onClose, adminUser }) {
   // Overview metrics
   const [overview, setOverview] = useState(null);
 
-  // Revenue state
-  const [fromDate, setFromDate] = useState(() =>
-    new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10),
-  );
-  const [toDate, setToDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
+  // Revenue state - using Vietnam local timezone (ICT, UTC+7)
+  const [fromDate, setFromDate] = useState(() => getVietnamDate(-7));
+  const [toDate, setToDate] = useState(() => getVietnamDate(0));
   const [revenue, setRevenue] = useState(null);
   const [revenueLoading, setRevenueLoading] = useState(false);
 
@@ -66,8 +73,26 @@ export default function AdminDashboard({ onClose, adminUser }) {
     }
   }, []);
 
+  const applyDatePreset = (days) => {
+    let from, to;
+    if (days === 0) {
+      from = getVietnamDate(0);
+      to = getVietnamDate(0);
+    } else if (days === -1) {
+      from = "2024-01-01";
+      to = getVietnamDate(0);
+    } else {
+      from = getVietnamDate(-days);
+      to = getVietnamDate(0);
+    }
+    setFromDate(from);
+    setToDate(to);
+    fetchRevenue(from, to);
+  };
+
   const loadAllData = useCallback(async () => {
     setError("");
+    setRevenueLoading(true);
     try {
       const [ovData, healthData, usersData] = await Promise.allSettled([
         apiGetAdminOverview(),
@@ -92,6 +117,7 @@ export default function AdminDashboard({ onClose, adminUser }) {
       setError(err.message || "Lỗi khi tải dữ liệu trang quản trị");
     } finally {
       setLoading(false);
+      setRevenueLoading(false);
     }
   }, [fetchRevenue, fromDate, toDate]);
 
@@ -213,7 +239,7 @@ export default function AdminDashboard({ onClose, adminUser }) {
           {/* TAB 1: DOANH THU & BÁO CÁO */}
           {activeTab === "revenue" && (
             <div className="admin-tab-pane">
-              {/* Date Filter */}
+              {/* Date Filter & Presets */}
               <div className="admin-filter-bar">
                 <div className="filter-group">
                   <Calendar size={16} />
@@ -240,6 +266,46 @@ export default function AdminDashboard({ onClose, adminUser }) {
                 >
                   {revenueLoading ? "Đang lọc..." : "Áp dụng lọc"}
                 </button>
+
+                <div className="filter-presets">
+                  <button
+                    type="button"
+                    className="preset-btn"
+                    onClick={() => applyDatePreset(0)}
+                  >
+                    Hôm nay
+                  </button>
+                  <button
+                    type="button"
+                    className="preset-btn"
+                    onClick={() => applyDatePreset(7)}
+                  >
+                    7 ngày qua
+                  </button>
+                  <button
+                    type="button"
+                    className="preset-btn"
+                    onClick={() => applyDatePreset(30)}
+                  >
+                    30 ngày qua
+                  </button>
+                  <button
+                    type="button"
+                    className="preset-btn"
+                    onClick={() => applyDatePreset(-1)}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    type="button"
+                    className="preset-btn refresh"
+                    onClick={loadAllData}
+                    title="Làm mới số liệu"
+                  >
+                    <RefreshCw size={14} className={revenueLoading ? "spin" : ""} />
+                    <span>Làm mới</span>
+                  </button>
+                </div>
               </div>
 
               {/* Stat Cards Grid */}
@@ -339,6 +405,89 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     </strong>
                   </div>
                 </div>
+              </div>
+
+              {/* Detailed Orders in Revenue Tab */}
+              <div className="admin-box mt-4">
+                <div className="admin-box-header">
+                  <div>
+                    <h3>Chi Tiết Đơn Đặt Vé & Doanh Thu Hệ Thống</h3>
+                    <p className="admin-box-sub">
+                      Dữ liệu thực tế ghi nhận từ PostgreSQL & NestJS API.
+                    </p>
+                  </div>
+                  <span className="badge-note">
+                    💡 Chỉ đơn <strong>Đã thanh toán (PAID)</strong> mới được tính vào tổng doanh thu
+                  </span>
+                </div>
+
+                {overview?.recentBookings &&
+                overview.recentBookings.length > 0 ? (
+                  <div className="admin-table-container">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Mã Đơn</th>
+                          <th>Khách Hàng</th>
+                          <th>Phim</th>
+                          <th>Rạp / Phòng</th>
+                          <th>Tổng Tiền</th>
+                          <th>Thời Gian Đặt</th>
+                          <th>Trạng Thái</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {overview.recentBookings.map((b) => (
+                          <tr key={b.id}>
+                            <td>
+                              <code>{b.orderCode}</code>
+                            </td>
+                            <td>
+                              <strong>{b.customer}</strong>
+                            </td>
+                            <td>{b.movie}</td>
+                            <td>
+                              {b.cinema} · {b.room}
+                            </td>
+                            <td>
+                              <strong
+                                style={{
+                                  color:
+                                    b.status === "PAID" ? "#4ade80" : "#94a3b8",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                {money(b.finalAmount)}
+                              </strong>
+                            </td>
+                            <td style={{ fontSize: "12.5px", color: "#94a3b8" }}>
+                              {new Date(b.createdAt).toLocaleString("vi-VN")}
+                            </td>
+                            <td>
+                              <span
+                                className={`status-badge ${b.status.toLowerCase()}`}
+                              >
+                                {b.status === "PAID"
+                                  ? "✅ Đã thanh toán (PAID)"
+                                  : b.status === "HOLDING"
+                                    ? "⏳ Đang giữ chỗ"
+                                    : b.status === "EXPIRED"
+                                      ? "⏱️ Hết hạn 5 phút"
+                                      : b.status === "CANCELLED"
+                                        ? "❌ Đã hủy"
+                                        : b.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="admin-empty">
+                    Chưa có đơn đặt vé nào được tạo.
+                  </div>
+                )}
               </div>
             </div>
           )}

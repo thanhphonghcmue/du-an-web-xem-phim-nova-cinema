@@ -11,6 +11,10 @@ export class SeatExpirationQueueService {
     @InjectQueue("seat-expiration")
     private readonly queue: Queue<ExpirationPayload, void>,
   ) {}
+  async cancel(bookingId: string): Promise<void> {
+    // BullMQ returns0 for an active/locked job. Its worker rechecks the DB and is harmless.
+    await withTimeout(this.queue.remove(`booking-expire-${bookingId}`), 2000);
+  }
   async schedule(bookingId: string, expiredAt: Date): Promise<void> {
     await withTimeout(
       this.queue.add(

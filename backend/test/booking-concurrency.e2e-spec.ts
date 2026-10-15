@@ -1273,7 +1273,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     ).toBe(0);
   });
 
-  it("documents implemented booking/combos APIs and includes public seat reads while keeping payment routes for later phases", async () => {
+  it("documents implemented booking/combos APIs and includes public seat reads while including Phase8 payment routes", async () => {
     const response = await request(server).get("/api/docs-json").expect(200);
     const spec = JSON.parse(response.text) as {
       paths: Record<string, Record<string, { security?: unknown }>>;
@@ -1288,7 +1288,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
       expect(spec.paths[path]?.[method]?.security).toEqual([{ bearer: [] }]);
     expect(spec.paths).toHaveProperty("/api/v1/combos");
     expect(spec.components.schemas).toHaveProperty("BookingDto");
-    expect(spec.paths).not.toHaveProperty("/api/v1/payments/webhook");
+    expect(spec.paths).toHaveProperty("/api/v1/payments/webhook");
     expect(spec.paths).toHaveProperty(
       "/api/v1/showtimes/{showtimeId}/group-seat-suggestion",
     );

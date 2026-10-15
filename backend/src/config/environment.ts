@@ -81,7 +81,57 @@ export function validateEnvironment(
     throw new ConfigurationError(
       "Refresh lifetime must exceed access lifetime.",
     );
+  const paymentSecret = requiredSecret(environment, "PAYMENT_SANDBOX_SECRET");
+  if (
+    [environment.JWT_ACCESS_SECRET, environment.JWT_REFRESH_SECRET].includes(
+      paymentSecret,
+    )
+  )
+    throw new ConfigurationError("Payment and JWT secrets must be different.");
+  paymentOrigin(environment);
+  paymentReturnOrigins(environment);
   return environment;
+}
+export function paymentOrigin(environment: NodeJS.ProcessEnv): string {
+  return httpOrigin(
+    environment.PAYMENT_SANDBOX_BASE_URL ||
+      `http://localhost:${environment.PORT || "4000"}`,
+    "PAYMENT_SANDBOX_BASE_URL",
+  );
+}
+export function paymentReturnOrigins(environment: NodeJS.ProcessEnv): string[] {
+  const values = (
+    environment.PAYMENT_RETURN_ORIGINS ||
+    "http://localhost:3000,http://127.0.0.1:3000"
+  )
+    .split(",")
+    .map((value) => value.trim());
+  return [
+    ...new Set(
+      values.map((value) => httpOrigin(value, "PAYMENT_RETURN_ORIGINS")),
+    ),
+  ];
+}
+function httpOrigin(value: string, name: string): string {
+  try {
+    const url = new URL(value);
+    if (
+      value !== url.origin ||
+      url.username ||
+      url.password ||
+      (url.protocol !== "https:" &&
+        !(
+          url.protocol === "http:" &&
+          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+        ))
+    )
+      throw new Error();
+    return url.origin;
+  } catch {
+    throw new ConfigurationError(
+      `${name} must contain HTTPS origins or local HTTP origins without paths or credentials.`,
+    );
+  }
 }
 export function requiredSecret(
   environment: NodeJS.ProcessEnv,

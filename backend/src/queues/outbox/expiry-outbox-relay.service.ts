@@ -3,7 +3,10 @@ import { isUUID } from "class-validator";
 import { randomUUID } from "node:crypto";
 import { UnitOfWork } from "../../database/unit-of-work";
 import { SeatExpirationQueueService } from "../seat-expiration/seat-expiration-queue.service";
-import { OutboxRepository } from "./outbox.repository";
+import {
+  EXPIRATION_CANCEL_REQUESTED,
+  OutboxRepository,
+} from "./outbox.repository";
 @Injectable()
 export class ExpiryOutboxRelay {
   constructor(
@@ -32,7 +35,14 @@ export class ExpiryOutboxRelay {
           const expiredAt = new Date(payload.expiredAt);
           if (!Number.isFinite(expiredAt.getTime()))
             throw new Error("Invalid expiration deadline.");
-          await this.queue.schedule(payload.bookingId, expiredAt);
+          if (event.eventType === EXPIRATION_CANCEL_REQUESTED)
+            await this.queue.cancel(payload.bookingId);
+          else if (
+            await this.database.transaction((tx) =>
+              this.events.needsExpiration(payload.bookingId as string, tx),
+            )
+          )
+            await this.queue.schedule(payload.bookingId, expiredAt);
           await this.database.transaction((tx) =>
             this.events.acknowledge(event.id, owner, tx),
           );

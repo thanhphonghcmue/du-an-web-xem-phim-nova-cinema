@@ -771,7 +771,7 @@ describe("Phase 5 BR03 / TC-02 with real PostgreSQL and Redis", () => {
     await post(body(movie.id, room.id)).expect(201);
   });
 
-  it("documents five operations, request validation, public reads and protected writes without future payment APIs", async () => {
+  it("documents five operations, request validation, public reads and protected writes alongside payment APIs", async () => {
     const response = await request(server).get("/api/docs-json").expect(200);
     const spec = JSON.parse(response.text) as {
       paths: Record<string, Record<string, { security?: unknown }>>;
@@ -799,7 +799,7 @@ describe("Phase 5 BR03 / TC-02 with real PostgreSQL and Redis", () => {
     expect(spec.components.schemas.ShowtimeDto?.properties).toHaveProperty(
       "endTime",
     );
-    expect(spec.paths).not.toHaveProperty("/api/v1/payments/webhook");
+    expect(spec.paths).toHaveProperty("/api/v1/payments/webhook");
     expect(spec.paths).not.toHaveProperty("/api/v1/showtimes/{id}/seats");
   });
 });

@@ -1,5 +1,5 @@
 const { resolve } = require("node:path");
-const { randomUUID, randomBytes } = require("node:crypto");
+const { randomUUID, randomBytes, createHmac } = require("node:crypto");
 const { createServer } = require("node:net");
 const { once } = require("node:events");
 const { spawn } = require("node:child_process");
@@ -15,7 +15,8 @@ const backend = resolve(__dirname, "..");
 const databaseUrl = testDatabaseTarget();
 for (const key of ["TEST_REDIS_HOST", "TEST_REDIS_PORT", "TEST_REDIS_DB"])
   if (!process.env[key]) throw new Error(`${key} is required for smoke tests.`);
-const prefix = `p7-smoke-${randomUUID()}`;
+const prefix = `p8-smoke-${randomUUID()}`;
+const paymentSecret = randomBytes(48).toString("hex");
 const queuePrefix = `nova:smoke:${randomUUID().replaceAll("-", "")}`;
 const connection = {
   host: process.env.TEST_REDIS_HOST,
@@ -130,6 +131,9 @@ async function main() {
       BULLMQ_PREFIX: queuePrefix,
       JWT_ACCESS_SECRET: randomBytes(48).toString("hex"),
       JWT_REFRESH_SECRET: randomBytes(48).toString("hex"),
+      PAYMENT_SANDBOX_SECRET: paymentSecret,
+      PAYMENT_SANDBOX_BASE_URL: `http://127.0.0.1:${port}`,
+      PAYMENT_RETURN_ORIGINS: "http://localhost:3000",
     },
   });
   const base = `http://127.0.0.1:${port}`;
@@ -163,7 +167,7 @@ async function main() {
       return false;
     }
   });
-  assert.equal((await api("GET", "/api/v1", 200)).data.phase, 7);
+  assert.equal((await api("GET", "/api/v1", 200)).data.phase, 8);
   const tokens = [];
   for (const user of users)
     tokens.push(
@@ -191,6 +195,9 @@ async function main() {
   );
   watcher.on("seat_released", (value) =>
     notifications.push({ type: "seat_released", ...value }),
+  );
+  watcher.on("seat_sold", (value) =>
+    notifications.push({ type: "seat_sold", ...value }),
   );
   await new Promise((resolve, reject) => {
     watcher.once("connect", resolve);
@@ -332,12 +339,170 @@ async function main() {
       releasesBefore
     );
   });
-  await api("POST", "/api/v1/bookings/hold", 201, payload, tokens[0]);
+  const failedBooking = (
+    await api("POST", "/api/v1/bookings/hold", 201, payload, tokens[0])
+  ).data;
+  const returnUrl = "http://localhost:3000/booking/result";
+  const failedPayment = (
+    await api(
+      "POST",
+      "/api/v1/payments/create-sandbox-url",
+      201,
+      { bookingId: failedBooking.id, returnUrl },
+      tokens[0],
+    )
+  ).data;
+  function callback(booking, payment, status) {
+    const body = {
+      bookingId: booking.id,
+      orderCode: booking.orderCode,
+      transactionCode: payment.transactionCode,
+      amount: booking.finalAmount,
+      timestamp: new Date().toISOString(),
+      status,
+    };
+    return {
+      ...body,
+      signature: createHmac("sha512", paymentSecret)
+        .update(
+          `webhook.v1:${JSON.stringify([body.bookingId, body.orderCode, body.transactionCode, body.amount, body.timestamp, body.status])}`,
+        )
+        .digest("hex"),
+    };
+  }
+  const failure = callback(failedBooking, failedPayment, "FAILED");
+  assert.equal(
+    (await api("POST", "/api/v1/payments/webhook", 200, failure)).data
+      .bookingStatus,
+    "CANCELLED",
+  );
+  const paidBooking = (
+    await api("POST", "/api/v1/bookings/hold", 201, payload, tokens[1])
+  ).data;
+  const payment = (
+    await api(
+      "POST",
+      "/api/v1/payments/create-sandbox-url",
+      201,
+      { bookingId: paidBooking.id, returnUrl },
+      tokens[1],
+    )
+  ).data;
+  stage = "production signed Sandbox HTML checkout";
+  const page = await fetch(payment.url, { signal: AbortSignal.timeout(5000) });
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get("content-type"), /html/);
+  assert.match(await page.text(), /Thanh toán mô phỏng/);
+  const success = callback(paidBooking, payment, "SUCCESS");
+  await api("POST", "/api/v1/payments/webhook", 401, {
+    ...success,
+    signature: "0".repeat(128),
+  });
+  const paid = (await api("POST", "/api/v1/payments/webhook", 200, success))
+    .data;
+  assert.equal(paid.bookingStatus, "PAID");
+  assert.equal(paid.paymentStatus, "SUCCESS");
+  assert.equal(paid.duplicate, false);
+  assert.equal(
+    (await api("POST", "/api/v1/payments/webhook", 200, success)).data
+      .duplicate,
+    true,
+  );
+  const member = (
+    await api("GET", "/api/v1/users/me/membership", 200, undefined, tokens[1])
+  ).data;
+  assert.equal(member.points, 31);
+  await api(
+    "GET",
+    `/api/v1/payments/${paidBooking.id}/status`,
+    404,
+    undefined,
+    tokens[0],
+  );
+  assert.equal(
+    (
+      await api(
+        "GET",
+        `/api/v1/payments/${paidBooking.id}/status`,
+        200,
+        undefined,
+        tokens[1],
+      )
+    ).data.bookingStatus,
+    "PAID",
+  );
+  await api(
+    "POST",
+    "/api/v1/payments/webhook",
+    409,
+    callback(paidBooking, payment, "FAILED"),
+  );
+  stage = "production automatic seat_sold and expiry cancellation";
+  await eventually(async () => {
+    await redis.ping();
+    return notifications.some(
+      (event) => event.type === "seat_sold" && event.showtimeId === showtime.id,
+    );
+  });
+  await eventually(async () => {
+    const event = await prisma.outboxEvent.findFirst({
+      where: {
+        aggregateId: paidBooking.id,
+        eventType: "booking.expiration.cancel.requested",
+      },
+    });
+    return (
+      Boolean(event?.processedAt) &&
+      !(await queue.getJob(`booking-expire-${paidBooking.id}`))
+    );
+  });
+  const ticketRequests = await prisma.outboxEvent.findMany({
+    where: {
+      aggregateId: paidBooking.id,
+      eventType: "booking.ticket.requested",
+    },
+  });
+  assert.equal(ticketRequests.length, 1);
+  assert.equal(ticketRequests[0].processedAt, null);
+  assert.equal(
+    await prisma.eTicket.count({ where: { bookingId: paidBooking.id } }),
+    0,
+  );
+  stage = "production Sandbox form duplicate completion";
+  const form = new URL(payment.url).searchParams;
+  form.set("result", "SUCCESS");
+  const completed = await fetch(`${base}/api/v1/payments/sandbox/complete`, {
+    method: "POST",
+    body: form,
+    signal: AbortSignal.timeout(5000),
+  });
+  assert.equal(completed.status, 200);
+  assert.match(await completed.text(), /PAID/);
+  assert.equal(
+    (await api("GET", "/api/v1/users/me/membership", 200, undefined, tokens[1]))
+      .data.points,
+    31,
+  );
+  const paidJob = await queue.add(
+    "expire-booking-hold",
+    { bookingId: paidBooking.id },
+    { jobId: `smoke-paid-${randomUUID()}` },
+  );
+  await eventually(async () => (await paidJob.getState()) === "completed");
+  const finalMap = (
+    await api("GET", `/api/v1/showtimes/${showtime.id}/seats`, 200)
+  ).data;
+  assert.deepEqual(finalMap.capacity, {
+    total: 2,
+    available: 0,
+    holding: 0,
+    sold: 2,
+  });
   const spec = await api("GET", "/api/docs-json", 200);
   assert(spec.paths["/api/v1/bookings/hold"].post.security);
-  assert(!spec.paths["/api/v1/payments/webhook"]);
+  assert(spec.paths["/api/v1/payments/webhook"]);
   console.log(
-    "PASS compiled Phase 7 HTTP/WebSocket smoke: seat-map, group suggestions, live hold/cancel/expiry events, health/login, Decimal snapshots, fixed TTL, idempotency, conflicts, privacy, cancel, automatic outbox relay, actual BullMQ expiry and re-hold.",
+    "PASS compiled Phase 8 production smoke: booking/expiry/re-hold, signed Sandbox URL and HTML form, HMAC rejection, FAILED release, PAID/SOLD/points once, owner status, actual seat_sold, automatic expiry cancellation, harmless paid worker and durable Phase9 ticket request.",
   );
 }
 async function cleanup() {
@@ -360,6 +525,7 @@ async function cleanup() {
   });
   const ids = bookings.map((row) => row.id);
   await prisma.outboxEvent.deleteMany({ where: { aggregateId: { in: ids } } });
+  await prisma.payment.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.bookingCombo.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.bookingSeat.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.booking.deleteMany({ where: { id: { in: ids } } });

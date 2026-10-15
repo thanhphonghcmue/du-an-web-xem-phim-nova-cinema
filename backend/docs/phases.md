@@ -20,7 +20,7 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase0–7 đã triển khai và kiểm chứng. Phase7 thêm seat-map/capacity và group-seat suggestion public, Socket.IO /seats, Redis Pub/Sub bridge/outbox delivery sau commit, subscription policy và realtime readiness. `npm run check`:44 unit +118 HTTP/WebSocket tests, typecheck/lint/build pass; `test:db`:22 PostgreSQL tests. Tổng184 tests; compiled production HTTP/WebSocket/outbox/worker smoke pass. Evidence validation-phase-1.md đến validation-phase-7.md. TC-01/TC-02 hoàn tất; Phase8–12 và TC-03/04/05 chưa hoàn tất.
+Phase0–8 đã triển khai và kiểm chứng. Phase8 thêm Sandbox checkout chạy được, HMAC-SHA512 URL/webhook riêng miền, owner-only status, payment idempotency/state machine và PAID/SOLD/points/outbox nguyên tử. `npm run check`:54 unit +146 HTTP/WebSocket tests, typecheck/lint/build pass; `test:db`:22 PostgreSQL tests. Tổng222 tests; compiled production HTTP/WebSocket/payment/outbox/worker smoke pass. Evidence validation-phase-1.md đến validation-phase-8.md. TC-01/TC-02/TC-04 hoàn tất; TC-03 hoàn tất phần payment/points/events, còn ticket consumer ở Phase9. Phase9–12 và TC-05 chưa triển khai.
 
 ## Phase 2 đã triển khai
 
@@ -51,3 +51,9 @@ Migration thêm nullable snapshot/idempotency columns/CHECK/unique, giữ14 mode
 Public GET seat-map/capacity và group suggestion1–20; cùng snapshot REPEATABLE READ, DB-clock expiry/lazy cleanup, Decimal price. Sliding windows cùng row/cột liên tiếp, strict optional type, ưu tiên center rồi row/column, O(S logS+S+N). Gateway /seats cho public read-only, existing showtime validation, one room/socket, Origin/payload/Redis rate limits. Outbox committed events publish qua shared Redis Pub/Sub, fenced lease/retry/stable event IDs; client resync từ API khi reconnect/duplicate/out-of-order events. Không hứa exactly-once hoặc offline replay. Readiness thêm realtime.
 
 16 HTTP/Socket.IO cases trên2 API instances +Redis/PG thật,11 unit group cases, thực tế kill/reconnect đúng owned subscribers, precommit/rollback isolation, publish/ack failure và stale lease. Production smoke mở Socket.IO client và nhận automatic hold/cancel/expiry events. Không migration/env/runtime dependency mới; dev socket.io-client4.8.4 được khóa cùng lockfile. Dừng và chờ `TIẾP TỤC PHASE 8`.
+
+## Phase 8 đã triển khai
+
+Ba payment APIs create-sandbox-url/webhook/owner status, cùng signed HTML Sandbox simulator; không thu tiền thật và không yêu cầu tài khoản cổng thanh toán ngoài. HMAC-SHA512 canonical JSON arrays, checkout.v1/webhook.v1 riêng miền, timing-safe verification, amount snapshot fixed2, transaction binding, timestamp window và return-origin allowlist. Một sandbox attempt được replay dưới booking lock, không gia hạn hold. SUCCESS commit PAID/SOLD/SUCCESS + Decimal points floor(final×0.10/1000) +seat_sold/ticket-request/expiry-cancel outbox. FAILED/CANCELLED trả ghế nguyên tử; terminal outcome trùng no-op, mâu thuẫn409; late success không hồi sinh booking/ownership. Redis/queue lỗi sau commit có durable retry.
+
+28 integration cases dùng2 API instances, PostgreSQL/Redis/Socket.IO/BullMQ thật: concurrent duplicate/create/terminal callbacks, cancel/expiry/member lock races, rollback/precommit visibility và queue cancellation retry. Thêm9 signature/points unit cases +1 config case. Không schema/migration/dependency mới; secret bắt buộc riêng được cấu hình bằng payment:configure. TC-03 ticket existence hoàn thiện Phase9, hiện duy nhất durable booking.ticket.requested và chưa ack giả. Dừng và chờ `TIẾP TỤC PHASE 9`.

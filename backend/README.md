@@ -1,12 +1,12 @@
-# NOVA Cinema Backend — Phase 7
+# NOVA Cinema Backend — Phase 8
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–7 hoàn tất**: nền tảng/auth/catalog/showtimes, booking hold/cancel/expiry, seat-map/capacity theo suất, gợi ý nhóm ghế và Socket.IO qua Redis Pub/Sub/outbox sau commit. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–8 hoàn tất**: nền tảng/auth/catalog/showtimes, booking hold/cancel/expiry, seat-map/group suggestion/realtime và Sandbox payment HMAC-SHA512 với PAID/SOLD/points/outbox nguyên tử. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md).
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md).
 
 ## Requirements
 
-Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets độc lập; payment/SMTP secrets dành cho phase sau.
+Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập; SMTP dành cho Phase9.
 
 Nếu đã có PostgreSQL/Redis riêng, điền connection settings vào `.env` thay vì ghi đè cấu hình bằng các helper local.
 
@@ -20,6 +20,7 @@ npm ci
 npm run db:configure
 npm run infra:configure
 npm run auth:configure
+npm run payment:configure
 npm run infra:up:test
 npm run prisma:validate
 npm run prisma:generate
@@ -126,6 +127,7 @@ Khởi động tất cả service local và test:
 ```bash
 npm run infra:configure
 npm run auth:configure
+npm run payment:configure
 npm run infra:up:test
 npm run db:migrate:test
 npm run check
@@ -164,7 +166,7 @@ Logout revoke refresh token được gửi lên; access token đã phát hành v
 
 `JwtAuthGuard` và `RolesGuard` global: endpoint mặc định yêu cầu đăng nhập; chỉ endpoint có `@Public()` được bỏ qua. `@Roles(ADMIN, STAFF)` kiểm tra role hiện tại từ DB, không tin role claim trong JWT; `@CurrentUser()` cung cấp safe profile. GUEST không được phát token/đăng nhập. Không thêm endpoint ADMIN giả để demo RBAC; test harness riêng kiểm tra ma trận CUSTOMER/STAFF/ADMIN.
 
-C’MEMBER rates: SILVER 0.05, GOLD 0.07, DIAMOND 0.10, tập trung trong `DiscountService` export từ UsersModule. Endpoint chỉ đọc tier/points được quản lý server; cộng điểm/transaction payment thuộc Phase 8. Không tự đặt ngưỡng thăng hạng khi đặc tả chưa có.
+C’MEMBER rates: SILVER 0.05, GOLD 0.07, DIAMOND 0.10, tập trung trong `DiscountService` export từ UsersModule. Endpoint chỉ đọc tier/points được quản lý server; payment success cộng điểm một lần theo conversion trong phần Phase8 bên dưới. Không tự đặt ngưỡng thăng hạng khi đặc tả chưa có.
 
 Đăng nhập demo bằng `customer@nova.local`, `staff@nova.local`, `admin@nova.local` và password riêng `SEED_DEMO_PASSWORD` trong `.env`. Trong Swagger, copy `data.accessToken` từ login vào Authorize; refresh/logout nhận refresh token trong JSON body. Frontend Sandbox chưa được nối vào API này.
 
@@ -296,7 +298,7 @@ Trong Swagger đăng nhập, Authorize bằng access token, lấy IDs từ movie
 
 Header tùy chọn **Idempotency-Key: UUID** nên được giữ nguyên khi retry cùng một yêu cầu. Scope theo user; cùng normalized body (không phụ thuộc thứ tự ghế/combo hoặc UUID case) trả201 với **booking cũ và trạng thái hiện tại**, không tạo đơn/ghế mới và không gia hạn expiredAt. Body khác cùng key409 IDEMPOTENCY_CONFLICT. Đơn đã EXPIRED/CANCELLED được trả lại đúng trạng thái; muốn đặt lại dùng key mới. Khi không gửi key, giữ lại cùng ghế đang bận trả409.
 
-Giá vé = baseTicketPrice × STANDARD1.00/VIP1.20/SWEETBOX1.50; từng vé làm tròn2 số HALF_UP rồi cộng. Combo69K ×quantity, discount SILVER5%/GOLD7%/DIAMOND10% trên tổng vé+combo, discount làm tròn2 số một lần, final=subtotal-discount. Toàn bộ phép toán Decimal từ chuỗi, không dùng JS floating-point; mọi amount trả fixed2 string, discountRate fixed3. Snapshot base price/tier/rate, từng seat.price, combo.unitPrice và totals lưu cùng transaction. Tổng/đơn giá/subtotal vượt999999999999.99 trả400 BOOKING_AMOUNT_OUT_OF_RANGE; không ghi một phần. Ví dụ3 loại ghế với base90000 và2 combo69000: ticket333000, combo138000, Silver discount23550, final447450. Chưa cộng điểm hay tạo payment/ticket.
+Giá vé = baseTicketPrice × STANDARD1.00/VIP1.20/SWEETBOX1.50; từng vé làm tròn2 số HALF_UP rồi cộng. Combo69K ×quantity, discount SILVER5%/GOLD7%/DIAMOND10% trên tổng vé+combo, discount làm tròn2 số một lần, final=subtotal-discount. Toàn bộ phép toán Decimal từ chuỗi, không dùng JS floating-point; mọi amount trả fixed2 string, discountRate fixed3. Snapshot base price/tier/rate, từng seat.price, combo.unitPrice và totals lưu cùng transaction. Tổng/đơn giá/subtotal vượt999999999999.99 trả400 BOOKING_AMOUNT_OUT_OF_RANGE; không ghi một phần. Ví dụ3 loại ghế với base90000 và2 combo69000: ticket333000, combo138000, Silver discount23550, final447450. Phase6 chỉ snapshot giá; payment/points đã có ở Phase8, ticket ở Phase9.
 
 Hold có expiredAt **đúng createdAt+300000ms** từ PostgreSQL clock, không dùng Redis TTL để thay5 phút nghiệp vụ. Mutex Redis10 giây có owner token, acquire all-or-none bằng Lua, release compare-and-delete; transaction và partial unique active seat index là rào chắn cuối cùng. Cancel/expiry khóa booking FOR UPDATE, cập nhật booking + HOLDING→AVAILABLE + durable seat_released cùng transaction; giữ lịch sử rows. PAID hoặc SOLD luôn được bảo vệ. Suất có booking sẽ bị Phase5 chặn đổi lịch/giá.
 
@@ -304,7 +306,7 @@ Outbox relay poll1 giây, batch20, lease30 giây và SKIP LOCKED; chỉ xử lý
 
 Hold và GET detail xử lý lazy expiry; GET me và background sweep xử lý tối đa100 overdue bookings mỗi lượt, background mỗi5 giây và ngay startup. Vì vậy lỗi publish/Redis restart/lost delayed jobs không khiến ghế bị khóa vô hạn; backlog lớn được xử lý qua nhiều lượt. Job failures giữ tối đa7 ngày/10000 jobs; completed jobs tối đa1 ngày/10000. API process hiện chứa cả worker và recovery loop; tách deployment thuộc Phase12.
 
-`seat_locked`/`seat_released` được ghi vào outbox sau khi transaction thành công có thể quan sát, chưa đánh dấu delivered. **WebSocket, seat-map và gợi ý ghế nhóm thuộc Phase7**, không giả phát event hoặc trả availability. Payment failure/cancel webhook tiếp tục Phase8; hiện có owner cancellation và expiry, chưa tuyên bố TC-04 hoàn tất. UI frontend chưa được nối API.
+`seat_locked`/`seat_released` được ghi vào outbox sau khi transaction thành công có thể quan sát, chưa đánh dấu delivered. WebSocket, seat-map và gợi ý ghế nhóm đã có ở Phase7. Payment failure/cancel webhook Phase8 dùng cùng release transaction; TC-04 đã kiểm chứng. UI frontend chưa được nối API.
 
 ## Phase 7: Seat map, gợi ý nhóm và WebSocket
 
@@ -330,12 +332,12 @@ Socket.IO namespace **`/seats`**, Engine.IO path mặc định **`/socket.io`**,
 
 Room luôn `showtime:UUID` do server tạo. Join chỉ chấp nhận showtime tồn tại; unknown fields/room tùy ý bị từ chối. Một socket theo dõi tối đa1 showtime; join mới thành công sẽ leave room cũ. Các thao tác trên cùng socket được serialize. Ack lỗi có `{success:false,error,message}`, không echo dữ liệu riêng hoặc exception. Không có socket handler cho hold, payment hay ghi trạng thái ghế.
 
-| Server event      | Dữ liệu public ngoài `eventId`, `occurredAt`                              |
-| ----------------- | ------------------------------------------------------------------------- |
-| `seat_locked`     | `{showtimeId,bookingId,seatIds,expiresAt}`                                |
-| `seat_released`   | `{showtimeId,seatIds}`                                                    |
-| `seat_sold`       | `{showtimeId,seatIds}`; hợp đồng sẵn cho Phase8, chưa có payment producer |
-| `resync_required` | `{reason:"REDIS_UNAVAILABLE"}` hoặc `{reason:"REDIS_RECONNECTED"}`        |
+| Server event      | Dữ liệu public ngoài `eventId`, `occurredAt`                       |
+| ----------------- | ------------------------------------------------------------------ |
+| `seat_locked`     | `{showtimeId,bookingId,seatIds,expiresAt}`                         |
+| `seat_released`   | `{showtimeId,seatIds}`                                             |
+| `seat_sold`       | `{showtimeId,seatIds}`; phát sau payment SUCCESS commit ở Phase8   |
+| `resync_required` | `{reason:"REDIS_UNAVAILABLE"}` hoặc `{reason:"REDIS_RECONNECTED"}` |
 
 Relay chỉ đọc committed outbox rows, claim20/lease30s/SKIP LOCKED, publish qua Redis có acknowledgement rồi mới ack outbox. Mỗi instance có2 ioredis connections pub/sub và chỉ emit local namespace room của mình; không cần sticky sessions vì chỉ dùng websocket. Channel có BULLMQ_PREFIX và Redis DB (Redis Pub/Sub không tự chia theo DB). Payload được validate và dựng lại từ whitelist, không chuyển tiếp arbitrary JSON. Publish/ack failure có durable retry/backoff với eventId không đổi; stale lease được reclaim. Redis subscriber reconnect sẽ subscribe lại trước khi phát resync_required. Readiness có thêm `checks.realtime` (subscriber readiness + publisher PING).
 
@@ -395,7 +397,120 @@ socket.on("connect_error", (error) => console.error(error.message));
 socket.connect();
 ```
 
-Các API instances dùng chung database/outbox **phải dùng cùng Redis DB và BULLMQ_PREFIX**. Môi trường độc lập dùng database độc lập. Chạy các HTTP suites và production smoke **nối tiếp** nếu chúng dùng chung TEST_DATABASE_URL; namespace riêng không cô lập shared outbox. `npm run check && npm run test:db && node scripts/smoke-booking.cjs` là chuỗi đã kiểm chứng. Test suites dùng persistent HTTP servers với free ports, cleanup đúng owned fixtures/sockets/Redis keys. Frontend Next.js chưa nối API; Phase8 chưa bắt đầu.
+Các API instances dùng chung database/outbox **phải dùng cùng Redis DB và BULLMQ_PREFIX**. Môi trường độc lập dùng database độc lập. Chạy các HTTP suites và production smoke **nối tiếp** nếu chúng dùng chung TEST_DATABASE_URL; namespace riêng không cô lập shared outbox. `npm run check && npm run test:db && node scripts/smoke-booking.cjs` là chuỗi đã kiểm chứng. Test suites dùng persistent HTTP servers với free ports, cleanup đúng owned fixtures/sockets/Redis keys. Frontend Next.js chưa nối API; trang Sandbox backend Phase8 chạy độc lập.
+
+## Phase 8 — Sandbox payment
+
+**Đây là thanh toán mô phỏng, không thu tiền thật.** URL mở một trang Sandbox do chính backend phục vụ với ba nút SUCCESS/FAILED/CANCELLED. Không cần tài khoản MoMo/VNPay, không nhập thông tin ngân hàng. Frontend Next.js vẫn độc lập; payment status phải đọc từ backend, không tin query string trên trang return.
+
+Nếu nâng cấp từ Phase7:
+
+```bash
+cd backend
+npm ci
+npm run payment:configure
+npm run infra:up:test
+npm run check
+npm run test:db
+node scripts/smoke-booking.cjs
+npm run start:dev
+```
+
+Không có migration hoặc dependency mới. `payment:configure` tạo key local ngẫu nhiên vào ignored `.env` quyền0600, chạy lại giữ nguyên key; có injected key thì không copy vào file. Key phải ≥32 ký tự, khác cả hai JWT secrets. Không dùng key production cho Sandbox công khai. Các instances cùng DB/outbox phải dùng cùng key, Redis DB/BULLMQ_PREFIX và base URL của deployment.
+
+| Setting                    | Mặc định và ý nghĩa                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `PAYMENT_SANDBOX_SECRET`   | Bắt buộc; helper tạo private key local, không in giá trị                                                            |
+| `PAYMENT_SANDBOX_BASE_URL` | Origin backend, mặc định `http://localhost:PORT` (PORT4000); không có path/trailing slash; HTTPS ngoại trừ loopback |
+| `PAYMENT_RETURN_ORIGINS`   | Exact origins phân cách dấu phẩy; mặc định localhost:3000 và127.0.0.1:3000; HTTPS ngoại trừ loopback                |
+
+| Method/path dưới `/api/v1`          | Auth                    | Kết quả                                                                           |
+| ----------------------------------- | ----------------------- | --------------------------------------------------------------------------------- |
+| POST `/payments/create-sandbox-url` | JWT owner               | 201 signed URL cho một active hold; repeat cùng booking/return URL trả cùng URL   |
+| POST `/payments/webhook`            | HMAC-SHA512, không JWT  | 200 applied/duplicate; conflicting terminal outcome409                            |
+| GET `/payments/:bookingId/status`   | JWT owner               | booking/payment states, amount fixed2, expiredAt, canPay; nonowner kể cả ADMIN404 |
+| GET `/payments/sandbox`             | Signed query capability | HTML chọn kết quả mô phỏng; no-store/no-referrer                                  |
+| POST `/payments/sandbox/complete`   | Signed checkout +result | Form simulator; dùng cùng state machine, trả HTML kết quả                         |
+
+Thử bằng Swagger `/api/docs`: login, Authorize access token, POST bookings/hold để lấy bookingId. POST create-sandbox-url với JSON gồm `bookingId` đó và `returnUrl` là `http://localhost:3000/`. Mở `data.url` trong trình duyệt trước hạn5 phút; chọn kết quả, rồi GET payment status/booking/membership để kiểm tra. Trang kết quả có link quay lại return URL; ứng dụng phải gọi status API để xác nhận. URL là capability của Sandbox: người có link có thể mô phỏng kết quả, không chia sẻ/log query string. HMAC secret chỉ nằm phía server.
+
+Một Sandbox attempt cho một booking qua service; repeated create được serialize trên booking lock, không tạo transactionCode khác hoặc gia hạn expiredAt. Chọn return URL khác cho attempt đang tồn tại trả409PAYMENT_REQUEST_CONFLICT. Amount lấy Booking.finalAmount, không tính lại từ giá/tier hiện hành. Client không được gửi amount/status/userId/transactionCode khi create. `canPay` kiểm tra booking/seat/deadline/showtime và payment state; payment PENDING một mình không chứng minh hold còn hợp lệ.
+
+### Hợp đồng chữ ký
+
+Các field là string; UUID checkout lowercase, orderCode `NOVA-` +32 lowercase hex, transactionCode `NOVA-SB-` +UUID, amount fixed2 VND không có dấu phân cách (ví dụ `85500.00`), timestamp UTC chính xác milliseconds (`2026-10-15T10:00:00.000Z`). Callback status chỉ SUCCESS/FAILED/CANCELLED; FAIL/PENDING không hợp lệ. Signature128 lowercase hex. Cả query lẫn body đều từ chối field lạ; duplicate form/query values là arrays nên bị reject.
+
+HMAC-SHA512 input UTF8 gồm domain, dấu `:` và JSON string array theo đúng thứ tự. Không ký raw URL, không phụ thuộc thứ tự JSON object hoặc query params. Code Node.js đầy đủ cho phía mô phỏng trusted callback:
+
+```javascript
+const { createHmac } = require("node:crypto");
+function signCheckout(payload, secret) {
+  const fields = [
+    payload.bookingId,
+    payload.orderCode,
+    payload.transactionCode,
+    payload.amount,
+    payload.timestamp,
+    payload.returnUrl,
+  ];
+  return createHmac("sha512", secret)
+    .update(`checkout.v1:${JSON.stringify(fields)}`, "utf8")
+    .digest("hex");
+}
+function signWebhook(payload, secret) {
+  const fields = [
+    payload.bookingId,
+    payload.orderCode,
+    payload.transactionCode,
+    payload.amount,
+    payload.timestamp,
+    payload.status,
+  ];
+  return createHmac("sha512", secret)
+    .update(`webhook.v1:${JSON.stringify(fields)}`, "utf8")
+    .digest("hex");
+}
+module.exports = { signCheckout, signWebhook };
+```
+
+Webhook JSON chứa bookingId/orderCode/transactionCode/amount/timestamp/status/signature. Checkout URL chứa bookingId/orderCode/transactionCode/amount/timestamp/returnUrl/signature. **Checkout signature không dùng được cho webhook.** Form simulator gửi các checkout fields đã ký và `result` được holder chọn; server xác minh capability rồi chạy payment state machine. Không có secret hay webhook-signing endpoint dành cho browser.
+
+Verify timing-safe; verify binding booking/provider/order/transaction và amount bằng cả snapshot Payment/Booking. First callback timestamp không trước payment.createdAt−30s, không cũ hơn DB now−300s, không vượt now+30s. Giữ5 phút từ hold ban đầu và future showtime vẫn bắt buộc với SUCCESS; timestamp ký mới không gia hạn hold. Replay terminal outcome hợp lệ được ack dù đã quá freshness window, không thực hiện lại effects. Sai signature401, sai amount400, first timestamp sai400, khác terminal outcome409, booking/transaction không tồn tại404, hết hạn/đã hủy không payable409.
+
+### Trạng thái, điểm và sự kiện
+
+| Callback đầu tiên           | Booking/seat/payment trong cùng transaction                                               |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| SUCCESS hợp lệ              | PAID / SOLD / SUCCESS; cộng điểm và ghi3 outbox events                                    |
+| FAILED trước hạn            | CANCELLED / AVAILABLE / FAILED; release event +cancel-expiry request                      |
+| CANCELLED trước hạn         | CANCELLED / AVAILABLE / CANCELLED; release event +cancel-expiry request                   |
+| SUCCESS quá hạn/đã hủy      | Không bán ghế; commit expiry nếu cần, payment CANCELLED rồi409; không ảnh hưởng owner mới |
+| FAILED/CANCELLED sau expiry | Giữ booking EXPIRED; finalize payment theo callback, không release lại                    |
+| Same transaction/outcome    | 200 duplicate=true; không đổi amount/deadline/points/outbox                               |
+| Terminal outcome khác       | 409; PAID/SOLD không bị release                                                           |
+
+Points = **floor(finalAmount ×0.10 /1000)** bằng Decimal;1 điểm/10.000đ thanh toán. Ví dụ85500.00→8 điểm,319200.00→31 điểm. Hai constants `MEMBER_POINT_EARNING_RATE`/`MEMBER_POINT_REVENUE_UNIT` nằm tại member-points.ts. Increment được khóa theo user, kiểm tra overflow Int trước ghi; không tự đổi tier. Payment/points/seat/events lỗi thì rollback toàn bộ, retry callback cùng transactionCode an toàn.
+
+SUCCESS ghi `seat_sold`, `booking.ticket.requested` và `booking.expiration.cancel.requested` trong transaction; Phase7 relay chỉ broadcast sau commit. Expiry relay xóa delayed job sau commit với retry; job đang active hoặc schedule đến muộn vẫn harmless vì worker kiểm tra DB. Redis/queue lỗi không biến một payment đã commit thành thất bại. `booking.ticket.requested {bookingId}` giữ pending cho Phase9; hiện **chưa phát hành QR/email/check-in**, nên TC-03 còn bước ticket existence. TC-04 đã hoàn tất, TC-03 phần PAID/SOLD/points/idempotency/Socket.IO đã pass.
+
+Files mới trong Phase8:
+
+```text
+src/config/payment.config.ts
+src/modules/payments/
+  member-points.ts
+  payment.dto.ts
+  payment-signature.service.ts
+  payment-signature.spec.ts
+  payments.controller.ts
+  payments.module.ts
+  payments.repository.ts
+  payments.service.ts
+  sandbox-page.ts
+scripts/configure-payment.cjs
+test/payments.e2e-spec.ts
+docs/validation-phase-8.md
+```
 
 ## Tests và build
 
@@ -404,9 +519,9 @@ npm run check
 npm run test:db
 ```
 
-`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **44 unit tests**, **118 HTTP/Socket.IO e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng184 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency.
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **54 unit tests**, **146 HTTP/Socket.IO e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng222 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency.
 
-Các test DB chứng minh constraint/nền tảng, không thay TC01–TC05 qua API. **TC-01/TC-02 đã kiểm chứng qua HTTP**, Phase7 kiểm tra Socket.IO qua2 API instances +Redis Pub/Sub thật, delayed expiry qua worker BullMQ thật; TC-03/04/05 payment/ticket/check-in còn các phase sau. Test expiry dịch chuyển timestamps của fixture cùng nhau để đi qua deadline, không đợi5 phút hoặc rút ngắn TTL production.
+Các test DB chứng minh constraint/nền tảng, không thay TC01–TC05 qua API. **TC-01/TC-02 đã kiểm chứng qua HTTP**, Phase7 kiểm tra Socket.IO qua2 API instances +Redis Pub/Sub thật, delayed expiry qua worker BullMQ thật; TC-04 hoàn tất; TC-03 đã kiểm chứng PAID/SOLD/points/events và một durable ticket request, còn phát hành vé ở Phase9. TC-05/check-in chưa có. Test expiry dịch chuyển timestamps của fixture cùng nhau để đi qua deadline, không đợi5 phút hoặc rút ngắn TTL production.
 
 Smoke bản build với HTTP, automatic outbox relay và worker thật, tự cấp free port/ephemeral secrets/test fixtures rồi cleanup:
 
@@ -426,7 +541,7 @@ npm run start:prod
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-HTTP 200 trả `{success:true,data:{phase:7,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
+HTTP 200 trả `{success:true,data:{phase:8,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
 
 ## Docker database and Redis lifecycle
 
@@ -437,7 +552,7 @@ npm run infra:down
 
 `infra:down` dừng/xóa bốn container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. Compose hiện chạy PostgreSQL/Redis local; API Nest vẫn được chạy từ Node trên host. Docker hóa app/worker thuộc Phase 12.
 
-## Cây mã nguồn hiện tại đến Phase 7
+## Cây mã nguồn hiện tại đến Phase 8
 
 ```text
 backend/
@@ -456,6 +571,7 @@ backend/
     configure-database.cjs
     configure-infrastructure.cjs
     configure-auth.cjs
+    configure-payment.cjs
     test-database-target.cjs
     migrate-test-database.cjs
     smoke-booking.cjs
@@ -479,6 +595,7 @@ backend/
       combos/
       bookings/
       showtime-seats/
+      payments/
   test/
     app.e2e-spec.ts
     auth.e2e-spec.ts
@@ -486,6 +603,7 @@ backend/
     showtime-conflict.e2e-spec.ts
     booking-concurrency.e2e-spec.ts
     seats-realtime.e2e-spec.ts
+    payments.e2e-spec.ts
     jest-database.config.cjs
     schema.database-spec.ts
     setup-environment.cjs
@@ -497,6 +615,7 @@ backend/
     validation-phase-5.md
     validation-phase-6.md
     validation-phase-7.md
+    validation-phase-8.md
 ```
 
-Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 7 và chờ **“TIẾP TỤC PHASE 8”**.
+Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 8 và chờ **“TIẾP TỤC PHASE 9”**.

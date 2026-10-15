@@ -36,6 +36,7 @@
     "infra:up": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml up -d --wait",
     "infra:up:test": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml --profile test up -d --wait",
     "infra:down": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml --profile test down",
+    "payment:configure": "node scripts/configure-payment.cjs",
     "auth:configure": "node scripts/configure-auth.cjs"
   },
   "dependencies": {

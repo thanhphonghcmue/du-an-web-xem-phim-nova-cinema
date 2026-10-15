@@ -766,7 +766,7 @@ describe("Phase 7 seat snapshots, group suggestions and real Socket.IO/Redis del
     await request(server).get("/api/v1/health/live").expect(200);
   });
 
-  it("exposes seat-map/suggestion schemas with public reads and no payment routes", async () => {
+  it("exposes seat-map/suggestion schemas with public reads alongside payment routes", async () => {
     const response = await request(server).get("/api/docs-json").expect(200);
     const spec = JSON.parse(response.text) as {
       paths: Record<string, { get?: { security?: unknown } }>;
@@ -777,6 +777,6 @@ describe("Phase 7 seat snapshots, group suggestions and real Socket.IO/Redis del
     ).toBeUndefined();
     expect(spec.components.schemas).toHaveProperty("ShowtimeSeatMapDto");
     expect(spec.components.schemas).toHaveProperty("GroupSeatSuggestionDto");
-    expect(spec.paths).not.toHaveProperty("/api/v1/payments/webhook");
+    expect(spec.paths).toHaveProperty("/api/v1/payments/webhook");
   });
 });

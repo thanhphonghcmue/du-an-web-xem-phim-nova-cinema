@@ -100,7 +100,7 @@ export function configureApplication(app: INestApplication): void {
     .setTitle("NOVA Cinema API")
     .setVersion("v1")
     .setDescription(
-      "Phase 7: seat maps, contiguous group suggestions and public /seats Socket.IO subscriptions with committed outbox events over Redis Pub/Sub. Booking holds/expiry are available; payment/ticket APIs belong to later phases.",
+      "Phase 8: signed Sandbox checkout, idempotent HMAC-SHA512 webhooks and owner-only payment status; atomic PAID/SOLD/points/outbox transitions. Realtime seat maps and booking holds are available. Ticket issuance/email/check-in belong to Phase 9.",
     )
     .addBearerAuth()
     .build();

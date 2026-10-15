@@ -3,6 +3,7 @@ import { ConfigurationError, validateEnvironment } from "./environment";
 
 function validEnvironment(): NodeJS.ProcessEnv {
   return {
+    PAYMENT_SANDBOX_SECRET: randomBytes(48).toString("hex"),
     JWT_ACCESS_SECRET: randomBytes(48).toString("hex"),
     JWT_REFRESH_SECRET: randomBytes(48).toString("hex"),
     DATABASE_URL: "postgresql://nova:secret@127.0.0.1:55432/nova_development",
@@ -19,6 +20,35 @@ function validEnvironment(): NodeJS.ProcessEnv {
 }
 
 describe("Phase 3 environment validation", () => {
+  it("requires an independent payment key and validates public/return origins without leaking values", () => {
+    const missing = validEnvironment();
+    delete missing.PAYMENT_SANDBOX_SECRET;
+    expect(() => validateEnvironment(missing)).toThrow(
+      "PAYMENT_SANDBOX_SECRET must contain at least 32 characters.",
+    );
+    const shared = validEnvironment();
+    shared.PAYMENT_SANDBOX_SECRET = shared.JWT_ACCESS_SECRET;
+    expect(() => validateEnvironment(shared)).toThrow(
+      "Payment and JWT secrets must be different.",
+    );
+    for (const value of [
+      "https://user:password@example.test",
+      "http://example.test",
+      "https://example.test/path",
+      "https://example.test/",
+    ]) {
+      const environment = validEnvironment();
+      environment.PAYMENT_SANDBOX_BASE_URL = value;
+      expect(() => validateEnvironment(environment)).toThrow(
+        "PAYMENT_SANDBOX_BASE_URL must contain HTTPS origins or local HTTP origins without paths or credentials.",
+      );
+    }
+    const environment = validEnvironment();
+    environment.PAYMENT_SANDBOX_BASE_URL = "https://sandbox.example.test";
+    environment.PAYMENT_RETURN_ORIGINS =
+      "https://app.example.test,http://localhost:3000";
+    expect(validateEnvironment(environment)).toBe(environment);
+  });
   it("accepts the required infrastructure configuration with independent auth secrets", () => {
     const environment = validEnvironment();
     expect(validateEnvironment(environment)).toBe(environment);

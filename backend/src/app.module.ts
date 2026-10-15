@@ -8,6 +8,8 @@ import appConfig from "./config/app.config";
 import databaseConfig from "./config/database.config";
 import redisConfig from "./config/redis.config";
 import jwtConfig from "./config/jwt.config";
+import paymentConfig from "./config/payment.config";
+import { PaymentsModule } from "./modules/payments/payments.module";
 import { validateEnvironment } from "./config/environment";
 import { PrismaModule } from "./database/prisma.module";
 import { RedisModule } from "./redis/redis.module";
@@ -30,7 +32,7 @@ import { RealtimeModule } from "./realtime/realtime.module";
       isGlobal: true,
       envFilePath: ".env",
       cache: true,
-      load: [appConfig, databaseConfig, redisConfig, jwtConfig],
+      load: [appConfig, databaseConfig, redisConfig, jwtConfig, paymentConfig],
       validate: validateEnvironment,
     }),
     PrismaModule,
@@ -45,6 +47,7 @@ import { RealtimeModule } from "./realtime/realtime.module";
     ShowtimesModule,
     BookingsModule,
     RealtimeModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

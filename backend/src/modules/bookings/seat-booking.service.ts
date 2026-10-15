@@ -55,7 +55,7 @@ export class SeatBookingService {
                   "Idempotency-Key was already used with a different request.",
                 );
               await this.bookings.lockBooking(replay.id, tx);
-              await this.expireWithin(replay.id, tx);
+              await this.expireLocked(replay.id, tx);
               return this.requireRecord(replay.id, tx);
             }
           }
@@ -83,7 +83,7 @@ export class SeatBookingService {
           );
           for (const row of expired) {
             await this.bookings.lockBooking(row.id, tx);
-            await this.expireWithin(row.id, tx);
+            await this.expireLocked(row.id, tx);
           }
           if (await this.bookings.activeSeat(showtime.id, seatIds, tx))
             throw unavailable();
@@ -233,7 +233,7 @@ export class SeatBookingService {
   }
 
   // Caller owns booking FOR UPDATE. Never convert SOLD rows back to AVAILABLE.
-  private async expireWithin(
+  async expireLocked(
     id: string,
     tx: Prisma.TransactionClient,
   ): Promise<Date | null> {
@@ -246,10 +246,10 @@ export class SeatBookingService {
       return null;
     const now = await this.bookings.now(tx);
     if (booking.expiredAt.getTime() > now.getTime()) return booking.expiredAt;
-    await this.releaseWithin(booking, "EXPIRED", tx);
+    await this.releaseLocked(booking, "EXPIRED", tx);
     return null;
   }
-  private async releaseWithin(
+  async releaseLocked(
     booking: BookingRecord,
     status: "CANCELLED" | "EXPIRED",
     tx: Prisma.TransactionClient,
@@ -270,7 +270,7 @@ export class SeatBookingService {
   autoReleaseExpiredHold(id: string): Promise<Date | null> {
     return this.database.transaction(async (tx) => {
       await this.bookings.lockBooking(id, tx);
-      return this.expireWithin(id, tx);
+      return this.expireLocked(id, tx);
     });
   }
   releaseSeats(id: string, userId: string): Promise<BookingRecord> {
@@ -294,7 +294,7 @@ export class SeatBookingService {
           "Paid or sold bookings cannot be cancelled.",
         );
       const now = await this.bookings.now(tx);
-      return this.releaseWithin(
+      return this.releaseLocked(
         booking,
         booking.expiredAt.getTime() <= now.getTime() ? "EXPIRED" : "CANCELLED",
         tx,
@@ -311,7 +311,7 @@ export class SeatBookingService {
           "BOOKING_NOT_FOUND",
           "Booking was not found.",
         );
-      await this.expireWithin(id, tx);
+      await this.expireLocked(id, tx);
       return this.requireRecord(id, tx);
     });
   }

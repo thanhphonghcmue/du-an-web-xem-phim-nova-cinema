@@ -227,10 +227,10 @@ export default function AuthForm({ onSuccess }) {
               <button
                 type="button"
                 className="auth-quick-pill customer"
-                onClick={() => handleQuickFill("customer@nova.local", "Thành viên rạp")}
+                onClick={() => handleQuickFill("customer@nova.local", "Người dùng")}
                 title="customer@nova.local"
               >
-                👤 Thành viên rạp
+                👤 Người dùng
               </button>
             </div>
           </div>

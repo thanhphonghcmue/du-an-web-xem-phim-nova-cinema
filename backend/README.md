@@ -1,8 +1,8 @@
-# NOVA Cinema Backend — Phase 5
+# NOVA Cinema Backend — Phase 6
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–5 hoàn tất**: PostgreSQL/Prisma, Redis/BullMQ, validation, Swagger, health, auth/users/RBAC/C’MEMBER, CRUD phim/rạp/phòng/ghế và suất chiếu chống trùng lịch BR03. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–6 hoàn tất**: nền tảng/auth/catalog/showtimes, combo, booking hold/cancel, giá snapshot Decimal, Redis mutex, PostgreSQL unique seat ownership, transactional outbox và BullMQ expiry 5 phút. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md).
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md).
 
 ## Requirements
 
@@ -113,7 +113,7 @@ TLS tuân theo cấu hình của dịch vụ PostgreSQL. Không tắt certificat
 
 ## Phase 2: Prisma, Redis/BullMQ, API nền tảng
 
-`PrismaModule` là module global, quản lý một PrismaClient dùng chung và đóng kết nối khi shutdown. `DatabaseRepository` cung cấp probe SQL `SELECT 1`; controller không truy cập Prisma. Redis client riêng dùng cho probes và limiter. BullMQ worker `infrastructure` được health probe kiểm tra bằng cách enqueue, xử lý và xác nhận job thật; queue `seat-expiration` chỉ được đăng ký cho phase nghiệp vụ sau, chưa có expiry behavior.
+`PrismaModule` là module global, quản lý một PrismaClient dùng chung và đóng kết nối khi shutdown. `DatabaseRepository` cung cấp probe SQL `SELECT 1`; controller không truy cập Prisma. Redis client riêng dùng cho probes và limiter. BullMQ worker `infrastructure` được health probe kiểm tra bằng cách enqueue, xử lý và xác nhận job thật; queue `seat-expiration` được đăng ký từ Phase2 và có worker nghiệp vụ từ Phase6.
 
 Global `ValidationPipe` bật transform, whitelist và từ chối trường thừa; nested DTO được validate. Body JSON lỗi/quá lớn trả lỗi chuẩn mà không lộ body. Thành công dùng `{success:true,data,message}`; lỗi dùng status, error code ổn định, timestamp, path và request ID. 500 luôn che thông báo nội bộ. `helmet`, CORS allowlist, request-ID và log status/duration được cấu hình khi khởi động.
 
@@ -252,6 +252,60 @@ Mọi sửa đổi thực tế về movie/room/thời gian/giá hoặc DELETE kh
 
 Phase5 dùng lại schema/migration/dependencies/env hiện có. TC-02 đã qua HTTP API với PostgreSQL/Redis thật; chưa triển khai seat map theo suất, giữ ghế hay booking APIs.
 
+## Phase 6: Booking, Pricing, Seat Lock và Auto Release
+
+Nâng cấp từ Phase5 trong môi trường đã cài dependencies:
+
+```bash
+cd backend
+npm run infra:up:test
+npm run prisma:generate
+npm run db:migrate
+npm run db:migrate:test
+npm run check
+npm run test:db
+node scripts/smoke-booking.cjs
+npm run start:dev
+```
+
+Migration mới `20261015000100_booking_snapshots_idempotency` bổ sung5 cột nullable của Booking: baseTicketPrice, membershipTier, discountRate, idempotencyKey và requestHash; unique(userId,idempotencyKey) và CHECK cho snapshot/hash. Legacy bookings giữ NULL, không tự bịa giá/hạng cũ. Giữ nguyên14 models và tất cả constraints/migration Phase1. Không thêm dependency, secret hay env requirement. **Cần generate client và migrate trước khi chạy code mới**; không dùng db push/reset.
+
+| Method | Endpoint                      | Quyền/kết quả                                        |
+| ------ | ----------------------------- | ---------------------------------------------------- |
+| POST   | `/api/v1/bookings/hold`       | Đăng nhập; giữ1–20 ghế, trả201                       |
+| GET    | `/api/v1/bookings/me`         | Chỉ đơn của mình; status/page/limit                  |
+| GET    | `/api/v1/bookings/:id`        | Chỉ đơn của mình; tự xử lý overdue hold              |
+| POST   | `/api/v1/bookings/:id/cancel` | Chỉ đơn của mình; không cần body; trả200, idempotent |
+| GET    | `/api/v1/combos`              | Public; active combos, pagination                    |
+| POST   | `/api/v1/combos`              | ADMIN; name/description/price/imageUrl?/isActive?    |
+| PATCH  | `/api/v1/combos/:id`          | ADMIN; sửa giá/metadata, bật/tắt active              |
+
+Tất cả CUSTOMER/STAFF/ADMIN đã đăng nhập có thể đặt vé của mình; không role nào được đọc/hủy đơn người khác qua endpoints này (404). Không trả user email, token, requestHash hoặc idempotencyKey trong booking response. Combo price là chuỗi Decimal không âm, cùng giới hạn12 số nguyên/2 thập phân; null chỉ được dùng để xóa imageUrl. Combo thiếu/inactive không được đặt. Tắt combo không làm đổi BookingCombo.unitPrice đã snapshot.
+
+Trong Swagger đăng nhập, Authorize bằng access token, lấy IDs từ movies/showtimes/physical seats/combos. POST hold chỉ gửi IDs và quantity:
+
+```json
+{
+  "showtimeId": "UUID_SUAT_CHIEU_THAT",
+  "seatIds": ["UUID_GHE_THAT_1", "UUID_GHE_THAT_2"],
+  "comboItems": [{ "comboId": "UUID_COMBO_THAT", "quantity": 2 }]
+}
+```
+
+`comboItems` tùy chọn; tối đa20 combo IDs unique, quantity integer1–20 mỗi loại. Seat IDs unique sau normalize chữ hoa/thường, phải nằm trong room của showtime, tối đa20; suất chưa bắt đầu tại DB clock. Client không được gửi giá, userId, status, tier hoặc expiredAt. Sai DTO400, ghế không thuộc phòng400 SEATS_NOT_IN_ROOM, combo không khả dụng400 COMBO_UNAVAILABLE, showtime thiếu404, suất đã bắt đầu409 SHOWTIME_STARTED, ghế đang HOLDING/SOLD hoặc mutex đang bận409 SEAT_UNAVAILABLE. Redis lock lỗi503 và không tạo booking.
+
+Header tùy chọn **Idempotency-Key: UUID** nên được giữ nguyên khi retry cùng một yêu cầu. Scope theo user; cùng normalized body (không phụ thuộc thứ tự ghế/combo hoặc UUID case) trả201 với **booking cũ và trạng thái hiện tại**, không tạo đơn/ghế mới và không gia hạn expiredAt. Body khác cùng key409 IDEMPOTENCY_CONFLICT. Đơn đã EXPIRED/CANCELLED được trả lại đúng trạng thái; muốn đặt lại dùng key mới. Khi không gửi key, giữ lại cùng ghế đang bận trả409.
+
+Giá vé = baseTicketPrice × STANDARD1.00/VIP1.20/SWEETBOX1.50; từng vé làm tròn2 số HALF_UP rồi cộng. Combo69K ×quantity, discount SILVER5%/GOLD7%/DIAMOND10% trên tổng vé+combo, discount làm tròn2 số một lần, final=subtotal-discount. Toàn bộ phép toán Decimal từ chuỗi, không dùng JS floating-point; mọi amount trả fixed2 string, discountRate fixed3. Snapshot base price/tier/rate, từng seat.price, combo.unitPrice và totals lưu cùng transaction. Tổng/đơn giá/subtotal vượt999999999999.99 trả400 BOOKING_AMOUNT_OUT_OF_RANGE; không ghi một phần. Ví dụ3 loại ghế với base90000 và2 combo69000: ticket333000, combo138000, Silver discount23550, final447450. Chưa cộng điểm hay tạo payment/ticket.
+
+Hold có expiredAt **đúng createdAt+300000ms** từ PostgreSQL clock, không dùng Redis TTL để thay5 phút nghiệp vụ. Mutex Redis10 giây có owner token, acquire all-or-none bằng Lua, release compare-and-delete; transaction và partial unique active seat index là rào chắn cuối cùng. Cancel/expiry khóa booking FOR UPDATE, cập nhật booking + HOLDING→AVAILABLE + durable seat_released cùng transaction; giữ lịch sử rows. PAID hoặc SOLD luôn được bảo vệ. Suất có booking sẽ bị Phase5 chặn đổi lịch/giá.
+
+Outbox relay poll1 giây, batch20, lease30 giây và SKIP LOCKED; chỉ xử lý booking.expiration.requested. Enqueue **sau commit**, queue seat-expiration/job expire-booking-hold, ID booking-expire-UUID (BullMQ không cho dấu `:` trong custom ID), delay là thời gian còn lại đến deadline gốc. Retry exponential và stable job ID bảo vệ duplicate delivery. Worker concurrency5, kiểm tra DB dưới row lock; chạy sớm moveToDelayed theo deadline cũ, chạy lặp/no-longer-HOLDING là no-op. Cancel giữ delayed job cũ; job đó về sau không giải phóng ghế của đơn mới.
+
+Hold và GET detail xử lý lazy expiry; GET me và background sweep xử lý tối đa100 overdue bookings mỗi lượt, background mỗi5 giây và ngay startup. Vì vậy lỗi publish/Redis restart/lost delayed jobs không khiến ghế bị khóa vô hạn; backlog lớn được xử lý qua nhiều lượt. Job failures giữ tối đa7 ngày/10000 jobs; completed jobs tối đa1 ngày/10000. API process hiện chứa cả worker và recovery loop; tách deployment thuộc Phase12.
+
+`seat_locked`/`seat_released` được ghi vào outbox sau khi transaction thành công có thể quan sát, chưa đánh dấu delivered. **WebSocket, seat-map và gợi ý ghế nhóm thuộc Phase7**, không giả phát event hoặc trả availability. Payment failure/cancel webhook tiếp tục Phase8; hiện có owner cancellation và expiry, chưa tuyên bố TC-04 hoàn tất. UI frontend chưa được nối API.
+
 ## Tests và build
 
 ```bash
@@ -259,9 +313,16 @@ npm run check
 npm run test:db
 ```
 
-`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **27 unit tests**, **73 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule.
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **33 unit tests**, **102 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng157 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency.
 
-Các test DB này chứng minh constraint/nền tảng, **không thay TC01–TC05 qua API** và không chứng minh payment/signature/seat timer/role/check-in window đã chạy. TC-02 đã được kiểm chứng riêng qua showtime HTTP suite Phase5; các acceptance nghiệp vụ còn lại sẽ được làm ở phase tương ứng.
+Các test DB chứng minh constraint/nền tảng, không thay TC01–TC05 qua API. **TC-01/TC-02 đã kiểm chứng qua HTTP**, delayed expiry qua worker BullMQ thật; TC-03/04/05 payment/ticket/check-in còn các phase sau. Test expiry dịch chuyển timestamps của fixture cùng nhau để đi qua deadline, không đợi5 phút hoặc rút ngắn TTL production.
+
+Smoke bản build với HTTP, automatic outbox relay và worker thật, tự cấp free port/ephemeral secrets/test fixtures rồi cleanup:
+
+```bash
+npm run build
+node scripts/smoke-booking.cjs
+```
 
 ## HTTP bootstrap
 
@@ -274,7 +335,7 @@ npm run start:prod
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-HTTP 200 trả `{success:true,data:{phase:5,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
+HTTP 200 trả `{success:true,data:{phase:6,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
 
 ## Docker database and Redis lifecycle
 
@@ -285,7 +346,7 @@ npm run infra:down
 
 `infra:down` dừng/xóa bốn container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. Compose hiện chạy PostgreSQL/Redis local; API Nest vẫn được chạy từ Node trên host. Docker hóa app/worker thuộc Phase 12.
 
-## Cây mã nguồn hiện tại đến Phase 5
+## Cây mã nguồn hiện tại đến Phase 6
 
 ```text
 backend/
@@ -298,18 +359,23 @@ backend/
       migration_lock.toml
       20261014000100_initial/
         migration.sql
+      20261015000100_booking_snapshots_idempotency/
+        migration.sql
   scripts/
     configure-database.cjs
     configure-infrastructure.cjs
     configure-auth.cjs
     test-database-target.cjs
     migrate-test-database.cjs
+    smoke-booking.cjs
   src/
     common/
     config/
     database/
     health/
     queues/
+      outbox/
+      seat-expiration/
     redis/
     modules/
       auth/
@@ -319,11 +385,14 @@ backend/
       rooms/
       seats/
       showtimes/
+      combos/
+      bookings/
   test/
     app.e2e-spec.ts
     auth.e2e-spec.ts
     catalog.e2e-spec.ts
     showtime-conflict.e2e-spec.ts
+    booking-concurrency.e2e-spec.ts
     jest-database.config.cjs
     schema.database-spec.ts
     setup-environment.cjs
@@ -333,6 +402,7 @@ backend/
     validation-phase-3.md
     validation-phase-4.md
     validation-phase-5.md
+    validation-phase-6.md
 ```
 
-Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 5 và chờ **“TIẾP TỤC PHASE 6”**.
+Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 6 và chờ **“TIẾP TỤC PHASE 7”**.

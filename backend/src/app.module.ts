@@ -22,6 +22,7 @@ import { CinemasModule } from "./modules/cinemas/cinemas.module";
 import { RoomsModule } from "./modules/rooms/rooms.module";
 import { SeatsModule } from "./modules/seats/seats.module";
 import { ShowtimesModule } from "./modules/showtimes/showtimes.module";
+import { BookingsModule } from "./modules/bookings/bookings.module";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -41,6 +42,7 @@ import { ShowtimesModule } from "./modules/showtimes/showtimes.module";
     RoomsModule,
     SeatsModule,
     ShowtimesModule,
+    BookingsModule,
   ],
   controllers: [AppController],
   providers: [

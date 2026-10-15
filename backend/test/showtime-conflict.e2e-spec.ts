@@ -799,7 +799,7 @@ describe("Phase 5 BR03 / TC-02 with real PostgreSQL and Redis", () => {
     expect(spec.components.schemas.ShowtimeDto?.properties).toHaveProperty(
       "endTime",
     );
-    expect(spec.paths).not.toHaveProperty("/api/v1/bookings");
+    expect(spec.paths).not.toHaveProperty("/api/v1/payments/webhook");
     expect(spec.paths).not.toHaveProperty("/api/v1/showtimes/{id}/seats");
   });
 });

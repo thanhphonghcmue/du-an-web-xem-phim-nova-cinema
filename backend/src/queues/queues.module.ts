@@ -5,6 +5,7 @@ import { RedisSettings } from "../config/redis.config";
 import { redisConnection } from "../redis/redis.service";
 import { InfrastructureProcessor } from "./infrastructure/infrastructure.processor";
 import { InfrastructureQueueService } from "./infrastructure/infrastructure-queue.service";
+import { SeatExpirationQueueService } from "./seat-expiration/seat-expiration-queue.service";
 @Module({
   imports: [
     BullModule.forRootAsync({
@@ -25,7 +26,11 @@ import { InfrastructureQueueService } from "./infrastructure/infrastructure-queu
       { name: "seat-expiration" },
     ),
   ],
-  providers: [InfrastructureProcessor, InfrastructureQueueService],
-  exports: [BullModule, InfrastructureQueueService],
+  providers: [
+    InfrastructureProcessor,
+    InfrastructureQueueService,
+    SeatExpirationQueueService,
+  ],
+  exports: [BullModule, InfrastructureQueueService, SeatExpirationQueueService],
 })
 export class QueuesModule {}

@@ -20,7 +20,7 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase0–5 đã triển khai và kiểm chứng. Phase5 thêm5 showtime operations, BR03 duration+15min, chống overlap, lọc ngày và bảo vệ booking history. `npm run check`: 27 unit, 73 HTTP e2e (21 showtime +22 catalog +19 auth +11 infrastructure), typecheck/lint/build pass; `test:db`: 22 PostgreSQL tests pass. Tổng122 tests và compiled production HTTP smoke pass. Evidence ở `validation-phase-1.md` đến `validation-phase-5.md`. **TC-02 business API hoàn tất**; Phase6–12 và TC-01/03/04/05 business APIs chưa hoàn tất.
+Phase0–6 đã triển khai và kiểm chứng. Phase6 thêm Booking/Pricing/Combos, Redis seat mutex, snapshot/idempotency migration, expiry outbox/BullMQ worker và recovery. `npm run check`: 33 unit, 102 HTTP e2e (29 booking +21 showtime +22 catalog +19 auth +11 infrastructure), typecheck/lint/build pass; `test:db`: 22 PostgreSQL tests pass. Tổng157 tests, compiled production HTTP/outbox/worker smoke pass; schema drift không khác biệt. Evidence ở `validation-phase-1.md` đến `validation-phase-6.md`. **TC-01/TC-02 hoàn tất**; Phase7–12 và TC-03/04/05 chưa hoàn tất.
 
 ## Phase 2 đã triển khai
 
@@ -39,3 +39,9 @@ Movies/Cinemas/Rooms/Seats có CRUD/pagination/filter và OpenAPI. GET public, m
 Showtime CRUD public reads/ADMIN writes. EndTime tính server từ locked movie duration+15 phút; service overlap check exclude self và GiST exclusion `[)` cùng bảo vệ schedule. Khóa movie IDs sorted → room IDs sorted → showtime, reload/retry snapshot đổi parents và bounded transaction conflicts. Price fixed2 Decimal strings, validation timezone/millisecond precision, filters movie/cinema/room/Vietnam day, stable pagination. Có booking bất kỳ trạng thái nào thì chặn sửa/xóa; no-op PATCH được giữ nguyên.
 
 TC-02 qua API: 10:00–12:15 chặn12:00, cho phép12:15. Năm concurrent creates một201/bốn409; concurrent updates một200/một409, independent patches không mất dữ liệu, concurrent room moves retry đúng. Movie-duration và in-flight booking FK locks được kiểm tra qua actual PostgreSQL lock waits. Không cần migration/schema/dependency/env mới. Dừng và chờ `TIẾP TỤC PHASE 6`.
+
+## Phase 6 đã triển khai
+
+POST hold, GET own detail/list, POST owner cancel và3 combo catalog operations. Decimal BR05 snapshot, fixed DB-clock hold300000ms, 1–20 room-bound seats, optional per-user Idempotency-Key với hash body canonical. Redis owner-token10s mutex/all-or-none Lua; DB transaction + partial unique bảo vệ ngay khi bypass Redis. Cancel/expiry nguyên tử, giữ AVAILABLE history, PAID/SOLD không bị release. Outbox poll1s/lease30s, stable delayed job ID, real worker early-job reschedule/idempotent; lazy expiry và batch100 sweep mỗi5s/startup phục hồi lost jobs. Domain events durable chờ Phase7, chưa broadcast.
+
+Migration thêm nullable snapshot/idempotency columns/CHECK/unique, giữ14 models và SQL constraints cũ. Không đổi dependencies/secrets/env. TC-01 gồm2 instances cùng giữ1 ghế, đúng1 success/1 conflict và1 active ownership; additional DB-bypass race, overlapping sets, repeated hold/cancel/expiry, queue failure/stale lease/lost job, SQL lock waits và rollback đều pass. Chưa làm payment/webhook/ticket/group/seat-map. Dừng và chờ `TIẾP TỤC PHASE 7`.

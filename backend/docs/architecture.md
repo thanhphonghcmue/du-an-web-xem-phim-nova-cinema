@@ -1,6 +1,6 @@
 # Phase 0 — Architecture Decision Record
 
-Ngày: 14/10/2026, cập nhật Phase5 ngày15/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. Phase0–5 đã triển khai nền tảng, schema/migration/seed, infrastructure, auth/users/RBAC/C’MEMBER, catalog/physical seats và BR03 showtime CRUD. Các phần booking/payment/ticket/report bên dưới vẫn là hợp đồng thiết kế cho phase tiếp theo.
+Ngày: 14/10/2026, cập nhật Phase6 ngày15/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. Phase0–6 đã triển khai nền tảng, auth/catalog/showtimes, booking hold/cancel/pricing, Redis mutex, outbox/BullMQ expiry. Các phần gateway/group/payment/ticket/report bên dưới vẫn là hợp đồng cho các phase tiếp theo.
 
 ## Quyết định nền tảng
 
@@ -31,7 +31,7 @@ Kiến trúc: Controller → Service → Repository → Prisma. Controller nhậ
 | queues        | expiry worker, outbox relay, email retry                   | services nghiệp vụ                                       |
 | health        | kiểm tra DB/Redis/queue, không giả báo khỏe                | infrastructure                                           |
 
-PricingService và DiscountService thuộc bookings, tách khỏi SeatBookingService. Payments không tự viết lại thuật toán giá hoặc hold. Queue processor chỉ gọi service nghiệp vụ; gateway không cập nhật DB. Shared infrastructure gồm config, Prisma, Redis, guards/decorators, error filter, response interceptor và validation.
+PricingService thuộc bookings; shared DiscountService export từ UsersModule, tách khỏi SeatBookingService. Payments không tự viết lại thuật toán giá hoặc hold. Queue processor chỉ gọi service nghiệp vụ; gateway không cập nhật DB. Shared infrastructure gồm config, Prisma, Redis, guards/decorators, error filter, response interceptor và validation.
 
 ## Ranh giới transaction
 
@@ -75,7 +75,7 @@ Giá STANDARD ×1.0, VIP ×1.2, SWEETBOX ×1.5. Party Combo 69K mỗi đơn vị
 
 ## Cây thư mục đích theo phase
 
-Đây là kế hoạch đầy đủ; chỉ các module Phase0–5 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
+Đây là kế hoạch đầy đủ; chỉ các module Phase0–6 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
 
 ```text
 backend/
@@ -226,3 +226,17 @@ Overlap dùng strict `<`/`>` và exclude ID trên update. GiST exclusion từ Ph
 List/count chung REPEATABLE READ snapshot, sort startTime/UUID; filters movieId/cinemaId/roomId/date và pagination. Không date chỉ upcoming starts; có date là trọn ngày Việt Nam UTC+07:00 và có thể đọc history. Detail trả lịch sử không nhạy cảm. ADMIN được quản lý lịch quá khứ chưa tham chiếu; quyền hold/đặt vé tương lai vẫn phải được Phase6 kiểm tra, không suy ra từ việc GET detail thành công. Booking writers Phase6 phải khóa/read showtime trước lấy giá và snapshot, cùng một transaction, để không dùng giá/lịch cũ khi có concurrent schedule mutation.
 
 TC-02 API đã kiểm chứng, gồm exact boundary và concurrent create/update trên PostgreSQL/Redis thật; fault injection chỉ bỏ advisory overlap precheck để xác nhận GiST rejection được map đúng. Chưa có holds/seat availability/payment/tickets. Evidence: validation-phase-5.md.
+
+## Booking/Pricing/Expiry Phase 6 đã triển khai
+
+BookingsController → BookingsService/SeatBookingService → BookingsRepository; PricingService dùng shared Decimal DiscountService. CombosModule cung cấp active list và ADMIN create/PATCH với server-loaded price. BookingsService serialize explicit safe fields; chỉ owner được GET/cancel kể cả caller ADMIN. Snapshot base price/membership tier/discount rate nullable để bảo toàn legacy history, line prices/totals bất biến sau hold. Migration mới thêm5 cột/CHECK và unique(userId,idempotencyKey), không backfill giả và không thay14 models/SQL constraints Phase1.
+
+Optional Idempotency-Key UUID được serialize bằng PostgreSQL transaction advisory lock theo user/key, trước mutex ghế. Query advisory dùng executeRaw vì PostgreSQL void không deserialize qua Prisma queryRaw. Hash body canonical (lowercase UUIDs, sort IDs, chỉ comboId/quantity) đảm bảo reorder/case không đổi request. Same key/body trả original booking với current status và deadline cũ; mismatch409. DB compound unique là final protection; không dùng Redis cache làm authority cho idempotency.
+
+Fresh hold lấy all-or-none Redis mutex10s/owner token, cùng hash slot theo showtime, IDs sorted, release Lua compare-and-delete sau transaction. Showtime FOR SHARE trước đọc giá/room để không chạy đua với Phase5 FOR UPDATE; các showtime mutation không cần đợi movie/room lock từ hold nên không tạo chu trình ngược. Layout đã frozen từ Phase4 khi có showtime. Tiếp theo khóa expired booking IDs sorted để lazy release, đọc active ownership; khóa/read membership FOR SHARE rồi combos FOR SHARE sorted. Pricing dùng Decimal string multipliers, round per-seat2 HALF_UP, discount subtotal2 HALF_UP, final difference; kiểm tra Numeric(14,2) capacity trước ghi. Clock_timestamp sau checks quyết định future showtime, createdAt và expiredAt=+300000ms. Insert Booking/BookingSeats/BookingCombos +expiry request/seat_locked outbox cùng READ COMMITTED transaction. Partial unique conflict tại seat INSERT map409 SEAT_UNAVAILABLE, rollback toàn bộ. Bounded retry3 cho DB serialization/deadlock; không retry business rejection.
+
+Cancel/autoRelease/get-overdue khóa booking FOR UPDATE và đọc lại trạng thái/deadline theo DB clock. PENDING/HOLDING đến hạn →EXPIRED; owner cancel trước hạn →CANCELLED. Chỉ HOLDING seats →AVAILABLE; PAID/SOLD luôn no-release. Update booking/seats và seat_released outbox cùng transaction, failure rollback. Cancel/duplicate jobs trên terminal states no-op. GET own detail lazy-expires; GET me xử lý100 overdue rows/user trước snapshot pagination; sweep100 rows/startup/mỗi5s. Holds lazy-clean bookings liên quan requested seats nên không bị kẹt khi queue gián đoạn. Không mutate/delete lịch sử hoặc gia hạn khi retry. Payment Phase8 phải tuân lock order showtime→booking→user và commit state/seat/payment/outbox chung transaction.
+
+Expiry relay chỉ claim booking.expiration.requested qua SKIP LOCKED, batch20, lease30s/fenced owner mới mỗi batch. Queue publish sau DB commit, deterministic job ID và backoff; ack/retry chỉ khi still owns lease. Worker concurrency5 load DB dưới lock; job đến sớm moveToDelayed và DelayedError theo deadline cũ, duplicate/no-longer-HOLDING no-op. Stable job retention1 ngày/10000 completed,7 ngày/10000 failed; background sweep bù mất job sau Redis restart. API process đăng ký worker+maintenance hiện tại; không giả tách worker deployment trước Phase12.
+
+seat_locked/seat_released outbox giữ pending để Phase7 phát WebSocket sau commit, không ack giả. Payment/QR/points chưa được làm. TC-01 dùng2 app instances/real DB+Redis và real BullMQ worker; các fault injection có nhãn chỉ dùng để thử rollback/lỗi infra/precheck interleaving. Evidence: validation-phase-6.md. Không dependencies/env/secrets mới.

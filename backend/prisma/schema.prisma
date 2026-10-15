@@ -209,6 +209,11 @@ model Booking {
   discountAmount    Decimal        @default(0) @map("discount_amount") @db.Decimal(14, 2)
   finalAmount       Decimal        @default(0) @map("final_amount") @db.Decimal(14, 2)
   status            BookingStatus  @default(PENDING)
+  baseTicketPrice   Decimal?       @map("base_ticket_price") @db.Decimal(14, 2)
+  membershipTier    CMemberTier?   @map("membership_tier")
+  discountRate      Decimal?       @map("discount_rate") @db.Decimal(4, 3)
+  idempotencyKey    String?        @map("idempotency_key") @db.Uuid
+  requestHash       String?        @map("request_hash") @db.VarChar(64)
   createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
   expiredAt         DateTime       @map("expired_at") @db.Timestamptz(3)
@@ -220,6 +225,7 @@ model Booking {
   ticket            ETicket?
 
   @@unique([id, showtimeId])
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
   @@index([showtimeId])
   @@index([status, expiredAt])

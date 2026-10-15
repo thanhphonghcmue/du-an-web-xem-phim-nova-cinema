@@ -3,6 +3,8 @@ import { CMemberTier, Prisma, SeatType } from "@prisma/client";
 import { ApiException } from "../../common/exceptions/api.exception";
 import { DiscountService } from "../users/discount.service";
 
+import { calculateCouponDiscount } from "./coupons";
+
 export const SEAT_MULTIPLIERS: Record<SeatType, string> = {
   STANDARD: "1.00",
   VIP: "1.20",
@@ -14,6 +16,7 @@ export interface PriceInput {
   seats: Array<{ id: string; seatType: SeatType }>;
   combos: Array<{ id: string; price: Prisma.Decimal; quantity: number }>;
   tier: CMemberTier;
+  couponCode?: string | undefined;
 }
 @Injectable()
 export class PricingService {
@@ -41,9 +44,14 @@ export class PricingService {
     );
     const subtotal = ticketAmount.add(comboAmount);
     const discountRate = this.discounts.getDecimalDiscountRate(input.tier);
-    const discountAmount = subtotal
+    const memberDiscountAmount = subtotal
       .mul(discountRate)
       .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    const { discountAmount: couponDiscountAmount } = calculateCouponDiscount(
+      subtotal.sub(memberDiscountAmount),
+      input.couponCode,
+    );
+    const discountAmount = memberDiscountAmount.add(couponDiscountAmount);
     const finalAmount = subtotal.sub(discountAmount);
     if (
       [

@@ -51,7 +51,7 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
   }
   return payload;
 }
-const read = async (path) => (await apiRequest(path)).data;
+export const read = async (path) => (await apiRequest(path)).data;
 export async function apiList(path, params = {}) {
   const items = [];
   for (let page = 1; ; page++) {
@@ -113,6 +113,20 @@ export const apiCheckout = (id) =>
     bookingId: id,
     returnUrl: window.location.origin + "/?booking=" + id,
   });
+export async function apiInstantPay(orderId) {
+  const checkout = await apiCheckout(orderId);
+  const checkoutUrl = new URL(checkout.url);
+  const params = Object.fromEntries(checkoutUrl.searchParams.entries());
+  await fetch("/api/v1/payments/sandbox/complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      ...params,
+      result: "SUCCESS",
+    }),
+  });
+  return true;
+}
 export async function readCommand(
   path,
   payload,

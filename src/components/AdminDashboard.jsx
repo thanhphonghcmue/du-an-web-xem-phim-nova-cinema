@@ -15,6 +15,7 @@ import {
   DollarSign,
   PieChart,
   HardDrive,
+  Download,
 } from "lucide-react";
 import { money } from "../data.js";
 import OperationalCatalog from "./OperationalCatalog.jsx";
@@ -149,6 +150,51 @@ export default function AdminDashboard({ onClose, adminUser }) {
       active = false;
     };
   }, [fromDate, toDate]);
+
+  function exportRevenueCsv() {
+    if (!revenue) return;
+    const lines = [];
+    lines.push("NOVA CINEMA - BÁO CÁO DOANH THU & KẾT QUẢ KINH DOANH");
+    lines.push(`Thời gian xuất báo cáo,${new Date().toLocaleString("vi-VN")}`);
+    lines.push(`Khoảng thời gian thống kê,Từ ${fromDate} đến ${toDate}`);
+    lines.push("");
+    lines.push("TỔNG QUAN TÀI CHÍNH");
+    lines.push("Chỉ số,Giá trị");
+    lines.push(`Tổng doanh thu ròng (Net Revenue),${revenue.totalRevenue || 0} VNĐ`);
+    lines.push(`Số đơn thanh toán thành công (PAID),${revenue.paidBookingCount || 0}`);
+    lines.push(`Doanh thu vé xem phim,${revenue.ticketRevenue || 0} VNĐ`);
+    lines.push(`Doanh thu bắp nước F&B,${revenue.comboRevenue || 0} VNĐ`);
+    lines.push(`Tổng tiền ưu đãi & Voucher,${revenue.discountAmount || 0} VNĐ`);
+    lines.push("");
+    lines.push("CHI TIẾT CÁC ĐƠN ĐẶT VÉ TRONG KỲ");
+    lines.push("Mã Đơn,Khách Hàng,Phim,Rạp Chiếu,Phòng Chiếu,Tổng Tiền (VNĐ),Trạng Thái,Thời Gian Đặt Vé");
+
+    const orders = overview?.recentBookings || [];
+    for (const b of orders) {
+      const row = [
+        `"${b.orderCode}"`,
+        `"${b.customer}"`,
+        `"${b.movie}"`,
+        `"${b.cinema}"`,
+        `"${b.room}"`,
+        b.finalAmount,
+        `"${b.status}"`,
+        `"${new Date(b.createdAt).toLocaleString("vi-VN")}"`,
+      ];
+      lines.push(row.join(","));
+    }
+
+    const csvContent = "\uFEFF" + lines.join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Bao_Cao_Doanh_Thu_NovaCinema_${fromDate}_${toDate}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
   async function handlePurgeOutbox() {
     setPurging(true);
@@ -304,6 +350,17 @@ export default function AdminDashboard({ onClose, adminUser }) {
                   >
                     <RefreshCw size={14} className={revenueLoading ? "spin" : ""} />
                     <span>Làm mới</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="button button-primary export-csv-btn"
+                    onClick={exportRevenueCsv}
+                    disabled={!revenue}
+                    title="Tải xuống tệp CSV Excel có dấu UTF-8"
+                  >
+                    <Download size={15} />
+                    <span>Xuất CSV (Excel)</span>
                   </button>
                 </div>
               </div>

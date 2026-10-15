@@ -12,6 +12,7 @@ import { HoldSeatsDto } from "./booking.dto";
 import { BookingsRepository, BookingRecord } from "./bookings.repository";
 import { PricingService } from "./pricing.service";
 import { SeatLockLease, SeatLockService } from "./seat-lock.service";
+import { validateNoOrphanSeats } from "./orphan-seats";
 
 export const HOLD_DURATION_MS = 300000;
 @Injectable()
@@ -41,6 +42,7 @@ export class SeatBookingService {
           showtimeId: dto.showtimeId,
           seatIds: requestedSeatIds,
           comboItems,
+          ...(dto.couponCode ? { couponCode: dto.couponCode.trim().toUpperCase() } : {}),
         }),
       )
       .digest("hex");
@@ -137,6 +139,38 @@ export class SeatBookingService {
           }
           if (await this.bookings.activeSeat(showtime.id, seatIds, tx))
             throw unavailable();
+
+          // Validate Orphan Seat Rule: ensure no new single-seat gap is created
+          const affectedRows = [...new Set(seats.map((s) => s.seatRow))];
+          const physicalRowSeats = await this.bookings.roomSeatsForRows(
+            showtime.roomId,
+            affectedRows,
+            tx,
+          );
+          const occupiedBookingSeats =
+            await this.bookings.activeOccupiedSeatsInShowtime(
+              showtime.id,
+              physicalRowSeats.map((s) => s.id),
+              tx,
+            );
+          const occupiedSet = new Set(
+            occupiedBookingSeats.map((b) => b.seatId),
+          );
+          const requestedSet = new Set(seatIds);
+          const orphanCheck = validateNoOrphanSeats(
+            physicalRowSeats,
+            occupiedSet,
+            requestedSet,
+          );
+          if (orphanCheck.hasOrphan) {
+            const orphan = orphanCheck.orphanSeat;
+            throw new ApiException(
+              400,
+              "ORPHAN_SEAT_DETECTED",
+              `Không được để lại ghế trống đơn lẻ (Orphan seat) tại vị trí ${orphan ? `${orphan.seatRow}${orphan.seatColumn}` : ""}. Vui lòng chọn ghế liền kề!`,
+            );
+          }
+
           const member = await this.bookings.membership(userId, tx);
           if (!member)
             throw new ApiException(
@@ -171,6 +205,7 @@ export class SeatBookingService {
                 comboItems.find((item) => item.comboId === combo.id)
                   ?.quantity ?? 0,
             })),
+            couponCode: dto.couponCode,
           });
           const now = await this.bookings.now(tx);
           if (showtime.startTime.getTime() <= now.getTime())

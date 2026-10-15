@@ -22,6 +22,7 @@ import {
   Ticket,
   UsersRound,
   X,
+  CheckCircle2,
 } from "lucide-react";
 import { useCatalog } from "./catalog.js";
 import {
@@ -123,6 +124,10 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [member, setMember] = useState(null);
   const [sessionError, setSessionError] = useState("");
+  const [userRating, setUserRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [userReview, setUserReview] = useState("");
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
   useEffect(() => {
     // Remove credentials and invented profiles left by the former browser demo.
     for (const storage of [localStorage, sessionStorage]) {
@@ -223,6 +228,9 @@ export default function App() {
   function openMovie(movie, type = "movie") {
     if (type === "trailer" && !movie.trailer) type = "movie";
     setActiveMovie(movie);
+    setUserRating(5);
+    setUserReview("");
+    setReviewSubmitted(false);
     setModal(type);
   }
   function jumpGroup() {
@@ -1317,6 +1325,94 @@ export default function App() {
                         : "2D Laser · Dolby Atmos 12.1"}
                   </dd>
                 </dl>
+
+                {/* Rating & Reviews Section */}
+                <div className="movie-reviews-box">
+                  <div className="reviews-summary-bar">
+                    <div className="big-rating">
+                      <strong>4.9</strong>
+                      <div className="stars-row">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <Star key={i} size={15} fill="#f59e0b" color="#f59e0b" />
+                        ))}
+                      </div>
+                      <small>1.420 lượt đánh giá</small>
+                    </div>
+                    <div className="rating-metrics">
+                      <div className="metric-badge">👍 98% Khán giả khuyên xem</div>
+                      <div className="metric-badge">🏆 Đánh giá cao nhất tuần</div>
+                    </div>
+                  </div>
+
+                  {/* Interactive User Rating */}
+                  <div className="user-rating-section">
+                    <label>Đánh giá & chia sẻ cảm nhận của bạn:</label>
+                    <div className="interactive-stars">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          className="star-pick-btn"
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() => setUserRating(star)}
+                          title={`${star} sao`}
+                        >
+                          <Star
+                            size={20}
+                            fill={(hoverRating || userRating) >= star ? "#f59e0b" : "none"}
+                            color={(hoverRating || userRating) >= star ? "#f59e0b" : "#64748b"}
+                          />
+                        </button>
+                      ))}
+                      <span className="rating-score-label">{userRating} / 5 sao</span>
+                    </div>
+
+                    {!reviewSubmitted ? (
+                      <div className="review-input-row">
+                        <input
+                          type="text"
+                          placeholder="Nhập cảm nhận của bạn về bộ phim này..."
+                          value={userReview}
+                          onChange={(e) => setUserReview(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="button button-glass button-small"
+                          disabled={!userReview.trim()}
+                          onClick={() => setReviewSubmitted(true)}
+                        >
+                          Gửi đánh giá
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="review-thank-you">
+                        <CheckCircle2 size={16} color="#22c55e" />
+                        <span>Cảm ơn bạn! Đánh giá ({userRating} sao: &ldquo;{userReview}&rdquo;) của bạn đã được ghi nhận.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Top Community Reviews */}
+                  <div className="community-reviews-list">
+                    <h4>Bình luận nổi bật từ khán giả:</h4>
+                    <div className="review-bubble">
+                      <div className="bubble-head">
+                        <b>Nguyễn Hoàng Nam</b>
+                        <span className="stars-mini">⭐⭐⭐⭐⭐</span>
+                      </div>
+                      <p>Kỹ xảo IMAX Laser mãn nhãn, âm thanh Dolby Atmos tái hiện từng rung chuyển sống động đến choáng ngợp!</p>
+                    </div>
+                    <div className="review-bubble">
+                      <div className="bubble-head">
+                        <b>Trần Thu Thảo</b>
+                        <span className="stars-mini">⭐⭐⭐⭐⭐</span>
+                      </div>
+                      <p>Kịch bản chặt chẽ, diễn xuất cuốn hút từng phút. Rạp Nova phục vụ rất chu đáo và bắp rang rất ngon.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="detail-actions">
                   <button
                     className="button button-primary"

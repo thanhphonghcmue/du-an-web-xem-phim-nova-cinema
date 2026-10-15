@@ -9,6 +9,7 @@ import {
   IsEnum,
   IsInt,
   IsOptional,
+  IsString,
   IsUUID,
   Max,
   Min,
@@ -70,6 +71,14 @@ export class HoldSeatsDto {
   @ValidateNested({ each: true })
   @Type(() => ComboItemDto)
   comboItems?: ComboItemDto[];
+
+  @ApiPropertyOptional({
+    description: "Mã giảm giá / khuyến mãi (ví dụ: NOVA20, CINEMA10, U22, CHAOBANMOI, VIP50)",
+    example: "NOVA20",
+  })
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }
 export class ListBookingsDto extends PaginationDto {
   @ApiPropertyOptional({ enum: BookingStatus })

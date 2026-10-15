@@ -72,6 +72,31 @@ export class BookingsRepository {
   sweetboxSeats(roomId: string, tx: Prisma.TransactionClient) {
     return tx.seat.findMany({ where: { roomId, seatType: "SWEETBOX" } });
   }
+  roomSeatsForRows(
+    roomId: string,
+    rows: string[],
+    tx: Prisma.TransactionClient,
+  ) {
+    return tx.seat.findMany({
+      where: { roomId, seatRow: { in: rows } },
+      select: { id: true, seatRow: true, seatColumn: true },
+      orderBy: [{ seatRow: "asc" }, { seatColumn: "asc" }],
+    });
+  }
+  activeOccupiedSeatsInShowtime(
+    showtimeId: string,
+    seatIds: string[],
+    tx: Prisma.TransactionClient,
+  ) {
+    return tx.bookingSeat.findMany({
+      where: {
+        showtimeId,
+        seatId: { in: seatIds },
+        status: { in: ["HOLDING", "SOLD"] },
+      },
+      select: { seatId: true },
+    });
+  }
   expiredForSeats(
     showtimeId: string,
     seatIds: string[],

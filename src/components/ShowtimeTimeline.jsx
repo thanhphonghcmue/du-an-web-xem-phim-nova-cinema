@@ -18,6 +18,13 @@ export default function ShowtimeTimeline({ onBook }) {
   const film = films.find((m) => m.id === filmId) || films[0];
   const dates = getDates(language, cinemaId, film?.id);
   const activeDate = dates.some((d) => d.id === dateId) ? dateId : dates[0]?.id;
+  const activeDateObj = dates.find((d) => d.id === activeDate);
+  const isWeekend =
+    activeDateObj?.label?.includes("Thứ 7") ||
+    activeDateObj?.label?.includes("Chủ nhật") ||
+    activeDateObj?.label?.includes("CN") ||
+    activeDateObj?.label?.includes("Sat") ||
+    activeDateObj?.label?.includes("Sun");
   const times = getShowtimes(cinemaId, film?.id, activeDate);
   const timeKey = times.map((t) => t.id).join(",");
   useEffect(() => {
@@ -178,6 +185,7 @@ export default function ShowtimeTimeline({ onBook }) {
                   >
                     <span className="timeline-show-format">
                       {time.label.split(" · ")[1]}
+                      {isWeekend && <span className="weekend-mini-tag">Cuối tuần</span>}
                     </span>
                     <strong>{time.displayTime}</strong>
                     <small>{time.room}</small>
@@ -197,6 +205,11 @@ export default function ShowtimeTimeline({ onBook }) {
                 );
               })}
             </div>
+            {times.length > 0 && (
+              <div className="timeline-price-hint">
+                <span>💡 <b>Quy luật giá vé:</b> Ngày thường từ 90.000đ · Cuối tuần (T7, CN) phụ thu +15.000đ/vé · Ghế VIP +20%, Sweetbox đôi +50%. Giảm giá tự động theo hạng thành viên & mã Voucher.</span>
+              </div>
+            )}
             {!times.length && (
               <div className="timeline-empty">
                 <p>

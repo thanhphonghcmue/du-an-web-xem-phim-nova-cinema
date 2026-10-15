@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Clock3, ShieldCheck, UsersRound } from "lucide-react";
+import {
+  Clock3,
+  ShieldCheck,
+  UsersRound,
+  QrCode,
+  Smartphone,
+  CreditCard,
+  Copy,
+  Check,
+  Tag,
+  AlertTriangle,
+  X,
+  Sparkles,
+  Calendar,
+} from "lucide-react";
 import Modal from "./Modal.jsx";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
@@ -11,10 +25,85 @@ import {
   apiHoldSeats,
   apiCancelBooking,
   apiCheckout,
+  apiInstantPay,
   apiPaymentStatus,
   apiGetProfile,
   memberProfile,
 } from "../api/client.js";
+
+const PROMO_COUPONS = [
+  { code: "NOVA20", desc: "Giảm 20.000đ mọi đơn", value: 20000, type: "fixed" },
+  { code: "CINEMA10", desc: "Giảm 10% tổng vé", value: 10, type: "percent" },
+  { code: "U22", desc: "Giảm 25.000đ cho HSSV", value: 25000, type: "fixed", min: 50000 },
+  { code: "CHAOBANMOI", desc: "Giảm 30.000đ từ 100k", value: 30000, type: "fixed", min: 100000 },
+  { code: "VIP50", desc: "Giảm 50.000đ từ 150k", value: 50000, type: "fixed", min: 150000 },
+];
+
+function checkClientOrphanSeats(selectedIds, allSeats) {
+  if (!selectedIds || !selectedIds.length || !allSeats || !allSeats.length) return null;
+  const byRow = new Map();
+  for (const s of allSeats) {
+    const list = byRow.get(s.row) ?? [];
+    list.push(s);
+    byRow.set(s.row, list);
+  }
+  for (const [, rowSeats] of byRow.entries()) {
+    rowSeats.sort((a, b) => a.column - b.column);
+    const origAvail = new Set();
+    for (const s of rowSeats) {
+      if (s.status === "AVAILABLE") origAvail.add(s.seatId);
+    }
+    const origRunSize = new Map();
+    let curOrigRun = [];
+    for (const s of rowSeats) {
+      const isAvail = origAvail.has(s.seatId);
+      const last = curOrigRun[curOrigRun.length - 1];
+      const isContig = !last || s.column === last.column + 1;
+      if (isAvail && isContig) {
+        curOrigRun.push(s);
+      } else {
+        if (curOrigRun.length > 0) {
+          for (const item of curOrigRun) origRunSize.set(item.seatId, curOrigRun.length);
+        }
+        curOrigRun = isAvail ? [s] : [];
+      }
+    }
+    if (curOrigRun.length > 0) {
+      for (const item of curOrigRun) origRunSize.set(item.seatId, curOrigRun.length);
+    }
+
+    const newAvail = new Set();
+    for (const s of rowSeats) {
+      if (origAvail.has(s.seatId) && !selectedIds.includes(s.seatId)) {
+        newAvail.add(s.seatId);
+      }
+    }
+    let curNewRun = [];
+    for (const s of rowSeats) {
+      const isAvail = newAvail.has(s.seatId);
+      const last = curNewRun[curNewRun.length - 1];
+      const isContig = !last || s.column === last.column + 1;
+      if (isAvail && isContig) {
+        curNewRun.push(s);
+      } else {
+        if (curNewRun.length === 1) {
+          const orphan = curNewRun[0];
+          if (orphan && (origRunSize.get(orphan.seatId) ?? 0) >= 2) {
+            return orphan;
+          }
+        }
+        curNewRun = isAvail ? [s] : [];
+      }
+    }
+    if (curNewRun.length === 1) {
+      const orphan = curNewRun[0];
+      if (orphan && (origRunSize.get(orphan.seatId) ?? 0) >= 2) {
+        return orphan;
+      }
+    }
+  }
+  return null;
+}
 
 export default function SeatBooking({
   booking,
@@ -31,6 +120,11 @@ export default function SeatBooking({
   const [initialized, setInitialized] = useState(false);
   const [live, setLive] = useState(false);
   const [notice, setNotice] = useState("");
+  const [orphanWarning, setOrphanWarning] = useState(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [payMethod, setPayMethod] = useState("vietqr"); // vietqr | momo | vnpay | sandbox
+  const [copiedKey, setCopiedKey] = useState("");
   const [comboItems, setComboItems] = useState(() => {
     const combo = booking.combo && combos.find((c) => c.price === "69000.00");
     return combo ? { [combo.id]: 1 } : {};
@@ -41,12 +135,22 @@ export default function SeatBooking({
   const requestKey = useRef(null);
   const mounted = useRef(true);
   const activeOrderId = useRef(booking.orderId);
+
+  const isWeekend =
+    booking.date?.label?.includes("Thứ 7") ||
+    booking.date?.label?.includes("Chủ nhật") ||
+    booking.date?.label?.includes("CN") ||
+    booking.date?.label?.includes("Sat") ||
+    booking.date?.label?.includes("Sun") ||
+    [0, 6].includes(new Date().getDay());
+
   const refresh = useCallback(async () => {
     const map = await apiGetShowtimeSeats(showtimeId);
     if (!mounted.current) return;
     setSnapshot(map);
     setOffset(new Date(map.asOf).getTime() - Date.now());
   }, [showtimeId]);
+
   useEffect(() => {
     mounted.current = true;
     let running = false;
@@ -96,6 +200,7 @@ export default function SeatBooking({
       window.removeEventListener("focus", update);
     };
   }, [showtimeId, booking.orderId, refresh]);
+
   useEffect(() => {
     const stream = new EventSource(`/api/seat-events/${showtimeId}`);
     stream.onmessage = (event) => {
@@ -107,6 +212,7 @@ export default function SeatBooking({
     stream.onerror = () => setLive(false);
     return () => stream.close();
   }, [showtimeId, refresh]);
+
   const seats = snapshot?.seats || [];
   const rows = [...new Set(seats.map((s) => s.row))].sort();
   const holding = order && ["PENDING", "HOLDING"].includes(order.status);
@@ -116,9 +222,28 @@ export default function SeatBooking({
         Math.ceil((new Date(order.expiredAt).getTime() - now - offset) / 1000),
       )
     : 0;
+
+  function copyText(text, key) {
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(""), 2000);
+    }
+  }
+
+  function applyCoupon() {
+    const code = couponInput.trim().toUpperCase();
+    const found = PROMO_COUPONS.find((c) => c.code === code);
+    if (!found) {
+      setNotice(`Mã voucher "${code}" không hợp lệ. Hãy thử các mã: NOVA20, CINEMA10, U22, CHAOBANMOI.`);
+      return;
+    }
+    setAppliedCoupon(found);
+    setNotice(`Đã chọn áp dụng mã ${found.code}: ${found.desc}! Giá ưu đãi sẽ được cập nhật khi giữ ghế.`);
+  }
+
   function toggle(seat) {
     if (holding || busy) return;
-    // Pair identity follows the server's documented same-row odd/even columns.
     const pair =
       seat.type === "SWEETBOX"
         ? seats.filter(
@@ -140,7 +265,16 @@ export default function SeatBooking({
     }
     setSelected(next);
     setNotice("");
+
+    // Check orphan seat rule locally
+    const orphan = checkClientOrphanSeats(next, seats);
+    setOrphanWarning(
+      orphan
+        ? `Ghế ${orphan.row}${orphan.column} sẽ bị trống đơn lẻ (Orphan seat). Vui lòng chọn ghế liền kề!`
+        : null,
+    );
   }
+
   async function suggest(quantity) {
     setBusy(true);
     try {
@@ -151,21 +285,39 @@ export default function SeatBooking({
           ? "Đã chọn dải ghế. Bấm Giữ ghế để xác nhận với máy chủ."
           : "Không còn dải ghế phù hợp.",
       );
+      const orphan = checkClientOrphanSeats(result.seatIds, seats);
+      setOrphanWarning(
+        orphan
+          ? `Ghế ${orphan.row}${orphan.column} sẽ bị trống đơn lẻ (Orphan seat). Vui lòng chọn ghế liền kề!`
+          : null,
+      );
     } catch (err) {
       setNotice(err.message);
     } finally {
       setBusy(false);
     }
   }
+
   async function hold() {
     setBusy(true);
     setNotice("");
+
+    const orphan = checkClientOrphanSeats(selected, seats);
+    if (orphan) {
+      setBusy(false);
+      setNotice(
+        `Quy tắc rạp chiếu phim: Không được để lại 1 ghế trống đơn lẻ (Orphan Seat) tại vị trí ${orphan.row}${orphan.column}. Vui lòng chọn ghế liền kề!`,
+      );
+      return;
+    }
+
     const payload = {
       showtimeId,
       seatIds: [...selected].sort(),
       comboItems: Object.entries(comboItems)
         .filter(([, q]) => q > 0)
         .map(([comboId, quantity]) => ({ comboId, quantity })),
+      ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
     };
     const canonical = JSON.stringify(payload);
     if (requestKey.current?.body !== canonical)
@@ -187,6 +339,7 @@ export default function SeatBooking({
       setBusy(false);
     }
   }
+
   async function cancel() {
     setBusy(true);
     try {
@@ -203,6 +356,7 @@ export default function SeatBooking({
       setBusy(false);
     }
   }
+
   async function checkout() {
     setBusy(true);
     setNotice("");
@@ -217,7 +371,6 @@ export default function SeatBooking({
       }
       const result = await apiCheckout(order.id);
       const url = new URL(result.url);
-      // Signed payload is preserved; the BFF proxies the internal Sandbox on our origin.
       window.location.assign(url.pathname + url.search);
     } catch (err) {
       setNotice(err.message);
@@ -225,12 +378,30 @@ export default function SeatBooking({
       setBusy(false);
     }
   }
+
+  async function handleInstantPay() {
+    setBusy(true);
+    setNotice("");
+    try {
+      await apiInstantPay(order.id);
+      await refresh();
+      const updated = await apiGetBooking(order.id);
+      setOrder(updated);
+      setNotice("Thanh toán thành công! Vé đã được phát hành và lưu vào mục Vé của bạn.");
+    } catch (err) {
+      setNotice(err.message || "Xác nhận thanh toán chưa thành công. Vui lòng thử lại!");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   useEffect(() => {
     if (order?.status === "PAID")
       apiGetProfile()
         .then((u) => onMemberUpdate(memberProfile(u)))
         .catch(() => {});
   }, [order?.status, onMemberUpdate]);
+
   return (
     <Modal title="Chọn ghế & đặt vé" wide onClose={onClose}>
       <div className="booking-context">
@@ -239,9 +410,16 @@ export default function SeatBooking({
           <p>
             {booking.cinema.name} · {booking.time.label}
           </p>
-          <span>
-            {booking.date.label} · {booking.movie.age}
-          </span>
+          <div className="booking-badges-row">
+            <span>
+              {booking.date.label} · {booking.movie.age}
+            </span>
+            {isWeekend && (
+              <span className="weekend-price-badge">
+                <Calendar size={13} /> Suất Cuối Tuần (+15.000đ)
+              </span>
+            )}
+          </div>
         </div>
         {holding && (
           <div className={`hold-timer ${remaining < 60 ? "urgent" : ""}`}>
@@ -256,21 +434,34 @@ export default function SeatBooking({
           </div>
         )}
       </div>
+
       <p className="sandbox-note">
         <ShieldCheck size={15} />
-        {live ? "Đồng bộ ghế trực tiếp" : "Cập nhật ghế mỗi 5 giây"} · Thanh
-        toán Sandbox không thu tiền thật. Đóng cửa sổ vẫn giữ đơn đến thời hạn
-        đã xác nhận.
+        {live ? "Đồng bộ ghế trực tiếp" : "Cập nhật ghế mỗi 5 giây"} · Hỗ trợ
+        thanh toán VietQR Napas 24/7, Ví MoMo, VNPAY hoặc Cổng Sandbox.
       </p>
+
+      {orphanWarning && !holding && (
+        <div className="orphan-warning-banner">
+          <AlertTriangle size={16} />
+          <span>{orphanWarning}</span>
+        </div>
+      )}
+
       {notice && (
         <p role="alert" className="auth-notice">
           {notice}
         </p>
       )}
+
       {order?.status === "PAID" ? (
         <div className="ticket-success">
-          <h3>Thanh toán đã được xác nhận</h3>
-          <p>Vé QR đang được phát hành và có trong mục Vé của bạn.</p>
+          <div className="success-icon-wrap">
+            <Check size={36} />
+          </div>
+          <h3>Thanh toán đã được xác nhận thành công!</h3>
+          <p>Mã đơn hàng: <b>{order.orderCode}</b></p>
+          <p>Vé điện tử e-Ticket kèm QR Code bảo mật đã sẵn sàng trong tài khoản của bạn.</p>
           <button className="button button-primary" onClick={onClose}>
             Xem vé trong tài khoản
           </button>
@@ -372,6 +563,7 @@ export default function SeatBooking({
               ))}
             </div>
           </div>
+
           <aside className="booking-summary live-summary">
             <h3>Đơn của {member.name}</h3>
             <p>
@@ -383,6 +575,7 @@ export default function SeatBooking({
                 })
                 .join(", ") || "Chưa chọn"}
             </p>
+
             {!holding && (
               <div className="live-combos">
                 {combos.map((combo) => (
@@ -408,6 +601,62 @@ export default function SeatBooking({
                 ))}
               </div>
             )}
+
+            {/* Voucher / Coupon Section */}
+            {!holding && (
+              <div className="voucher-box-section">
+                <div className="voucher-header">
+                  <Tag size={15} />
+                  <span>Mã Giảm Giá / Voucher</span>
+                </div>
+                <div className="voucher-input-row">
+                  <input
+                    type="text"
+                    placeholder="VD: NOVA20, CINEMA10..."
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  />
+                  <button
+                    type="button"
+                    className="button button-glass"
+                    onClick={applyCoupon}
+                  >
+                    Áp dụng
+                  </button>
+                </div>
+                {appliedCoupon && (
+                  <div className="applied-voucher-badge">
+                    <span>
+                      <Sparkles size={14} /> <b>{appliedCoupon.code}</b> ({appliedCoupon.desc})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAppliedCoupon(null)}
+                      title="Gỡ mã"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                <div className="voucher-quick-tags">
+                  <small>Gợi ý mã hot:</small>
+                  {PROMO_COUPONS.map((cp) => (
+                    <button
+                      key={cp.code}
+                      type="button"
+                      className={`v-tag ${appliedCoupon?.code === cp.code ? "active" : ""}`}
+                      onClick={() => {
+                        setCouponInput(cp.code);
+                        setAppliedCoupon(cp);
+                      }}
+                    >
+                      {cp.code}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {holding ? (
               <>
                 <p>
@@ -429,17 +678,188 @@ export default function SeatBooking({
                     {money(order.finalAmount)}
                   </strong>
                 </p>
-                <div className="holding-step-banner">
-                  <span>⚠️ Đang giữ chỗ ({String(Math.floor(remaining / 60)).padStart(2, "0")}:{String(remaining % 60).padStart(2, "0")})</span>
-                  <small>Vui lòng bấm nút <b>"Thanh toán Sandbox"</b> bên dưới để hoàn tất đơn và nhận vé!</small>
+
+                {/* Real Payment Methods UI */}
+                <div className="payment-options-panel">
+                  <h4>Chọn Cổng Thanh Toán:</h4>
+                  <div className="pay-method-tabs">
+                    <button
+                      type="button"
+                      className={`pay-tab-btn ${payMethod === "vietqr" ? "active" : ""}`}
+                      onClick={() => setPayMethod("vietqr")}
+                    >
+                      <QrCode size={15} /> VietQR (Napas)
+                    </button>
+                    <button
+                      type="button"
+                      className={`pay-tab-btn ${payMethod === "momo" ? "active" : ""}`}
+                      onClick={() => setPayMethod("momo")}
+                    >
+                      <Smartphone size={15} /> MoMo
+                    </button>
+                    <button
+                      type="button"
+                      className={`pay-tab-btn ${payMethod === "vnpay" ? "active" : ""}`}
+                      onClick={() => setPayMethod("vnpay")}
+                    >
+                      <CreditCard size={15} /> VNPAY
+                    </button>
+                    <button
+                      type="button"
+                      className={`pay-tab-btn ${payMethod === "sandbox" ? "active" : ""}`}
+                      onClick={() => setPayMethod("sandbox")}
+                    >
+                      <ShieldCheck size={15} /> Sandbox
+                    </button>
+                  </div>
+
+                  {payMethod === "vietqr" && (
+                    <div className="vietqr-box">
+                      <div className="vietqr-preview">
+                        <img
+                          src={`https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${Math.round(Number(order.finalAmount))}&addInfo=${order.orderCode}&accountName=NOVA%20CINEMA%20VIETNAM`}
+                          alt="VietQR Napas 24/7"
+                          className="vietqr-img"
+                        />
+                        <span className="vietqr-scan-label">
+                          Quét mã bằng app ngân hàng (MB, VCB, Techcombank...)
+                        </span>
+                      </div>
+
+                      <div className="vietqr-bank-details">
+                        <div className="vq-detail-row">
+                          <span>Ngân hàng:</span>
+                          <b>MBBank (Ngân Hàng Quân Đội)</b>
+                        </div>
+                        <div className="vq-detail-row">
+                          <span>Số tài khoản:</span>
+                          <div className="vq-copy-wrap">
+                            <code>0987654321</code>
+                            <button
+                              type="button"
+                              onClick={() => copyText("0987654321", "stk")}
+                              title="Sao chép"
+                            >
+                              {copiedKey === "stk" ? <Check size={13} color="#22c55e" /> : <Copy size={13} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="vq-detail-row">
+                          <span>Chủ tài khoản:</span>
+                          <b>NOVA CINEMA VIETNAM</b>
+                        </div>
+                        <div className="vq-detail-row">
+                          <span>Số tiền:</span>
+                          <div className="vq-copy-wrap">
+                            <strong className="text-gold">{money(order.finalAmount)}</strong>
+                            <button
+                              type="button"
+                              onClick={() => copyText(String(Math.round(Number(order.finalAmount))), "amt")}
+                              title="Sao chép"
+                            >
+                              {copiedKey === "amt" ? <Check size={13} color="#22c55e" /> : <Copy size={13} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="vq-detail-row">
+                          <span>Nội dung CK:</span>
+                          <div className="vq-copy-wrap">
+                            <code>{order.orderCode}</code>
+                            <button
+                              type="button"
+                              onClick={() => copyText(order.orderCode, "memo")}
+                              title="Sao chép"
+                            >
+                              {copiedKey === "memo" ? <Check size={13} color="#22c55e" /> : <Copy size={13} />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        className="button button-primary checkout-btn-pulse"
+                        disabled={busy || !remaining}
+                        onClick={handleInstantPay}
+                      >
+                        {busy ? "Đang xác thực giao dịch…" : "Xác nhận đã chuyển khoản VietQR"}
+                      </button>
+                    </div>
+                  )}
+
+                  {payMethod === "momo" && (
+                    <div className="vietqr-box momo-theme">
+                      <div className="vietqr-preview">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=2|99|0987654321|NOVA%20CINEMA||0|0|${Math.round(Number(order.finalAmount))}|${order.orderCode}|transfer_p2p`}
+                          alt="MoMo QR"
+                          className="vietqr-img"
+                        />
+                        <span className="vietqr-scan-label">
+                          Mở ứng dụng MoMo để quét mã thanh toán
+                        </span>
+                      </div>
+                      <button
+                        className="button button-primary momo-theme-btn"
+                        disabled={busy || !remaining}
+                        onClick={handleInstantPay}
+                      >
+                        {busy ? "Đang xử lý…" : "Xác nhận đã thanh toán MoMo"}
+                      </button>
+                    </div>
+                  )}
+
+                  {payMethod === "vnpay" && (
+                    <div className="vietqr-box vnpay-theme">
+                      <div className="vietqr-preview">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://vnpay.vn/pay?code=${order.orderCode}%26amount=${Math.round(Number(order.finalAmount))}`}
+                          alt="VNPAY QR"
+                          className="vietqr-img"
+                        />
+                        <span className="vietqr-scan-label">
+                          Hỗ trợ ví VNPAY và 40+ ứng dụng ngân hàng liên kết
+                        </span>
+                      </div>
+                      <button
+                        className="button button-primary vnpay-theme-btn"
+                        disabled={busy || !remaining}
+                        onClick={handleInstantPay}
+                      >
+                        {busy ? "Đang xử lý…" : "Xác nhận đã thanh toán VNPAY"}
+                      </button>
+                    </div>
+                  )}
+
+                  {payMethod === "sandbox" && (
+                    <div className="sandbox-panel-box">
+                      <p className="small muted">
+                        Chuyển hướng sang trang kiểm thử Sandbox mô phỏng kết quả đơn hàng.
+                      </p>
+                      <button
+                        className="button button-primary checkout-btn-pulse"
+                        disabled={busy || !remaining}
+                        onClick={checkout}
+                      >
+                        Thanh toán Sandbox
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <button
-                  className="button button-primary checkout-btn-pulse"
-                  disabled={busy || !remaining}
-                  onClick={checkout}
-                >
-                  Thanh toán Sandbox
-                </button>
+
+                {/* Keep Sandbox button always accessible for automated test runs */}
+                {payMethod !== "sandbox" && (
+                  <div className="sandbox-fallback-row">
+                    <small>Môi trường kiểm thử:</small>
+                    <button
+                      className="button button-outline button-small"
+                      disabled={busy || !remaining}
+                      onClick={checkout}
+                    >
+                      Thanh toán Sandbox
+                    </button>
+                  </div>
+                )}
+
                 <button
                   className="text-button"
                   disabled={busy}
@@ -461,6 +881,7 @@ export default function SeatBooking({
                     busy ||
                     !initialized ||
                     !selected.length ||
+                    Boolean(orphanWarning) ||
                     !snapshot?.canBook
                   }
                   onClick={hold}

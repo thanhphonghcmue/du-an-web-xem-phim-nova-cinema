@@ -1,3 +1,4 @@
+import { Public } from "../common/decorators/public.decorator";
 import { Controller, Get } from "@nestjs/common";
 import {
   ApiExtraModels,
@@ -17,6 +18,7 @@ import { HealthService } from "./health.service";
 @SkipThrottle()
 @ApiTags("Health")
 @ApiExtraModels(HealthDto, SuccessResponseDto, ErrorResponseDto)
+@Public()
 @Controller("health")
 export class HealthController {
   constructor(private readonly health: HealthService) {}

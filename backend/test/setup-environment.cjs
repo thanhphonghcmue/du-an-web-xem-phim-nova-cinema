@@ -1,5 +1,5 @@
 const { config } = require("dotenv");
-const { randomUUID } = require("node:crypto");
+const { randomUUID, randomBytes } = require("node:crypto");
 const { resolve } = require("node:path");
 const { testDatabaseTarget } = require("../scripts/test-database-target.cjs");
 
@@ -12,3 +12,8 @@ process.env.REDIS_DB = process.env.TEST_REDIS_DB;
 process.env.REDIS_TLS = "false";
 process.env.BULLMQ_PREFIX = `nova:e2e:${randomUUID().replaceAll("-", "")}`;
 process.env.HEALTH_TIMEOUT_MS = "1200";
+
+process.env.JWT_ACCESS_SECRET = randomBytes(48).toString("hex");
+process.env.JWT_REFRESH_SECRET = randomBytes(48).toString("hex");
+process.env.JWT_ACCESS_EXPIRES_IN = "15m";
+process.env.JWT_REFRESH_EXPIRES_IN = "7d";

@@ -1,6 +1,6 @@
 # Phase 0 — Architecture Decision Record
 
-Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. ADR được lập ở Phase 0; Phase 1 đã triển khai schema/migration/seed; Phase 2 đã triển khai infrastructure HTTP/Prisma/Redis/BullMQ. Các API và service nghiệp vụ dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
+Ngày: 14/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. ADR được lập ở Phase 0; Phase 1 đã triển khai schema/migration/seed; Phase 2 đã triển khai infrastructure HTTP/Prisma/Redis/BullMQ; Phase 3 triển khai auth/users/RBAC/C’MEMBER. Các API và service nghiệp vụ dưới đây là hợp đồng thiết kế, không phải tính năng đã chạy.
 
 ## Quyết định nền tảng
 
@@ -75,7 +75,7 @@ Giá STANDARD ×1.0, VIP ×1.2, SWEETBOX ×1.5. Party Combo 69K mỗi đơn vị
 
 ## Cây thư mục đích theo phase
 
-Đây là kế hoạch đầy đủ; chỉ module nền tảng Phase 0–2 và database Phase 1/2 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
+Đây là kế hoạch đầy đủ; chỉ module nền tảng Phase 0–3 và database Phase 1/2 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
 
 ```text
 backend/
@@ -188,3 +188,15 @@ Global ValidationPipe transform/whitelist/forbidNonWhitelisted validate nested D
 Rate limiter dùng Lua script với per-identity SHA-256 namespaced key, atomic fixed-window count và block TTL; `ThrottlerGuard` gắn toàn cục, health routes skip. Redis failure trả 503 thay vì cho request đi qua bằng local-memory fallback. Test suite HTTP lấy connection từ các `TEST_*` env và BullMQ prefix per-run; không chạm dev Redis.
 
 Readiness `/api/v1/health` kiểm tra Postgres/Redis/BullMQ song song có timeout, trả 200 healthy hoặc 503 degraded kèm status, timestamp và component statuses. `/api/v1/health/live` chỉ xác nhận tiến trình. Unknown 500 không lộ exception text; health/rate-limit 503 chỉ phát safe messages. Swagger mô tả routes hiện có, không quảng bá route nghiệp vụ chưa code.
+
+## Authentication và Users Phase 3 đã triển khai — 15/10/2026
+
+AuthController/UsersController chỉ xử lý DTO, status và chuyển lời gọi; AuthService/UserService sở hữu nghiệp vụ, AuthRepository/UsersRepository truy cập Prisma. AuthRepository truyền TransactionClient cho thao tác liên quan. Schema RefreshToken Phase 1 đáp ứng lưu session hash nên không cần migration mới; không thay đổi SQL constraints.
+
+Public registration normalize email, Argon2id (19 MiB, 2 iterations, parallelism 1), CUSTOMER/SILVER/0 points và unique-email conflict mapping. PasswordService verify dummy Argon2id hash cho email không tồn tại để giảm khác biệt timing. Login luôn dùng cùng lỗi credentials cho password/email sai. Profiles không bao giờ select password hash; chỉ login repository lấy credential nội bộ. PATCH whitelist tên/số điện thoại, role/points/tier do server quản lý.
+
+JWT HS256 được ký bằng secret riêng access/refresh, kiểm tra algorithm/issuer/audience/tokenUse/UUID sub+jti/expiry. Role không lấy từ JWT mà load từ DB mỗi request; GUEST/deleted users bị chặn. Global JwtAuthGuard mặc định bảo vệ mọi handler, `@Public()` cho root/health/auth. Global RolesGuard hỗ trợ method/class `@Roles`; `@CurrentUser()` chỉ trả safe profile. Không cấu hình auth bằng tài khoản demo hard-code.
+
+Refresh JWT có random JTI, DB chỉ lưu SHA-256 digest token có entropy cao. Transaction thực hiện parameterized conditional UPDATE `revoked_at IS NULL AND expires_at > clock_timestamp()`, sau đó tạo successor trong cùng transaction. PostgreSQL row lock/condition làm 5 concurrent request chỉ 1 winner, không dùng memory lock. Nếu tạo successor lỗi, transaction rollback cả revoke; old token vẫn dùng được. Logout idempotently revoke token được trình; không revoke toàn bộ phiên hoặc access JWT đã phát hành (hết hạn ngắn). Token-family reuse revocation chưa được thêm vì nằm ngoài hợp đồng hiện tại.
+
+Config JWT mandatory, distinct secrets >=32 ký tự; helper tạo random 48 bytes/secret và giữ trong `.env` 0600. Access default 15m/max1h, refresh default7d/max90d và dài hơn access. Tests dùng secrets ephemeral. Auth/profile responses `Cache-Control: no-store`, không log request bodies. Redis throttler login/register 5/IP/min, refresh30/min. Membership dùng shared DiscountService rates SILVER5%/GOLD7%/DIAMOND10%; chỉ đọc points/tier, reward khi payment success ở Phase 8 theo conversion ADR.

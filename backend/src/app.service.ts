@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 export interface ApplicationInfo {
   application: string;
-  phase: 2;
+  phase: 3;
   status: string;
   apiPrefix: string;
   health: string;
@@ -12,7 +12,7 @@ export class AppService {
   getInfo(): ApplicationInfo {
     return {
       application: "NOVA CINEMA (INFINITY)",
-      phase: 2,
+      phase: 3,
       status: "running",
       apiPrefix: "/api/v1",
       health: "/api/v1/health",

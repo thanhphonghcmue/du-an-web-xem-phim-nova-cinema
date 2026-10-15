@@ -60,14 +60,55 @@ export function validateEnvironment(
   )
     throw new ConfigurationError("BULLMQ_PREFIX is invalid.");
   for (const name of ["JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"])
-    if (environment[name] && environment[name].length < 32)
-      throw new ConfigurationError(
-        `${name} must contain at least 32 characters when provided.`,
-      );
-  for (const name of ["JWT_ACCESS_EXPIRES_IN", "JWT_REFRESH_EXPIRES_IN"])
-    if (environment[name] && !/^[1-9]\d*[smhd]$/.test(environment[name] || ""))
-      throw new ConfigurationError(
-        `${name} must be a positive duration with s/m/h/d suffix.`,
-      );
+    requiredSecret(environment, name);
+  if (environment.JWT_ACCESS_SECRET === environment.JWT_REFRESH_SECRET)
+    throw new ConfigurationError(
+      "JWT access and refresh secrets must be different.",
+    );
+  const access = durationSetting(
+    environment,
+    "JWT_ACCESS_EXPIRES_IN",
+    "15m",
+    3600,
+  );
+  const refresh = durationSetting(
+    environment,
+    "JWT_REFRESH_EXPIRES_IN",
+    "7d",
+    7776000,
+  );
+  if (refresh <= access)
+    throw new ConfigurationError(
+      "Refresh lifetime must exceed access lifetime.",
+    );
   return environment;
+}
+export function requiredSecret(
+  environment: NodeJS.ProcessEnv,
+  name: string,
+): string {
+  const value = environment[name];
+  if (!value || value.length < 32)
+    throw new ConfigurationError(
+      `${name} must contain at least 32 characters.`,
+    );
+  return value;
+}
+export function durationSetting(
+  environment: NodeJS.ProcessEnv,
+  name: string,
+  fallback: string,
+  maximum: number,
+): number {
+  const value = environment[name] || fallback;
+  const match = value.match(/^([1-9]\d*)([smhd])$/);
+  if (!match?.[1] || !match[2])
+    throw new ConfigurationError(
+      `${name} must be a positive duration with s/m/h/d suffix.`,
+    );
+  const units: Record<string, number> = { s: 1, m: 60, h: 3600, d: 86400 };
+  const seconds = Number(match[1]) * (units[match[2]] || 0);
+  if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > maximum)
+    throw new ConfigurationError(`${name} exceeds its allowed lifetime.`);
+  return seconds;
 }

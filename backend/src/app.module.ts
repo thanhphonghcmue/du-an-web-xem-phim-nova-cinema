@@ -14,6 +14,9 @@ import { RedisModule } from "./redis/redis.module";
 import { RateLimitModule } from "./redis/rate-limit.module";
 import { HealthModule } from "./health/health.module";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
+import { AuthModule } from "./modules/auth/auth.module";
+import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
+import { RolesGuard } from "./common/guards/roles.guard";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -27,12 +30,15 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
     RedisModule,
     RateLimitModule,
     HealthModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useExisting: JwtAuthGuard },
+    { provide: APP_GUARD, useExisting: RolesGuard },
   ],
 })
 export class AppModule {}

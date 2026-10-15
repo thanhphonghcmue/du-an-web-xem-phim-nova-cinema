@@ -1,3 +1,4 @@
+import { Public } from "../src/common/decorators/public.decorator";
 import {
   Body,
   Controller,
@@ -36,6 +37,7 @@ class ValidationPayload {
   nested!: NestedPayload;
 }
 
+@Public()
 @Controller("_test")
 class PhaseTwoTestController {
   @Post("validate")
@@ -126,7 +128,7 @@ describe("Phase 2 HTTP and infrastructure", () => {
     const response = await request(server).get("/api/v1").expect(200);
     expect(responseBody(response).data).toMatchObject({
       application: "NOVA CINEMA (INFINITY)",
-      phase: 2,
+      phase: 3,
       status: "running",
       apiPrefix: "/api/v1",
       health: "/api/v1/health",

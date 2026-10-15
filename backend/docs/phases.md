@@ -20,8 +20,12 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase 0–2 đã triển khai và kiểm chứng. Phase 1 có 14 model, migration partial unique/exclusion/composite FK/check constraints và seed idempotent. Phase 2 thêm Prisma dependency injection, Redis, BullMQ worker probe, distributed rate limiter, validation, error/response envelopes, Swagger và live/readiness health. PostgreSQL, Redis và worker đã được kiểm tra thật; 25 unit, 11 HTTP e2e và 22 PostgreSQL tests pass. Evidence ở `validation-phase-1.md` và `validation-phase-2.md`. Phase 3–12 chưa bắt đầu; TC01–TC05 qua API chưa được đánh dấu hoàn thành.
+Phase 0–3 đã triển khai và kiểm chứng. Phase 3 bổ sung 7 auth/users endpoints, Argon2id, JWT HS256, refresh rotation bằng transaction, logout, global JwtAuthGuard/RolesGuard và C’MEMBER membership. `npm run check`: 27 unit, 30 HTTP e2e tests, typecheck/lint/build pass; `test:db`: 22 PostgreSQL tests pass. Evidence ở `validation-phase-1.md`, `validation-phase-2.md`, `validation-phase-3.md`. Phase 4–12 chưa bắt đầu; TC01–TC05 business API chưa được đánh dấu hoàn thành.
 
 ## Phase 2 đã triển khai
 
-Database/Redis local và test có credentials, ports, volumes và BullMQ prefixes tách riêng. Test HTTP cưỡng bức dùng test DB/Redis. Health kiểm tra PostgreSQL SELECT 1, Redis PING và job probe được worker xử lý; 503 trả component state an toàn, còn liveness độc lập. Rate limiter Redis atomic Lua fail-closed khi storage lỗi. README có cài đặt/chạy/test commands. Auth/RBAC và API nghiệp vụ thuộc phase sau. Dừng và chờ `TIẾP TỤC PHASE 3`.
+Database/Redis local và test có credentials, ports, volumes và BullMQ prefixes tách riêng. Test HTTP cưỡng bức dùng test DB/Redis. Health kiểm tra PostgreSQL SELECT 1, Redis PING và job probe được worker xử lý; 503 trả component state an toàn, còn liveness độc lập. Rate limiter Redis atomic Lua fail-closed khi storage lỗi. README có cài đặt/chạy/test commands. Auth/RBAC hiện có ở Phase 3; CRUD/booking tiếp tục ở phase sau.
+
+## Phase 3 đã triển khai
+
+API đăng ký/login/refresh/logout, GET/PATCH hồ sơ và GET membership đã chạy. Mandatory signing secrets được tạo riêng bằng `npm run auth:configure`; hash-only refresh sessions sử dụng schema hiện có, không cần migration mới. Concurrent registration có 1 winner; concurrent refresh 5 request có 1 winner; lỗi insert successor rollback revoke cũ. JWT access giữ thời hạn ngắn; logout chỉ revoke refresh được gửi lên, các phiên khác độc lập. Role lấy từ DB và profile không cho sửa role/tier/points. Dừng và chờ `TIẾP TỤC PHASE 4`.

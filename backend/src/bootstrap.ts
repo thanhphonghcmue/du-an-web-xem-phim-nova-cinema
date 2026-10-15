@@ -37,6 +37,7 @@ export function configureApplication(app: INestApplication): void {
     request.correlationId =
       header && /^[a-zA-Z0-9_-]{1,64}$/.test(header) ? header : randomUUID();
     response.setHeader("x-request-id", request.correlationId);
+    response.setHeader("Cache-Control", "no-store");
     const started = Date.now();
     response.once("finish", () => {
       logger.log(
@@ -97,7 +98,7 @@ export function configureApplication(app: INestApplication): void {
     .setTitle("NOVA Cinema API")
     .setVersion("v1")
     .setDescription(
-      "Phase 2 infrastructure. Authentication and booking endpoints are implemented in later phases.",
+      "Phase 3: authentication, users, RBAC and membership. Booking APIs belong to later phases.",
     )
     .addBearerAuth()
     .build();

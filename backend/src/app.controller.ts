@@ -1,9 +1,11 @@
+import { Public } from "./common/decorators/public.decorator";
 import { Controller, Get } from "@nestjs/common";
 import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { AppService, ApplicationInfo } from "./app.service";
 import { ResponseMessage } from "./common/decorators/response-message.decorator";
 import { SuccessResponseDto } from "./common/dto/api-response.dto";
 @ApiTags("Application")
+@Public()
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}

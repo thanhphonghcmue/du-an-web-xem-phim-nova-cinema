@@ -35,7 +35,8 @@
     "infra:configure": "node scripts/configure-infrastructure.cjs",
     "infra:up": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml up -d --wait",
     "infra:up:test": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml --profile test up -d --wait",
-    "infra:down": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml --profile test down"
+    "infra:down": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml --profile test down",
+    "auth:configure": "node scripts/configure-auth.cjs"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.0",

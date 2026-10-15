@@ -1,12 +1,12 @@
-# NOVA Cinema Backend — Phase 2
+# NOVA Cinema Backend — Phase 3
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0, 1 và 2 hoàn tất**: PostgreSQL/Prisma, Redis/BullMQ, validation, phản hồi/lỗi JSON, Swagger, rate limiting và health checks chạy trên dependencies thật. API nghiệp vụ chưa bắt đầu; Phase 3 sẽ bổ sung đăng nhập và phân quyền sau khi được yêu cầu. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–3 hoàn tất**: PostgreSQL/Prisma, Redis/BullMQ, validation, Swagger, health, đăng ký/đăng nhập, JWT, refresh rotation, hồ sơ, RBAC và C’MEMBER. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md).
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md).
 
 ## Requirements
 
-Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Phase 2 không cần JWT/payment/SMTP secrets.
+Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Phase 3 cần hai JWT signing secrets độc lập; payment/SMTP secrets dành cho phase sau.
 
 Nếu đã có PostgreSQL/Redis riêng, điền connection settings vào `.env` thay vì ghi đè cấu hình bằng các helper local.
 
@@ -19,6 +19,7 @@ cd backend
 npm ci
 npm run db:configure
 npm run infra:configure
+npm run auth:configure
 npm run infra:up:test
 npm run prisma:validate
 npm run prisma:generate
@@ -87,7 +88,7 @@ Seed trong một transaction, idempotent bằng ID ổn định/upsert, không r
 | staff@nova.local    | STAFF    | GOLD    |
 | customer@nova.local | CUSTOMER | SILVER  |
 
-Password chung cho tài khoản demo là giá trị **SEED_DEMO_PASSWORD trong `.env` riêng của bạn**, do helper tạo hoặc tự đặt tối thiểu 12 ký tự. DB chỉ lưu Argon2id hash. Đổi env rồi chạy seed không reset password của account đã tồn tại. Chưa có login API ở Phase 1.
+Password chung cho tài khoản demo là giá trị **SEED_DEMO_PASSWORD trong `.env` riêng của bạn**, do helper tạo hoặc tự đặt tối thiểu 12 ký tự. DB chỉ lưu Argon2id hash. Đổi env rồi chạy seed không reset password của account đã tồn tại. Đăng nhập bằng endpoint Phase 3 với password này.
 
 Dữ liệu fresh seed: **6 phim, 2 rạp demo, 3 phòng, 480 ghế, 54 suất chiếu và Party Combo 69K**. Mỗi phòng A–H ×20 ghế; C–F VIP, H Sweetbox, các hàng còn lại STANDARD. Multiplier 1.00/1.20/1.50. Không tạo user giả GUEST, booking đã thanh toán, payment thành công hoặc ticket demo trong development seed.
 
@@ -97,7 +98,7 @@ Seed mặc định lấy ngày mai UTC, bắt đầu 03:00 UTC (=10:00 Việt Na
 
 ## .env và PostgreSQL/Redis riêng
 
-`.env.example` liệt kê đầy đủ biến. Với PostgreSQL/Redis đã được cấp, tự tạo `.env` từ example và điền `DATABASE_URL`, `TEST_DATABASE_URL`, `SEED_DEMO_PASSWORD` cùng `REDIS_*`/`TEST_REDIS_*`. Không chạy helper local nếu muốn giữ cấu hình riêng. Dùng hai database tên khác nhau, test name kết thúc `_test`; PostgreSQL 17 có gen_random_uuid và btree_gist. Prisma không tạo database/role cho dịch vụ đã được cấp. Rate limiter/health tests cần Redis test riêng.
+`.env.example` liệt kê đầy đủ biến. Với PostgreSQL/Redis đã được cấp, tự tạo `.env` từ example và điền `DATABASE_URL`, `TEST_DATABASE_URL`, `SEED_DEMO_PASSWORD` cùng `REDIS_*`/`TEST_REDIS_*`. Không chạy helper local nếu muốn giữ cấu hình riêng. Dùng hai database tên khác nhau, test name kết thúc `_test`; PostgreSQL 17 có gen_random_uuid và btree_gist. Prisma không tạo database/role cho dịch vụ đã được cấp. Rate limiter/health tests cần Redis test riêng. Có thể chạy `npm run auth:configure` để tạo JWT secrets mà không thay cấu hình database/Redis bên ngoài.
 
 ```bash
 npm run prisma:validate
@@ -118,12 +119,13 @@ Global `ValidationPipe` bật transform, whitelist và từ chối trường th�
 
 Rate limiting dùng Lua atomic counter trên Redis với key SHA-256, shared giữa nhiều instance và fail-closed bằng HTTP 503 nếu Redis storage không sẵn sàng. `/api/v1/health/live` chỉ xác nhận tiến trình sống. `/api/v1/health` kiểm tra PostgreSQL, Redis và job worker; nếu dependency lỗi/timeout sẽ trả 503 cùng trạng thái an toàn cho từng thành phần. Hai health route bỏ qua throttling để probe không bị limiter chặn.
 
-Swagger UI ở `http://localhost:4000/api/docs`, OpenAPI JSON ở `/api/docs-json`. Chỉ mô tả các route Phase 2; Bearer scheme được khai báo để dành cho docs Phase 3, hiện chưa có authentication guard hoặc business API.
+Swagger UI ở `http://localhost:4000/api/docs`, OpenAPI JSON ở `/api/docs-json`. Swagger mô tả các endpoint đã triển khai, cùng DTO/envelopes và Bearer authentication cho users APIs.
 
 Khởi động tất cả service local và test:
 
 ```bash
 npm run infra:configure
+npm run auth:configure
 npm run infra:up:test
 npm run db:migrate:test
 npm run check
@@ -140,6 +142,32 @@ curl -i http://127.0.0.1:4000/api/v1/health/live
 curl -i http://127.0.0.1:4000/api/v1/health
 ```
 
+## Phase 3: Authentication, Users, RBAC và C’MEMBER
+
+Chạy `npm run auth:configure` sau `db:configure` để tạo hai signing secrets random riêng biệt trong `.env` (0600), giữ nguyên giá trị đã có và không in secrets. App từ chối khởi động nếu secrets thiếu, quá ngắn hoặc trùng nhau. Không đưa `.env` vào Git/ZIP. E2E tự tạo secrets riêng mỗi lần chạy.
+
+| Method | Endpoint                      | Quyền và kết quả                                                                       |
+| ------ | ----------------------------- | -------------------------------------------------------------------------------------- |
+| POST   | `/api/v1/auth/register`       | Public; `{email,password,fullName,phone?}`; 201 safe profile, CUSTOMER/SILVER/0 points |
+| POST   | `/api/v1/auth/login`          | Public; `{email,password}`; 200 access/refresh tokens, TTL và safe user profile        |
+| POST   | `/api/v1/auth/refresh`        | Public; `{refreshToken}`; 200 token pair mới, token cũ bị revoke atomically            |
+| POST   | `/api/v1/auth/logout`         | Public với refresh token hợp lệ; `{refreshToken}`; 200 `{revoked:true}`, idempotent    |
+| GET    | `/api/v1/users/me`            | Bearer access token; safe profile                                                      |
+| PATCH  | `/api/v1/users/me`            | Bearer access token; chỉ `fullName`, `phone`; `phone:null` để xóa                      |
+| GET    | `/api/v1/users/me/membership` | Bearer access token; points/tier/discountRate                                          |
+
+Email được trim/lowercase, duplicate trả `409 EMAIL_ALREADY_EXISTS` kể cả hai request đồng thời. Password 12–128 ký tự khi đăng ký, lưu Argon2id; login lỗi luôn `401 INVALID_CREDENTIALS`. Login/register giới hạn 5 request/IP/phút qua Redis; refresh giới hạn 30/phút. API responses có `Cache-Control: no-store`; log không chứa body/token/password.
+
+JWT HS256 ràng buộc issuer, audience, token purpose, UUID subject/JTI và expiry. Mặc định access 15 phút, refresh 7 ngày; giới hạn access tối đa 1 giờ, refresh tối đa 90 ngày và dài hơn access. Chỉ SHA-256 hash của refresh JWT random-JTI được lưu DB; token plaintext chỉ gửi về client. Refresh consume và insert successor nằm cùng PostgreSQL transaction, row update conditional với database clock; trong 5 request đồng thời chỉ 1 request thành công. Lỗi insert successor rollback việc revoke token cũ.
+
+Logout revoke refresh token được gửi lên; access token đã phát hành vẫn hợp lệ đến expiry, các phiên khác giữ độc lập. Không dùng khái niệm “logout mọi thiết bị” hay token-family revocation khi chưa có API cho chúng. Refresh token hết hạn/sai/replayed trả `401 INVALID_REFRESH_TOKEN`. Trường role/điểm/tier/email/password không được mass assign qua register/profile.
+
+`JwtAuthGuard` và `RolesGuard` global: endpoint mặc định yêu cầu đăng nhập; chỉ endpoint có `@Public()` được bỏ qua. `@Roles(ADMIN, STAFF)` kiểm tra role hiện tại từ DB, không tin role claim trong JWT; `@CurrentUser()` cung cấp safe profile. GUEST không được phát token/đăng nhập. Không thêm endpoint ADMIN giả để demo RBAC; test harness riêng kiểm tra ma trận CUSTOMER/STAFF/ADMIN.
+
+C’MEMBER rates: SILVER 0.05, GOLD 0.07, DIAMOND 0.10, tập trung trong `DiscountService` export từ UsersModule. Endpoint chỉ đọc tier/points được quản lý server; cộng điểm/transaction payment thuộc Phase 8. Không tự đặt ngưỡng thăng hạng khi đặc tả chưa có.
+
+Đăng nhập demo bằng `customer@nova.local`, `staff@nova.local`, `admin@nova.local` và password riêng `SEED_DEMO_PASSWORD` trong `.env`. Trong Swagger, copy `data.accessToken` từ login vào Authorize; refresh/logout nhận refresh token trong JSON body. Frontend Sandbox chưa được nối vào API này.
+
 ## Tests và build
 
 ```bash
@@ -147,7 +175,7 @@ npm run check
 npm run test:db
 ```
 
-`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **25 unit tests**, **11 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule.
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **27 unit tests**, **30 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule.
 
 Các test DB này chứng minh constraint/nền tảng, **không thay TC01–TC05 qua API** và không chứng minh payment/signature/seat timer/role/check-in window đã chạy. Các API đó sẽ được làm ở phase tương ứng.
 
@@ -162,7 +190,7 @@ npm run start:prod
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-HTTP 200 trả `{success:true,data:{phase:2,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
+HTTP 200 trả `{success:true,data:{phase:3,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
 
 ## Docker database and Redis lifecycle
 
@@ -173,7 +201,7 @@ npm run infra:down
 
 `infra:down` dừng/xóa bốn container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. Compose hiện chạy PostgreSQL/Redis local; API Nest vẫn được chạy từ Node trên host. Docker hóa app/worker thuộc Phase 12.
 
-## Cây mã nguồn mới của Phase 2
+## Cây mã nguồn mới của Phase 3
 
 ```text
 backend/
@@ -189,6 +217,7 @@ backend/
   scripts/
     configure-database.cjs
     configure-infrastructure.cjs
+    configure-auth.cjs
     test-database-target.cjs
     migrate-test-database.cjs
   src/
@@ -198,14 +227,19 @@ backend/
     health/
     queues/
     redis/
+    modules/
+      auth/
+      users/
   test/
     app.e2e-spec.ts
+    auth.e2e-spec.ts
     jest-database.config.cjs
     schema.database-spec.ts
     setup-environment.cjs
   docs/
     validation-phase-1.md
     validation-phase-2.md
+    validation-phase-3.md
 ```
 
-Các bootstrap/config/test Phase 0 được giữ; package scripts, TS/lint include, `.env.example`, `.gitignore` và tài liệu đã cập nhật. Không có module API rỗng hoặc placeholder. Dừng sau Phase 2 và chờ **“TIẾP TỤC PHASE 3”**.
+Các bootstrap/config/test Phase 0 được giữ; package scripts, TS/lint include, `.env.example`, `.gitignore` và tài liệu đã cập nhật. Không có module API rỗng hoặc placeholder. Dừng sau Phase 3 và chờ **“TIẾP TỤC PHASE 4”**.

@@ -82,6 +82,12 @@ export class ShowtimesService {
     const movie = await this.movies.find(movieId, tx);
     if (!movie)
       throw new ApiException(404, "MOVIE_NOT_FOUND", "Movie was not found.");
+    if (movie.status === "ENDED")
+      throw new ApiException(
+        409,
+        "MOVIE_NOT_ON_SALE",
+        "Ended movies cannot receive new schedules.",
+      );
     if (!(await this.rooms.find(roomId, tx)))
       throw new ApiException(404, "ROOM_NOT_FOUND", "Room was not found.");
     const end = new Date(

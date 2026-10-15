@@ -58,6 +58,19 @@ describe("group seat sliding windows", () => {
   it.each([0, 21, -1, 1.5])("rejects invalid quantity %s", (quantity) => {
     expect(findGroupSeats(row("A", [1, 2, 3]), quantity)).toEqual([]);
   });
+  it("suggests only complete Sweetbox pairs, excluding orphan or held halves", () => {
+    const seats = row("H", [1, 2, 3, 4], "SWEETBOX");
+    expect(findGroupSeats(seats, 1, "SWEETBOX")).toEqual([]);
+    expect(findGroupSeats(seats, 3)).toEqual([]);
+    expect(findGroupSeats(seats, 2)).toEqual(["H1", "H2"]);
+    expect(findGroupSeats(seats.slice(1), 2)).toEqual(["H3", "H4"]);
+    expect(
+      findGroupSeats(
+        seats.map((s) => (s.column === 2 ? { ...s, status: "HOLDING" } : s)),
+        2,
+      ),
+    ).toEqual(["H3", "H4"]);
+  });
   it("handles empty/full rooms and a 20-seat window", () => {
     expect(findGroupSeats([], 1)).toEqual([]);
     expect(

@@ -47,6 +47,11 @@ interface Listing {
   items: Booking[];
   meta: { total: number; page: number; limit: number; totalPages: number };
 }
+function successful(responses: Response[]): Response {
+  const response = responses.find((row) => row.status === 201);
+  if (!response) throw new Error("Expected one successful response.");
+  return response;
+}
 function data(response: Response): unknown {
   const body = JSON.parse(response.text) as { success: boolean; data: unknown };
   expect(body.success).toBe(true);
@@ -120,8 +125,14 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
         roomId: room.id,
         seatRow: "A",
         seatColumn: index + 1,
-        seatType: index === 1 ? "VIP" : index === 2 ? "SWEETBOX" : "STANDARD",
-        priceModifier: index === 1 ? "1.20" : index === 2 ? "1.50" : "1.00",
+        seatType:
+          index === 1
+            ? "VIP"
+            : index === 2 || index === 3
+              ? "SWEETBOX"
+              : "STANDARD",
+        priceModifier:
+          index === 1 ? "1.20" : index === 2 || index === 3 ? "1.50" : "1.00",
       })),
     });
     const seats = await prisma.seat.findMany({
@@ -356,16 +367,17 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     ).toBe(300000);
     expect(result).toMatchObject({
       status: "HOLDING",
-      totalTicketAmount: "333000.00",
+      totalTicketAmount: "468000.00",
       totalComboAmount: "138000.00",
-      discountAmount: "23550.00",
-      finalAmount: "447450.00",
+      discountAmount: "30300.00",
+      finalAmount: "575700.00",
       baseTicketPrice: "90000.00",
       membershipTier: "SILVER",
       discountRate: "0.050",
     });
     expect(result.seats.map((row) => row.price).sort()).toEqual([
       "108000.00",
+      "135000.00",
       "135000.00",
       "90000.00",
     ]);
@@ -384,6 +396,90 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     expect(
       await prisma.outboxEvent.count({ where: { aggregateId: result.id } }),
     ).toBe(2);
+  });
+
+  it("Sweetbox: opposite halves race as one pair, cancellation and expiry release both", async () => {
+    const f = await fixture();
+    const responses = await Promise.all([
+      hold(f, customerA, [seat(f, 2)]),
+      hold(f, customerB, [seat(f, 3)], otherServer),
+    ]);
+    expect(responses.map((row) => row.status).sort()).toEqual([201, 409]);
+    const winner = booking(successful(responses));
+    expect(winner.seats.map((row) => row.seatId).sort()).toEqual(
+      [seat(f, 2), seat(f, 3)].sort(),
+    );
+    const token = responses[0].status === 201 ? customerA : customerB;
+    await request(server)
+      .post(`/api/v1/bookings/${winner.id}/cancel`)
+      .auth(token, { type: "bearer" })
+      .expect(200);
+    expect(
+      await prisma.bookingSeat.count({
+        where: { showtimeId: f.showtime.id, status: "HOLDING" },
+      }),
+    ).toBe(0);
+    const next = booking(await hold(f, customerA, [seat(f, 3)]).expect(201));
+    await expireFixture(next.id);
+    expect(booking(await get(next.id).expect(200)).status).toBe("EXPIRED");
+    expect(
+      await prisma.bookingSeat.count({
+        where: { showtimeId: f.showtime.id, status: "HOLDING" },
+      }),
+    ).toBe(0);
+  });
+
+  it("rejects an orphan Sweetbox and more than20 resolved seats atomically", async () => {
+    const f = await fixture();
+    const ids = f.seats
+      .slice(0, 21)
+      .filter((_, index) => index !== 3)
+      .map((row) => row.id);
+    expect(code(await hold(f, customerA, ids).expect(400))).toBe(
+      "SEAT_LIMIT_EXCEEDED",
+    );
+    await prisma.seat.update({
+      where: { id: seat(f, 3) },
+      data: { seatType: "STANDARD", priceModifier: "1.00" },
+    });
+    expect(code(await hold(f, customerA, [seat(f, 2)]).expect(409))).toBe(
+      "SWEETBOX_PAIR_INVALID",
+    );
+    expect(
+      await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+    ).toBe(0);
+  });
+
+  it("does not sell an ENDED movie even when its existing showtime is in the future", async () => {
+    const f = await fixture();
+    await prisma.movie.update({
+      where: { id: f.movie.id },
+      data: { status: "ENDED" },
+    });
+    expect(code(await hold(f).expect(409))).toBe("MOVIE_NOT_ON_SALE");
+    expect(
+      code(
+        await request(server)
+          .post("/api/v1/showtimes")
+          .auth(admin, { type: "bearer" })
+          .send({
+            movieId: f.movie.id,
+            roomId: f.room.id,
+            startTime: new Date(Date.now() + 86400000).toISOString(),
+            baseTicketPrice: "90000.00",
+          })
+          .expect(409),
+      ),
+    ).toBe("MOVIE_NOT_ON_SALE");
+    const map = data(
+      await request(server)
+        .get(`/api/v1/showtimes/${f.showtime.id}/seats`)
+        .expect(200),
+    ) as { canBook: boolean };
+    expect(map.canBook).toBe(false);
+    expect(
+      await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+    ).toBe(0);
   });
 
   it("loads GOLD/DIAMOND discounts from DB and leaves points unchanged", async () => {
@@ -443,7 +539,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     expect(responses.map((row) => row.status).sort()).toEqual([201, 409]);
     expect(
       await prisma.bookingSeat.count({ where: { showtimeId: f.showtime.id } }),
-    ).toBe(2);
+    ).toBe(booking(successful(responses)).seats.length);
     expect(
       await redis.keys(`${namespace()}:seat-lock:{${f.showtime.id}}:*`),
     ).toEqual([]);

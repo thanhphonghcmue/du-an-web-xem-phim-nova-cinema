@@ -11,7 +11,10 @@ export class ShowtimeSeatsRepository {
     });
   }
   showtime(id: string, tx: Prisma.TransactionClient) {
-    return tx.showtime.findUnique({ where: { id } });
+    return tx.showtime.findUnique({
+      where: { id },
+      include: { movie: { select: { status: true } } },
+    });
   }
   async now(tx: Prisma.TransactionClient): Promise<Date> {
     const rows = await tx.$queryRaw<

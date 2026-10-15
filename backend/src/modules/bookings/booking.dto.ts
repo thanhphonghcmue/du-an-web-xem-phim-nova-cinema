@@ -32,7 +32,14 @@ export class HoldSeatsDto {
   @Transform(uuid)
   @IsUUID()
   showtimeId!: string;
-  @ApiProperty({ type: [String], minItems: 1, maxItems: 20, uniqueItems: true })
+  @ApiProperty({
+    type: [String],
+    minItems: 1,
+    maxItems: 20,
+    uniqueItems: true,
+    description:
+      "Sweetbox selections resolve the same-row odd/even partner atomically; maximum20 after resolution.",
+  })
   @Transform(({ value }: { value: unknown }): unknown =>
     Array.isArray(value)
       ? (value as unknown[]).map((item) =>

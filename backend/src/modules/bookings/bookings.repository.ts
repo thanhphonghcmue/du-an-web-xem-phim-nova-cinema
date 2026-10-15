@@ -58,13 +58,19 @@ export class BookingsRepository {
     return now;
   }
   showtime(id: string, tx: Prisma.TransactionClient) {
-    return tx.showtime.findUnique({ where: { id } });
+    return tx.showtime.findUnique({
+      where: { id },
+      include: { movie: { select: { status: true } } },
+    });
   }
   seats(ids: string[], roomId: string, tx: Prisma.TransactionClient) {
     return tx.seat.findMany({
       where: { id: { in: ids }, roomId },
       orderBy: { id: "asc" },
     });
+  }
+  sweetboxSeats(roomId: string, tx: Prisma.TransactionClient) {
+    return tx.seat.findMany({ where: { roomId, seatType: "SWEETBOX" } });
   }
   expiredForSeats(
     showtimeId: string,

@@ -34,10 +34,14 @@ export class SeatBookingService {
     const comboItems = (dto.comboItems ?? [])
       .map((item) => ({ comboId: item.comboId, quantity: item.quantity }))
       .sort((a, b) => a.comboId.localeCompare(b.comboId));
-    const seatIds = [...dto.seatIds].sort();
+    const requestedSeatIds = [...dto.seatIds].sort();
     const hash = createHash("sha256")
       .update(
-        JSON.stringify({ showtimeId: dto.showtimeId, seatIds, comboItems }),
+        JSON.stringify({
+          showtimeId: dto.showtimeId,
+          seatIds: requestedSeatIds,
+          comboItems,
+        }),
       )
       .digest("hex");
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -59,7 +63,6 @@ export class SeatBookingService {
               return this.requireRecord(replay.id, tx);
             }
           }
-          lease = await this.locks.acquire(dto.showtimeId, seatIds);
           await this.bookings.lockShowtime(dto.showtimeId, tx);
           const showtime = await this.bookings.showtime(dto.showtimeId, tx);
           if (!showtime)
@@ -68,13 +71,60 @@ export class SeatBookingService {
               "SHOWTIME_NOT_FOUND",
               "Showtime was not found.",
             );
-          const seats = await this.bookings.seats(seatIds, showtime.roomId, tx);
-          if (seats.length !== seatIds.length)
+          if (showtime.movie.status === "ENDED")
+            throw new ApiException(
+              409,
+              "MOVIE_NOT_ON_SALE",
+              "This movie is no longer on sale.",
+            );
+          const requested = await this.bookings.seats(
+            requestedSeatIds,
+            showtime.roomId,
+            tx,
+          );
+          if (requested.length !== requestedSeatIds.length)
             throw new ApiException(
               400,
               "SEATS_NOT_IN_ROOM",
               "All requested seats must exist in this showtime's room.",
             );
+          // A Sweetbox is the same-row odd/even column pair. Room layouts are immutable once scheduled.
+          const resolved = new Set(requestedSeatIds);
+          if (requested.some((seat) => seat.seatType === "SWEETBOX")) {
+            const physical = await this.bookings.sweetboxSeats(
+              showtime.roomId,
+              tx,
+            );
+            for (const seat of requested.filter(
+              (seat) => seat.seatType === "SWEETBOX",
+            )) {
+              const partnerColumn =
+                seat.seatColumn % 2 === 1
+                  ? seat.seatColumn + 1
+                  : seat.seatColumn - 1;
+              const partner = physical.find(
+                (candidate) =>
+                  candidate.seatRow === seat.seatRow &&
+                  candidate.seatColumn === partnerColumn,
+              );
+              if (!partner)
+                throw new ApiException(
+                  409,
+                  "SWEETBOX_PAIR_INVALID",
+                  "Sweetbox layout is missing its partner seat.",
+                );
+              resolved.add(partner.id);
+            }
+          }
+          const seatIds = [...resolved].sort();
+          if (seatIds.length > 20)
+            throw new ApiException(
+              400,
+              "SEAT_LIMIT_EXCEEDED",
+              "At most20 seats including Sweetbox partners are allowed.",
+            );
+          const seats = await this.bookings.seats(seatIds, showtime.roomId, tx);
+          lease = await this.locks.acquire(dto.showtimeId, seatIds);
           const expired = await this.bookings.expiredForSeats(
             showtime.id,
             seatIds,

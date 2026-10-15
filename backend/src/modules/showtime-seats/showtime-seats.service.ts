@@ -70,7 +70,9 @@ export class ShowtimeSeatsService {
         roomId: showtime.roomId,
         startTime: showtime.startTime,
         asOf,
-        canBook: showtime.startTime.getTime() > asOf.getTime(),
+        canBook:
+          showtime.movie.status !== "ENDED" &&
+          showtime.startTime.getTime() > asOf.getTime(),
         capacity: {
           total: seats.length,
           available: seats.filter((seat) => seat.status === "AVAILABLE").length,

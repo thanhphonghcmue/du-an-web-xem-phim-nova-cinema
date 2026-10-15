@@ -49,6 +49,22 @@ export function findGroupSeats(
       const start = index - quantity + 1;
       const beginning = row[start];
       if (!beginning) continue;
+      const window = row.slice(start, index + 1);
+      if (
+        window.some(
+          (candidate) =>
+            candidate.type === "SWEETBOX" &&
+            !window.some(
+              (partner) =>
+                partner.type === "SWEETBOX" &&
+                partner.column ===
+                  (candidate.column % 2 === 1
+                    ? candidate.column + 1
+                    : candidate.column - 1),
+            ),
+        )
+      )
+        continue;
       const distance = Math.abs((beginning.column + seat.column) / 2 - center);
       // Rows and columns are already ordered, so equal scores retain the deterministic first candidate.
       if (!best || distance < best.distance) best = { row, start, distance };

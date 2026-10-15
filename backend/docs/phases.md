@@ -20,7 +20,7 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase0–8 đã triển khai và kiểm chứng. Phase8 thêm Sandbox checkout chạy được, HMAC-SHA512 URL/webhook riêng miền, owner-only status, payment idempotency/state machine và PAID/SOLD/points/outbox nguyên tử. `npm run check`:54 unit +146 HTTP/WebSocket tests, typecheck/lint/build pass; `test:db`:22 PostgreSQL tests. Tổng222 tests; compiled production HTTP/WebSocket/payment/outbox/worker smoke pass. Evidence validation-phase-1.md đến validation-phase-8.md. TC-01/TC-02/TC-04 hoàn tất; TC-03 hoàn tất phần payment/points/events, còn ticket consumer ở Phase9. Phase9–12 và TC-05 chưa triển khai.
+Phase0–9 đã triển khai và kiểm chứng. Phase9 thêm QR ticket idempotent, owner list/detail/ICS, durable email SMTP/BullMQ và STAFF/ADMIN conditional check-in. `npm run check`:61 unit +173 HTTP/Socket.IO tests, typecheck/lint/build pass; `test:db`:22 PostgreSQL tests. Tổng256 tests; compiled production payment→QR→SMTP→check-in smoke và actual Mailpit probe pass. TC-01–TC-05 hoàn tất; Phase10–12 chưa triển khai. Evidence validation-phase-1.md đến validation-phase-9.md.
 
 ## Phase 2 đã triển khai
 
@@ -57,3 +57,9 @@ Public GET seat-map/capacity và group suggestion1–20; cùng snapshot REPEATAB
 Ba payment APIs create-sandbox-url/webhook/owner status, cùng signed HTML Sandbox simulator; không thu tiền thật và không yêu cầu tài khoản cổng thanh toán ngoài. HMAC-SHA512 canonical JSON arrays, checkout.v1/webhook.v1 riêng miền, timing-safe verification, amount snapshot fixed2, transaction binding, timestamp window và return-origin allowlist. Một sandbox attempt được replay dưới booking lock, không gia hạn hold. SUCCESS commit PAID/SOLD/SUCCESS + Decimal points floor(final×0.10/1000) +seat_sold/ticket-request/expiry-cancel outbox. FAILED/CANCELLED trả ghế nguyên tử; terminal outcome trùng no-op, mâu thuẫn409; late success không hồi sinh booking/ownership. Redis/queue lỗi sau commit có durable retry.
 
 28 integration cases dùng2 API instances, PostgreSQL/Redis/Socket.IO/BullMQ thật: concurrent duplicate/create/terminal callbacks, cancel/expiry/member lock races, rollback/precommit visibility và queue cancellation retry. Thêm9 signature/points unit cases +1 config case. Không schema/migration/dependency mới; secret bắt buộc riêng được cấu hình bằng payment:configure. TC-03 ticket existence hoàn thiện Phase9, hiện duy nhất durable booking.ticket.requested và chưa ack giả. Dừng và chờ `TIẾP TỤC PHASE 9`.
+
+## Phase 9 đã triển khai
+
+Consumer booking.ticket.requested chỉ tạo ETicket khi PAID và toàn bộ child seats SOLD; booking row lock +unique constraints giữ1 ticket/hash/QR và1 email request ngay khi concurrent/retry. QR PNG encode crypto.randomBytes32 hex, không PII; GET owner tickets/me, tickets/:id và optional private ICS. SMTP qua Nodemailer/BullMQ, DB outbox processedAt chỉ sau SMTP acceptance, lease/fencing/backoff/lost-queue recovery; không rollback payment/ticket khi SMTP lỗi. Stable Message-ID hỗ trợ dedup nhưng SMTP không exactly-once: accepted-before-DB-ack crash có thể gửi lại thư cùng QR. Check-in STAFF/ADMIN kiểm tra DB role/PAID/SOLD/configurable UTC window, conditional update false→true có1 winner khi6 scans qua2 instances.
+
+27 integration cases với PG/Redis/BullMQ/SMTP thật và2 API instances;7 unit cases cho config/window boundaries. Compiled production verify automatic payment→one QR→actual MIME/PNG/ICS→owner APIs→concurrent staff check-in, cleanup owned fixtures. Mailpit localhost SMTP1025/inbox8025 có compose riêng và image pin digest. Không migration/schema/runtime dependency mới;3 dev deps để decode QR thật trong tests/smoke. Dừng và chờ `TIẾP TỤC PHASE 10`.

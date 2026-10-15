@@ -37,6 +37,8 @@
     "infra:up:test": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml --profile test up -d --wait",
     "infra:down": "docker compose --env-file .runtime/database.env --env-file .runtime/infrastructure.env -f compose.database.yml -f compose.infrastructure.yml --profile test down",
     "payment:configure": "node scripts/configure-payment.cjs",
+    "mail:up": "docker compose -p nova-cinema-mail -f compose.mail.yml up -d --wait",
+    "mail:down": "docker compose -p nova-cinema-mail -f compose.mail.yml down",
     "auth:configure": "node scripts/configure-auth.cjs"
   },
   "dependencies": {
@@ -76,11 +78,14 @@
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^7.0.0",
     "@types/passport-jwt": "^4.0.1",
+    "@types/pngjs": "6.0.5",
     "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.3",
     "eslint": "^9.0.0",
     "globals": "^16.0.0",
     "jest": "^29.7.0",
+    "jsqr": "1.4.0",
+    "pngjs": "7.0.0",
     "prettier": "^3.0.0",
     "prisma": "6.19.0",
     "socket.io-client": "4.8.4",

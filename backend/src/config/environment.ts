@@ -1,4 +1,5 @@
 import { readBootstrapConfig } from "./bootstrap.config";
+import { notificationSettings } from "./notification.settings";
 export class ConfigurationError extends Error {}
 export function integerSetting(
   environment: NodeJS.ProcessEnv,
@@ -90,6 +91,7 @@ export function validateEnvironment(
     throw new ConfigurationError("Payment and JWT secrets must be different.");
   paymentOrigin(environment);
   paymentReturnOrigins(environment);
+  notificationSettings(environment);
   return environment;
 }
 export function paymentOrigin(environment: NodeJS.ProcessEnv): string {

@@ -9,13 +9,16 @@ const { hash } = require("argon2");
 const { Queue } = require("bullmq");
 const Redis = require("ioredis");
 const { io } = require("socket.io-client");
+const { PNG } = require("pngjs");
+const jsQR = require("jsqr");
+const { createSmtpFixture } = require("../test/support/smtp-fixture.cjs");
 const { testDatabaseTarget } = require("./test-database-target.cjs");
 
 const backend = resolve(__dirname, "..");
 const databaseUrl = testDatabaseTarget();
 for (const key of ["TEST_REDIS_HOST", "TEST_REDIS_PORT", "TEST_REDIS_DB"])
   if (!process.env[key]) throw new Error(`${key} is required for smoke tests.`);
-const prefix = `p8-smoke-${randomUUID()}`;
+const prefix = `p9-smoke-${randomUUID()}`;
 const paymentSecret = randomBytes(48).toString("hex");
 const queuePrefix = `nova:smoke:${randomUUID().replaceAll("-", "")}`;
 const connection = {
@@ -35,6 +38,7 @@ const queue = new Queue("seat-expiration", { connection, prefix: queuePrefix });
 queue.on("error", () => {});
 let child;
 let watcher;
+let smtpFixture;
 let stage = "prepare isolated fixtures";
 async function eventually(check) {
   const deadline = Date.now() + 10000;
@@ -45,6 +49,7 @@ async function eventually(check) {
   throw new Error("Expected smoke state did not arrive.");
 }
 async function main() {
+  smtpFixture = await createSmtpFixture();
   const socket = createServer();
   socket.listen(0, "127.0.0.1");
   await once(socket, "listening");
@@ -55,14 +60,14 @@ async function main() {
   const password = randomBytes(24).toString("hex");
   const passwordHash = await hash(password);
   const users = [];
-  for (const label of ["a", "b"])
+  for (const label of ["a", "b", "staff", "staff2"])
     users.push(
       await prisma.user.create({
         data: {
           email: `${prefix}-${label}@example.test`,
           passwordHash,
           fullName: "Booking smoke",
-          role: "CUSTOMER",
+          role: label.startsWith("staff") ? "STAFF" : "CUSTOMER",
         },
       }),
     );
@@ -71,7 +76,7 @@ async function main() {
       title: prefix,
       description: "Production booking smoke",
       durationMinutes: 120,
-      releaseDate: new Date("2041-01-01T00:00:00Z"),
+      releaseDate: new Date(Date.now() - 86400000),
       ageRating: "T13",
     },
   });
@@ -102,12 +107,13 @@ async function main() {
         },
       }),
     );
+  const starts = new Date(Date.now() + 30 * 60000);
   const showtime = await prisma.showtime.create({
     data: {
       movieId: movie.id,
       roomId: room.id,
-      startTime: new Date("2042-01-01T10:00:00Z"),
-      endTime: new Date("2042-01-01T12:15:00Z"),
+      startTime: starts,
+      endTime: new Date(starts.getTime() + 135 * 60000),
       baseTicketPrice: "90000.00",
     },
   });
@@ -134,6 +140,15 @@ async function main() {
       PAYMENT_SANDBOX_SECRET: paymentSecret,
       PAYMENT_SANDBOX_BASE_URL: `http://127.0.0.1:${port}`,
       PAYMENT_RETURN_ORIGINS: "http://localhost:3000",
+      SMTP_HOST: "127.0.0.1",
+      SMTP_PORT: String(smtpFixture.port),
+      SMTP_USER: "",
+      SMTP_PASS: "",
+      SMTP_FROM: "tickets@nova.local",
+      SMTP_SECURE: "false",
+      SMTP_TIMEOUT_MS: "1000",
+      CHECK_IN_BEFORE_MINUTES: "60",
+      CHECK_IN_AFTER_MINUTES: "30",
     },
   });
   const base = `http://127.0.0.1:${port}`;
@@ -167,7 +182,7 @@ async function main() {
       return false;
     }
   });
-  assert.equal((await api("GET", "/api/v1", 200)).data.phase, 8);
+  assert.equal((await api("GET", "/api/v1", 200)).data.phase, 9);
   const tokens = [];
   for (const user of users)
     tokens.push(
@@ -456,6 +471,25 @@ async function main() {
       !(await queue.getJob(`booking-expire-${paidBooking.id}`))
     );
   });
+  stage = "automatic QR ticket issuance and actual SMTP delivery";
+  await eventually(async () => {
+    const ticket = await prisma.eTicket.findUnique({
+      where: { bookingId: paidBooking.id },
+    });
+    const email = await prisma.outboxEvent.findFirst({
+      where: {
+        aggregateId: paidBooking.id,
+        eventType: "ticket.email.requested",
+      },
+    });
+    const request = await prisma.outboxEvent.findFirst({
+      where: {
+        aggregateId: paidBooking.id,
+        eventType: "booking.ticket.requested",
+      },
+    });
+    return Boolean(ticket && email?.processedAt && request?.processedAt);
+  });
   const ticketRequests = await prisma.outboxEvent.findMany({
     where: {
       aggregateId: paidBooking.id,
@@ -463,11 +497,53 @@ async function main() {
     },
   });
   assert.equal(ticketRequests.length, 1);
-  assert.equal(ticketRequests[0].processedAt, null);
+  assert(ticketRequests[0].processedAt);
   assert.equal(
     await prisma.eTicket.count({ where: { bookingId: paidBooking.id } }),
-    0,
+    1,
   );
+  const ticket = await prisma.eTicket.findUniqueOrThrow({
+    where: { bookingId: paidBooking.id },
+  });
+  const png = PNG.sync.read(
+    Buffer.from(
+      ticket.qrCodeBase64.replace(/^data:image\/png;base64,/, ""),
+      "base64",
+    ),
+  );
+  assert.equal(
+    jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data,
+    ticket.ticketHash,
+  );
+  const email = await prisma.outboxEvent.findFirstOrThrow({
+    where: { aggregateId: paidBooking.id, eventType: "ticket.email.requested" },
+  });
+  const sent = smtpFixture.state.messages.filter((message) =>
+    message.raw.includes(email.id),
+  );
+  assert.equal(sent.length, 1);
+  assert.deepEqual(sent[0].to, [users[1].email]);
+  assert.match(sent[0].raw, /Content-Type: image\/png/i);
+  assert.match(sent[0].raw, /Content-Type: text\/calendar/i);
+  await api("GET", `/api/v1/tickets/${ticket.id}`, 404, undefined, tokens[0]);
+  const ownTicket = (
+    await api("GET", `/api/v1/tickets/${ticket.id}`, 200, undefined, tokens[1])
+  ).data;
+  assert.equal(ownTicket.ticketHash, ticket.ticketHash);
+  assert.equal(ownTicket.seats.length, 2);
+  assert(
+    (
+      await api("GET", "/api/v1/tickets/me", 200, undefined, tokens[1])
+    ).data.items.some((item) => item.id === ticket.id),
+  );
+  stage = "production owner calendar download";
+  const calendar = await fetch(`${base}/api/v1/tickets/${ticket.id}/calendar`, {
+    headers: { authorization: `Bearer ${tokens[1]}` },
+    signal: AbortSignal.timeout(5000),
+  });
+  assert.equal(calendar.status, 200);
+  assert.match(calendar.headers.get("content-type"), /text\/calendar/);
+  assert.match(await calendar.text(), /BEGIN:VCALENDAR/);
   stage = "production Sandbox form duplicate completion";
   const form = new URL(payment.url).searchParams;
   form.set("result", "SUCCESS");
@@ -483,6 +559,41 @@ async function main() {
       .data.points,
     31,
   );
+  assert.equal(
+    await prisma.eTicket.count({ where: { bookingId: paidBooking.id } }),
+    1,
+  );
+  await api("POST", "/api/v1/staff/check-in", 401, {
+    ticketHash: ticket.ticketHash,
+  });
+  await api(
+    "POST",
+    "/api/v1/staff/check-in",
+    403,
+    { ticketHash: ticket.ticketHash },
+    tokens[1],
+  );
+  stage = "production atomic concurrent two-staff QR admission";
+  const scans = await Promise.all(
+    [tokens[2], tokens[3]].map(async (auth) => {
+      const response = await fetch(`${base}/api/v1/staff/check-in`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${auth}`,
+        },
+        body: JSON.stringify({ ticketHash: ticket.ticketHash }),
+        signal: AbortSignal.timeout(5000),
+      });
+      return response.status;
+    }),
+  );
+  assert.deepEqual(scans.sort(), [200, 409]);
+  const admitted = await prisma.eTicket.findUniqueOrThrow({
+    where: { id: ticket.id },
+  });
+  assert.equal(admitted.isCheckedIn, true);
+  assert([users[2].id, users[3].id].includes(admitted.checkedInByStaffId));
   const paidJob = await queue.add(
     "expire-booking-hold",
     { bookingId: paidBooking.id },
@@ -502,7 +613,7 @@ async function main() {
   assert(spec.paths["/api/v1/bookings/hold"].post.security);
   assert(spec.paths["/api/v1/payments/webhook"]);
   console.log(
-    "PASS compiled Phase 8 production smoke: booking/expiry/re-hold, signed Sandbox URL and HTML form, HMAC rejection, FAILED release, PAID/SOLD/points once, owner status, actual seat_sold, automatic expiry cancellation, harmless paid worker and durable Phase9 ticket request.",
+    "PASS compiled Phase9 production smoke: booking/payment/realtime/expiry, automatic one QR +decoded PNG, actual SMTP MIME/PNG/ICS delivery, owner tickets/calendar/privacy, duplicate payment effects once, STAFF role checks and concurrent single-winner QR admission.",
   );
 }
 async function cleanup() {
@@ -525,6 +636,7 @@ async function cleanup() {
   });
   const ids = bookings.map((row) => row.id);
   await prisma.outboxEvent.deleteMany({ where: { aggregateId: { in: ids } } });
+  await prisma.eTicket.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.payment.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.bookingCombo.deleteMany({ where: { bookingId: { in: ids } } });
   await prisma.bookingSeat.deleteMany({ where: { bookingId: { in: ids } } });
@@ -537,6 +649,7 @@ async function cleanup() {
   await prisma.combo.deleteMany({ where: { name: prefix } });
   await prisma.refreshToken.deleteMany({ where: { userId: { in: userIds } } });
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  await smtpFixture?.close();
   await queue.close();
   const keys = await redis.keys(`${queuePrefix}:*`);
   if (keys.length) await redis.del(...keys);

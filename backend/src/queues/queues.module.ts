@@ -6,6 +6,7 @@ import { redisConnection } from "../redis/redis.service";
 import { InfrastructureProcessor } from "./infrastructure/infrastructure.processor";
 import { InfrastructureQueueService } from "./infrastructure/infrastructure-queue.service";
 import { SeatExpirationQueueService } from "./seat-expiration/seat-expiration-queue.service";
+import { TicketEmailQueueService } from "./ticket-email/ticket-email-queue.service";
 @Module({
   imports: [
     BullModule.forRootAsync({
@@ -24,13 +25,20 @@ import { SeatExpirationQueueService } from "./seat-expiration/seat-expiration-qu
     BullModule.registerQueue(
       { name: "infrastructure" },
       { name: "seat-expiration" },
+      { name: "ticket-email" },
     ),
   ],
   providers: [
     InfrastructureProcessor,
     InfrastructureQueueService,
     SeatExpirationQueueService,
+    TicketEmailQueueService,
   ],
-  exports: [BullModule, InfrastructureQueueService, SeatExpirationQueueService],
+  exports: [
+    BullModule,
+    InfrastructureQueueService,
+    SeatExpirationQueueService,
+    TicketEmailQueueService,
+  ],
 })
 export class QueuesModule {}

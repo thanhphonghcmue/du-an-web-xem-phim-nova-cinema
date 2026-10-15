@@ -1,12 +1,12 @@
-# NOVA Cinema Backend — Phase 8
+# NOVA Cinema Backend — Phase 9
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–8 hoàn tất**: nền tảng/auth/catalog/showtimes, booking hold/cancel/expiry, seat-map/group suggestion/realtime và Sandbox payment HMAC-SHA512 với PAID/SOLD/points/outbox nguyên tử. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–9 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR mỗi booking PAID, email SMTP có durable retry, owner ticket/calendar APIs và check-in STAFF/ADMIN nguyên tử. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md).
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md) · [Phase 9](docs/validation-phase-9.md).
 
 ## Requirements
 
-Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập; SMTP dành cho Phase9.
+Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập. SMTP local dùng Mailpit; SMTP ngoài cấu hình riêng qua biến môi trường.
 
 Nếu đã có PostgreSQL/Redis riêng, điền connection settings vào `.env` thay vì ghi đè cấu hình bằng các helper local.
 
@@ -22,6 +22,7 @@ npm run infra:configure
 npm run auth:configure
 npm run payment:configure
 npm run infra:up:test
+npm run mail:up
 npm run prisma:validate
 npm run prisma:generate
 npm run db:migrate
@@ -491,7 +492,7 @@ Verify timing-safe; verify binding booking/provider/order/transaction và amount
 
 Points = **floor(finalAmount ×0.10 /1000)** bằng Decimal;1 điểm/10.000đ thanh toán. Ví dụ85500.00→8 điểm,319200.00→31 điểm. Hai constants `MEMBER_POINT_EARNING_RATE`/`MEMBER_POINT_REVENUE_UNIT` nằm tại member-points.ts. Increment được khóa theo user, kiểm tra overflow Int trước ghi; không tự đổi tier. Payment/points/seat/events lỗi thì rollback toàn bộ, retry callback cùng transactionCode an toàn.
 
-SUCCESS ghi `seat_sold`, `booking.ticket.requested` và `booking.expiration.cancel.requested` trong transaction; Phase7 relay chỉ broadcast sau commit. Expiry relay xóa delayed job sau commit với retry; job đang active hoặc schedule đến muộn vẫn harmless vì worker kiểm tra DB. Redis/queue lỗi không biến một payment đã commit thành thất bại. `booking.ticket.requested {bookingId}` giữ pending cho Phase9; hiện **chưa phát hành QR/email/check-in**, nên TC-03 còn bước ticket existence. TC-04 đã hoàn tất, TC-03 phần PAID/SOLD/points/idempotency/Socket.IO đã pass.
+SUCCESS ghi `seat_sold`, `booking.ticket.requested` và `booking.expiration.cancel.requested` trong transaction; Phase7 relay chỉ broadcast sau commit. Expiry relay xóa delayed job sau commit với retry; job đang active hoặc schedule đến muộn vẫn harmless vì worker kiểm tra DB. Redis/queue lỗi không biến một payment đã commit thành thất bại. `booking.ticket.requested {bookingId}` hiện được consumer Phase9 phát hành một QR và ghi email outbox. TC-03 đã kiểm chứng toàn chuỗi payment/points/realtime/ticket và duplicate effects; TC-04 cũng hoàn tất.
 
 Files mới trong Phase8:
 
@@ -512,6 +513,91 @@ test/payments.e2e-spec.ts
 docs/validation-phase-8.md
 ```
 
+## Phase 9 — QR, email và staff check-in
+
+Sau webhook SUCCESS, consumer đọc `booking.ticket.requested` và tạo **một ETicket cho toàn bộ booking**, kể cả booking nhiều ghế. Chỉ booking PAID với tất cả child seats SOLD được phát hành. Booking row lock và unique bookingId/ticketHash giữ QR ổn định khi nhiều instances hoặc retry cùng xử lý. Ticket và `ticket.email.requested {bookingId,ticketId}` được commit cùng nhau. Không có public API tự phát hành vé cho booking chưa thanh toán.
+
+Nâng cấp từ Phase8:
+
+```bash
+cd backend
+npm ci
+npm run infra:up:test
+npm run mail:up
+npm run check
+npm run test:db
+node scripts/smoke-booking.cjs
+npm run start:dev
+```
+
+Không có migration/schema hoặc runtime dependency mới. Các dev dependencies pngjs/jsqr/@types/pngjs phục vụ decode QR thật trong tests/smoke; qrcode runtime vẫn giữ dependency PNG riêng trong lockfile.
+
+Mailpit có Compose riêng (`compose.mail.yml`, project nova-cinema-mail), image pin digest, SMTP localhost cổng1025 và inbox localhost cổng8025. Mở inbox trong trình duyệt trên máy chạy backend để xem email mô phỏng. Chỉ bind127.0.0.1, không gửi ra hộp thư thật. `npm run mail:up` lặp lại giữ messages/volume; `npm run mail:down` dừng container và giữ volume. Không dùng down -v khi cần giữ thư. Nếu đổi SMTP_LOCAL_PORT/MAILPIT_LOCAL_HTTP_PORT khi chạy Compose, đặt SMTP_PORT trong `.env` cho khớp. Smoke/test dùng SMTP TCP fixture trên free port riêng, không xóa thư developer.
+
+| Setting                   | Mặc định/ràng buộc                                                                |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| `SMTP_HOST`               | 127.0.0.1; dùng private host của provider khi cần SMTP ngoài                      |
+| `SMTP_PORT`               | 1025, integer1–65535                                                              |
+| `SMTP_SECURE`             | false; đặt true cho TLS trực tiếp (thường465); remote nonsecure bắt buộc STARTTLS |
+| `SMTP_USER` / `SMTP_PASS` | Omit cả hai cho Mailpit; provider auth phải đủ cả hai, không commit giá trị       |
+| `SMTP_FROM`               | tickets@nova.local; một địa chỉ email, không CR/LF                                |
+| `SMTP_TIMEOUT_MS`         | 10000, allowed100–10000; absolute deadline đóng actual socket                     |
+| `CHECK_IN_BEFORE_MINUTES` | 60; integer0–1440 trước showtime.startTime                                        |
+| `CHECK_IN_AFTER_MINUTES`  | 30; integer0–1440 sau showtime.startTime                                          |
+
+SMTP certificate validation được giữ nguyên. Core health kiểm tra PG/Redis/BullMQ/realtime; không coi health200 là bằng chứng SMTP provider đã đưa thư vào inbox. Mail lỗi vẫn giữ booking PAID và QR để khách đọc qua owner APIs.
+
+| Endpoint dưới `/api/v1`     | Quyền            | Kết quả                                                                                              |
+| --------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------- |
+| GET `/tickets/me`           | JWT owner        | Page items/meta, sort createdAt desc/id asc, page/limit và optional isCheckedIn=true/false           |
+| GET `/tickets/:id`          | JWT owner        | QR PNG Base64 +opaque hash, booking/order/movie/cinema/room/times/seats/combos/amount/check-in state |
+| GET `/tickets/:id/calendar` | JWT owner        | ICS attachment UTC, stable UID, không hash/email                                                     |
+| POST `/staff/check-in`      | STAFF hoặc ADMIN | Atomic single-use scan, trả thông tin vé/ghế/combo, bỏ QR/hash/email                                 |
+
+Owner reads luôn lọc booking.userId; nonowner kể cả ADMIN404. Missing/invalid ID404/400, unauthenticated401; customer check-in403. Không log QR, hash hay response body chứa capability. QR PNG320px chỉ encode64 lowercase hex từ crypto.randomBytes(32); không encode email/order/owner metadata. Client scanner gửi JSON gồm duy nhất `ticketHash` đã decode.
+
+Check-in xác minh DB role hiện tại, booking PAID, seats SOLD và DB clock trong **inclusive window** `[startTime−before, startTime+after]`. Quá sớm/muộn409CHECK_IN_OUTSIDE_WINDOW; chưa PAID409TICKET_BOOKING_NOT_PAID; unknown valid hash404TICKET_NOT_FOUND; đã dùng409TICKET_ALREADY_USED. Server ghi isCheckedIn/checkedInAt/checkedInByStaffId cùng atomic UPDATE WHERE isCheckedIn=false. Sáu concurrent requests qua2 instances có đúng1success/5conflicts; không lấy staffId hoặc timestamps từ body.
+
+Calendar dùng film duration cho DTEND, không cộng15 phút dọn phòng; UTC Z timestamps và UID giữ ổn định khi tải lại. Các text field escape CR/LF/backslash/comma/semicolon và fold≤75UTF8 bytes. Route attachment cùng ownership guard như ticket, không public hóa QR.
+
+### Email delivery và retry
+
+Email chứa order code, phim/rạp/phòng, giờ Việt Nam UTC+07:00, ghế, combo, giá snapshot, inline PNG QR và calendar ICS. Text/html được escape; transport tắt debug và không đọc file/URL attachments. Outbox/queue chỉ chứa IDs, không email/PNG/password. SMTP settings có thể dùng Mailpit local hoặc SMTP demo/provider do bạn cấu hình.
+
+FulfillmentRelay chạy startup rồi mỗi1s, claim SKIP LOCKED batch20/lease30s. Ticket request chỉ ack sau khi generation commit. Email request được enqueue vào queue `ticket-email`, worker concurrency3, **chưa ack khi queue nhận job**. Worker atomic takeover lease, bỏ qua stale queued owner; chỉ processedAt sau SMTP acceptance và fenced DB ack. SMTP/queue lỗi ghi safe lastError, giữ pending với exponential backoff tối đa60s. Mỗi lần claim dùng job ID eventId+attempt mới để retained failed/lost jobs không chặn retry; không có background send bị bỏ lại sau Promise.race timeout.
+
+**Email có thể gửi lại** nếu SMTP đã chấp nhận nhưng worker mất kết nối/crash trước DB ack, hoặc lease hết hạn khi process bị treo. Message-ID cố định theo event hỗ trợ provider dedup, không bảo đảm exactly-once hay inbox receipt. QR/hash/booking/points không bị tạo lại. Test fault-injected ack failure xác nhận hai accepted messages có cùng Message-ID và cùng một vé; các retry thông thường sau451 chỉ tạo một accepted message. Khách vẫn có vé qua API khi SMTP lỗi.
+
+Để thử đầy đủ: giữ ghế, thanh toán SUCCESS qua Sandbox, chờ consumer (thường khoảng1s), GET tickets/me bằng tài khoản chủ đơn và xem Mailpit. Dùng STAFF/ADMIN login để POST staff/check-in với opaque hash trong window; gửi lần hai nhận409. Nếu chọn suất quá xa, scan trả outside-window đúng nghiệp vụ. Có thể tải ICS riêng từ owner endpoint.
+
+```text
+src/config/notification.config.ts
+src/config/notification.settings.ts
+src/modules/tickets/
+  ticket.dto.ts
+  ticket-format.ts
+  ticket-format.spec.ts
+  tickets.controller.ts
+  staff.controller.ts
+  tickets.repository.ts
+  tickets.service.ts
+  tickets.module.ts
+src/modules/notifications/
+  fulfillment-relay.service.ts
+  notification.service.ts
+  smtp-mailer.service.ts
+  ticket-email.ts
+  ticket-email.processor.ts
+  notifications.module.ts
+src/queues/ticket-email/
+  ticket-email-queue.service.ts
+test/tickets.e2e-spec.ts
+test/support/smtp-fixture.cjs
+test/support/smtp-fixture.d.cts
+compose.mail.yml
+docs/validation-phase-9.md
+```
+
 ## Tests và build
 
 ```bash
@@ -519,9 +605,9 @@ npm run check
 npm run test:db
 ```
 
-`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **54 unit tests**, **146 HTTP/Socket.IO e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng222 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency.
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **61 unit tests**, **173 HTTP/Socket.IO e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng256 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency.
 
-Các test DB chứng minh constraint/nền tảng, không thay TC01–TC05 qua API. **TC-01/TC-02 đã kiểm chứng qua HTTP**, Phase7 kiểm tra Socket.IO qua2 API instances +Redis Pub/Sub thật, delayed expiry qua worker BullMQ thật; TC-04 hoàn tất; TC-03 đã kiểm chứng PAID/SOLD/points/events và một durable ticket request, còn phát hành vé ở Phase9. TC-05/check-in chưa có. Test expiry dịch chuyển timestamps của fixture cùng nhau để đi qua deadline, không đợi5 phút hoặc rút ngắn TTL production.
+Các test DB chứng minh constraint/nền tảng, không thay TC01–TC05 qua API. **TC-01/TC-02 đã kiểm chứng qua HTTP**, Phase7 kiểm tra Socket.IO qua2 API instances +Redis Pub/Sub thật, delayed expiry qua worker BullMQ thật; TC-03/TC-04/TC-05 hoàn tất: PAID/SOLD/points/events/ticket idempotency, failure release/rehold và single-use staff admission đều có real API/DB/SMTP/worker acceptance. Test expiry dịch chuyển timestamps của fixture cùng nhau để đi qua deadline, không đợi5 phút hoặc rút ngắn TTL production.
 
 Smoke bản build với HTTP, automatic outbox relay và worker thật, tự cấp free port/ephemeral secrets/test fixtures rồi cleanup:
 
@@ -541,7 +627,7 @@ npm run start:prod
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-HTTP 200 trả `{success:true,data:{phase:8,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
+HTTP 200 trả `{success:true,data:{phase:9,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
 
 ## Docker database and Redis lifecycle
 
@@ -552,11 +638,12 @@ npm run infra:down
 
 `infra:down` dừng/xóa bốn container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. Compose hiện chạy PostgreSQL/Redis local; API Nest vẫn được chạy từ Node trên host. Docker hóa app/worker thuộc Phase 12.
 
-## Cây mã nguồn hiện tại đến Phase 8
+## Cây mã nguồn hiện tại đến Phase 9
 
 ```text
 backend/
   compose.infrastructure.yml
+  compose.mail.yml
   compose.database.yml
   prisma/
     schema.prisma
@@ -583,6 +670,7 @@ backend/
     queues/
       outbox/
       seat-expiration/
+      ticket-email/
     redis/
     modules/
       auth/
@@ -596,6 +684,8 @@ backend/
       bookings/
       showtime-seats/
       payments/
+      tickets/
+      notifications/
   test/
     app.e2e-spec.ts
     auth.e2e-spec.ts
@@ -604,6 +694,10 @@ backend/
     booking-concurrency.e2e-spec.ts
     seats-realtime.e2e-spec.ts
     payments.e2e-spec.ts
+    tickets.e2e-spec.ts
+    support/
+      smtp-fixture.cjs
+      smtp-fixture.d.cts
     jest-database.config.cjs
     schema.database-spec.ts
     setup-environment.cjs
@@ -616,6 +710,7 @@ backend/
     validation-phase-6.md
     validation-phase-7.md
     validation-phase-8.md
+    validation-phase-9.md
 ```
 
-Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 8 và chờ **“TIẾP TỤC PHASE 9”**.
+Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 9 và chờ **“TIẾP TỤC PHASE 10”**.

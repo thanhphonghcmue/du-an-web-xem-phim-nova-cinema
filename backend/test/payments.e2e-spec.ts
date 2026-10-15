@@ -1,3 +1,4 @@
+import { FulfillmentRelay } from "../src/modules/notifications/fulfillment-relay.service";
 import { INestApplication } from "@nestjs/common";
 import { getQueueToken } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
@@ -255,10 +256,12 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
     app = await createApplication({ logger: false });
     await app.listen(0, "127.0.0.1");
     await app.get(BookingMaintenanceService).stop();
+    await app.get(FulfillmentRelay).stop();
     await app.get(SeatEventsRelay).stop();
     other = await createApplication({ logger: false });
     await other.listen(0, "127.0.0.1");
     await other.get(BookingMaintenanceService).stop();
+    await other.get(FulfillmentRelay).stop();
     await other.get(SeatEventsRelay).stop();
     server = app.getHttpServer() as Server;
     remote = other.getHttpServer() as Server;
@@ -987,7 +990,7 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
       canPay: false,
     });
   });
-  it("documents the three payment APIs, separate signature domains and no ticket/check-in routes", async () => {
+  it("documents the three payment APIs, separate signature domains alongside Phase9 ticket/check-in routes", async () => {
     const spec = JSON.parse(
       (await request(server).get("/api/docs-json").expect(200)).text,
     ) as {
@@ -1007,6 +1010,6 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
       spec.paths["/api/v1/payments/webhook"]?.post?.security,
     ).toBeUndefined();
     expect(spec.components.schemas).toHaveProperty("PaymentWebhookDto");
-    expect(spec.paths).not.toHaveProperty("/api/v1/tickets/check-in");
+    expect(spec.paths).toHaveProperty("/api/v1/staff/check-in");
   });
 });

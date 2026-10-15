@@ -9,6 +9,8 @@ import databaseConfig from "./config/database.config";
 import redisConfig from "./config/redis.config";
 import jwtConfig from "./config/jwt.config";
 import paymentConfig from "./config/payment.config";
+import notificationConfig from "./config/notification.config";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { validateEnvironment } from "./config/environment";
 import { PrismaModule } from "./database/prisma.module";
@@ -32,7 +34,14 @@ import { RealtimeModule } from "./realtime/realtime.module";
       isGlobal: true,
       envFilePath: ".env",
       cache: true,
-      load: [appConfig, databaseConfig, redisConfig, jwtConfig, paymentConfig],
+      load: [
+        appConfig,
+        databaseConfig,
+        redisConfig,
+        jwtConfig,
+        paymentConfig,
+        notificationConfig,
+      ],
       validate: validateEnvironment,
     }),
     PrismaModule,
@@ -48,6 +57,7 @@ import { RealtimeModule } from "./realtime/realtime.module";
     BookingsModule,
     RealtimeModule,
     PaymentsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

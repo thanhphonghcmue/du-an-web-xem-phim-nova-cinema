@@ -20,7 +20,7 @@ Nguồn: SUPER PROMPT MASTER BACKEND. Không gộp phase hoặc tự chuyển ph
 
 ## Trạng thái hiện tại
 
-Phase0–6 đã triển khai và kiểm chứng. Phase6 thêm Booking/Pricing/Combos, Redis seat mutex, snapshot/idempotency migration, expiry outbox/BullMQ worker và recovery. `npm run check`: 33 unit, 102 HTTP e2e (29 booking +21 showtime +22 catalog +19 auth +11 infrastructure), typecheck/lint/build pass; `test:db`: 22 PostgreSQL tests pass. Tổng157 tests, compiled production HTTP/outbox/worker smoke pass; schema drift không khác biệt. Evidence ở `validation-phase-1.md` đến `validation-phase-6.md`. **TC-01/TC-02 hoàn tất**; Phase7–12 và TC-03/04/05 chưa hoàn tất.
+Phase0–7 đã triển khai và kiểm chứng. Phase7 thêm seat-map/capacity và group-seat suggestion public, Socket.IO /seats, Redis Pub/Sub bridge/outbox delivery sau commit, subscription policy và realtime readiness. `npm run check`:44 unit +118 HTTP/WebSocket tests, typecheck/lint/build pass; `test:db`:22 PostgreSQL tests. Tổng184 tests; compiled production HTTP/WebSocket/outbox/worker smoke pass. Evidence validation-phase-1.md đến validation-phase-7.md. TC-01/TC-02 hoàn tất; Phase8–12 và TC-03/04/05 chưa hoàn tất.
 
 ## Phase 2 đã triển khai
 
@@ -45,3 +45,9 @@ TC-02 qua API: 10:00–12:15 chặn12:00, cho phép12:15. Năm concurrent create
 POST hold, GET own detail/list, POST owner cancel và3 combo catalog operations. Decimal BR05 snapshot, fixed DB-clock hold300000ms, 1–20 room-bound seats, optional per-user Idempotency-Key với hash body canonical. Redis owner-token10s mutex/all-or-none Lua; DB transaction + partial unique bảo vệ ngay khi bypass Redis. Cancel/expiry nguyên tử, giữ AVAILABLE history, PAID/SOLD không bị release. Outbox poll1s/lease30s, stable delayed job ID, real worker early-job reschedule/idempotent; lazy expiry và batch100 sweep mỗi5s/startup phục hồi lost jobs. Domain events durable chờ Phase7, chưa broadcast.
 
 Migration thêm nullable snapshot/idempotency columns/CHECK/unique, giữ14 models và SQL constraints cũ. Không đổi dependencies/secrets/env. TC-01 gồm2 instances cùng giữ1 ghế, đúng1 success/1 conflict và1 active ownership; additional DB-bypass race, overlapping sets, repeated hold/cancel/expiry, queue failure/stale lease/lost job, SQL lock waits và rollback đều pass. Chưa làm payment/webhook/ticket/group/seat-map. Dừng và chờ `TIẾP TỤC PHASE 7`.
+
+## Phase 7 đã triển khai
+
+Public GET seat-map/capacity và group suggestion1–20; cùng snapshot REPEATABLE READ, DB-clock expiry/lazy cleanup, Decimal price. Sliding windows cùng row/cột liên tiếp, strict optional type, ưu tiên center rồi row/column, O(S logS+S+N). Gateway /seats cho public read-only, existing showtime validation, one room/socket, Origin/payload/Redis rate limits. Outbox committed events publish qua shared Redis Pub/Sub, fenced lease/retry/stable event IDs; client resync từ API khi reconnect/duplicate/out-of-order events. Không hứa exactly-once hoặc offline replay. Readiness thêm realtime.
+
+16 HTTP/Socket.IO cases trên2 API instances +Redis/PG thật,11 unit group cases, thực tế kill/reconnect đúng owned subscribers, precommit/rollback isolation, publish/ack failure và stale lease. Production smoke mở Socket.IO client và nhận automatic hold/cancel/expiry events. Không migration/env/runtime dependency mới; dev socket.io-client4.8.4 được khóa cùng lockfile. Dừng và chờ `TIẾP TỤC PHASE 8`.

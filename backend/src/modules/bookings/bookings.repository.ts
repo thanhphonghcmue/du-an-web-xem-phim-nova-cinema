@@ -162,4 +162,17 @@ export class BookingsRepository {
       take: 100,
     });
   }
+  expiredInShowtime(showtimeId: string, now: Date) {
+    return this.prisma.booking.findMany({
+      where: {
+        showtimeId,
+        status: { in: ["PENDING", "HOLDING"] },
+        expiredAt: { lte: now },
+        seats: { some: { status: "HOLDING" } },
+      },
+      select: { id: true },
+      orderBy: { id: "asc" },
+      take: 100,
+    });
+  }
 }

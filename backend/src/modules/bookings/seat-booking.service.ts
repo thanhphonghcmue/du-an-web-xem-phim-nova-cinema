@@ -320,6 +320,11 @@ export class SeatBookingService {
     const rows = await this.bookings.expiredBatch(now, userId);
     for (const row of rows) await this.autoReleaseExpiredHold(row.id);
   }
+  async expireShowtimeHolds(showtimeId: string): Promise<void> {
+    const now = await this.database.transaction((tx) => this.bookings.now(tx));
+    for (const row of await this.bookings.expiredInShowtime(showtimeId, now))
+      await this.autoReleaseExpiredHold(row.id);
+  }
 }
 function unavailable(): ApiException {
   return new ApiException(

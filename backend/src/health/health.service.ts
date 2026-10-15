@@ -7,6 +7,7 @@ import { InfrastructureQueueService } from "../queues/infrastructure/infrastruct
 import { ApiException } from "../common/exceptions/api.exception";
 import { withTimeout } from "../common/utils/with-timeout";
 import { DependencyStatusDto, HealthDto } from "./health.dto";
+import { SeatEventsBus } from "../realtime/seat-events.bus";
 @Injectable()
 export class HealthService {
   private readonly timeoutMs: number;
@@ -14,6 +15,7 @@ export class HealthService {
     private readonly database: DatabaseRepository,
     private readonly redis: RedisService,
     private readonly queue: InfrastructureQueueService,
+    private readonly realtime: SeatEventsBus,
     config: ConfigService,
   ) {
     this.timeoutMs = config.getOrThrow<AppSettings>("app").healthTimeoutMs;
@@ -29,18 +31,19 @@ export class HealthService {
     }
   }
   async readiness(): Promise<HealthDto> {
-    const [postgres, redis, queue] = await Promise.all([
+    const [postgres, redis, queue, realtime] = await Promise.all([
       this.status(() => this.database.ping()),
       this.status(() => this.redis.ping()),
       this.status(() => this.queue.probe(this.timeoutMs)),
+      this.status(() => this.realtime.ping()),
     ]);
-    const ready = [postgres, redis, queue].every(
+    const ready = [postgres, redis, queue, realtime].every(
       (check) => check.status === "up",
     );
     const result: HealthDto = {
       status: ready ? "ok" : "degraded",
       timestamp: new Date().toISOString(),
-      checks: { postgres, redis, queue },
+      checks: { postgres, redis, queue, realtime },
     };
     if (!ready)
       throw new ApiException(

@@ -98,7 +98,7 @@ describe("Phase 2 HTTP and infrastructure", () => {
       abortOnError: false,
     });
     configureApplication(app);
-    await app.init();
+    await app.listen(0, "127.0.0.1");
     server = app.getHttpServer() as Server;
   });
 
@@ -128,7 +128,7 @@ describe("Phase 2 HTTP and infrastructure", () => {
     const response = await request(server).get("/api/v1").expect(200);
     expect(responseBody(response).data).toMatchObject({
       application: "NOVA CINEMA (INFINITY)",
-      phase: 6,
+      phase: 7,
       status: "running",
       apiPrefix: "/api/v1",
       health: "/api/v1/health",

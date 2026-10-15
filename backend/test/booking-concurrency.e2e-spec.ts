@@ -23,6 +23,7 @@ import {
   ExpirationPayload,
 } from "../src/queues/seat-expiration/seat-expiration-queue.service";
 import { SeatExpirationProcessor } from "../src/queues/seat-expiration/seat-expiration.processor";
+import { SeatEventsRelay } from "../src/realtime/seat-events-relay.service";
 
 interface Booking {
   id: string;
@@ -198,11 +199,13 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
   }
   beforeAll(async () => {
     app = await createApplication({ logger: false });
-    await app.init();
+    await app.listen(0, "127.0.0.1");
     await app.get(BookingMaintenanceService).stop();
+    await app.get(SeatEventsRelay).stop();
     otherApp = await createApplication({ logger: false });
-    await otherApp.init();
+    await otherApp.listen(0, "127.0.0.1");
     await otherApp.get(BookingMaintenanceService).stop();
+    await otherApp.get(SeatEventsRelay).stop();
     server = app.getHttpServer() as Server;
     otherServer = otherApp.getHttpServer() as Server;
     prisma = app.get(PrismaService);
@@ -1270,7 +1273,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     ).toBe(0);
   });
 
-  it("documents implemented booking/combos APIs and keeps payment/group/seat-map routes for later phases", async () => {
+  it("documents implemented booking/combos APIs and includes public seat reads while keeping payment routes for later phases", async () => {
     const response = await request(server).get("/api/docs-json").expect(200);
     const spec = JSON.parse(response.text) as {
       paths: Record<string, Record<string, { security?: unknown }>>;
@@ -1286,11 +1289,9 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     expect(spec.paths).toHaveProperty("/api/v1/combos");
     expect(spec.components.schemas).toHaveProperty("BookingDto");
     expect(spec.paths).not.toHaveProperty("/api/v1/payments/webhook");
-    expect(spec.paths).not.toHaveProperty(
+    expect(spec.paths).toHaveProperty(
       "/api/v1/showtimes/{showtimeId}/group-seat-suggestion",
     );
-    expect(spec.paths).not.toHaveProperty(
-      "/api/v1/showtimes/{showtimeId}/seats",
-    );
+    expect(spec.paths).toHaveProperty("/api/v1/showtimes/{showtimeId}/seats");
   });
 });

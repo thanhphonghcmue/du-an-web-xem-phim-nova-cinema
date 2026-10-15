@@ -6,15 +6,19 @@ export interface ClaimedEvent {
   payload: Prisma.JsonValue;
   attempts: number;
 }
+export interface ClaimedSeatEvent extends ClaimedEvent {
+  eventType: string;
+  createdAt: Date;
+}
 @Injectable()
 export class OutboxRepository {
-  add(
+  async add(
     eventType: string,
     bookingId: string,
     payload: Prisma.InputJsonValue,
     tx: Prisma.TransactionClient,
   ) {
-    return tx.outboxEvent.create({
+    return await tx.outboxEvent.create({
       data: {
         eventType,
         aggregateType: "booking",
@@ -47,11 +51,30 @@ export class OutboxRepository {
       },
     });
   }
+  claimSeatEvents(
+    owner: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<ClaimedSeatEvent[]> {
+    return tx.$queryRaw`
+      WITH pending AS (
+        SELECT id FROM outbox_events
+        WHERE event_type IN ('seat_locked', 'seat_released', 'seat_sold') AND processed_at IS NULL
+          AND available_at <= clock_timestamp()
+          AND (locked_at IS NULL OR locked_at < clock_timestamp() - interval '30 seconds')
+        ORDER BY available_at, id FOR UPDATE SKIP LOCKED LIMIT 20
+      )
+      UPDATE outbox_events AS event SET locked_at = clock_timestamp(), locked_by = ${owner}, attempts = attempts + 1
+      FROM pending WHERE event.id = pending.id
+      RETURNING event.id, event.payload, event.attempts, event.event_type AS "eventType", event.created_at AS "createdAt"`;
+  }
   retry(
     id: string,
     owner: string,
     attempts: number,
     tx: Prisma.TransactionClient,
+    reason:
+      | "EXPIRATION_QUEUE_UNAVAILABLE"
+      | "SEAT_BROADCAST_UNAVAILABLE" = "EXPIRATION_QUEUE_UNAVAILABLE",
   ) {
     return tx.outboxEvent.updateMany({
       where: { id, lockedBy: owner, processedAt: null },
@@ -61,7 +84,7 @@ export class OutboxRepository {
         ),
         lockedAt: null,
         lockedBy: null,
-        lastError: "EXPIRATION_QUEUE_UNAVAILABLE",
+        lastError: reason,
       },
     });
   }

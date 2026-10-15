@@ -1,8 +1,8 @@
-# NOVA Cinema Backend — Phase 6
+# NOVA Cinema Backend — Phase 7
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–6 hoàn tất**: nền tảng/auth/catalog/showtimes, combo, booking hold/cancel, giá snapshot Decimal, Redis mutex, PostgreSQL unique seat ownership, transactional outbox và BullMQ expiry 5 phút. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–7 hoàn tất**: nền tảng/auth/catalog/showtimes, booking hold/cancel/expiry, seat-map/capacity theo suất, gợi ý nhóm ghế và Socket.IO qua Redis Pub/Sub/outbox sau commit. Frontend Next.js ở root vẫn là Sandbox độc lập.
 
-Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md).
+Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md).
 
 ## Requirements
 
@@ -306,6 +306,97 @@ Hold và GET detail xử lý lazy expiry; GET me và background sweep xử lý t
 
 `seat_locked`/`seat_released` được ghi vào outbox sau khi transaction thành công có thể quan sát, chưa đánh dấu delivered. **WebSocket, seat-map và gợi ý ghế nhóm thuộc Phase7**, không giả phát event hoặc trả availability. Payment failure/cancel webhook tiếp tục Phase8; hiện có owner cancellation và expiry, chưa tuyên bố TC-04 hoàn tất. UI frontend chưa được nối API.
 
+## Phase 7: Seat map, gợi ý nhóm và WebSocket
+
+Nâng cấp từ Phase6: chạy `npm ci` để cài đúng lockfile mới (`socket.io-client@4.8.4` là dev dependency dùng cho tests/smoke), sau đó `npm run check`, `npm run test:db`, `node scripts/smoke-booking.cjs`, `npm run start:dev`. Không có migration, secret, biến môi trường hay runtime dependency mới. Local PostgreSQL/Redis tiếp tục dùng cấu hình hiện có.
+
+| Method | Endpoint                                                                      | Quyền/kết quả                                                |
+| ------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| GET    | `/api/v1/showtimes/:showtimeId/seats`                                         | Public; snapshot ghế và capacity, tối đa120 requests/IP/phút |
+| GET    | `/api/v1/showtimes/:showtimeId/group-seat-suggestion?quantity=3&seatType=VIP` | Public; quantity1–20, seatType tùy chọn; không giữ ghế       |
+
+Seat-map trả `data = {showtimeId,roomId,startTime,asOf,canBook,capacity,seats}`. Mỗi ghế `{seatId,row,column,type,price,status,expiresAt}`; status AVAILABLE/HOLDING/SOLD theo đúng showtime, price là chuỗi Decimal fixed2 trước C’MEMBER, expiresAt chỉ có cho hold còn hạn. Capacity gồm total/available/holding/sold từ số ghế vật lý thật. Không trả bookingId/user/email trong map. `asOf` từ DB clock, `canBook` chỉ xét suất chưa bắt đầu; client vẫn kiểm tra available capacity và hold qua API đăng nhập.
+
+Một lần đọc sử dụng REPEATABLE READ để room, base price, physical seats và ownership cùng snapshot. Lazy cleanup tối đa100 overdue holds của suất/lượt; phần backlog đã quá hạn được suy ra AVAILABLE theo DB clock, hold API vẫn tự giải phóng rows liên quan trong transaction trước khi giữ lại. Không tạo rows AVAILABLE dư thừa, không suy ra free từ deadline của PAID/SOLD. Lịch sử đã qua vẫn xem được map nhưng suggestion trả409 SHOWTIME_STARTED; ID thiếu404, UUID/query sai400; room rỗng có capacity0.
+
+Suggestion trả `{showtimeId,quantity,seatType,seatIds,asOf}`; không có dải phù hợp trả `seatIds:[]`. Chỉ cùng hàng và column tăng liên tiếp, không bắc qua ghế HOLDING/SOLD, ghế thiếu hoặc type khác. Nếu yêu cầu seatType, tất cả ghế phải thuộc type đó; không tự đổi loại. Ưu tiên tâm hàng vật lý (kể cả ghế bận), sau đó row label và cột đầu tăng dần để kết quả ổn định. Sort một lần theo hàng/cột rồi scan sliding windows và chỉ copy best window cuối: **O(S log S + S + N)** time, **O(S)** space. Gợi ý là tư vấn tại snapshot, không phải reservation; gửi IDs qua authenticated POST hold và xử lý409 nếu người khác giữ trước.
+
+Socket.IO namespace **`/seats`**, Engine.IO path mặc định **`/socket.io`**, chỉ transport websocket, max payload16KiB. Dùng Socket.IO client, không dùng native `new WebSocket('/seats')`. Kênh chỉ đọc dữ liệu public nên GUEST không cần JWT; giữ/hủy/đổi trạng thái chỉ qua HTTP API có guard. Origin trình duyệt phải nằm trong CORS_ORIGINS; native client không gửi Origin được phép. Server kiểm tra Origin ở handshake, không chỉ dựa vào CORS headers. Redis limiter shared:30 kết nối/IP/phút,60 join/leave requests/IP/phút, kể cả payload sai; storage lỗi thì fail-closed.
+
+| Client event     | Payload               | Ack                                                                   |
+| ---------------- | --------------------- | --------------------------------------------------------------------- |
+| `join_showtime`  | `{showtimeId:"UUID"}` | `{success:true,data:{showtimeId,room,joined:true}}`                   |
+| `leave_showtime` | `{showtimeId:"UUID"}` | `{success:true,data:{showtimeId,room,joined:false}}`; lặp lại an toàn |
+
+Room luôn `showtime:UUID` do server tạo. Join chỉ chấp nhận showtime tồn tại; unknown fields/room tùy ý bị từ chối. Một socket theo dõi tối đa1 showtime; join mới thành công sẽ leave room cũ. Các thao tác trên cùng socket được serialize. Ack lỗi có `{success:false,error,message}`, không echo dữ liệu riêng hoặc exception. Không có socket handler cho hold, payment hay ghi trạng thái ghế.
+
+| Server event      | Dữ liệu public ngoài `eventId`, `occurredAt`                              |
+| ----------------- | ------------------------------------------------------------------------- |
+| `seat_locked`     | `{showtimeId,bookingId,seatIds,expiresAt}`                                |
+| `seat_released`   | `{showtimeId,seatIds}`                                                    |
+| `seat_sold`       | `{showtimeId,seatIds}`; hợp đồng sẵn cho Phase8, chưa có payment producer |
+| `resync_required` | `{reason:"REDIS_UNAVAILABLE"}` hoặc `{reason:"REDIS_RECONNECTED"}`        |
+
+Relay chỉ đọc committed outbox rows, claim20/lease30s/SKIP LOCKED, publish qua Redis có acknowledgement rồi mới ack outbox. Mỗi instance có2 ioredis connections pub/sub và chỉ emit local namespace room của mình; không cần sticky sessions vì chỉ dùng websocket. Channel có BULLMQ_PREFIX và Redis DB (Redis Pub/Sub không tự chia theo DB). Payload được validate và dựng lại từ whitelist, không chuyển tiếp arbitrary JSON. Publish/ack failure có durable retry/backoff với eventId không đổi; stale lease được reclaim. Redis subscriber reconnect sẽ subscribe lại trước khi phát resync_required. Readiness có thêm `checks.realtime` (subscriber readiness + publisher PING).
+
+**Events là thông báo cần tải lại snapshot**, không phải state version hoặc bảo đảm thứ tự/exactly-once. Retry có thể gửi trùng hoặc muộn; deduplicate bằng eventId và đọc map mới nhất thay vì tăng/giảm capacity theo delta. Pub/Sub không lưu lịch sử cho client offline: đăng ký listeners trước, join và nhận ack rồi GET map; reconnect/resync cũng GET lại. Coalesce refresh và không để responses cũ ghi đè responses mới. Ví dụ client chạy được sau khi thay UUID thật:
+
+```javascript
+import { io } from "socket.io-client";
+const showtimeId = "UUID_SUAT_CHIEU_THAT";
+const socket = io("http://localhost:4000/seats", {
+  transports: ["websocket"],
+  autoConnect: false,
+});
+const seen = new Set();
+let dirty = false;
+let active = false;
+let timer;
+function refreshSoon() {
+  dirty = true;
+  if (!active && !timer)
+    timer = setTimeout(() => {
+      timer = undefined;
+      void refresh();
+    }, 1000);
+}
+async function refresh() {
+  active = true;
+  dirty = false;
+  try {
+    const response = await fetch(
+      `http://localhost:4000/api/v1/showtimes/${showtimeId}/seats`,
+    );
+    if (!response.ok) throw new Error(`Seat map HTTP ${response.status}`);
+    console.log((await response.json()).data);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    active = false;
+    if (dirty) refreshSoon();
+  }
+}
+for (const name of ["seat_locked", "seat_released", "seat_sold"]) {
+  socket.on(name, (event) => {
+    if (seen.has(event.eventId)) return;
+    seen.add(event.eventId);
+    if (seen.size > 1000) seen.delete(seen.values().next().value);
+    refreshSoon();
+  });
+}
+socket.on("resync_required", refreshSoon);
+socket.on("connect", () =>
+  socket.emit("join_showtime", { showtimeId }, (ack) => {
+    if (ack.success) refreshSoon();
+    else console.error(ack.error);
+  }),
+);
+socket.on("connect_error", (error) => console.error(error.message));
+socket.connect();
+```
+
+Các API instances dùng chung database/outbox **phải dùng cùng Redis DB và BULLMQ_PREFIX**. Môi trường độc lập dùng database độc lập. Chạy các HTTP suites và production smoke **nối tiếp** nếu chúng dùng chung TEST_DATABASE_URL; namespace riêng không cô lập shared outbox. `npm run check && npm run test:db && node scripts/smoke-booking.cjs` là chuỗi đã kiểm chứng. Test suites dùng persistent HTTP servers với free ports, cleanup đúng owned fixtures/sockets/Redis keys. Frontend Next.js chưa nối API; Phase8 chưa bắt đầu.
+
 ## Tests và build
 
 ```bash
@@ -313,9 +404,9 @@ npm run check
 npm run test:db
 ```
 
-`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **33 unit tests**, **102 HTTP e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng157 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency.
+`check`: TypeScript (gồm seed/tests), typed lint (gồm prisma/scripts), **44 unit tests**, **118 HTTP/Socket.IO e2e tests** trên PostgreSQL/Redis thật và Nest build. `test:db`: **22 tests trên PostgreSQL thật**, kiểm tra ownership concurrent, release/history, SOLD exclusivity, INSERT/UPDATE/concurrent showtime conflicts và boundary, room/showtime FKs, exact Decimal, unique payment/ticket và conditional check-in primitive, seed idempotence/hash/schedule. Tổng184 tests; TC-01 chạy2 API instances và shared test DB/Redis, không mock concurrency.
 
-Các test DB chứng minh constraint/nền tảng, không thay TC01–TC05 qua API. **TC-01/TC-02 đã kiểm chứng qua HTTP**, delayed expiry qua worker BullMQ thật; TC-03/04/05 payment/ticket/check-in còn các phase sau. Test expiry dịch chuyển timestamps của fixture cùng nhau để đi qua deadline, không đợi5 phút hoặc rút ngắn TTL production.
+Các test DB chứng minh constraint/nền tảng, không thay TC01–TC05 qua API. **TC-01/TC-02 đã kiểm chứng qua HTTP**, Phase7 kiểm tra Socket.IO qua2 API instances +Redis Pub/Sub thật, delayed expiry qua worker BullMQ thật; TC-03/04/05 payment/ticket/check-in còn các phase sau. Test expiry dịch chuyển timestamps của fixture cùng nhau để đi qua deadline, không đợi5 phút hoặc rút ngắn TTL production.
 
 Smoke bản build với HTTP, automatic outbox relay và worker thật, tự cấp free port/ephemeral secrets/test fixtures rồi cleanup:
 
@@ -335,7 +426,7 @@ npm run start:prod
 curl -i http://127.0.0.1:4000/api/v1
 ```
 
-HTTP 200 trả `{success:true,data:{phase:6,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
+HTTP 200 trả `{success:true,data:{phase:7,status:"running",health:"/api/v1/health",docs:"/api/docs"},message}`. API nghiệp vụ chưa có sẽ trả 404; frontend chưa gọi API này.
 
 ## Docker database and Redis lifecycle
 
@@ -346,7 +437,7 @@ npm run infra:down
 
 `infra:down` dừng/xóa bốn container nhưng giữ volumes và dữ liệu. Không dùng `down -v` cho dữ liệu cần giữ. Compose hiện chạy PostgreSQL/Redis local; API Nest vẫn được chạy từ Node trên host. Docker hóa app/worker thuộc Phase 12.
 
-## Cây mã nguồn hiện tại đến Phase 6
+## Cây mã nguồn hiện tại đến Phase 7
 
 ```text
 backend/
@@ -387,12 +478,14 @@ backend/
       showtimes/
       combos/
       bookings/
+      showtime-seats/
   test/
     app.e2e-spec.ts
     auth.e2e-spec.ts
     catalog.e2e-spec.ts
     showtime-conflict.e2e-spec.ts
     booking-concurrency.e2e-spec.ts
+    seats-realtime.e2e-spec.ts
     jest-database.config.cjs
     schema.database-spec.ts
     setup-environment.cjs
@@ -403,6 +496,7 @@ backend/
     validation-phase-4.md
     validation-phase-5.md
     validation-phase-6.md
+    validation-phase-7.md
 ```
 
-Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 6 và chờ **“TIẾP TỤC PHASE 7”**.
+Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 7 và chờ **“TIẾP TỤC PHASE 8”**.

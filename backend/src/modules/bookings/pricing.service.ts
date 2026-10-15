@@ -18,12 +18,18 @@ export interface PriceInput {
 @Injectable()
 export class PricingService {
   constructor(private readonly discounts: DiscountService) {}
+  calculateSeatPrice(
+    basePrice: Prisma.Decimal,
+    type: SeatType,
+  ): Prisma.Decimal {
+    return basePrice
+      .mul(SEAT_MULTIPLIERS[type])
+      .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+  }
   calculateBookingPrice(input: PriceInput) {
     const seats = input.seats.map((seat) => ({
       seatId: seat.id,
-      price: input.baseTicketPrice
-        .mul(SEAT_MULTIPLIERS[seat.seatType])
-        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP),
+      price: this.calculateSeatPrice(input.baseTicketPrice, seat.seatType),
     }));
     const ticketAmount = seats.reduce(
       (sum, seat) => sum.add(seat.price),

@@ -8,13 +8,14 @@ const { PrismaClient } = require("@prisma/client");
 const { hash } = require("argon2");
 const { Queue } = require("bullmq");
 const Redis = require("ioredis");
+const { io } = require("socket.io-client");
 const { testDatabaseTarget } = require("./test-database-target.cjs");
 
 const backend = resolve(__dirname, "..");
 const databaseUrl = testDatabaseTarget();
 for (const key of ["TEST_REDIS_HOST", "TEST_REDIS_PORT", "TEST_REDIS_DB"])
   if (!process.env[key]) throw new Error(`${key} is required for smoke tests.`);
-const prefix = `p6-smoke-${randomUUID()}`;
+const prefix = `p7-smoke-${randomUUID()}`;
 const queuePrefix = `nova:smoke:${randomUUID().replaceAll("-", "")}`;
 const connection = {
   host: process.env.TEST_REDIS_HOST,
@@ -32,6 +33,7 @@ redis.on("error", () => {});
 const queue = new Queue("seat-expiration", { connection, prefix: queuePrefix });
 queue.on("error", () => {});
 let child;
+let watcher;
 let stage = "prepare isolated fixtures";
 async function eventually(check) {
   const deadline = Date.now() + 10000;
@@ -161,7 +163,7 @@ async function main() {
       return false;
     }
   });
-  assert.equal((await api("GET", "/api/v1", 200)).data.phase, 6);
+  assert.equal((await api("GET", "/api/v1", 200)).data.phase, 7);
   const tokens = [];
   for (const user of users)
     tokens.push(
@@ -177,6 +179,54 @@ async function main() {
     seatIds: seats.map((row) => row.id),
     comboItems: [{ comboId: combo.id, quantity: 2 }],
   };
+  stage = "production Socket.IO public room subscription";
+  watcher = io(`${base}/seats`, {
+    transports: ["websocket"],
+    reconnection: false,
+    timeout: 2000,
+  });
+  const notifications = [];
+  watcher.on("seat_locked", (value) =>
+    notifications.push({ type: "seat_locked", ...value }),
+  );
+  watcher.on("seat_released", (value) =>
+    notifications.push({ type: "seat_released", ...value }),
+  );
+  await new Promise((resolve, reject) => {
+    watcher.once("connect", resolve);
+    watcher.once("connect_error", reject);
+  });
+  const joined = await new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("Production join timed out.")),
+      3000,
+    );
+    watcher.emit("join_showtime", { showtimeId: showtime.id }, (reply) => {
+      clearTimeout(timer);
+      resolve(reply);
+    });
+  });
+  assert.equal(joined.success, true);
+  const snapshot = (
+    await api("GET", `/api/v1/showtimes/${showtime.id}/seats`, 200)
+  ).data;
+  assert.deepEqual(snapshot.capacity, {
+    total: 2,
+    available: 2,
+    holding: 0,
+    sold: 0,
+  });
+  const suggestion = (
+    await api(
+      "GET",
+      `/api/v1/showtimes/${showtime.id}/group-seat-suggestion?quantity=2`,
+      200,
+    )
+  ).data;
+  assert.deepEqual(
+    suggestion.seatIds,
+    seats.map((seat) => seat.id),
+  );
   const key = randomUUID();
   const held = (
     await api("POST", "/api/v1/bookings/hold", 201, payload, tokens[0], key)
@@ -185,6 +235,18 @@ async function main() {
     new Date(held.expiredAt).getTime() - new Date(held.createdAt).getTime(),
     300000,
   );
+  await eventually(async () => {
+    await redis.ping();
+    return notifications.some(
+      (event) => event.type === "seat_locked" && event.bookingId === held.id,
+    );
+  });
+  assert.equal(
+    (await api("GET", `/api/v1/showtimes/${showtime.id}/seats`, 200)).data
+      .capacity.holding,
+    2,
+  );
+  assert(!JSON.stringify(notifications).match(/email|userId|token|password/));
   assert.equal(held.finalAmount, "319200.00");
   assert.equal(held.discountRate, "0.050");
   assert.deepEqual(
@@ -209,6 +271,13 @@ async function main() {
     ).data.status,
     "CANCELLED",
   );
+  await eventually(async () => {
+    await redis.ping();
+    return notifications.some((event) => event.type === "seat_released");
+  });
+  const releasesBefore = notifications.filter(
+    (event) => event.type === "seat_released",
+  ).length;
   const second = (
     await api("POST", "/api/v1/bookings/hold", 201, payload, tokens[1])
   ).data;
@@ -255,15 +324,24 @@ async function main() {
     ).data.status,
     "EXPIRED",
   );
+  stage = "automatic WebSocket expiry release";
+  await eventually(async () => {
+    await redis.ping();
+    return (
+      notifications.filter((event) => event.type === "seat_released").length >
+      releasesBefore
+    );
+  });
   await api("POST", "/api/v1/bookings/hold", 201, payload, tokens[0]);
   const spec = await api("GET", "/api/docs-json", 200);
   assert(spec.paths["/api/v1/bookings/hold"].post.security);
   assert(!spec.paths["/api/v1/payments/webhook"]);
   console.log(
-    "PASS compiled Phase 6 HTTP smoke: health/login, Decimal snapshots, fixed TTL, idempotency, conflicts, privacy, cancel, automatic outbox relay, actual BullMQ expiry and re-hold.",
+    "PASS compiled Phase 7 HTTP/WebSocket smoke: seat-map, group suggestions, live hold/cancel/expiry events, health/login, Decimal snapshots, fixed TTL, idempotency, conflicts, privacy, cancel, automatic outbox relay, actual BullMQ expiry and re-hold.",
   );
 }
 async function cleanup() {
+  watcher?.disconnect();
   if (child && child.exitCode === null) {
     const exited = once(child, "exit");
     child.kill("SIGTERM");

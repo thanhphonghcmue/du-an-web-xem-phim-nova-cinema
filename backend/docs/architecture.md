@@ -1,6 +1,6 @@
 # Phase 0 — Architecture Decision Record
 
-Ngày: 14/10/2026, cập nhật Phase6 ngày15/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. Phase0–6 đã triển khai nền tảng, auth/catalog/showtimes, booking hold/cancel/pricing, Redis mutex, outbox/BullMQ expiry. Các phần gateway/group/payment/ticket/report bên dưới vẫn là hợp đồng cho các phase tiếp theo.
+Ngày: 14/10/2026, cập nhật Phase7 ngày15/10/2026. Nguồn yêu cầu: SUPER PROMPT MASTER BACKEND do người dùng gửi. Phase0–7 đã triển khai nền tảng, auth/catalog/showtimes, booking/pricing/expiry, seat-map/group suggestion và WebSocket sau commit. Payment/ticket/report vẫn là hợp đồng cho các phase tiếp theo.
 
 ## Quyết định nền tảng
 
@@ -75,7 +75,7 @@ Giá STANDARD ×1.0, VIP ×1.2, SWEETBOX ×1.5. Party Combo 69K mỗi đơn vị
 
 ## Cây thư mục đích theo phase
 
-Đây là kế hoạch đầy đủ; chỉ các module Phase0–6 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
+Đây là kế hoạch đầy đủ; chỉ các module Phase0–7 trong README/evidence đã được tạo. Module nghiệp vụ tương lai không có placeholder.
 
 ```text
 backend/
@@ -240,3 +240,15 @@ Cancel/autoRelease/get-overdue khóa booking FOR UPDATE và đọc lại trạng
 Expiry relay chỉ claim booking.expiration.requested qua SKIP LOCKED, batch20, lease30s/fenced owner mới mỗi batch. Queue publish sau DB commit, deterministic job ID và backoff; ack/retry chỉ khi still owns lease. Worker concurrency5 load DB dưới lock; job đến sớm moveToDelayed và DelayedError theo deadline cũ, duplicate/no-longer-HOLDING no-op. Stable job retention1 ngày/10000 completed,7 ngày/10000 failed; background sweep bù mất job sau Redis restart. API process đăng ký worker+maintenance hiện tại; không giả tách worker deployment trước Phase12.
 
 seat_locked/seat_released outbox giữ pending để Phase7 phát WebSocket sau commit, không ack giả. Payment/QR/points chưa được làm. TC-01 dùng2 app instances/real DB+Redis và real BullMQ worker; các fault injection có nhãn chỉ dùng để thử rollback/lỗi infra/precheck interleaving. Evidence: validation-phase-6.md. Không dependencies/env/secrets mới.
+
+## Realtime và group seats Phase 7 đã triển khai
+
+ShowtimeSeatsController→ShowtimeSeatsService→ShowtimeSeatsRepository; imports BookingsModule để dùng PricingService.calculateSeatPrice và expiry service chung. Không sao chép công thức tiền. Trước snapshot, cleanup100 expired holds đúng showtime; map read REPEATABLE READ toàn bộ showtime/physical seats/active ownership theo DB clock. Expired releasable holdings còn backlog suy ra AVAILABLE; PAID/SOLD không bị suy ra free. Capacity đếm từ physical rows, không tin cached totalSeats. Public map không lộ booking owner; canBook chỉ time eligibility, suggestion quá giờ409. Group finder tách pure function, sort/scan giữ best indices rồi mới copy IDs, O(S logS+S+N)/O(S). Không tự reserve, không cross-row/gap/active seat, strict type filter và deterministic tie breakers.
+
+RealtimeModule đăng ký gateway public read-only /seats, policy và Redis broker. SeatSocketAdapter được gắn trong configureApplication cho mọi bootstrap path, websocket-only/16KiB, Origin exact allowlist và Redis shared handshake limiter30/IP/min. Subscribe join/leave60/IP/min, validate object UUID-only, showtime tồn tại, serialize per socket và chỉ1 showtime room. Service xử lý membership; gateway không Prisma hoặc business mutations. Không thêm socket hold/payment handlers. GUEST được đọc cùng dữ liệu như public seat-map; JWT vẫn bắt buộc cho authenticated HTTP mutations.
+
+SeatEventsRelay độc lập với expiry relay, chỉ claim seat_locked/released/sold đã commit qua SKIP LOCKED batch20/lease30s. Publish ioredis có acknowledgement rồi ack DB có owner fencing; retry/backoff cùng event ID khi publish/ack fail. Hai Redis connections/instance, channel gồm application prefix và Redis DB (Pub/Sub không DB-scoped); tất cả instances có cùng DB/outbox phải cùng Redis namespace/DB. Subscriber validate/rebuild whitelist payload rồi emit **local** Socket.IO room; không cần official Redis adapter hoặc sticky sessions vì websocket-only. Cấu hình pub/sub tự resubscribe sau reconnect, phát resync_required cho live clients; readiness kiểm tra subscriber state và publisher ping. Runtime dependencies giữ nguyên, client package chỉ là dev dependency cho actual socket tests/smoke.
+
+Wire events có additive eventId/occurredAt, không có PII/price/user. Delivery có retry và có thể duplicate/out-of-order; Redis publish ack không phải client receipt. Không hứa exactly-once/durable offline replay; events là snapshot invalidations. Client dedup và serialize/coalesce GET map sau join ack/reconnect/resync/events. Đây là lựa chọn tránh stale deltas mà không giả dùng event timestamp làm state version. seat_sold dispatcher/wire sẵn cho producer Phase8; chỉ fixture test, chưa có payment transition.
+
+HTTP/Socket.IO suites dùng persistent HTTP listeners/free ports; không tăng max listeners để che warning. Suites và production smoke dùng chung TEST_DATABASE_URL phải chạy nối tiếp: namespace khác nhau không cô lập DB outbox. Tất cả stateful checks, actual subscriber reconnect, worker expiry event và compiled smoke đã kiểm chứng; frontend chưa nối API. Evidence validation-phase-7.md; Phase8 chưa bắt đầu.

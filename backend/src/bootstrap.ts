@@ -21,6 +21,8 @@ import {
   SuccessResponseDto,
 } from "./common/dto/api-response.dto";
 import { ValidationError } from "class-validator";
+import { SeatSocketAdapter } from "./realtime/seat-socket.adapter";
+import { SeatSocketPolicy } from "./realtime/seat-socket-policy.service";
 
 function validationMessages(errors: ValidationError[]): string[] {
   return errors.flatMap((error) => [
@@ -98,7 +100,7 @@ export function configureApplication(app: INestApplication): void {
     .setTitle("NOVA Cinema API")
     .setVersion("v1")
     .setDescription(
-      "Phase 6: authentication, catalog, showtimes, combos and booking holds with Decimal snapshots, Redis mutexes, outbox and BullMQ expiry. WebSocket/payment/ticket APIs belong to later phases.",
+      "Phase 7: seat maps, contiguous group suggestions and public /seats Socket.IO subscriptions with committed outbox events over Redis Pub/Sub. Booking holds/expiry are available; payment/ticket APIs belong to later phases.",
     )
     .addBearerAuth()
     .build();
@@ -110,6 +112,9 @@ export function configureApplication(app: INestApplication): void {
     swaggerOptions: { persistAuthorization: false },
   });
   app.enableShutdownHooks();
+  app.useWebSocketAdapter(
+    new SeatSocketAdapter(app, app.get(SeatSocketPolicy)),
+  );
 }
 export async function createApplication(
   options: NestApplicationOptions = {},

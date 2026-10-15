@@ -129,7 +129,7 @@ describe("Phase 3 real PostgreSQL/Redis authentication", () => {
       abortOnError: false,
     });
     configureApplication(app);
-    await app.init();
+    await app.listen(0, "127.0.0.1");
     server = app.getHttpServer() as Server;
     prisma = app.get(PrismaService);
     tokens = app.get(TokenService);

@@ -12,6 +12,7 @@ import { RedisThrottlerStorage } from "./redis-throttler.storage";
 class RateLimitStorageModule {}
 @Module({
   imports: [
+    RateLimitStorageModule,
     ThrottlerModule.forRootAsync({
       imports: [RateLimitStorageModule],
       inject: [ConfigService, RedisThrottlerStorage],
@@ -31,6 +32,6 @@ class RateLimitStorageModule {}
       },
     }),
   ],
-  exports: [ThrottlerModule],
+  exports: [ThrottlerModule, RateLimitStorageModule],
 })
 export class RateLimitModule {}

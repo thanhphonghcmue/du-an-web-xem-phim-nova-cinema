@@ -14,24 +14,26 @@ import {
   X,
   DollarSign,
   PieChart,
-  HardDrive
+  HardDrive,
 } from "lucide-react";
+import { money } from "../data.js";
+import OperationalCatalog from "./OperationalCatalog.jsx";
 import {
   apiGetAdminOverview,
   apiGetAdminRevenue,
   apiGetAdminUsers,
   apiPurgeOutbox,
-  apiGetHealth
+  apiGetHealth,
 } from "../api/client.js";
 
 export default function AdminDashboard({ onClose, adminUser }) {
   const [activeTab, setActiveTab] = useState("revenue"); // revenue | users | catalog | maintenance
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  
+
   // Overview metrics
   const [overview, setOverview] = useState(null);
-  
+
   // Revenue state
   const [fromDate, setFromDate] = useState(() =>
     new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10),
@@ -44,10 +46,10 @@ export default function AdminDashboard({ onClose, adminUser }) {
 
   // Users state
   const [users, setUsers] = useState([]);
-  
+
   // Health state
   const [health, setHealth] = useState(null);
-  const [purgeDays, setPurgeDays] = useState(1);
+  const [purgeDays, setPurgeDays] = useState(7);
   const [purgeResult, setPurgeResult] = useState(null);
   const [purging, setPurging] = useState(false);
 
@@ -57,7 +59,8 @@ export default function AdminDashboard({ onClose, adminUser }) {
       const rev = await apiGetAdminRevenue(from, to);
       setRevenue(rev);
     } catch (err) {
-      console.error("Lỗi tải doanh thu:", err);
+      setRevenue(null);
+      setError(err.message);
     } finally {
       setRevenueLoading(false);
     }
@@ -72,6 +75,14 @@ export default function AdminDashboard({ onClose, adminUser }) {
         apiGetAdminUsers(),
       ]);
 
+      setOverview(null);
+      setHealth(null);
+      setUsers([]);
+      const failures = [ovData, healthData, usersData].filter(
+        (r) => r.status === "rejected",
+      );
+      if (failures.length)
+        setError(failures.map((r) => r.reason.message).join(" · "));
       if (ovData.status === "fulfilled") setOverview(ovData.value);
       if (healthData.status === "fulfilled") setHealth(healthData.value);
       if (usersData.status === "fulfilled") setUsers(usersData.value);
@@ -94,6 +105,14 @@ export default function AdminDashboard({ onClose, adminUser }) {
       apiGetAdminRevenue(fromDate, toDate),
     ]).then(([ovRes, healthRes, usersRes, revRes]) => {
       if (!active) return;
+      setOverview(null);
+      setHealth(null);
+      setUsers([]);
+      setRevenue(null);
+      const failures = [ovRes, healthRes, usersRes, revRes].filter(
+        (r) => r.status === "rejected",
+      );
+      setError(failures.map((r) => r.reason.message).join(" · "));
       if (ovRes.status === "fulfilled") setOverview(ovRes.value);
       if (healthRes.status === "fulfilled") setHealth(healthRes.value);
       if (usersRes.status === "fulfilled") setUsers(usersRes.value);
@@ -110,7 +129,9 @@ export default function AdminDashboard({ onClose, adminUser }) {
     setPurgeResult(null);
     try {
       const res = await apiPurgeOutbox(Number(purgeDays));
-      setPurgeResult(`Đã dọn dẹp thành công ${res.purgedCount} bản ghi sự kiện Outbox cũ hơn ${purgeDays} ngày!`);
+      setPurgeResult(
+        `Đã dọn dẹp thành công ${res.purgedCount} bản ghi sự kiện Outbox cũ hơn ${purgeDays} ngày!`,
+      );
     } catch (err) {
       setPurgeResult(`Lỗi dọn dẹp: ${err.message}`);
     } finally {
@@ -130,7 +151,8 @@ export default function AdminDashboard({ onClose, adminUser }) {
             </div>
             <h2>Bảng Điều Khiển Số Liệu & Quản Trị Rạp NOVA</h2>
             <p className="admin-subtitle">
-              Đăng nhập bởi: <b>{adminUser?.email || "admin@nova.local"}</b> · Kết nối trực tiếp PostgreSQL 17 & Redis 7.4 (NestJS Backend v1)
+              Đăng nhập bởi: <b>{adminUser?.email || "admin@nova.local"}</b> ·
+              Kết nối trực tiếp PostgreSQL 17 & Redis 7.4 (NestJS Backend v1)
             </p>
           </div>
           <div className="admin-actions">
@@ -229,11 +251,11 @@ export default function AdminDashboard({ onClose, adminUser }) {
                   <div className="stat-details">
                     <span className="stat-label">Doanh Thu Ròng (VND)</span>
                     <strong className="stat-value">
-                      {revenue
-                        ? Number(revenue.netRevenue).toLocaleString("vi-VN") + " đ"
-                        : "0 đ"}
+                      {revenue ? money(revenue.netRevenue) : "0 đ"}
                     </strong>
-                    <span className="stat-sub">Đã trừ chiết khấu & voucher</span>
+                    <span className="stat-sub">
+                      Đã trừ chiết khấu & voucher
+                    </span>
                   </div>
                 </div>
 
@@ -248,9 +270,7 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     </strong>
                     <span className="stat-sub">
                       Doanh thu vé:{" "}
-                      {revenue
-                        ? Number(revenue.ticketRevenue).toLocaleString("vi-VN") + " đ"
-                        : "0 đ"}
+                      {revenue ? money(revenue.ticketRevenue) : "0 đ"}
                     </span>
                   </div>
                 </div>
@@ -275,9 +295,7 @@ export default function AdminDashboard({ onClose, adminUser }) {
                   <div className="stat-details">
                     <span className="stat-label">Doanh Thu Bắp Nước</span>
                     <strong className="stat-value">
-                      {revenue
-                        ? Number(revenue.comboRevenue).toLocaleString("vi-VN") + " đ"
-                        : "0 đ"}
+                      {revenue ? money(revenue.comboRevenue) : "0 đ"}
                     </strong>
                     <span className="stat-sub">Các gói Party/Duo Combo</span>
                   </div>
@@ -291,30 +309,20 @@ export default function AdminDashboard({ onClose, adminUser }) {
                   <div className="rev-bar-row">
                     <span>Tiền vé rạp (Gross Ticket):</span>
                     <div className="bar-track">
-                      <div
-                        className="bar-fill blue"
-                        style={{ width: "80%" }}
-                      />
+                      <div className="bar-fill blue" style={{ width: "80%" }} />
                     </div>
                     <strong>
-                      {revenue
-                        ? Number(revenue.ticketRevenue).toLocaleString("vi-VN") + " đ"
-                        : "0 đ"}
+                      {revenue ? money(revenue.ticketRevenue) : "0 đ"}
                     </strong>
                   </div>
 
                   <div className="rev-bar-row">
                     <span>Bắp nước F&B:</span>
                     <div className="bar-track">
-                      <div
-                        className="bar-fill gold"
-                        style={{ width: "20%" }}
-                      />
+                      <div className="bar-fill gold" style={{ width: "20%" }} />
                     </div>
                     <strong>
-                      {revenue
-                        ? Number(revenue.comboRevenue).toLocaleString("vi-VN") + " đ"
-                        : "0 đ"}
+                      {revenue ? money(revenue.comboRevenue) : "0 đ"}
                     </strong>
                   </div>
 
@@ -327,9 +335,7 @@ export default function AdminDashboard({ onClose, adminUser }) {
                       />
                     </div>
                     <strong>
-                      -{revenue
-                        ? Number(revenue.discountAmount).toLocaleString("vi-VN") + " đ"
-                        : "0 đ"}
+                      -{revenue ? money(revenue.discountAmount) : "0 đ"}
                     </strong>
                   </div>
                 </div>
@@ -360,24 +366,33 @@ export default function AdminDashboard({ onClose, adminUser }) {
                         </td>
                         <td>{u.fullName || "Chưa cập nhật"}</td>
                         <td>
-                          <span className={`role-badge ${u.role.toLowerCase()}`}>
+                          <span
+                            className={`role-badge ${u.role.toLowerCase()}`}
+                          >
                             {u.role}
                           </span>
                         </td>
                         <td>
-                          <span className={`tier-badge ${u.cMemberTier?.toLowerCase()}`}>
+                          <span
+                            className={`tier-badge ${u.cMemberTier?.toLowerCase()}`}
+                          >
                             {u.cMemberTier || "STANDARD"}
                           </span>
                         </td>
                         <td>
                           <strong>{u.cMemberPoints || 0} pts</strong>
                         </td>
-                        <td>{new Date(u.createdAt).toLocaleDateString("vi-VN")}</td>
+                        <td>
+                          {new Date(u.createdAt).toLocaleDateString("vi-VN")}
+                        </td>
                       </tr>
                     ))}
                     {users.length === 0 && (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: "center", padding: "20px" }}>
+                        <td
+                          colSpan={6}
+                          style={{ textAlign: "center", padding: "20px" }}
+                        >
                           Đang tải hoặc chưa có khách hàng
                         </td>
                       </tr>
@@ -391,32 +406,34 @@ export default function AdminDashboard({ onClose, adminUser }) {
           {/* TAB 3: DANH MỤC & RẠP CHIẾU */}
           {activeTab === "catalog" && (
             <div className="admin-tab-pane">
+              <OperationalCatalog />
               <div className="catalog-summary-cards">
                 <div className="mini-card">
                   <Film size={20} />
                   <span>Tổng Phim:</span>
-                  <strong>{overview?.movieCount || 6} phim</strong>
+                  <strong>{overview?.movieCount ?? "—"} phim</strong>
                 </div>
                 <div className="mini-card">
                   <Building size={20} />
                   <span>Cụm Rạp:</span>
-                  <strong>{overview?.cinemaCount || 2} cụm rạp</strong>
+                  <strong>{overview?.cinemaCount ?? "—"} cụm rạp</strong>
                 </div>
                 <div className="mini-card">
                   <Layers size={20} />
                   <span>Phòng Chiếu:</span>
-                  <strong>{overview?.roomCount || 3} phòng</strong>
+                  <strong>{overview?.roomCount ?? "—"} phòng</strong>
                 </div>
                 <div className="mini-card">
                   <Calendar size={20} />
                   <span>Suất Chiếu Đã Lên Lịch:</span>
-                  <strong>{overview?.showtimeCount || 54} suất</strong>
+                  <strong>{overview?.showtimeCount ?? "—"} suất</strong>
                 </div>
               </div>
 
               <div className="admin-box mt-4">
                 <h3>Đơn Đặt Vé Gần Đây (Recent Orders)</h3>
-                {overview?.recentBookings && overview.recentBookings.length > 0 ? (
+                {overview?.recentBookings &&
+                overview.recentBookings.length > 0 ? (
                   <table className="admin-table">
                     <thead>
                       <tr>
@@ -431,13 +448,21 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     <tbody>
                       {overview.recentBookings.map((b) => (
                         <tr key={b.id}>
-                          <td><code>{b.orderCode}</code></td>
+                          <td>
+                            <code>{b.orderCode}</code>
+                          </td>
                           <td>{b.customer}</td>
                           <td>{b.movie}</td>
-                          <td>{b.cinema} - {b.room}</td>
-                          <td><strong>{Number(b.finalAmount).toLocaleString("vi-VN")} đ</strong></td>
                           <td>
-                            <span className={`status-badge ${b.status.toLowerCase()}`}>
+                            {b.cinema} - {b.room}
+                          </td>
+                          <td>
+                            <strong>{money(b.finalAmount)}</strong>
+                          </td>
+                          <td>
+                            <span
+                              className={`status-badge ${b.status.toLowerCase()}`}
+                            >
                               {b.status}
                             </span>
                           </td>
@@ -464,7 +489,11 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     <CheckCircle2 size={24} className="text-green" />
                     <div>
                       <strong>PostgreSQL 17 Database</strong>
-                      <p>Trạng thái: {health?.checks?.postgres?.status?.toUpperCase() || "UP"}</p>
+                      <p>
+                        Trạng thái:{" "}
+                        {health?.checks?.postgres?.status?.toUpperCase() ||
+                          "UNKNOWN"}
+                      </p>
                     </div>
                   </div>
 
@@ -472,7 +501,11 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     <CheckCircle2 size={24} className="text-green" />
                     <div>
                       <strong>Redis 7.4 In-Memory</strong>
-                      <p>Trạng thái: {health?.checks?.redis?.status?.toUpperCase() || "UP"}</p>
+                      <p>
+                        Trạng thái:{" "}
+                        {health?.checks?.redis?.status?.toUpperCase() ||
+                          "UNKNOWN"}
+                      </p>
                     </div>
                   </div>
 
@@ -480,7 +513,11 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     <CheckCircle2 size={24} className="text-green" />
                     <div>
                       <strong>BullMQ Distributed Queues</strong>
-                      <p>Trạng thái: {health?.checks?.queue?.status?.toUpperCase() || "UP"}</p>
+                      <p>
+                        Trạng thái:{" "}
+                        {health?.checks?.queue?.status?.toUpperCase() ||
+                          "UNKNOWN"}
+                      </p>
                     </div>
                   </div>
 
@@ -488,7 +525,11 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     <CheckCircle2 size={24} className="text-green" />
                     <div>
                       <strong>Realtime WebSocket Bus</strong>
-                      <p>Trạng thái: {health?.checks?.realtime?.status?.toUpperCase() || "UP"}</p>
+                      <p>
+                        Trạng thái:{" "}
+                        {health?.checks?.realtime?.status?.toUpperCase() ||
+                          "UNKNOWN"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -501,7 +542,9 @@ export default function AdminDashboard({ onClose, adminUser }) {
                   <div>
                     <h3>Dọn Dẹp Bảng Outbox (Khắc Phục Table Bloating)</h3>
                     <p className="muted">
-                      Xóa các sự kiện vé và giữ chỗ đã xử lý hoàn tất (<code>processedAt != null</code>) để tối ưu tốc độ truy vấn cơ sở dữ liệu.
+                      Xóa các sự kiện vé và giữ chỗ đã xử lý hoàn tất (
+                      <code>processedAt != null</code>) để tối ưu tốc độ truy
+                      vấn cơ sở dữ liệu.
                     </p>
                   </div>
                 </div>
@@ -528,9 +571,7 @@ export default function AdminDashboard({ onClose, adminUser }) {
                 </div>
 
                 {purgeResult && (
-                  <div className="purge-result-banner">
-                    {purgeResult}
-                  </div>
+                  <div className="purge-result-banner">{purgeResult}</div>
                 )}
               </div>
             </div>

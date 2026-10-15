@@ -8,7 +8,6 @@ import {
   Mail,
   ShieldCheck,
   UserRound,
-  Zap,
 } from "lucide-react";
 import { useI18n } from "../i18n.js";
 import { apiLogin, apiRegister } from "../api/client.js";
@@ -41,10 +40,10 @@ export default function AuthForm({ onSuccess }) {
         : "Nhập email đúng định dạng."
       : "",
     password:
-      fields.password.length < 8
+      fields.password.length < (tab === "signup" ? 12 : 1)
         ? language === "en"
-          ? "Use at least 8 characters."
-          : "Mật khẩu cần ít nhất 8 ký tự."
+          ? "Use at least 12 characters."
+          : "Mật khẩu cần ít nhất 12 ký tự."
         : "",
     confirm:
       fields.confirm !== fields.password
@@ -69,7 +68,7 @@ export default function AuthForm({ onSuccess }) {
     setLoading(true);
     try {
       if (tab === "signin") {
-        const data = await apiLogin(fields.email, fields.password);
+        const data = await apiLogin(fields.email, fields.password, remember);
         const user = data.user;
         const member = {
           id: user.id,
@@ -79,15 +78,15 @@ export default function AuthForm({ onSuccess }) {
           tier: user.cMemberTier || "SILVER",
           points: user.cMemberPoints || 0,
         };
-        localStorage.removeItem("nova-member");
-        sessionStorage.removeItem("nova-member");
-        (remember ? localStorage : sessionStorage).setItem(
-          "nova-member",
-          JSON.stringify(member),
-        );
         onSuccess(member);
       } else {
-        const data = await apiRegister(fields.email, fields.password, fields.name.trim());
+        const data = await apiRegister(
+          fields.email,
+          fields.password,
+          fields.name.trim(),
+          undefined,
+          remember,
+        );
         const user = data.user;
         const member = {
           id: user.id,
@@ -95,31 +94,17 @@ export default function AuthForm({ onSuccess }) {
           email: user.email,
           role: user.role || "CUSTOMER",
           tier: user.cMemberTier || "SILVER",
-          points: user.cMemberPoints || 100,
+          points: user.cMemberPoints || 0,
         };
-        localStorage.removeItem("nova-member");
-        sessionStorage.removeItem("nova-member");
-        (remember ? localStorage : sessionStorage).setItem(
-          "nova-member",
-          JSON.stringify(member),
-        );
         onSuccess(member);
       }
     } catch (err) {
-      setNotice(err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
+      setNotice(
+        err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
+      );
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleQuickFill(email, roleName) {
-    setTab("signin");
-    setFields({
-      ...fields,
-      email,
-      password: "Nova@123456",
-    });
-    setNotice(`Đã điền sẵn tài khoản ${roleName} (Mật khẩu: Nova@123456)`);
   }
 
   return (
@@ -134,7 +119,7 @@ export default function AuthForm({ onSuccess }) {
             5<span>%</span>
           </strong>
           <p>
-            {t("Giảm 5% tiền vé")}
+            {t("Ưu đãi theo hạng thành viên")}
             <small>{t("Ưu đãi chào bạn mới")}</small>
           </p>
         </div>
@@ -149,43 +134,9 @@ export default function AuthForm({ onSuccess }) {
           </li>
           <li>
             <Check size={14} />
-            {t("Quyền quản trị số liệu rạp")}
+            {t("Xem lịch sử đặt vé")}
           </li>
         </ul>
-
-        {/* Quick Demo Logins */}
-        <div className="quick-login-box">
-          <span className="quick-title">
-            <Zap size={14} /> Chọn nhanh tài khoản mẫu:
-          </span>
-          <div className="quick-buttons">
-            <button
-              type="button"
-              className="quick-btn admin"
-              onClick={() => handleQuickFill("admin@nova.local", "Quản Trị Admin")}
-            >
-              👑 Admin
-            </button>
-            <button
-              type="button"
-              className="quick-btn staff"
-              onClick={() => handleQuickFill("staff@nova.local", "Soát Vé Staff")}
-            >
-              🎫 Staff
-            </button>
-            <button
-              type="button"
-              className="quick-btn customer"
-              onClick={() => handleQuickFill("customer@nova.local", "Khách Hàng")}
-            >
-              👤 Khách Hàng
-            </button>
-          </div>
-        </div>
-
-        <p className="small muted mt-2">
-          Kết nối trực tiếp NestJS Backend & PostgreSQL 17 (port 4000).
-        </p>
       </div>
 
       <div className="auth-main">
@@ -227,7 +178,13 @@ export default function AuthForm({ onSuccess }) {
                 <label htmlFor={`field-${id}`}>{t(label)}</label>
                 <input
                   id={`field-${id}`}
-                  type={id === "password" || id === "confirm" ? (show ? "text" : "password") : type}
+                  type={
+                    id === "password" || id === "confirm"
+                      ? show
+                        ? "text"
+                        : "password"
+                      : type
+                  }
                   placeholder={placeholder}
                   value={fields[id]}
                   onChange={(e) =>
@@ -267,9 +224,6 @@ export default function AuthForm({ onSuccess }) {
               />
               {t("Ghi nhớ đăng nhập")}
             </label>
-            <span className="text-gold-light small">
-              Mật khẩu mẫu: <b>Nova@123456</b>
-            </span>
           </div>
 
           <button

@@ -1,169 +1,138 @@
-// API Client kết nối Frontend Next.js với Backend NestJS (port 4000)
-const API_BASE = "http://localhost:4000/api/v1";
-
-export function getAuthToken() {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("nova_access_token") || sessionStorage.getItem("nova_access_token");
-}
-
-export function setAuthToken(token, remember = true) {
-  if (typeof window === "undefined") return;
-  if (token) {
-    (remember ? localStorage : sessionStorage).setItem("nova_access_token", token);
-  } else {
-    localStorage.removeItem("nova_access_token");
-    sessionStorage.removeItem("nova_access_token");
-  }
-}
-
-export async function apiRequest(endpoint, options = {}) {
-  const token = getAuthToken();
-  const headers = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
-
+// Same-origin BFF: credentials stay in HttpOnly cookies, never localStorage.
+export const API_BASE = "/api/v1";
+let refreshing;
+export async function apiRequest(endpoint, options = {}, retry = true) {
+  let response;
   try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    response = await fetch(API_BASE + endpoint, {
       ...options,
-      headers,
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: {
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...options.headers,
+      },
+      signal: options.signal || AbortSignal.timeout(20000),
     });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      const errorMsg = Array.isArray(data.message)
-        ? data.message.join(", ")
-        : data.message || `Lỗi yêu cầu: ${res.status}`;
-      const err = new Error(errorMsg);
-      err.status = res.status;
-      err.response = data;
-      throw err;
-    }
-
-    return data;
-  } catch (error) {
-    if (error.status) throw error;
-    // Lỗi mạng hoặc server không phản hồi
-    throw new Error(
-      `Không thể kết nối đến máy chủ Backend (${API_BASE}). Vui lòng kiểm tra cổng 4000.`,
-      { cause: error },
+  } catch (cause) {
+    throw new Error("Kết nối bị gián đoạn. Vui lòng thử lại.", { cause });
+  }
+  if (response.status === 401 && retry && !endpoint.startsWith("/auth/")) {
+    const rotate = async () => {
+      // Another tab may already have replaced the shared cookies while we waited.
+      try {
+        await apiRequest("/users/me", {}, false);
+        return;
+      } catch (error) {
+        if (error.status !== 401) throw error;
+      }
+      await apiRequest("/auth/refresh", { method: "POST" }, false);
+    };
+    refreshing ||= (
+      navigator.locks?.request
+        ? navigator.locks.request("nova-session-refresh", rotate)
+        : rotate()
+    ).finally(() => {
+      refreshing = null;
+    });
+    await refreshing;
+    return apiRequest(endpoint, options, false);
+  }
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(
+      Array.isArray(payload.message)
+        ? payload.message.join(", ")
+        : payload.message || "Yêu cầu không thành công.",
     );
+    error.status = response.status;
+    error.code = payload.error || payload.errorCode || payload.code;
+    throw error;
+  }
+  return payload;
+}
+const read = async (path) => (await apiRequest(path)).data;
+export async function apiList(path, params = {}) {
+  const items = [];
+  for (let page = 1; ; page++) {
+    const data = await read(
+      `${path}?${new URLSearchParams({ ...params, limit: 100, page })}`,
+    );
+    items.push(...data.items);
+    if (page >= data.meta.totalPages) return items;
   }
 }
-
-// 1. Auth APIs
-export async function apiLogin(email, password) {
-  const res = await apiRequest("/auth/login", {
+export const apiLogin = async (email, password, remember = true) =>
+  (
+    await apiRequest("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password, remember }),
+    })
+  ).data;
+export async function apiRegister(
+  email,
+  password,
+  fullName,
+  phone,
+  remember = true,
+) {
+  await apiRequest("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({
+      email,
+      password,
+      fullName,
+      ...(phone ? { phone } : {}),
+    }),
   });
-  if (res.data?.accessToken) {
-    setAuthToken(res.data.accessToken, true);
-  }
-  return res.data;
+  return apiLogin(email, password, remember);
 }
-
-export async function apiRegister(email, password, fullName, phone) {
-  const res = await apiRequest("/auth/register", {
-    method: "POST",
-    body: JSON.stringify({ email, password, fullName, phone }),
+export const memberProfile = (user) => ({
+  ...user,
+  name: user.fullName,
+  points: user.cMemberPoints,
+  tier: user.cMemberTier,
+});
+export const apiGetProfile = () => read("/users/me");
+export const apiLogout = () => apiRequest("/auth/logout", { method: "POST" });
+export const apiGetMovies = () => apiList("/movies");
+export const apiGetCinemas = () => apiList("/cinemas");
+export const apiGetShowtimes = (params) => apiList("/showtimes", params);
+export const apiGetShowtimeSeats = (id) => read(`/showtimes/${id}/seats`);
+export const apiGetGroupSuggestions = (id, quantity = 2) =>
+  read(`/showtimes/${id}/group-seat-suggestion?quantity=${quantity}`);
+export const apiHoldSeats = (payload, key) =>
+  readCommand("/bookings/hold", payload, key ? { "Idempotency-Key": key } : {});
+export const apiGetMyBookings = () => apiList("/bookings/me");
+export const apiGetMyTickets = () => apiList("/tickets/me");
+export const apiGetBooking = (id) => read(`/bookings/${id}`);
+export const apiCancelBooking = (id) => readCommand(`/bookings/${id}/cancel`);
+export const apiPaymentStatus = (id) => read(`/payments/${id}/status`);
+export const apiCheckout = (id) =>
+  readCommand("/payments/create-sandbox-url", {
+    bookingId: id,
+    returnUrl: window.location.origin + "/?booking=" + id,
   });
-  if (res.data?.accessToken) {
-    setAuthToken(res.data.accessToken, true);
-  }
-  return res.data;
+export async function readCommand(
+  path,
+  payload,
+  headers = {},
+  method = "POST",
+) {
+  return (
+    await apiRequest(path, {
+      method,
+      headers,
+      ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
+    })
+  ).data;
 }
-
-export async function apiGetProfile() {
-  const res = await apiRequest("/users/me");
-  return res.data;
-}
-
-export async function apiLogout() {
-  try {
-    await apiRequest("/auth/logout", { method: "POST" });
-  } finally {
-    setAuthToken(null);
-  }
-}
-
-// 2. Catalog APIs
-export async function apiGetMovies() {
-  const res = await apiRequest("/movies");
-  return res.data;
-}
-
-export async function apiGetCinemas() {
-  const res = await apiRequest("/cinemas");
-  return res.data;
-}
-
-export async function apiGetShowtimes(params = {}) {
-  const query = new URLSearchParams(params).toString();
-  const res = await apiRequest(`/showtimes${query ? `?${query}` : ""}`);
-  return res.data;
-}
-
-export async function apiGetShowtimeSeats(showtimeId) {
-  const res = await apiRequest(`/showtimes/${showtimeId}/seats`);
-  return res.data;
-}
-
-export async function apiGetGroupSuggestions(showtimeId, groupSize = 2) {
-  const res = await apiRequest(`/showtimes/${showtimeId}/group-seat-suggestion?groupSize=${groupSize}`);
-  return res.data;
-}
-
-// 3. Booking & Payment APIs
-export async function apiHoldSeats(payload) {
-  const res = await apiRequest("/bookings/hold", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-  return res.data;
-}
-
-export async function apiGetMyBookings() {
-  const res = await apiRequest("/bookings/me");
-  return res.data;
-}
-
-export async function apiGetMyTickets() {
-  const res = await apiRequest("/tickets/me");
-  return res.data;
-}
-
-// 4. Admin Reports & Management APIs
-export async function apiGetAdminOverview() {
-  const res = await apiRequest("/admin/reports/overview");
-  return res.data;
-}
-
-export async function apiGetAdminRevenue(from, to, cinemaId, movieId) {
-  const params = new URLSearchParams({ from, to });
-  if (cinemaId) params.append("cinemaId", cinemaId);
-  if (movieId) params.append("movieId", movieId);
-  const res = await apiRequest(`/admin/reports/revenue?${params.toString()}`);
-  return res.data;
-}
-
-export async function apiGetAdminUsers() {
-  const res = await apiRequest("/admin/reports/users");
-  return res.data;
-}
-
-export async function apiPurgeOutbox(daysOld = 1) {
-  const res = await apiRequest("/admin/reports/purge-outbox", {
-    method: "POST",
-    body: JSON.stringify({ daysOld }),
-  });
-  return res.data;
-}
-
-// 5. Check Health API
-export async function apiGetHealth() {
-  const res = await apiRequest("/health");
-  return res.data;
-}
+export const apiGetAdminOverview = () => read("/admin/reports/overview");
+export const apiGetAdminRevenue = (from, to, cinemaId, movieId) =>
+  read(
+    `/admin/reports/revenue?${new URLSearchParams({ from, to, ...(cinemaId ? { cinemaId } : {}), ...(movieId ? { movieId } : {}) })}`,
+  );
+export const apiGetAdminUsers = () => read("/admin/reports/users");
+export const apiPurgeOutbox = (daysOld = 7) =>
+  readCommand("/admin/reports/purge-outbox", { daysOld });
+export const apiGetHealth = () => read("/health");

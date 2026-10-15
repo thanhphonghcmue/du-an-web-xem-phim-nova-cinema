@@ -69,3 +69,12 @@ Consumer booking.ticket.requested chỉ tạo ETicket khi PAID và toàn bộ ch
 GET /api/v1/admin/reports/revenue chỉ ADMIN với current DB role. Required from/to strict real YYYY-MM-DD, inclusive Vietnam calendar days, áp dụng Booking.createdAt; optional UUID cinemaId/movieId AND. PAID-only, SUM bốn booking money snapshots thành Decimal fixed2 strings, COUNT bookings và SOLD BookingSeat rows (không đếm QR). Một parameterized SQL/materialized CTE statement giữ MVCC snapshot, không nhân money khi có nhiều seat/combo/payment. Unknown valid IDs trả0; validation400, anonymous401, CUSTOMER/STAFF403, internal errors masked500.
 
 5 unit và19 integration cases mới gồm calendar/leap/boundaries năm0001–9999, current role, filter combinations, immutable history, no fan-out, exact cents,10.000 rows/tổng9999999999999900.00, precommit/rollback và Swagger. Kiểm tra existing composite booking index/seat index bằng catalog và transaction-local forced EXPLAIN; chứng minh eligibility, không benchmark production. Không migration/schema/index/dependency/env mới. Full280 tests và production smoke pass: real Sandbox payment/QR/SMTP/check-in rồi filtered ADMIN report đúng1 paid booking/2SOLD, các hold cancel/expire bị loại. Dừng và chờ `TIẾP TỤC PHASE 11`.
+
+## Bản sửa full-stack sau audit (15/10/2026)
+
+Theo yêu cầu kiểm tra/sửa và chạy web liên tục: kết nối frontend qua same-origin
+Next BFF với API hiện có, giữ cookies HttpOnly, giá và QR từ backend. Sweetbox
+resolve cặp cùng hàng/cột lẻ-chẵn nguyên tử, giới hạn20 sau resolve; ENDED không
+nhận lịch mới hoặc hold mới. Không schema/migration mới. Bằng chứng và phần còn
+thiếu: [báo cáo full-stack](../../docs/fullstack-verification.md). Không tự đánh
+dấu hoàn thành các phase domain mở rộng trong master roadmap.

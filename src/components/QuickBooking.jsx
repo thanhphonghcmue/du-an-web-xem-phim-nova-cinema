@@ -11,8 +11,8 @@ import {
   Sparkles,
   UsersRound,
 } from "lucide-react";
-import { cinemas, movies, getDates, getShowtimes } from "../data.js";
-import { readSeats, seats } from "../bookingStore.js";
+import { useCatalog } from "../catalog.js";
+import { apiGetShowtimeSeats } from "../api/client.js";
 import { useI18n } from "../i18n.js";
 
 export default function QuickBooking({
@@ -31,42 +31,59 @@ export default function QuickBooking({
   onRemoveCombo,
 }) {
   const { language, t } = useI18n();
+  const { cinemas, movies, getDates, getShowtimes } = useCatalog();
+  const [capacities, setCapacities] = useState({});
   const reduced = useReducedMotion();
   const [step, setStep] = useState(null);
   const [expanded, setExpanded] = useState(true);
-  const [, setRefresh] = useState(0);
-  // Đồng bộ số ghế còn lại với các tab, không dùng số ngẫu nhiên hay báo trạng thái giả.
-  useEffect(() => {
-    const sync = () => setRefresh((n) => n + 1);
-    const id = setInterval(sync, 5000);
-    window.addEventListener("storage", sync);
-    window.addEventListener("nova-seats", sync);
-    return () => {
-      clearInterval(id);
-      window.removeEventListener("storage", sync);
-      window.removeEventListener("nova-seats", sync);
-    };
-  }, []);
   const cinema = cinemas.find((c) => c.id === cinemaId),
     film = movies.find((m) => m.id === movieId);
-  const dates = getDates(language);
+  const dates = getDates(language, cinemaId, movieId);
   const date = dates.find((d) => d.id === dateId);
   const times =
     dateId && movieId ? getShowtimes(cinemaId, movieId, dateId) : [];
   const inferred = !cinemaId ? 0 : !movieId ? 1 : !dateId ? 2 : 3;
   const active = step === null ? inferred : Math.min(step, inferred);
-  const values = [cinema?.name, film?.title, date?.label, timeId];
+  const values = [
+    cinema?.name,
+    film?.title,
+    date?.label,
+    times.find((t) => t.id === timeId)?.displayTime,
+  ];
   const labels = ["Chọn cụm rạp", "Chọn phim", "Chọn ngày", "Chọn suất chiếu"];
   const icons = [MapPin, Film, Clock3, Clock3];
-  const availability = times.map((time) => {
-    const data = readSeats([cinemaId, movieId, dateId, time.id].join("|"));
-    const free = seats.length - Object.keys(data).length;
-    return {
-      ...time,
-      free,
-      status: free > 60 ? "plenty" : free > 20 ? "filling" : "limited",
+  const timeKey = times.map((t) => t.id).join(",");
+  useEffect(() => {
+    let active = true;
+    async function update() {
+      const results = await Promise.allSettled(
+        timeKey
+          .split(",")
+          .filter(Boolean)
+          .map(async (id) => [
+            id,
+            (await apiGetShowtimeSeats(id)).capacity.available,
+          ]),
+      );
+      if (active)
+        setCapacities(
+          Object.fromEntries(
+            results.filter((r) => r.status === "fulfilled").map((r) => r.value),
+          ),
+        );
+    }
+    void update();
+    const timer = setInterval(update, 10000);
+    return () => {
+      active = false;
+      clearInterval(timer);
     };
-  });
+  }, [timeKey]);
+  const availability = times.map((time) => ({
+    ...time,
+    free: capacities[time.id] ?? "—",
+    status: (capacities[time.id] ?? 0) > 60 ? "plenty" : "limited",
+  }));
   function choose(fn, value, next) {
     fn(value);
     setStep(next);
@@ -95,8 +112,8 @@ export default function QuickBooking({
         </div>
         <span className="wizard-demo">
           {language === "en"
-            ? "LIVE ON THIS DEVICE · DEMO"
-            : "ĐỒNG BỘ TRÊN THIẾT BỊ · DEMO"}
+            ? "LIVE SHOWTIMES · SANDBOX"
+            : "LỊCH CHIẾU TỪ HỆ THỐNG · SANDBOX"}
         </span>
       </div>
       <motion.div
@@ -295,7 +312,7 @@ export default function QuickBooking({
                     aria-label={time.label}
                     aria-pressed={timeId === time.id}
                   >
-                    <strong>{time.id}</strong>
+                    <strong>{time.displayTime}</strong>
                     <span>{time.label.split(" · ")[1]}</span>
                     <small>
                       <i />
@@ -364,8 +381,8 @@ export default function QuickBooking({
         <div className="combo-attached">
           <Check size={14} />
           {language === "en"
-            ? "Party Combo 69K added to your booking"
-            : "Party Combo 69K đã thêm vào lựa chọn của bạn"}
+            ? "Choose your popcorn and drinks before confirming seats"
+            : "Chọn bắp nước trước khi xác nhận giữ ghế"}
           <button onClick={onRemoveCombo}>
             {language === "en" ? "Remove" : "Bỏ combo"}
           </button>

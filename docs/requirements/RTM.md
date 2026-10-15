@@ -62,3 +62,12 @@ AdminDashboard metrics/users/10recent orders/maintenance đã có, nhưng ADMIN 
 ### Các gap kiểm thử cần giữ rõ
 
 280 backend tests pass; frontend cùng13test trên server sạch đạt10pass/3fail, không khiến30 dòng đều PASS full-stack. Failure và command results chi tiết trong current-state/baseline-results. Chưa có automated full-stack ADMIN→customer→QR đi qua cả Next/Nest/DB, chưa có browser real backend concurrency/reconnect/refresh, chưa có server pair/voucher/retention tests hoặc combined unit+integration coverage. Không thêm fake passing test, skip hoặc đổi assertion để gộp các gap thành completed. Sau mỗi phase repair, cập nhật evidence/thay đổi status theo runner outcome thực.
+
+## Cập nhật sau audit: tích hợp luồng vận hành
+
+Yêu cầu kiểm tra/sửa frontend–backend ngày 15/10/2026 được ghi tại
+[fullstack-verification.md](../fullstack-verification.md). Audit Phase0 ở trên là
+baseline lịch sử; bản sửa mới nối auth/catalog/hold/pricing/Sandbox/QR/check-in,
+thêm kiểm thử browser thực và quy tắc Sweetbox/ENDED. Các domain voucher/đổi điểm,
+genre/presale, retention tự động và refund chưa được đánh dấu đạt chỉ nhờ các
+kiểm thử luồng chính. Bảng kết quả cuối và giới hạn nằm trong báo cáo được liên kết.

@@ -23,7 +23,15 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { movies, cinemas, getDates, getShowtimes, money } from "./data.js";
+import { useCatalog } from "./catalog.js";
+import {
+  apiGetProfile,
+  apiLogout,
+  apiGetMyBookings,
+  memberProfile,
+} from "./api/client.js";
+import TicketHistory from "./components/TicketHistory.jsx";
+import StaffCheckIn from "./components/StaffCheckIn.jsx";
 import Modal from "./components/Modal.jsx";
 import SeatBooking from "./components/SeatBooking.jsx";
 import CinematicBackdrop from "./components/CinematicBackdrop.jsx";
@@ -67,7 +75,7 @@ function MoviePoster({ movie, className = "" }) {
         <small>{movie.part}</small>
       </div>
       <img
-        src={movie.localPoster || movie.poster}
+        src={movie.localPoster || movie.poster || "/images/cinema-imax.jpg"}
         alt={`Poster ${movie.title}`}
         width="400"
         height="600"
@@ -89,51 +97,18 @@ function MoviePoster({ movie, className = "" }) {
     </div>
   );
 }
-function TicketHistory({ tickets }) {
-  const { t } = useI18n();
-  return tickets.length ? (
-    <div className="history-list">
-      {[...tickets].reverse().map((t) => (
-        <article key={t.code}>
-          <img src={t.qr} alt={`QR vé ${t.code}`} />
-          <div>
-            <h3>{t.movie}</h3>
-            <p>
-              {t.cinema} · {t.date} · {t.time}
-            </p>
-            <p>
-              {t("Ghế:")} {t.seats.join(", ")} · {money(t.total)}
-            </p>
-            <small>
-              {t("Vé mô phỏng ·")} {t.code.slice(0, 18)}
-            </small>
-          </div>
-          <a href={t.qr} download={`${t.code}.png`} className="text-button">
-            {t("Tải QR")}{" "}
-          </a>
-        </article>
-      ))}
-    </div>
-  ) : (
-    <div className="empty-state">
-      <Ticket size={40} />
-      <h3>{t("Màn ảnh lớn đang chờ bạn.")} </h3>
-      <p>
-        {t(
-          "Vé điện tử sẽ xuất hiện tại đây sau khi bạn hoàn tất đặt vé mô phỏng.",
-        )}{" "}
-      </p>
-    </div>
-  );
-}
-
 export default function App() {
   const { language, setLanguage, t } = useI18n();
+  const { movies, cinemas, getDates, getShowtimes, contextFor } = useCatalog();
   const reducedMotion = useReducedMotion();
   const [slide, setSlide] = useState(0);
   const [wizardVersion, setWizardVersion] = useState(0);
-  const featured = [movies[0], movies[5], movies[1]];
-  const hero = featured[slide];
+  const highlights = movies.filter((m) =>
+    ["dune", "oppenheimer", "kong"].includes(m.artId),
+  );
+  const featured = (highlights.length ? highlights : movies).slice(0, 3);
+  const hero = featured[slide % featured.length] || movies[0] || {};
+  const eventMovie = movies.find((m) => m.artId === "oppenheimer");
   const [cinemaId, setCinemaId] = useState("");
   const [movieId, setMovieId] = useState("");
   const [dateId, setDateId] = useState("");
@@ -146,23 +121,49 @@ export default function App() {
   const [booking, setBooking] = useState(null);
   const [menu, setMenu] = useState(false);
   const [query, setQuery] = useState("");
-  const [member, setMember] = useState(() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem("nova-member") ||
-          sessionStorage.getItem("nova-member"),
-      );
-    } catch {
-      return null;
+  const [member, setMember] = useState(null);
+  const [sessionError, setSessionError] = useState("");
+  useEffect(() => {
+    // Remove credentials and invented profiles left by the former browser demo.
+    for (const storage of [localStorage, sessionStorage]) {
+      for (const key of ["nova_access_token", "nova-member", "nova-tickets"])
+        storage.removeItem(key);
     }
-  });
-  const [tickets, setTickets] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("nova-tickets") || "[]");
-    } catch {
-      return [];
-    }
-  });
+    let active = true;
+    apiGetProfile()
+      .then((user) => {
+        if (active) setMember(memberProfile(user));
+      })
+      .catch((err) => {
+        if (active && err.status !== 401) setSessionError(err.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const memberId = member?.id;
+  useEffect(() => {
+    if (!memberId) return;
+    const id = new URLSearchParams(window.location.search).get("booking");
+    let active = true;
+    apiGetMyBookings()
+      .then((orders) => {
+        const order = id
+          ? orders.find((o) => o.id === id)
+          : orders.find((o) => ["HOLDING", "PENDING"].includes(o.status));
+        const context = order && contextFor(order.showtimeId);
+        if (active && context) {
+          setBooking({ ...context, orderId: order.id });
+          window.history.replaceState({}, "", "/");
+        }
+      })
+      .catch((err) => {
+        if (active) setSessionError(err.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [memberId, contextFor]);
   const [city, setCity] = useState("Tất cả");
 
   const dates = getDates(language);
@@ -179,11 +180,13 @@ export default function App() {
     return () => window.removeEventListener("keydown", shortcut);
   }, []);
   function bookMovie(movie, combo = false) {
+    if (!movie) return;
     if (movie.status === "soon") {
       openMovie(movie);
       return;
     }
-    if (!cinema?.movies.includes(movie.id)) setCinemaId("landmark");
+    if (!cinema?.movies.includes(movie.id))
+      setCinemaId(cinemas.find((c) => c.movies.includes(movie.id))?.id || "");
     setWizardVersion((v) => v + 1);
     setMovieId(movie.id);
     setDateId("");
@@ -203,7 +206,12 @@ export default function App() {
       setTimeId("");
       return;
     }
+    if (!member) {
+      setModal("login");
+      return;
+    }
     setBooking({
+      showtimeId: time.id,
       movie: movies.find((m) => m.id === movieId),
       cinema,
       date: dates.find((d) => d.id === dateId),
@@ -213,6 +221,7 @@ export default function App() {
     });
   }
   function openMovie(movie, type = "movie") {
+    if (type === "trailer" && !movie.trailer) type = "movie";
     setActiveMovie(movie);
     setModal(type);
   }
@@ -237,6 +246,11 @@ export default function App() {
   );
   return (
     <div id="top" className="app-shell">
+      {sessionError && (
+        <p role="alert" className="auth-notice">
+          {sessionError}
+        </p>
+      )}
       <a href="#main-content" className="skip-link">
         {language === "en" ? "Skip to content" : "Đến nội dung chính"}
       </a>
@@ -247,6 +261,8 @@ export default function App() {
           <GlassNavigation />
           <div className="header-actions">
             <HeaderSearch
+              movies={movies}
+              cinemas={cinemas}
               onMovie={openMovie}
               onCinema={(c) => {
                 setCinemaId(c.id);
@@ -277,6 +293,11 @@ export default function App() {
               >
                 <Crown size={15} />
                 Quản Trị Rạp
+              </button>
+            )}
+            {["ADMIN", "STAFF"].includes(member?.role) && (
+              <button className="text-button" onClick={() => setModal("staff")}>
+                Soát vé
               </button>
             )}
             <button
@@ -335,12 +356,15 @@ export default function App() {
         )}
       </header>
       <main id="main-content" tabIndex={-1}>
-        <section className={`hero hero-${hero.id}`} aria-label="Phim nổi bật">
+        <section
+          className={`hero hero-${hero.artId || hero.id}`}
+          aria-label="Phim nổi bật"
+        >
           <div
             key={hero.id}
             className="hero-art"
             style={{
-              backgroundImage: `url("${hero.localBackdrop || hero.backdrop}")`,
+              backgroundImage: `url("${hero.localBackdrop || hero.backdrop || "/images/cinema-imax.jpg"}")`,
             }}
           />
           <div className="hero-shade" />
@@ -353,19 +377,21 @@ export default function App() {
                 {t("TRẢI NGHIỆM ĐIỆN ẢNH ĐỈNH CAO")}{" "}
               </span>
               <p className="hero-kicker">
-                {hero.id === "dune"
+                {hero.artId === "dune"
                   ? "BEYOND THE ORDINARY."
-                  : hero.id === "oppenheimer"
+                  : hero.artId === "oppenheimer"
                     ? "THE WORLD FOREVER CHANGES."
                     : "RISE TOGETHER. FALL TOGETHER."}
               </p>
-              <h1 className={hero.id === "dune" ? "dune-title" : ""}>
+              <h1 className={hero.artId === "dune" ? "dune-title" : ""}>
                 {hero.short}
               </h1>
               <p className="hero-part">{hero.part}</p>
               <div className="hero-meta">
                 <span className="format-badge">
-                  {hero.id === "oppenheimer" ? "IMAX 70MM LASER" : "IMAX LASER"}
+                  {hero.artId === "oppenheimer"
+                    ? "IMAX 70MM LASER"
+                    : "IMAX LASER"}
                 </span>
                 <span className="dolby-badge">▣ DOLBY ATMOS</span>
                 <span className="rating">
@@ -383,6 +409,7 @@ export default function App() {
               <div className="hero-buttons">
                 <button
                   className="button button-primary"
+                  disabled={!hero.id}
                   onClick={() => bookMovie(hero)}
                 >
                   <Ticket size={18} />
@@ -432,7 +459,9 @@ export default function App() {
               <button
                 aria-label="Phim nổi bật trước"
                 className="icon-button"
-                onClick={() => setSlide((slide + 2) % 3)}
+                onClick={() =>
+                  setSlide((slide + featured.length - 1) % featured.length)
+                }
               >
                 <ChevronLeft size={17} />
               </button>
@@ -453,7 +482,7 @@ export default function App() {
               <button
                 aria-label="Phim nổi bật tiếp theo"
                 className="icon-button"
-                onClick={() => setSlide((slide + 1) % 3)}
+                onClick={() => setSlide((slide + 1) % featured.length)}
               >
                 <ChevronRight size={17} />
               </button>
@@ -660,7 +689,15 @@ export default function App() {
             </span>
           </div>
         </section>
-        <ShowtimeTimeline onBook={setBooking} />
+        <ShowtimeTimeline
+          onBook={(value) => {
+            if (!member) {
+              setModal("login");
+              return;
+            }
+            setBooking(value);
+          }}
+        />
         <section id="offers" className="offers-section content-width">
           <div className="combo-offer">
             <div className="combo-copy">
@@ -936,48 +973,46 @@ export default function App() {
               ))}
           </div>
         </section>
-        <section id="events" className="events-section content-width">
-          <div>
-            <p className="eyebrow">
-              <span />
-              NOVA SPECIAL SCREENINGS
-            </p>
-            <h2>
-              {language === "en" ? "Special films." : "Suất đặc biệt."}
-              <br />
-              {language === "en" ? "Worth returning." : "Đáng trở lại."}
-            </h2>
-          </div>
-          <article className="event-card">
-            <img
-              src={movies[5].localBackdrop || movies[5].backdrop}
-              alt="Oppenheimer suất chiếu đặc biệt"
-              loading="lazy"
-              onError={(e) => {
-                if (!e.currentTarget.src.endsWith(movies[5].localBackdrop)) {
-                  e.currentTarget.src = movies[5].localBackdrop;
-                } else {
-                  e.currentTarget.style.opacity = 0;
-                }
-              }}
-            />
-            <div className="event-content">
-              <span className="format-badge">70MM SPECIAL RE-RELEASE</span>
-              <h3>
-                Oppenheimer.
+        {eventMovie && (
+          <section id="events" className="events-section content-width">
+            <div>
+              <p className="eyebrow">
+                <span />
+                NOVA SPECIAL SCREENINGS
+              </p>
+              <h2>
+                {language === "en" ? "Special films." : "Suất đặc biệt."}
                 <br />
-                {t("Trở lại, hoành tráng hơn.")}{" "}
-              </h3>
-              <p>{t("Kiệt tác của Christopher Nolan trên màn ảnh IMAX.")} </p>
-              <button
-                className="text-button"
-                onClick={() => bookMovie(movies[5])}
-              >
-                {t("Khám phá suất chiếu")} <ArrowUpRight size={17} />
-              </button>
+                {language === "en" ? "Worth returning." : "Đáng trở lại."}
+              </h2>
             </div>
-          </article>
-        </section>
+            <article className="event-card">
+              <img
+                src={eventMovie.localBackdrop || eventMovie.backdrop}
+                alt="Oppenheimer suất chiếu đặc biệt"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.opacity = 0;
+                }}
+              />
+              <div className="event-content">
+                <span className="format-badge">70MM SPECIAL RE-RELEASE</span>
+                <h3>
+                  Oppenheimer.
+                  <br />
+                  {t("Trở lại, hoành tráng hơn.")}{" "}
+                </h3>
+                <p>{t("Kiệt tác của Christopher Nolan trên màn ảnh IMAX.")} </p>
+                <button
+                  className="text-button"
+                  onClick={() => bookMovie(eventMovie)}
+                >
+                  {t("Khám phá suất chiếu")} <ArrowUpRight size={17} />
+                </button>
+              </div>
+            </article>
+          </section>
+        )}
         <section className="app-banner content-width">
           <div className="app-symbol">
             <Smartphone size={29} />
@@ -1075,18 +1110,11 @@ export default function App() {
           ].join("|")}
           booking={booking}
           member={member}
-          onMemberUpdate={(next) => {
-            setMember(next);
-            (localStorage.getItem("nova-member")
-              ? localStorage
-              : sessionStorage
-            ).setItem("nova-member", JSON.stringify(next));
-          }}
+          onMemberUpdate={setMember}
           onClose={() => setBooking(null)}
-          onTicket={(t) => setTickets((prev) => [...prev, t])}
         />
       )}
-      {modal && (
+      {modal && !["admin", "staff"].includes(modal) && (
         <Modal
           title={
             modal === "search"
@@ -1202,7 +1230,7 @@ export default function App() {
                 <span className="format-badge">C’MEMBER</span>
                 <p>{member?.email}</p>
                 <p className="muted">
-                  {t("Ưu đãi minh họa: giảm 5% tiền vé. Điểm demo đã tích:")}{" "}
+                  {t("Hạng thành viên và điểm được cập nhật từ hệ thống:")}{" "}
                   {(member?.points || 0).toLocaleString("vi-VN")}
                 </p>
               </div>
@@ -1221,21 +1249,39 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <TicketHistory tickets={tickets} />
-              <button
-                className="text-button"
-                onClick={() => {
-                  localStorage.removeItem("nova-member");
-                  sessionStorage.removeItem("nova-member");
-                  setMember(null);
+              <TicketHistory
+                member={member}
+                onResume={(value) => {
+                  setBooking(value);
                   setModal(null);
                 }}
+              />
+              <button
+                className="text-button"
+                onClick={async () => {
+                  try {
+                    await apiLogout();
+                    setMember(null);
+                    setBooking(null);
+                    setModal(null);
+                  } catch (err) {
+                    setSessionError(err.message);
+                  }
+                }}
               >
-                {t("Đăng xuất hồ sơ demo")}{" "}
+                {t("Đăng xuất")}{" "}
               </button>
             </div>
           )}
-          {modal === "history" && <TicketHistory tickets={tickets} />}
+          {modal === "history" && (
+            <TicketHistory
+              member={member}
+              onResume={(value) => {
+                setBooking(value);
+                setModal(null);
+              }}
+            />
+          )}
           {modal === "movie" && (
             <div className="movie-detail">
               <MoviePoster movie={activeMovie} />
@@ -1387,13 +1433,13 @@ export default function App() {
               <h3>{t("Dữ liệu & quyền riêng tư")} </h3>
               <p>
                 {t(
-                  "Hồ sơ demo, trạng thái ghế và vé được lưu bằng localStorage trên thiết bị. Không nhập thông tin nhạy cảm. Xóa dữ liệu website trong trình duyệt để xóa toàn bộ thông tin demo.",
+                  "Hồ sơ, ghế và vé được quản lý bởi máy chủ. Phiên đăng nhập dùng cookie HttpOnly. Chỉ chủ tài khoản được đọc vé của mình.",
                 )}{" "}
               </p>
               <h3>{t("Giữ ghế & thanh toán")} </h3>
               <p>
                 {t(
-                  "Ghế được giữ 5 phút và giải phóng khi hết hạn, hủy hoặc thanh toán thất bại. Đồng bộ demo chỉ giữa các tab cùng trình duyệt; hệ thống thực cần backend để khóa ghế giữa nhiều người dùng. Giá, ưu đãi và lịch chiếu là dữ liệu minh họa.",
+                  "Ghế được giữ 5 phút và giải phóng khi hết hạn, hủy hoặc thanh toán thất bại. Máy chủ đồng bộ trạng thái ghế giữa các người dùng. Thanh toán Sandbox không thu tiền thật.",
                 )}{" "}
               </p>
               <h3>{t("Hình ảnh & nội dung")} </h3>
@@ -1406,11 +1452,9 @@ export default function App() {
           )}
         </Modal>
       )}
+      {modal === "staff" && <StaffCheckIn onClose={() => setModal(null)} />}
       {modal === "admin" && (
-        <AdminDashboard
-          onClose={() => setModal(null)}
-          adminUser={member}
-        />
+        <AdminDashboard onClose={() => setModal(null)} adminUser={member} />
       )}
     </div>
   );

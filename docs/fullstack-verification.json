@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-15",
+  "sourceBaseline": "c48d84e",
+  "branch": "fix/fullstack-productization",
+  "checks": [
+    {
+      "command": "root: setup:local",
+      "status": "passed"
+    },
+    {
+      "command": "root: lint + build",
+      "status": "passed"
+    },
+    {
+      "command": "backend: check",
+      "status": "passed",
+      "unitPassed": 67,
+      "httpAndSocketPassed": 195
+    },
+    {
+      "command": "backend: test:db",
+      "status": "passed",
+      "passed": 22
+    },
+    {
+      "command": "backend: compiled production smoke",
+      "status": "passed"
+    },
+    {
+      "command": "root: playwright",
+      "status": "passed",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "documented dev startup and real dev DB browser hold/cancel",
+      "status": "passed",
+      "javascriptErrors": 0,
+      "missingStaticChunks": 0,
+      "mobileDocumentOverflow": false
+    },
+    {
+      "command": "fresh Next production browser + BFF catalog HTTP200",
+      "status": "passed",
+      "javascriptErrors": 0,
+      "missingStaticChunks": 0
+    }
+  ],
+  "totalTestsPassed": 300,
+  "scope": "Core full-stack flow; not all extended roadmap domains or production security certification.",
+  "remaining": [
+    "Voucher and point redemption",
+    "Movie genre/slug/presale domain",
+    "Scheduled bounded outbox retention and DOCS mode",
+    "Optional refunds/external payment provider",
+    "Camera QR scanner and admin users pagination",
+    "Public deployment/load/device/security validation"
+  ]
+}

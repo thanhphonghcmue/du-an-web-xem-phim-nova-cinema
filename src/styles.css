@@ -6278,3 +6278,99 @@ button:focus-visible {
   color: #fbbf24;
   font-size: 15px;
 }
+
+/* Connected booking and operations, using the existing cinematic surfaces. */
+.live-summary {
+  padding: 24px;
+  border: 1px solid #ffffff18;
+  border-radius: 20px;
+  background: #ffffff05;
+  overflow-wrap: anywhere;
+  align-self: start;
+}
+.live-summary p {
+  margin: 14px 0;
+}
+.live-summary b {
+  float: right;
+}
+.live-summary .button {
+  width: 100%;
+  margin: 14px 0;
+}
+.live-summary .text-button {
+  margin-top: 12px;
+}
+.live-combos label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0;
+}
+.live-combos input {
+  width: 64px;
+  padding: 10px;
+  border: 1px solid #ffffff25;
+  border-radius: 10px;
+  background: #0b0e14;
+  color: white;
+}
+.live-admin nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.live-admin-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 18px 0 28px;
+}
+.live-admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #94a3b8;
+}
+.live-admin-form input,
+.live-admin-form select,
+.auth-form > input {
+  padding: 12px;
+  border: 1px solid #ffffff20;
+  border-radius: 10px;
+  background: #10151f;
+  color: #fff;
+  min-width: 0;
+}
+.live-admin .admin-table-scroll {
+  max-height: 360px;
+  overflow: auto;
+}
+.live-admin td .text-button {
+  margin-right: 16px;
+}
+.initial-screen button {
+  margin-top: 20px;
+}
+@media (max-width: 700px) {
+  .live-admin-form {
+    grid-template-columns: 1fr;
+  }
+  .live-summary {
+    padding: 18px;
+  }
+  .group-picker {
+    flex-wrap: wrap;
+  }
+  .history-list article {
+    flex-wrap: wrap;
+  }
+  .history-list article img {
+    max-width: 120px;
+  }
+  .live-admin nav .button {
+    padding: 10px;
+  }
+}

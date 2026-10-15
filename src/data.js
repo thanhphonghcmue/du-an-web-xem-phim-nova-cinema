@@ -259,7 +259,14 @@ export function getShowtimes(cinemaId, movieId, dateId) {
       room: format.includes("IMAX") ? "IMAX HALL 01" : "INFINITY HALL 01",
     }));
 }
-export const money = (value) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    value,
+export const money = (value) => {
+  const match = String(value ?? "0").match(/^(-?)(\d+)(?:\.(\d+))?$/);
+  if (!match) return "—";
+  const [, sign, integer, fraction] = match;
+  return (
+    sign +
+    BigInt(integer).toLocaleString("vi-VN") +
+    (fraction && /[1-9]/.test(fraction) ? "," + fraction : "") +
+    " ₫"
   );
+};

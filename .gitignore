@@ -10,3 +10,5 @@ playwright-report/
 .next/
 out/
 .taste-skill/
+
+.runtime/

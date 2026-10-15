@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { Film, MapPin, Search, X } from "lucide-react";
-import { movies, cinemas } from "../data.js";
 import { useI18n } from "../i18n.js";
-export default function HeaderSearch({ onMovie, onCinema, onExpand }) {
+export default function HeaderSearch({
+  onMovie,
+  onCinema,
+  onExpand,
+  movies,
+  cinemas,
+}) {
   const { language, t } = useI18n();
   const [query, setQuery] = useState(""),
     [open, setOpen] = useState(false);

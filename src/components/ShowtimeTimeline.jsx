@@ -1,32 +1,55 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight, MapPin, Ticket } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { cinemas, movies, getDates, getShowtimes } from "../data.js";
-import { readSeats, seats } from "../bookingStore.js";
+import { useCatalog } from "../catalog.js";
+import { apiGetShowtimeSeats } from "../api/client.js";
 import { useI18n } from "../i18n.js";
 export default function ShowtimeTimeline({ onBook }) {
   const { language } = useI18n();
+  const { cinemas, movies, getDates, getShowtimes } = useCatalog();
+  const [capacities, setCapacities] = useState({});
   const reduced = useReducedMotion();
-  const [cinemaId, setCinemaId] = useState("landmark");
-  const [dateId, setDateId] = useState(() => getDates()[0].id);
-  const [filmId, setFilmId] = useState("dune");
-  const [, refresh] = useState(0);
+  const [cinemaId, setCinemaId] = useState(cinemas[0]?.id || "");
+  const [dateId, setDateId] = useState(() => getDates()[0]?.id || "");
+  const [filmId, setFilmId] = useState(movies[0]?.id || "");
   const cinema = cinemas.find((c) => c.id === cinemaId);
-  const dates = getDates(language);
-  const films = movies.filter((m) => cinema.movies.includes(m.id));
+
+  const films = movies.filter((m) => cinema?.movies.includes(m.id));
   const film = films.find((m) => m.id === filmId) || films[0];
-  const times = getShowtimes(cinemaId, film.id, dateId);
+  const dates = getDates(language, cinemaId, film?.id);
+  const activeDate = dates.some((d) => d.id === dateId) ? dateId : dates[0]?.id;
+  const times = getShowtimes(cinemaId, film?.id, activeDate);
+  const timeKey = times.map((t) => t.id).join(",");
   useEffect(() => {
-    const update = () => refresh((n) => n + 1);
-    const id = setInterval(update, 5000);
-    window.addEventListener("storage", update);
-    window.addEventListener("nova-seats", update);
+    let active = true;
+    async function update() {
+      const results = await Promise.allSettled(
+        timeKey
+          .split(",")
+          .filter(Boolean)
+          .map(async (id) => [id, (await apiGetShowtimeSeats(id)).capacity]),
+      );
+      if (active)
+        setCapacities(
+          Object.fromEntries(
+            results.filter((r) => r.status === "fulfilled").map((r) => r.value),
+          ),
+        );
+    }
+    void update();
+    const timer = setInterval(update, 10000);
     return () => {
-      clearInterval(id);
-      window.removeEventListener("storage", update);
-      window.removeEventListener("nova-seats", update);
+      active = false;
+      clearInterval(timer);
     };
-  }, []);
+  }, [timeKey]);
+  if (!cinema || !film)
+    return (
+      <section id="showtimes" className="content-width section-space">
+        <h2>Lịch chiếu</h2>
+        <p>Chưa có suất chiếu. Vui lòng quay lại sau.</p>
+      </section>
+    );
   return (
     <section
       id="showtimes"
@@ -47,8 +70,8 @@ export default function ShowtimeTimeline({ onBook }) {
         </div>
         <span className="timeline-status">
           {language === "en"
-            ? "Seat availability on this device · Demo"
-            : "Ghế trống trên thiết bị này · Demo"}
+            ? "Live seat availability"
+            : "Ghế trống từ hệ thống"}
         </span>
       </div>
       <div className="timeline-workspace" data-ui>
@@ -78,8 +101,8 @@ export default function ShowtimeTimeline({ onBook }) {
             {dates.map((d) => (
               <button
                 key={d.id}
-                aria-pressed={d.id === dateId}
-                className={d.id === dateId ? "active" : ""}
+                aria-pressed={d.id === activeDate}
+                className={d.id === activeDate ? "active" : ""}
                 onClick={() => setDateId(d.id)}
               >
                 <strong>{d.id.slice(-2)}</strong>
@@ -129,26 +152,24 @@ export default function ShowtimeTimeline({ onBook }) {
             </div>
             <div className="timeline-shows">
               {times.map((time) => {
-                const free =
-                  seats.length -
-                  Object.keys(
-                    readSeats([cinema.id, film.id, dateId, time.id].join("|")),
-                  ).length;
+                const free = capacities[time.id]?.available ?? "—";
+                const total = capacities[time.id]?.total ?? "—";
                 const state =
                   free > 60 ? "plenty" : free > 20 ? "filling" : "limited";
                 return (
                   <motion.button
                     key={time.id}
                     className={`timeline-show ${state}`}
-                    aria-label={`${time.id}, ${free}/${seats.length} ${language === "en" ? "seats available" : "ghế trống"}`}
+                    aria-label={`${time.displayTime}, ${free}/${total} ${language === "en" ? "seats available" : "ghế trống"}`}
                     whileHover={reduced ? undefined : { y: -2 }}
                     whileTap={reduced ? undefined : { scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 300, damping: 28 }}
                     onClick={() =>
                       onBook({
+                        showtimeId: time.id,
                         movie: film,
                         cinema,
-                        date: dates.find((d) => d.id === dateId),
+                        date: dates.find((d) => d.id === activeDate),
                         time,
                         group: false,
                         combo: false,
@@ -158,14 +179,18 @@ export default function ShowtimeTimeline({ onBook }) {
                     <span className="timeline-show-format">
                       {time.label.split(" · ")[1]}
                     </span>
-                    <strong>{time.id}</strong>
+                    <strong>{time.displayTime}</strong>
                     <small>{time.room}</small>
                     <span className="seat-capacity-track">
-                      <i style={{ width: `${(free / seats.length) * 100}%` }} />
+                      <i
+                        style={{
+                          width: `${(typeof free === "number" && typeof total === "number" && total > 0 ? free / total : 0) * 100}%`,
+                        }}
+                      />
                     </span>
                     <span className="show-capacity-label">
-                      {language === "en" ? "Available" : "Còn"} {free}/
-                      {seats.length} {language === "en" ? "seats" : "ghế"}
+                      {language === "en" ? "Available" : "Còn"} {free}/{total}{" "}
+                      {language === "en" ? "seats" : "ghế"}
                       <Ticket size={14} />
                     </span>
                   </motion.button>

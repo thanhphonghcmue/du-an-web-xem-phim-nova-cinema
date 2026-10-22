@@ -4,6 +4,8 @@ Next.js 16 / React 19 / Tailwind 3 frontend, NestJS 11 API, PostgreSQL 17,
 Prisma 6, Redis / BullMQ, Socket.IO và email SMTP. Luồng đặt vé dùng dữ liệu
 backend, giữ ghế đúng 5 phút và thanh toán **Sandbox, không thu tiền thật**.
 
+> 🤝 **Dành cho thành viên nhóm / Cộng tác viên:** Xem ngay [Tài liệu hướng dẫn cộng tác & luồng phát triển dự án](COLLABORATION_GUIDE.md) để biết cách tham gia GitHub, clone code, chạy thử nghiệm không cần Docker, quy ước Git và các ràng buộc nghiệp vụ rạp chiếu phim.
+
 ## Chạy trên máy của bạn
 
 Cài Node.js theo `.nvmrc` (24.19.0) và Docker Desktop có Docker Compose v2.

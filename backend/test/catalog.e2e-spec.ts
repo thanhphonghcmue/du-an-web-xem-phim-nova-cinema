@@ -7,6 +7,7 @@ import request, { Response } from "supertest";
 import { createApplication } from "../src/bootstrap";
 import { PrismaService } from "../src/database/prisma.service";
 import { TokenService } from "../src/modules/auth/token.service";
+import { AuditRepository } from "../src/modules/audit/audit.repository";
 import { RoomsRepository } from "../src/modules/rooms/rooms.repository";
 
 interface Entity {
@@ -207,6 +208,13 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
     await prisma.room.deleteMany({ where: { id: { in: roomIds } } });
     await prisma.cinema.deleteMany({ where: { id: { in: venueIds } } });
     await prisma.movie.deleteMany({ where: { id: { in: movieIds } } });
+    const actors = await prisma.user.findMany({
+      where: { email: { startsWith: prefix } },
+      select: { id: true },
+    });
+    await prisma.auditLog.deleteMany({
+      where: { actorId: { in: actors.map((actor) => actor.id) } },
+    });
     await prisma.user.deleteMany({ where: { email: { startsWith: prefix } } });
     await app.close();
     const keys = await redis.keys(
@@ -978,5 +986,241 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
       .get("/api/v1/showtimes")
       .query({ limit: 101 })
       .expect(400);
+  });
+  it("normalizes Vietnamese titles and rejects case, whitespace and Unicode-equivalent duplicates", async () => {
+    const title = `${prefix}-Đêm Trắng`;
+    const film = await movie("unicode", {
+      title: `  ${title.replace(" ", "   ")}  `,
+    });
+    expect(film.title).toBe(title);
+    for (const value of [
+      title.toLowerCase(),
+      title.normalize("NFD"),
+      title.replace(" ", "\t "),
+    ]) {
+      expect(
+        code(
+          await moviePost()
+            .send({ ...movieBody(), title: value })
+            .expect(409),
+        ),
+      ).toBe("MOVIE_TITLE_EXISTS");
+    }
+    expect(await prisma.movie.count({ where: { title } })).toBe(1);
+    const other = await movie();
+    expect(code(await patch(`movies/${other.id}`, { title }).expect(409))).toBe(
+      "MOVIE_TITLE_EXISTS",
+    );
+    expect(
+      (await prisma.movie.findUniqueOrThrow({ where: { id: other.id } })).title,
+    ).toBe(other.title);
+  });
+  it("commits exactly one movie and one audit record under concurrent duplicate creates", async () => {
+    const title = `${prefix}-concurrent-title`;
+    const replies = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        moviePost().send({ ...movieBody(), title }),
+      ),
+    );
+    expect(replies.map((reply) => reply.status).sort()).toEqual([
+      201, 409, 409, 409, 409,
+    ]);
+    const film = await prisma.movie.findFirstOrThrow({ where: { title } });
+    expect(await prisma.auditLog.count({ where: { entityId: film.id } })).toBe(
+      1,
+    );
+    await expect(
+      prisma.movie.create({
+        data: {
+          ...movieBody(),
+          title: title.toUpperCase(),
+          ageRating: "T13",
+          releaseDate: new Date(),
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2002" });
+  });
+  it("retains atomic actor-bound create/update/delete movie history without logging no-op writes", async () => {
+    const film = await movie();
+    await patch(`movies/${film.id}`, { status: "NOW_SHOWING" }).expect(200);
+    await patch(`movies/${film.id}`, { status: "NOW_SHOWING" }).expect(200);
+    await remove(`movies/${film.id}`).expect(200);
+    const logs = listing(
+      await request(server)
+        .get(`/api/v1/admin/audit-logs?entityId=${film.id}`)
+        .auth(admin, { type: "bearer" })
+        .expect(200),
+    );
+    expect(logs.items).toHaveLength(3);
+    expect(logs.items.map((log) => log.action).sort()).toEqual([
+      "CREATE",
+      "DELETE",
+      "UPDATE",
+    ]);
+    const actor = await prisma.user.findUniqueOrThrow({
+      where: { email: `${prefix}-admin@example.test` },
+    });
+    expect(
+      logs.items.every(
+        (log) => log.actorId === actor.id && log.entityType === "MOVIE",
+      ),
+    ).toBe(true);
+    expect(
+      logs.items.find((log) => log.action === "UPDATE")?.changes,
+    ).toMatchObject({
+      before: { status: "COMING_SOON" },
+      after: { status: "NOW_SHOWING" },
+    });
+    expect(JSON.stringify(logs)).not.toMatch(
+      /passwordHash|refreshToken|accessToken/,
+    );
+    const filtered = listing(
+      await request(server)
+        .get(
+          `/api/v1/admin/audit-logs?entityId=${film.id}&action=DELETE&limit=1`,
+        )
+        .auth(admin, { type: "bearer" })
+        .expect(200),
+    );
+    expect(filtered.meta.total).toBe(1);
+    expect(filtered.items[0]?.action).toBe("DELETE");
+  });
+  it("keeps audit private to current ADMIN roles and validates bounded filters", async () => {
+    await request(server).get("/api/v1/admin/audit-logs").expect(401);
+    for (const token of [staff, customer])
+      await request(server)
+        .get("/api/v1/admin/audit-logs")
+        .auth(token, { type: "bearer" })
+        .expect(403);
+    for (const query of [
+      "limit=101",
+      "entityId=bad",
+      "action=RESET",
+      "entityType=USER",
+      "unexpected=yes",
+    ])
+      await request(server)
+        .get(`/api/v1/admin/audit-logs?${query}`)
+        .auth(admin, { type: "bearer" })
+        .expect(400);
+    const actor = await prisma.user.findUniqueOrThrow({
+      where: { email: `${prefix}-admin@example.test` },
+    });
+    await prisma.user.update({
+      where: { id: actor.id },
+      data: { role: "CUSTOMER" },
+    });
+    try {
+      await request(server)
+        .get("/api/v1/admin/audit-logs")
+        .auth(admin, { type: "bearer" })
+        .expect(403);
+    } finally {
+      await prisma.user.update({
+        where: { id: actor.id },
+        data: { role: "ADMIN" },
+      });
+    }
+  });
+  it("rolls back catalogue writes if durable audit persistence fails", async () => {
+    const repository = app.get(AuditRepository);
+    const failedTitle = `${prefix}-audit-rollback`;
+    const failure = jest
+      .spyOn(repository, "record")
+      .mockRejectedValueOnce(new Error("owned audit failure"));
+    await moviePost()
+      .send({ ...movieBody(), title: failedTitle })
+      .expect(500);
+    failure.mockRestore();
+    expect(await prisma.movie.count({ where: { title: failedTitle } })).toBe(0);
+    expect(
+      await prisma.auditLog.count({ where: { summary: failedTitle } }),
+    ).toBe(0);
+    const film = await movie();
+    const failedUpdate = jest
+      .spyOn(repository, "record")
+      .mockRejectedValueOnce(new Error("owned audit failure"));
+    await patch(`movies/${film.id}`, { status: "NOW_SHOWING" }).expect(500);
+    failedUpdate.mockRestore();
+    expect(
+      (await prisma.movie.findUniqueOrThrow({ where: { id: film.id } })).status,
+    ).toBe("COMING_SOON");
+    const failedDelete = jest
+      .spyOn(repository, "record")
+      .mockRejectedValueOnce(new Error("owned audit failure"));
+    await remove(`movies/${film.id}`).expect(500);
+    failedDelete.mockRestore();
+    expect(await prisma.movie.count({ where: { id: film.id } })).toBe(1);
+    expect(await prisma.auditLog.count({ where: { entityId: film.id } })).toBe(
+      1,
+    );
+  });
+  it("rejects oversized room matrices and unpaired Sweetbox rows before creating seats", async () => {
+    const roomId = await emptyRoom().then((value) => value.id);
+    const rows = Array.from({ length: 15 }, (_, index) =>
+      String.fromCharCode(65 + index),
+    );
+    expect(
+      code(await generate(roomId, { rows, columns: 24 }).expect(400)),
+    ).toBe("ROOM_CAPACITY_EXCEEDED");
+    expect(
+      code(
+        await generate(roomId, {
+          rows: ["A"],
+          columns: 3,
+          sweetboxRows: ["A"],
+        }).expect(400),
+      ),
+    ).toBe("INVALID_SWEETBOX_LAYOUT");
+    await generate(roomId, { rows: [...rows, "P"], columns: 1 }).expect(400);
+    await generate(roomId, { rows: ["A"], columns: 25 }).expect(400);
+    expect(await prisma.seat.count({ where: { roomId } })).toBe(0);
+    expect(
+      entity(await request(server).get(`/api/v1/rooms/${roomId}`).expect(200))
+        .totalSeats,
+    ).toBe(0);
+  });
+  it("serializes capacity checks so concurrent seat additions cannot exceed 300", async () => {
+    const roomId = await emptyRoom().then((value) => value.id);
+    const rows = Array.from({ length: 15 }, (_, index) =>
+      String.fromCharCode(65 + index),
+    );
+    await generate(roomId, { rows, columns: 20 }).expect(201);
+    const last = await prisma.seat.findFirstOrThrow({
+      where: { roomId, seatRow: "O", seatColumn: 20 },
+    });
+    await remove(`seats/${last.id}`).expect(200);
+    const replies = await Promise.all([
+      createSeat(roomId, 20, "O"),
+      createSeat(roomId, 21, "O"),
+    ]);
+    expect(replies.map((reply) => reply.status).sort()).toEqual([201, 400]);
+    const rejected = replies.find((reply) => reply.status === 400);
+    if (!rejected) throw new Error("Capacity rejection missing");
+    expect(code(rejected)).toBe("ROOM_CAPACITY_EXCEEDED");
+    expect(await prisma.seat.count({ where: { roomId } })).toBe(300);
+    expect(
+      (await prisma.room.findUniqueOrThrow({ where: { id: roomId } }))
+        .totalSeats,
+    ).toBe(300);
+  });
+  it("enforces the 15-row boundary on individual seat create and edit routes", async () => {
+    const roomId = await emptyRoom().then((value) => value.id);
+    const rows = Array.from({ length: 15 }, (_, index) =>
+      String.fromCharCode(65 + index),
+    );
+    await generate(roomId, { rows, columns: 2 }).expect(201);
+    expect(code(await createSeat(roomId, 1, "P").expect(400))).toBe(
+      "ROOM_CAPACITY_EXCEEDED",
+    );
+    const seat = await prisma.seat.findFirstOrThrow({
+      where: { roomId, seatRow: "A" },
+    });
+    expect(
+      code(await patch(`seats/${seat.id}`, { seatRow: "P" }).expect(400)),
+    ).toBe("ROOM_CAPACITY_EXCEEDED");
+    expect(
+      (await prisma.seat.findUniqueOrThrow({ where: { id: seat.id } })).seatRow,
+    ).toBe("A");
   });
 });

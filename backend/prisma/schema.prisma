@@ -335,3 +335,20 @@ model OutboxEvent {
   @@index([aggregateType, aggregateId])
   @@map("outbox_events")
 }
+
+// Deliberately no FK: history survives deleting a catalogue item or test account.
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId    String   @map("actor_id") @db.Uuid
+  action     String   @db.VarChar(16)
+  entityType String   @map("entity_type") @db.VarChar(32)
+  entityId   String   @map("entity_id") @db.Uuid
+  summary    String   @db.VarChar(300)
+  changes    Json
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt, id])
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}

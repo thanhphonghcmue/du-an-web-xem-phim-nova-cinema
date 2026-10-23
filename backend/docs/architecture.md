@@ -294,3 +294,12 @@ PostgreSQL NUMERIC SUM được cast text, Decimal.toFixed(2) xuất bốn chu�
 Giữ index hiện có: bookings_status_created_at_showtime_id_idx, booking_seats_booking_id_idx và indexes parent FK. Test kiểm tra pg_indexes và EXPLAIN đúng query bằng SET LOCAL enable_seqscan=off trong transaction: chứng minh index eligibility, không thay planner setting toàn cục. Không coi forced-plan test hoặc fixture10000 rows là production performance benchmark. Có thể cần bổ sung/tối ưu index sau EXPLAIN ANALYZE với cardinality thật; hiện không tạo duplicate index/migration. Không schema/dependency/env change.
 
 19 HTTP/PG integration cases và5 unit cases mới; raw aggregation fixtures chỉ dùng kiểm tra query, không giả định đã đi qua payment/QR workflow. Compiled production smoke riêng tạo hold/payment/QR/SMTP/check-in qua app thực rồi ADMIN đọc filtered report đối chiếu snapshots, đồng thời kiểm tra anonymous401 và CUSTOMER/STAFF403. Evidence validation-phase-10.md. Dừng Phase10; Phase11–12 chưa triển khai.
+
+## Bổ sung quản trị danh mục 23/10/2026
+
+MoviesModule nhập AuditModule. Controller lấy actor từ phiên đã qua ADMIN guard;
+MoviesService ghi thay đổi phim và audit cùng UnitOfWork. AuditRepository nhận
+transaction client; API đọc nhật ký chỉ ADMIN, phân trang snapshot RepeatableRead.
+Unique expression index tên phim phân xử ghi trùng đồng thời. Physical seat mutations
+vẫn khóa room trước, kiểm tra giới hạn 300 ghế/15 hàng; generate tối đa 24 cột và
+Sweetbox nguyên cặp. Không thay ranh giới transaction booking/payment/outbox.

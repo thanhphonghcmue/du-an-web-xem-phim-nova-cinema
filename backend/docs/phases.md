@@ -97,3 +97,11 @@ không chạm rate limit do nhiều trang; giữ pagination100, DB/RBAC/Decimal 
 state machine. Seed additive 30 ngày, phòng và suất COMING_SOON theo ngày dự kiến;
 frontend mở luồng đặt trước theo suất thực. Không đánh dấu Phase11–12 hoàn tất.
 Evidence: [advance booking/readability](../../docs/design/advance-booking-readability.md).
+
+## Bổ sung danh mục & giao diện sau LAB04 (23/10/2026)
+
+Theo yêu cầu tiếp tục hoàn thiện trên backend hiện có: thêm unique tên phim, audit
+log transaction cùng CRUD phim, endpoint nhật ký chỉ ADMIN và giới hạn sức chứa
+phòng dưới room lock. Frontend có preview sơ đồ, tìm kiếm/phân trang và mở đúng
+lịch rạp. Migration additive mới không thay booking/payment/QR. Không đánh dấu
+Phase11–12 hoàn tất; xem [bằng chứng và phạm vi](../../docs/design/catalog-operations-readability.md).

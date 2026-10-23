@@ -233,7 +233,7 @@ export default function InfoPage({ view }) {
                 "/rap",
                 MapPin,
                 "Tìm rạp của bạn",
-                "Khám phá phòng chiếu và lịch 7 ngày.",
+                "Khám phá phòng chiếu và lịch mở bán sắp tới.",
               ],
               [
                 "/bap-nuoc",

@@ -25,6 +25,7 @@ import {
   PieChart,
   HardDrive,
   Download,
+  ShieldCheck,
 } from "lucide-react";
 import { money } from "../data.js";
 
@@ -40,6 +41,7 @@ function revenueShare(value, ticketAmount, comboAmount) {
     ? Math.min(100, Number((cents(value) * 10000n) / total) / 100) + "%"
     : "0%";
 }
+import AdminAudit from "./AdminAudit.jsx";
 import OperationalCatalog from "./OperationalCatalog.jsx";
 import {
   apiGetAdminOverview,
@@ -314,12 +316,20 @@ export default function QuanTriHeThong({
             <HardDrive size={16} />
             Hạ Tầng & Dọn Dẹp Outbox
           </button>
+          <button
+            className={`admin-tab ${activeTab === "audit" ? "active" : ""}`}
+            onClick={() => setActiveTab("audit")}
+          >
+            <ShieldCheck size={16} />
+            Nhật ký quản trị
+          </button>
         </div>
 
         {error && <div className="admin-error-banner">{error}</div>}
 
         {/* Content Body */}
         <div className="admin-content-body">
+          {activeTab === "audit" && <AdminAudit />}
           {/* TAB 1: DOANH THU & BÁO CÁO */}
           {activeTab === "revenue" && (
             <div className="admin-tab-pane">

@@ -105,3 +105,10 @@ _(Bạn cũng có thể bấm sang tab **Đăng ký** để tạo tài khoản m
 
 Để xem phân tích kiến trúc, quy trình nghiệp vụ và sơ đồ luồng hoạt động từng bước có hình vẽ:
 👉 Mở file: **[`docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md`](file:///d:/study%20hcmue/Nh%E1%BA%ADp%20m%C3%B4n%20c%C3%B4ng%20ngh%E1%BB%87%20ph%E1%BA%A7n%20m%C3%AAm%20f/docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md)**
+
+## Bổ sung ngày 23/10: nơi sửa luồng đặt vé
+
+`ChonGhe_Va_ThanhToan.jsx` hiện chọn luồng theo chế độ API: `DatVeBackend.jsx` là
+logic PostgreSQL/Redis/Sandbox thật, `DatVeDemo.jsx` là bộ nhớ minh họa. Tên cũ
+`SeatBooking.jsx` chỉ re-export. `RoomLayoutBuilder.jsx` và `AdminAudit.jsx` là
+sơ đồ phòng/nhật ký quản trị có gọi API; xem [báo cáo mới](docs/design/catalog-operations-readability.md).

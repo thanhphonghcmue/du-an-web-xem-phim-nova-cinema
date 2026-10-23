@@ -187,6 +187,10 @@ test("registration creates a real account, profile and session; logout revokes r
   await page.locator(".login-trigger").click();
   await page.getByRole("tab", { name: "Đăng ký thành viên" }).click();
   await page.getByLabel("Họ và tên", { exact: true }).fill("Khách kiểm thử");
+  await page.getByLabel("Số điện thoại (không bắt buộc)").fill("123");
+  await page.getByLabel("Số điện thoại (không bắt buộc)").blur();
+  await expect(page.locator("#error-phone")).toContainText("10 chữ số");
+  await page.getByLabel("Số điện thoại (không bắt buộc)").fill("0901234567");
   const email =
     fixture().prefix + "-" + randomUUID().slice(0, 8) + "@example.test";
   await page.getByLabel("Email", { exact: true }).fill(email);
@@ -198,6 +202,7 @@ test("registration creates a real account, profile and session; logout revokes r
   await expect(page.locator(".account-welcome")).toContainText(email);
   const profile = await read(page, "/users/me");
   expect(profile.body.data.cMemberPoints).toBe(0);
+  expect(profile.body.data.phone).toBe("0901234567");
   const cookies = await context.cookies();
   expect(
     cookies
@@ -830,6 +835,18 @@ test("ADMIN creates, edits and deletes a real movie using the operational form",
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: "Xóa", exact: true }).click();
   await expect(row).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Nhật ký quản trị", exact: true })
+    .click();
+  await expect(
+    page.locator(".audit-entry").filter({ hasText: title }),
+  ).toHaveCount(3);
+  const update = page
+    .locator(".audit-entry")
+    .filter({ hasText: "Sửa phim" })
+    .filter({ hasText: title });
+  await update.locator("summary").click();
+  await expect(update.locator("dl")).toContainText(`Sau: ${title} Edited`);
 });
 
 test("two tabs rotate one expired HttpOnly session without exposing tokens", async ({

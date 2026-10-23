@@ -24,6 +24,7 @@ async function cleanupRows(prisma, prefix) {
   await prisma.refreshToken.deleteMany({
     where: { userId: { in: userIds } },
   });
+  await prisma.auditLog.deleteMany({ where: { actorId: { in: userIds } } });
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
   const cinemas = await prisma.cinema.findMany({
     where: { name: { startsWith: prefix } },

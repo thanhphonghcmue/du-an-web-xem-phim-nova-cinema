@@ -1,3 +1,4 @@
+import { useQuerySelection } from "../useQuerySelection.js";
 // LichChieuPhim: mã nguồn chức năng, dùng chung cho mọi trang.
 /**
  * ==============================================================================
@@ -30,7 +31,7 @@ export default function LichChieuPhim({ onBook }) {
   const [period, setPeriod] = useState("all");
   const [roomFilter, setRoomFilter] = useState("all");
   const reduced = useReducedMotion();
-  const [cinemaId, setCinemaId] = useState(cinemas[0]?.id || "");
+  const [cinemaId, setCinemaId] = useQuerySelection("cinema");
   const [dateId, setDateId] = useState(() => getDates()[0]?.id || "");
   const [filmId, setFilmId] = useState(movies[0]?.id || "");
   const scheduledCinemas = cinemas.filter((cinema) => cinema.movies.length);

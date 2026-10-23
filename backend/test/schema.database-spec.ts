@@ -34,7 +34,7 @@ async function fixture() {
     });
     const movie = await tx.movie.create({
       data: {
-        title: "Constraint test",
+        title: `Constraint test ${randomUUID()}`,
         description: "Isolated fixture",
         durationMinutes: 120,
         releaseDate: new Date("2030-01-01T00:00:00.000Z"),

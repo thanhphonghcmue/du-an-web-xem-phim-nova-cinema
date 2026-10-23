@@ -154,3 +154,21 @@ cùng test DB. Không dùng DB thật cho test và không in tokens/QR/secrets t
 
 Giới hạn nghiệp vụ và bằng chứng kiểm tra: [báo cáo tích hợp](docs/fullstack-verification.md).
 Kiến trúc, API và hạ tầng chi tiết: [backend/README.md](backend/README.md).
+
+### Bản cập nhật giao diện & quản trị danh mục (23/10/2026)
+
+Chữ và bố cục phần dưới được làm lại, trang rạp dẫn đúng lịch rạp, quản trị có tìm
+kiếm/phân trang, nhật ký thay đổi phim và preview sơ đồ phòng. Backend bổ sung kiểm
+tra trùng tên phim và sức chứa 300 ghế. Xem [phạm vi và bằng chứng](docs/design/catalog-operations-readability.md).
+
+Nếu đã cài môi trường trước bản này, dừng `dev:full`, cập nhật backend rồi chạy:
+
+```bash
+npm --prefix backend run prisma:generate
+npm --prefix backend run db:migrate
+npm --prefix backend run build
+npm run dev:full
+```
+
+Cần cập nhật DB test bằng `npm --prefix backend run db:migrate:test` trước khi
+chạy các bộ kiểm thử. Không chạy reset database để cập nhật bản này.

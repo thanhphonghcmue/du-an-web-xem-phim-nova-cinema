@@ -77,6 +77,7 @@ async function main() {
     [
       resolve(root, "node_modules/next/dist/bin/next"),
       "dev",
+      "--webpack",
       "--hostname",
       "0.0.0.0",
       "--port",

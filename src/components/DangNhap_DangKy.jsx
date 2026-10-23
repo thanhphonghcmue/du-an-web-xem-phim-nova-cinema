@@ -18,14 +18,17 @@ import {
   EyeOff,
   Lock,
   Mail,
+  Phone,
   ShieldCheck,
   Sparkles,
   UserRound,
 } from "lucide-react";
+import { useCatalog } from "../catalog.js";
 import { useI18n } from "../i18n.js";
 import { apiLogin, apiRegister } from "../api/client.js";
 
 export default function DangNhap_DangKy({ onSuccess }) {
+  const { runtimeMode } = useCatalog();
   const { language, t } = useI18n();
   const [tab, setTab] = useState("signin");
   const [show, setShow] = useState(false);
@@ -33,6 +36,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState({
     name: "",
+    phone: "",
     email: "",
     password: "",
     confirm: "",
@@ -42,6 +46,10 @@ export default function DangNhap_DangKy({ onSuccess }) {
   const [noticeType, setNoticeType] = useState("error"); // "error" | "info"
 
   const error = {
+    phone:
+      fields.phone && !/^0[0-9]{9}$/.test(fields.phone)
+        ? "Số điện thoại cần 10 chữ số, bắt đầu bằng 0."
+        : "",
     name:
       fields.name.trim().length < 2
         ? language === "en"
@@ -98,13 +106,19 @@ export default function DangNhap_DangKy({ onSuccess }) {
 
   async function submit(e) {
     e.preventDefault();
-    setTouched({ name: true, email: true, password: true, confirm: true });
+    setTouched({
+      phone: true,
+      name: true,
+      email: true,
+      password: true,
+      confirm: true,
+    });
     setNotice("");
 
     if (
       error.email ||
       error.password ||
-      (tab === "signup" && (error.name || error.confirm.trim()))
+      (tab === "signup" && (error.name || error.phone || error.confirm.trim()))
     )
       return;
 
@@ -127,7 +141,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
           fields.email,
           fields.password,
           fields.name.trim(),
-          undefined,
+          fields.phone || undefined,
           remember,
         );
         const user = data.user;
@@ -208,7 +222,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
         </div>
 
         {/* Cinema Operational Accounts (in Sign-in tab) */}
-        {tab === "signin" && (
+        {tab === "signin" && runtimeMode === "standalone" && (
           <div className="auth-quick-accounts">
             <div className="auth-quick-header">
               <span>
@@ -259,6 +273,12 @@ export default function DangNhap_DangKy({ onSuccess }) {
           {[
             tab === "signup" && ["name", "Họ và tên", "text", "Nguyễn Văn A"],
             ["email", "Email", "email", "example@nova.local"],
+            tab === "signup" && [
+              "phone",
+              "Số điện thoại (không bắt buộc)",
+              "tel",
+              "0901234567",
+            ],
             ["password", "Mật khẩu", "password", "••••••••"],
             tab === "signup" && [
               "confirm",
@@ -283,6 +303,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                   <span className="auth-input-icon">
                     {id === "name" && <UserRound size={17} />}
                     {id === "email" && <Mail size={17} />}
+                    {id === "phone" && <Phone size={17} />}
                     {(id === "password" || id === "confirm") && (
                       <Lock size={17} />
                     )}
@@ -306,11 +327,13 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     autoComplete={
                       id === "name"
                         ? "name"
-                        : id === "email"
-                          ? "email"
-                          : tab === "signup"
-                            ? "new-password"
-                            : "current-password"
+                        : id === "phone"
+                          ? "tel"
+                          : id === "email"
+                            ? "email"
+                            : tab === "signup"
+                              ? "new-password"
+                              : "current-password"
                     }
                     aria-invalid={Boolean(touched[id] && error[id]?.trim())}
                     aria-describedby={

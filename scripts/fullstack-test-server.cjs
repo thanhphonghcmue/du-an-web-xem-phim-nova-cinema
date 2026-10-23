@@ -128,13 +128,24 @@ async function main() {
   });
   const movie = await prisma.movie.create({
     data: {
-      title: "Dune: Hành Tinh Cát 2",
+      title: `Dune: Hành Tinh Cát 2 · ${prefix}`,
       description: prefix + " movie",
       durationMinutes: 120,
       releaseDate: new Date("2024-01-01Z"),
       ageRating: "T16",
       status: "NOW_SHOWING",
     },
+  });
+  // Archived films exercise real admin pagination without diluting the public programme.
+  await prisma.movie.createMany({
+    data: Array.from({ length: 28 }, (_, i) => ({
+      title: `${prefix}-archive-${String(i).padStart(2, "0")}`,
+      description: prefix + " archive fixture",
+      durationMinutes: 100,
+      releaseDate: new Date("2024-01-01Z"),
+      ageRating: "P",
+      status: "ENDED",
+    })),
   });
   const showtime = await prisma.showtime.create({
     data: {
@@ -234,7 +245,7 @@ async function main() {
     }
   const presaleMovie = await prisma.movie.create({
     data: {
-      title: "Interstellar: Infinity Return",
+      title: `Interstellar: Infinity Return · ${prefix}`,
       description: prefix + " advance-sale film",
       durationMinutes: 169,
       ageRating: "T13",

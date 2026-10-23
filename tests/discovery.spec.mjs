@@ -482,3 +482,181 @@ test("schedule labels remain readable with sufficient contrast and no mobile ove
     ),
   ).toBe(true);
 });
+
+async function adminSession(page) {
+  const data = fixture();
+  await page.goto("/dang-nhap");
+  await expect(page.locator(".auth-quick-accounts")).toHaveCount(0);
+  const status = await page.evaluate(
+    async ({ email, password }) =>
+      (
+        await fetch("/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        })
+      ).status,
+    { email: data.accounts.admin.email, password: data.password },
+  );
+  expect(status).toBe(200);
+  await page.goto("/quan-tri");
+  await page
+    .getByRole("button", { name: "Rạp, Phim & Suất Chiếu", exact: true })
+    .click();
+}
+
+test("lower-page discovery uses current catalogue counts and each venue opens its own schedule", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.addInitScript(() =>
+    sessionStorage.setItem("nova-welcome-seen", "1"),
+  );
+  await page.goto("/");
+  await expect(page.locator(".journey-live")).toBeVisible();
+  await expect(page.locator(".journey-card")).toHaveCount(3);
+  await page
+    .locator(".journey-card")
+    .filter({ hasText: "Chọn rạp của bạn" })
+    .click();
+  await expect(page).toHaveURL(/\/rap$/);
+  const venue = page
+    .locator(".venue-card")
+    .filter({ hasText: fixture().cinema.name });
+  await expect(venue.locator(".venue-stats")).toContainText("4phòng chiếu");
+  await venue.getByRole("link", { name: "Xem lịch & đặt vé" }).click();
+  await expect(page).toHaveURL(new RegExp(`cinema=${fixture().cinema.id}`));
+  await expect(
+    page.getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true }),
+  ).toHaveValue(fixture().cinema.id);
+  await expect(page.locator(".booking-express select").first()).toHaveValue(
+    fixture().cinema.id,
+  );
+  for (const route of ["/hoi-vien", "/ho-tro", "/thanh-toan", "/rap"]) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(route);
+    await expect(page.locator(".page-banner h1")).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await expect(
+    page.locator(".venue-card").filter({ hasText: fixture().cinema.name }),
+  ).toBeVisible();
+  const font = await page
+    .locator(".venue-card")
+    .filter({ hasText: fixture().cinema.name })
+    .locator("h2")
+    .evaluate((el) => ({
+      size: parseFloat(getComputedStyle(el).fontSize),
+      color: getComputedStyle(el).color,
+    }));
+  expect(font.size).toBeGreaterThanOrEqual(28);
+  expect(errors).toEqual([]);
+});
+
+test("admin seat builder validates capacity and persists the displayed row types through the real API", async ({
+  page,
+}) => {
+  await adminSession(page);
+  const data = fixture();
+  const room = await page.evaluate(
+    async ({ cinemaId, name }) => {
+      const response = await fetch("/api/v1/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cinemaId, name, roomType: "STANDARD_2D" }),
+      });
+      return { status: response.status, body: await response.json() };
+    },
+    { cinemaId: data.cinema.id, name: `${data.prefix}-layout-browser` },
+  );
+  expect(room.status).toBe(201);
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Rạp, Phim & Suất Chiếu", exact: true })
+    .click();
+  await page
+    .getByRole("navigation", { name: "Danh mục vận hành" })
+    .getByRole("button", { name: "Phòng chiếu", exact: true })
+    .click();
+  const builder = page.locator(".room-builder");
+  await builder
+    .getByRole("combobox", { name: "Phòng cần xem / tạo sơ đồ" })
+    .selectOption(room.body.data.id);
+  await expect(
+    builder.getByRole("button", { name: "Lưu sơ đồ ghế" }),
+  ).toBeEnabled();
+  await builder.getByRole("spinbutton", { name: "Số hàng ghế" }).fill("15");
+  await builder.getByRole("spinbutton", { name: "Số cột ghế" }).fill("24");
+  await expect(builder.getByRole("alert")).toContainText("Vượt quá sức chứa");
+  await expect(
+    builder.getByRole("button", { name: "Lưu sơ đồ ghế" }),
+  ).toBeDisabled();
+  await builder.getByRole("spinbutton", { name: "Số hàng ghế" }).fill("2");
+  await builder.getByRole("spinbutton", { name: "Số cột ghế" }).fill("6");
+  await builder
+    .getByRole("combobox", { name: "Loại ghế hàng B", exact: true })
+    .selectOption("VIP");
+  const generated = page.waitForResponse((response) =>
+    response.url().endsWith(`/rooms/${room.body.data.id}/seats/generate`),
+  );
+  await builder.getByRole("button", { name: "Lưu sơ đồ ghế" }).click();
+  expect((await generated).status()).toBe(201);
+  await expect(builder.locator(".workspace-success")).toContainText(
+    "Đã lưu sơ đồ 12 ghế",
+  );
+  await expect(builder.locator(".layout-preview .layout-vip")).toHaveCount(6);
+  const saved = await page.evaluate(
+    async (id) =>
+      (await (await fetch(`/api/v1/rooms/${id}/seats?limit=100`)).json()).data,
+    room.body.data.id,
+  );
+  expect(saved.items).toHaveLength(12);
+  expect(
+    saved.items
+      .filter((seat) => seat.seatType === "VIP")
+      .every((seat) => seat.seatRow === "B" && seat.priceModifier === "1.20"),
+  ).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("admin catalogue pages are bounded and server-side search finds archived films on later pages", async ({
+  page,
+}) => {
+  await adminSession(page);
+  await expect(page.locator(".admin-list-panel tbody tr")).toHaveCount(25);
+  const target = fixture().prefix + "-archive-27";
+  const response = page.waitForResponse(
+    (res) =>
+      res.url().includes("/movies?") &&
+      new URL(res.url()).searchParams.get("keyword") === target,
+  );
+  await page
+    .getByRole("searchbox", { name: "Tìm trong danh mục quản trị" })
+    .fill(target);
+  expect((await response).status()).toBe(200);
+  await expect(page.locator(".admin-list-panel tbody tr")).toHaveCount(1);
+  await expect(page.locator(".admin-list-panel tbody")).toContainText(target);
+  await expect(page.locator(".admin-list-panel tbody")).toContainText(
+    "Ngừng chiếu",
+  );
+  await page
+    .getByRole("searchbox", { name: "Tìm trong danh mục quản trị" })
+    .fill("");
+  await expect(page.locator(".admin-list-panel tbody tr")).toHaveCount(25);
+  await page
+    .locator(".admin-list-panel")
+    .getByRole("button", { name: "Trang sau", exact: true })
+    .click();
+  await expect(page.locator(".workspace-pagination")).toContainText("Trang 2");
+  await expect(page.locator(".admin-list-panel tbody tr")).not.toHaveCount(0);
+});

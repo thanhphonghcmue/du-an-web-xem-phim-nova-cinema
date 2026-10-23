@@ -1,3 +1,4 @@
+import { useQuerySelection } from "./useQuerySelection.js";
 /**
  * ==============================================================================
  * TỆP TIN: src/App.jsx
@@ -59,6 +60,7 @@ import {
   X,
   CheckCircle2,
 } from "lucide-react";
+import NovaJourney from "./components/NovaJourney.jsx";
 import { useCatalog } from "./catalog.js";
 import {
   apiGetProfile,
@@ -135,7 +137,8 @@ export default function App() {
   const pathname = usePathname();
   const view = pathname.split("/")[1] || "home";
   const { language, setLanguage, t } = useI18n();
-  const { movies, cinemas, getDates, getShowtimes, contextFor } = useCatalog();
+  const { movies, cinemas, rooms, getDates, getShowtimes, contextFor } =
+    useCatalog();
 
   const [slide, setSlide] = useState(0);
   const [welcomeOpen, setWelcomeOpen] = useState(() => {
@@ -160,7 +163,7 @@ export default function App() {
   const featured = (highlights.length ? highlights : movies).slice(0, 5);
   const hero = featured[slide % featured.length] || movies[0] || {};
   const eventMovie = movies.find((m) => m.artId === "oppenheimer");
-  const [cinemaId, setCinemaId] = useState("");
+  const [cinemaId, setCinemaId] = useQuerySelection("cinema");
   const [movieId, setMovieId] = useState(
     () => new URLSearchParams(window.location.search).get("movie") || "",
   );
@@ -577,6 +580,7 @@ export default function App() {
               view="food-home"
               onBooking={() => window.location.assign("/dat-ve")}
             />
+            <NovaJourney />
             <section
               id="membership"
               className="membership-section content-width section-space"
@@ -594,6 +598,22 @@ export default function App() {
                   {t("Gia nhập C’MEMBER. Để mỗi lần đến rạp")} <br />
                   {t("đều là một trải nghiệm xứng đáng hơn.")}{" "}
                 </p>
+                <div className="membership-offer">
+                  <strong>
+                    {{ SILVER: 5, GOLD: 7, DIAMOND: 10 }[member?.tier] || 5}
+                    <small>%</small>
+                  </strong>
+                  <div>
+                    <b>
+                      {member
+                        ? `Quyền lợi hạng ${member.tier}`
+                        : "Ưu đãi ngay từ hạng SILVER"}
+                    </b>
+                    <span>
+                      Giảm trên đơn đủ điều kiện · Lưu vé QR trong tài khoản
+                    </span>
+                  </div>
+                </div>
                 <div className="member-benefits">
                   <span>
                     <Crown size={18} />
@@ -685,7 +705,7 @@ export default function App() {
                               "/images/cinema-auditorium.jpg",
                               "/images/cinema-lobby.jpg",
                               "/images/cinema-auditorium.jpg",
-                            ][i]
+                            ][i % 4]
                           }
                           alt={
                             language === "en"
@@ -709,6 +729,20 @@ export default function App() {
                           <MapPin size={13} />
                           {c.address}
                         </p>
+                        <div className="cinema-details">
+                          <span>
+                            <strong>
+                              {
+                                rooms.filter((room) => room.cinemaId === c.id)
+                                  .length
+                              }
+                            </strong>{" "}
+                            phòng chiếu
+                          </span>
+                          <span>
+                            {getDates(language, c.id).length} ngày có lịch
+                          </span>
+                        </div>
                         <span>{c.formats}</span>
                         <button
                           className="text-button"
@@ -717,7 +751,7 @@ export default function App() {
                             setMovieId("");
                             setDateId("");
                             setTimeId("");
-                            document.getElementById("booking").scrollIntoView({
+                            document.getElementById("booking")?.scrollIntoView({
                               behavior: "smooth",
                               block: "center",
                             });

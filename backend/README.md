@@ -780,3 +780,11 @@ backend/
 ```
 
 Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 10 và chờ **“TIẾP TỤC PHASE 11”**.
+
+### Bổ sung quản trị danh mục (23/10/2026)
+
+Migration mới thêm unique index tên phim và bảng `audit_logs`; CRUD phim có audit
+nguyên tử, API nhật ký chỉ ADMIN, API ghế kiểm tra 300 ghế/15 hàng/24 cột. Giữ DB,
+Redis và toàn bộ booking/payment/QR. Chạy `prisma:generate`, `db:migrate` (và
+`db:migrate:test` trước test), rồi build. Bằng chứng 336 ca và phạm vi chưa triển khai:
+[báo cáo giao diện & danh mục](../docs/design/catalog-operations-readability.md).

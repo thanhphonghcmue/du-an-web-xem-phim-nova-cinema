@@ -128,7 +128,16 @@ export default function CatalogProvider({ children }) {
           ...new Set(
             rooms.filter((r) => r.cinemaId === c.id).map((r) => r.roomType),
           ),
-        ].join(" · "),
+        ]
+          .map(
+            (type) =>
+              ({
+                STANDARD_2D: "2D",
+                IMAX_70MM_LASER: "IMAX Laser",
+                DOLBY_ATMOS: "Dolby Atmos",
+              })[type] || type,
+          )
+          .join(" · "),
         movies: [
           ...new Set(
             showtimes

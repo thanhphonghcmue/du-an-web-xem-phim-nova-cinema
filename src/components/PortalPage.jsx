@@ -29,7 +29,7 @@ export default function PortalPage({
   bookingWidget,
   timeline,
 }) {
-  const { cinemas, movies } = useCatalog();
+  const { cinemas, movies, rooms, getDates } = useCatalog();
   if (
     [
       "gioi-thieu",
@@ -118,11 +118,43 @@ export default function PortalPage({
                   </p>
                   <h2>{cinema.name}</h2>
                   <p>{cinema.address}</p>
-                  <div className="banner-chips">
-                    <span>LASER PROJECTION</span>
-                    <span>DOLBY ATMOS</span>
+                  <div className="venue-stats">
+                    <div>
+                      <strong>
+                        {
+                          rooms.filter((room) => room.cinemaId === cinema.id)
+                            .length
+                        }
+                      </strong>
+                      <span>phòng chiếu</span>
+                    </div>
+                    <div>
+                      <strong>{getDates("vi", cinema.id).length}</strong>
+                      <span>ngày có lịch</span>
+                    </div>
                   </div>
-                  <Link href="/dat-ve" className="button button-primary">
+                  <div className="banner-chips">
+                    {[
+                      ...new Set(
+                        rooms
+                          .filter((room) => room.cinemaId === cinema.id)
+                          .map(
+                            (room) =>
+                              ({
+                                STANDARD_2D: "2D",
+                                IMAX_70MM_LASER: "IMAX Laser",
+                                DOLBY_ATMOS: "Dolby Atmos",
+                              })[room.roomType],
+                          ),
+                      ),
+                    ].map((format) => (
+                      <span key={format}>{format}</span>
+                    ))}
+                  </div>
+                  <Link
+                    href={`/dat-ve?cinema=${cinema.id}`}
+                    className="button button-primary"
+                  >
                     Xem lịch & đặt vé <ArrowUpRight size={16} />
                   </Link>
                 </div>

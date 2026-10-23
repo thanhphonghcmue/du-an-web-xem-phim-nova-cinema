@@ -26,7 +26,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { apiList, readCommand } from "../api/client.js";
+import RoomLayoutBuilder from "./RoomLayoutBuilder.jsx";
+import { read, readCommand } from "../api/client.js";
 import { useCatalog } from "../catalog.js";
 const specs = {
   movies: {
@@ -85,33 +86,46 @@ export default function QuanLyDanhMucPhimRap() {
   const catalog = useCatalog();
   const [kind, setKind] = useState("movies"),
     [items, setItems] = useState([]),
+    [meta, setMeta] = useState(null),
+    [page, setPage] = useState(1),
+    [keyword, setKeyword] = useState(""),
     [draft, setDraft] = useState({}),
     [editId, setEditId] = useState(null),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
     [revision, setRevision] = useState(0);
-  const [layout, setLayout] = useState({
-    roomId: "",
-    rows: "A,B,C,D,E,F,G,H",
-    columns: 20,
-    vipRows: "D,E,F",
-    sweetboxRows: "H",
-  });
   useEffect(() => {
     let active = true;
-    apiList("/" + kind)
-      .then((rows) => {
-        if (active) setItems(rows);
-      })
-      .catch((err) => {
-        if (active) setMessage(err.message);
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams({
+        page,
+        limit: 25,
+        ...(["movies", "cinemas", "rooms"].includes(kind) && keyword.trim()
+          ? { keyword: keyword.trim() }
+          : {}),
       });
+      read(`/${kind}?${params}`)
+        .then((data) => {
+          if (active) {
+            setItems(data.items);
+            setMeta(data.meta);
+          }
+        })
+        .catch((err) => {
+          if (active) setMessage(err.message);
+        });
+    }, 250);
     return () => {
       active = false;
+      clearTimeout(timer);
     };
-  }, [kind, revision]);
+  }, [kind, revision, page, keyword]);
   function select(value) {
     setKind(value);
+    setPage(1);
+    setMeta(null);
+    setItems([]);
+    setKeyword("");
     setDraft({});
     setEditId(null);
     setMessage("");
@@ -140,6 +154,7 @@ export default function QuanLyDanhMucPhimRap() {
         {},
         editId ? "PATCH" : "POST",
       );
+      setPage(1);
       setMessage("Đã lưu thành công.");
       setDraft({});
       setEditId(null);
@@ -183,32 +198,6 @@ export default function QuanLyDanhMucPhimRap() {
       setBusy(false);
     }
   }
-  async function generate(e) {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      const split = (s) =>
-        s
-          .split(",")
-          .map((v) => v.trim().toUpperCase())
-          .filter(Boolean);
-      const result = await readCommand(
-        `/rooms/${layout.roomId}/seats/generate`,
-        {
-          rows: split(layout.rows),
-          columns: Number(layout.columns),
-          vipRows: split(layout.vipRows),
-          sweetboxRows: split(layout.sweetboxRows),
-        },
-      );
-      setMessage(`Đã tạo ${result.createdCount} ghế.`);
-      await catalog.reload();
-    } catch (err) {
-      setMessage(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
     <div className="live-admin">
       <nav aria-label="Danh mục vận hành">
@@ -223,148 +212,181 @@ export default function QuanLyDanhMucPhimRap() {
           </button>
         ))}
       </nav>
-      <h3>
-        {editId ? "Chỉnh sửa" : "Tạo mới"} {specs[kind].label.toLowerCase()}
-      </h3>
-      <form className="live-admin-form" onSubmit={save}>
-        {specs[kind].fields.map(([key, label, type = "text"]) => {
-          const choices = Array.isArray(type)
-            ? type.map((v) => ({ id: v, name: v }))
-            : ["cinemas", "movies", "rooms"].includes(type)
-              ? catalog[type].map((v) => ({
-                  id: v.id,
-                  name: v.name || v.title,
-                }))
-              : null;
-          return (
-            <label key={key}>
-              {label}
-              {choices ? (
-                <select
-                  aria-label={label}
-                  value={draft[key] || ""}
-                  required={!editId}
-                  onChange={(e) =>
-                    setDraft({ ...draft, [key]: e.target.value })
-                  }
-                >
-                  <option value="">Chọn…</option>
-                  {choices.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  aria-label={label}
-                  type={type}
-                  value={draft[key] || ""}
-                  min={type === "number" ? 1 : undefined}
-                  required={
-                    !editId && !["posterUrl", "trailerUrl"].includes(key)
-                  }
-                  onChange={(e) =>
-                    setDraft({ ...draft, [key]: e.target.value })
-                  }
-                />
-              )}
-            </label>
-          );
-        })}
-        <button className="button button-primary" disabled={busy}>
-          Lưu {specs[kind].label.toLowerCase()}
-        </button>
-        {editId && (
-          <button
-            type="button"
-            className="text-button"
-            onClick={() => {
-              setEditId(null);
-              setDraft({});
-            }}
-          >
-            Hủy chỉnh sửa
-          </button>
-        )}
-      </form>
-      {message && <p role="status">{message}</p>}
-      <div className="admin-table-scroll">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Tên / thời gian</th>
-              <th>Trạng thái / định dạng</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td>
-                  {item.title ||
-                    item.name ||
-                    new Date(item.startTime).toLocaleString("vi-VN")}
-                </td>
-                <td>{item.status || item.roomType || ""}</td>
-                <td>
-                  <button className="text-button" onClick={() => edit(item)}>
-                    Sửa
-                  </button>
-                  {kind !== "combos" && (
-                    <button
-                      className="text-button"
-                      disabled={busy}
-                      onClick={() => remove(item)}
+      <div className="catalog-workspace">
+        <section className="admin-editor-panel">
+          <p className="nova-kicker">BIỂU MẪU DANH MỤC</p>
+          <h3>
+            {editId ? "Chỉnh sửa" : "Tạo mới"} {specs[kind].label.toLowerCase()}
+          </h3>
+          <form className="live-admin-form" onSubmit={save}>
+            {specs[kind].fields.map(([key, label, type = "text"]) => {
+              const choices = Array.isArray(type)
+                ? type.map((v) => ({ id: v, name: v }))
+                : ["cinemas", "movies", "rooms"].includes(type)
+                  ? catalog[type].map((v) => ({
+                      id: v.id,
+                      name: v.name || v.title,
+                    }))
+                  : null;
+              return (
+                <label key={key}>
+                  {label}
+                  {choices ? (
+                    <select
+                      aria-label={label}
+                      value={draft[key] || ""}
+                      required={!editId}
+                      onChange={(e) =>
+                        setDraft({ ...draft, [key]: e.target.value })
+                      }
                     >
-                      Xóa
-                    </button>
+                      <option value="">Chọn…</option>
+                      {choices.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      aria-label={label}
+                      type={type}
+                      value={draft[key] || ""}
+                      min={type === "number" ? 1 : undefined}
+                      required={
+                        !editId && !["posterUrl", "trailerUrl"].includes(key)
+                      }
+                      onChange={(e) =>
+                        setDraft({ ...draft, [key]: e.target.value })
+                      }
+                    />
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {kind === "rooms" && (
-        <form className="live-admin-form" onSubmit={generate}>
-          <h3>Tạo sơ đồ cho phòng trống</h3>
-          <label>
-            Phòng
-            <select
-              required
-              value={layout.roomId}
-              onChange={(e) => setLayout({ ...layout, roomId: e.target.value })}
+                </label>
+              );
+            })}
+            <button className="button button-primary" disabled={busy}>
+              Lưu {specs[kind].label.toLowerCase()}
+            </button>
+            {editId && (
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setEditId(null);
+                  setDraft({});
+                }}
+              >
+                Hủy chỉnh sửa
+              </button>
+            )}
+          </form>
+          {message && (
+            <p className="workspace-message" role="status">
+              {message}
+            </p>
+          )}
+        </section>
+        <section className="admin-list-panel">
+          <div className="workspace-toolbar">
+            <div>
+              <p className="nova-kicker">DỮ LIỆU ĐÃ LƯU</p>
+              <h3>
+                {specs[kind].label} <small>{meta?.total ?? "…"} mục</small>
+              </h3>
+            </div>
+            {["movies", "cinemas", "rooms"].includes(kind) && (
+              <label>
+                Tìm trong danh mục
+                <input
+                  type="search"
+                  aria-label="Tìm trong danh mục quản trị"
+                  value={keyword}
+                  placeholder="Nhập tên để tìm…"
+                  onChange={(e) => {
+                    setKeyword(e.target.value);
+                    setPage(1);
+                    setMeta(null);
+                  }}
+                />
+              </label>
+            )}
+          </div>
+          <div className="admin-table-scroll">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Tên / thời gian</th>
+                  <th>Trạng thái / định dạng</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.id} data-entity-id={item.id}>
+                    <td>
+                      {item.title ||
+                        item.name ||
+                        new Date(item.startTime).toLocaleString("vi-VN")}
+                    </td>
+                    <td>
+                      {{
+                        COMING_SOON: "Sắp chiếu",
+                        NOW_SHOWING: "Đang chiếu",
+                        ENDED: "Ngừng chiếu",
+                        STANDARD_2D: "2D",
+                        IMAX_70MM_LASER: "IMAX Laser",
+                        DOLBY_ATMOS: "Dolby Atmos",
+                      }[item.status || item.roomType] || "—"}
+                    </td>
+                    <td>
+                      <button
+                        className="text-button"
+                        onClick={() => edit(item)}
+                      >
+                        Sửa
+                      </button>
+                      {kind !== "combos" && (
+                        <button
+                          className="text-button"
+                          disabled={busy}
+                          onClick={() => remove(item)}
+                        >
+                          Xóa
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="workspace-pagination">
+            <button
+              className="button button-glass"
+              disabled={page <= 1 || busy}
+              onClick={() => setPage((v) => v - 1)}
             >
-              <option value="">Chọn phòng</option>
-              {catalog.rooms.map((r) => (
-                <option value={r.id} key={r.id}>
-                  {r.name} · {r.totalSeats} ghế
-                </option>
-              ))}
-            </select>
-          </label>
-          {[
-            ["rows", "Các hàng (ngăn bằng dấu phẩy)"],
-            ["columns", "Số cột"],
-            ["vipRows", "Hàng VIP"],
-            ["sweetboxRows", "Hàng Sweetbox"],
-          ].map(([key, label]) => (
-            <label key={key}>
-              {label}
-              <input
-                value={layout[key]}
-                onChange={(e) =>
-                  setLayout({ ...layout, [key]: e.target.value })
-                }
-              />
-            </label>
-          ))}
-          <button className="button button-primary" disabled={busy}>
-            Tạo ghế
-          </button>
-        </form>
-      )}
+              Trang trước
+            </button>
+            <span>
+              Trang {page} / {Math.max(1, meta?.totalPages || page)}
+            </span>
+            <button
+              className="button button-glass"
+              disabled={!meta || page >= meta.totalPages || busy}
+              onClick={() => setPage((v) => v + 1)}
+            >
+              Trang sau
+            </button>
+          </div>
+          {items.length === 0 && (
+            <p className="workspace-empty">
+              {meta ? "Chưa có dữ liệu phù hợp." : "Đang tải danh mục…"}
+            </p>
+          )}
+        </section>
+      </div>
+      {kind === "rooms" && <RoomLayoutBuilder />}
     </div>
   );
 }

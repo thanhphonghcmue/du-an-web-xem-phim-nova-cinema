@@ -1,3 +1,26 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/data.js
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Kho dữ liệu tĩnh dự phòng (Static Fallback Data) khi frontend không kết nối được Backend.
+ *   - Lưu trữ danh mục phim chiếu rạp chi tiết (poster, trailer, diễn viên, tóm tắt, độ tuổi).
+ *   - Lưu trữ danh sách cụm rạp NOVA Cinema (TP.HCM, Hà Nội, Đà Nẵng).
+ *   - Cung cấp hàm định dạng tiền tệ VNĐ chuẩn (`money` / `formatVNDCurrency`).
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Cung cấp dữ liệu poster cục bộ trong `public/images/` để hiển thị ngay cả khi offline.
+ *   2. Tạo dữ liệu demo ngày chiếu (`getDates`) và suất chiếu (`getShowtimes`).
+ *   3. Định dạng số tiền từ Decimal string của Backend thành chuỗi VNĐ có phân cách hàng nghìn (ví dụ "120.000 ₫").
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Các màn hình hiển thị phim, rạp, giá tiền và bảng điều khiển.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Tích hợp thêm trường hình ảnh banner ngang tỷ lệ 21:9 cho màn hình UltraWide.
+ *   - Thêm thông tin link Spotify hoặc YouTube cho album nhạc phim (OST) nổi bật.
+ * ==============================================================================
+ */
+
 const tmdb = (path, size = "w780") =>
   `https://image.tmdb.org/t/p/${size}/${path}`;
 export const movies = [
@@ -270,3 +293,4 @@ export const money = (value) => {
     " ₫"
   );
 };
+export const formatVNDCurrency = money;

@@ -1,3 +1,26 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/app/layout.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Bố cục gốc toàn cục của ứng dụng (Root Layout - Next.js App Router).
+ *   - Nạp mã nguồn CSS giao diện (`styles.css`) và các bộ phông chữ hiện đại:
+ *     Plus Jakarta Sans (tiêu đề/nội dung) và Space Grotesk (chữ số, mã vé, điểm thưởng).
+ *   - Định cấu hình thông số SEO Metadata chuẩn OpenGraph (tiêu đề rạp, mô tả, ảnh bìa, favicon).
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Next.js bao bọc toàn bộ các trang bên trong thẻ <html> và <body> của RootLayout.
+ *   2. Ngôn ngữ mặc định được thiết lập là "vi" (Tiếng Việt).
+ *   3. Trình duyệt tải phông chữ và thiết lập chủ đề màu đen điện ảnh (`#08090C`).
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Toàn bộ ứng dụng web trên máy tính để bàn, máy tính bảng và điện thoại di động.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Thêm PWA Manifest (`manifest.json`) và Service Worker để cài đặt website như app di động trên iOS/Android.
+ *   - Bổ sung Google Analytics hoặc Plausible Analytics tự host để theo dõi hành vi người dùng.
+ * ==============================================================================
+ */
+
 import "../styles.css";
 import "@fontsource/plus-jakarta-sans/latin-400.css";
 import "@fontsource/plus-jakarta-sans/latin-500.css";
@@ -37,11 +60,13 @@ export const metadata = {
     ],
   },
 };
+
 export const viewport = {
   themeColor: "#08090C",
   width: "device-width",
   initialScale: 1,
 };
+
 export default function RootLayout({ children }) {
   return (
     <html lang="vi">

@@ -1,3 +1,26 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/HeaderSearch.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Thanh Tìm Kiếm Trực Tiếp Trên Header (Header Live Search Dropdown).
+ *   - Tìm kiếm nhanh phim theo tiêu đề tiếng Việt, tên gốc tiếng Anh hoặc đạo diễn.
+ *   - Tìm kiếm cụm rạp theo tên hoặc tỉnh thành (TP.HCM, Hà Nội, Đà Nẵng).
+ *   - Hỗ trợ gõ tiếng Việt không dấu (bỏ dấu NFD: ví dụ gõ "quat mo" tìm ra "Quật Mộ Trùng Ma").
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Người dùng gõ từ khóa vào ô tìm kiếm trên thanh điều hướng.
+ *   2. Thuật toán `normalize` lọc kết quả khớp ngay lập tức.
+ *   3. Người dùng click vào một kết quả -> chuyển thẳng tới chi tiết phim hoặc cụm rạp đã chọn.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Khách hàng muốn tìm kiếm nhanh nội dung yêu thích.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Thêm tính năng lưu "Lịch sử tìm kiếm gần đây" trong LocalStorage.
+ *   - Gợi ý từ khóa tìm kiếm xu hướng (Trending keywords) khi ô tìm kiếm được focus.
+ * ==============================================================================
+ */
+
 import { useState } from "react";
 import { Film, MapPin, Search, X } from "lucide-react";
 import { useI18n } from "../i18n.js";

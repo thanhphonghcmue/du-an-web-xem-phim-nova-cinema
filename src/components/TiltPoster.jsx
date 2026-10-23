@@ -1,3 +1,26 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/TiltPoster.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Poster Phim Hiệu Ứng Nghiêng 3D Tương Tác Theo Chuột (3D Interactive Tilt Poster).
+ *   - Sử dụng Framer Motion và Motion Values:
+ *     + Xoay nghiêng theo trục X và Y (`rotateX`, `rotateY`) mượt mà với lò xo vật lý (`useSpring`).
+ *     + Tối ưu: Không gây re-render lại component khi chuột di chuyển liên tục.
+ *     + Bỏ qua hiệu ứng trên màn hình cảm ứng di động (Touch) và khi người dùng bật giảm chuyển động.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Lắng nghe sự kiện di chuột `onPointerMove`.
+ *   2. Tính toán độ lệch tọa độ con trỏ so với tâm của poster.
+ *   3. Khi chuột rời khỏi poster (`onPointerLeave`): hồi vị trí về góc 0 ban đầu.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Bao bọc các poster phim trong danh mục phim nổi bật.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Bổ sung hiệu ứng lóa sáng hologram (Glow sheen reflection) di chuyển theo góc nghiêng của poster.
+ * ==============================================================================
+ */
+
 import { useRef } from "react";
 import {
   motion,

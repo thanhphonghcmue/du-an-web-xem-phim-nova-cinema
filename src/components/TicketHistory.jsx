@@ -1,3 +1,28 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/TicketHistory.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Ví Vé Điện Tử & Lịch Sử Đơn Hàng Của Khách Hàng (Customer Ticket Wallet).
+ *   - Quản lý 2 trạng thái:
+ *     1. ĐƠN ĐANG GIỮ CHỖ (HOLDING/PENDING): Cho phép bấm "Tiếp tục đơn" để quay lại thanh toán trước khi hết 5 phút.
+ *     2. VÉ ĐÃ PHÁT HÀNH (PAID): Hiển thị mã QR vé điện tử, thông tin ghế, rạp, phòng chiếu và giờ chiếu.
+ *   - Tiện ích xuất vé: Tải mã QR dạng ảnh PNG và Tải file lịch iCalendar (.ics) đồng bộ vào điện thoại.
+ *   - Hiển thị trạng thái soát vé thực tế: "Chưa soát vé" hoặc "Đã soát vé".
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Khách hàng đăng nhập và mở tab "Vé của tôi" hoặc "Lịch sử vé".
+ *   2. Tự động tải song song danh sách vé (`apiGetMyTickets`) và đơn đặt (`apiGetMyBookings`).
+ *   3. Định kỳ 5 giây làm mới một lần để cập nhật ngay khi worker phát hành vé QR xong.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Khách hàng đã đăng nhập tài khoản C'MEMBER.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Tích hợp Apple Wallet (.pkpass) và Google Wallet Pass để lưu vé vào ví điện thoại native.
+ *   - Thêm tính năng "Gửi tặng vé cho bạn bè" qua đường link bảo mật.
+ * ==============================================================================
+ */
+
 import { useCallback, useEffect, useState } from "react";
 import { apiGetMyBookings, apiGetMyTickets } from "../api/client.js";
 import { useCatalog } from "../catalog.js";

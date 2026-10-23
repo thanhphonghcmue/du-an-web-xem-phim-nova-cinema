@@ -1,3 +1,29 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/app/api/v1/[...path]/route.js
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Cổng Reverse Proxy trung gian BFF (Backend-For-Frontend) của Next.js.
+ *   - Đứng giữa Trình duyệt và NestJS API Backend:
+ *     1. Bảo vệ chống tấn công CSRF / Cross-origin mutation.
+ *     2. Chuyển đổi mã JWT thành HttpOnly / SameSite=Lax Cookies để bảo vệ người dùng khỏi XSS.
+ *     3. Tự động bóc tách và ẩn access token / refresh token khỏi JavaScript phía trình duyệt.
+ *     4. Chuyển tiếp nguyên vẹn file nhị phân (như file lịch .ics hoặc file CSV báo cáo doanh thu).
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Trình duyệt gọi `/api/v1/auth/login`.
+ *   2. Proxy nhận thông tin, gửi tiếp sang NestJS backend (`http://127.0.0.1:4000/api/v1/auth/login`).
+ *   3. Nhận response từ NestJS chứa token: Proxy xóa token khỏi body JSON và đính vào `Set-Cookie` (HttpOnly).
+ *   4. Các yêu cầu sau: Proxy tự động đọc cookie `nova_access` và gắn `Authorization: Bearer <token>` gửi tới Backend.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Tất cả các yêu cầu API RESTful từ client.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Thêm rate limiting trực tiếp ở tầng Next.js edge middleware để chặn DDoS sớm hơn.
+ *   - Tích hợp nén phản hồi Brotli/Gzip để giảm băng thông tải dữ liệu di động.
+ * ==============================================================================
+ */
+
 import { NextResponse } from "next/server";
 
 // Only this server-side value selects the upstream. Browser input cannot select a host.

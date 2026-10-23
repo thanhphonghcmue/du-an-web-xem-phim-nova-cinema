@@ -1,3 +1,33 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/CatalogProvider.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Quản lý Dữ liệu Danh mục Điện ảnh Toàn cục (Global Cinema Catalog Provider).
+ *   - Tải song song 5 tập dữ liệu từ Backend API:
+ *     1. Danh sách phim (`/movies`)
+ *     2. Danh sách cụm rạp (`/cinemas`)
+ *     3. Lịch chiếu phim (`/showtimes`)
+ *     4. Phòng chiếu (`/rooms`)
+ *     5. Combo ẩm thực bắp nước (`/combos`)
+ *   - Ghép nối dữ liệu Backend với Artwork hình ảnh độ phân giải cao (`src/data.js`).
+ *   - Tự động fallback sang danh mục tĩnh nếu backend chưa sẵn sàng, đảm bảo UI luôn hiển thị đẹp.
+ *   - Cung cấp các hàm tìm kiếm tiện ích: `getDates`, `getShowtimes`, `contextFor`, `reload`.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Khởi tạo với danh mục ban đầu (`getInitialCatalog`).
+ *   2. Gọi `load()` thông qua `apiGetMovies()`, `apiGetCinemas()`, ...
+ *   3. Chuẩn hóa tiêu đề và kết nối poster/trailer cục bộ.
+ *   4. Phân phối dữ liệu vào `CatalogContext.Provider` cho toàn bộ ứng dụng.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Toàn bộ các component: Tìm kiếm, Đặt vé nhanh, Chọn ghế, Chi tiết phim, Lịch chiếu.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Bổ sung bộ lọc phim theo độ tuổi (P, K, T13, T16, T18) hoặc thể loại (Hành động, Tình cảm).
+ *   - Tự động polling làm mới lịch chiếu mỗi 60 giây khi rạp cập nhật suất chiếu đột xuất.
+ * ==============================================================================
+ */
+
 import { useCallback, useEffect, useState } from "react";
 import { CatalogContext, dayKey, timeLabel } from "../catalog.js";
 import { movies as artwork, cinemas as defaultCinemas } from "../data.js";

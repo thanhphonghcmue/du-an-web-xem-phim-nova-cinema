@@ -1,3 +1,35 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/AdminDashboard.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Bảng Điều Khiển Quản Trị Hệ Thống Điện Ảnh (Admin Management & Analytics Dashboard).
+ *   - Dành riêng cho tài khoản có vai trò Quản trị viên (ADMIN).
+ *   - Bao gồm 4 phân hệ chính:
+ *     1. BÁO CÁO DOANH THU & VÉ (Revenue Tab):
+ *        + Tổng doanh thu, doanh thu vé phim, doanh thu combo bắp nước, số vé đã bán.
+ *        + Bộ lọc thời gian linh hoạt (Hôm nay, 7 ngày, 30 ngày, Tất cả) theo múi giờ Việt Nam.
+ *        + Xuất dữ liệu báo cáo tài chính ra file CSV tải về máy tính.
+ *     2. QUẢN LÝ DANH MỤC VẬN HÀNH (Catalog Tab):
+ *        + Quản lý phim, rạp chiếu, phòng chiếu, suất chiếu, combo ẩm thực (`OperationalCatalog`).
+ *     3. QUẢN LÝ NGƯỜI DÙNG & THÀNH VIÊN (Users Tab):
+ *        + Danh sách tài khoản, vai trò (CUSTOMER / STAFF / ADMIN), hạng thẻ C'MEMBER, điểm thưởng.
+ *     4. GIÁM SÁT HẠ TẦNG & DỌN DẸP (Maintenance Tab):
+ *        + Kiểm tra sức khỏe kết nối PostgreSQL, Redis cache, BullMQ queues, SMTP mailer.
+ *        + Công cụ dọn dẹp hàng đợi thông báo Outbox cũ giải phóng dung lượng ổ cứng.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Quản trị viên mở dashboard -> Tự động nạp đồng thời số liệu tổng quan, sức khỏe và danh sách users.
+ *   2. Thao tác lọc báo cáo hoặc quản lý dữ liệu trực tiếp trên giao diện tương tác.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Quản trị viên hệ thống rạp (ADMIN).
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Vẽ biểu đồ đường và biểu đồ tròn doanh thu (Line & Pie charts với Chart.js / Recharts).
+ *   - Bổ sung chức năng xuất file Excel đa sheet có định dạng màu mè thay vì chỉ CSV văn bản đơn giản.
+ * ==============================================================================
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import {
   TrendingUp,

@@ -1,3 +1,31 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: backend/src/app.module.ts
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Mô-đun Gốc Trung Tâm Của NestJS Backend (Root Application Module).
+ *   - Tổng hợp và kết nối toàn bộ 14 mô-đun nghiệp vụ của rạp chiếu phim:
+ *     1. ConfigModule & Environment: Cấu hình biến môi trường, xác thực schema.
+ *     2. PrismaModule & Database: Tầng dữ liệu PostgreSQL 17 và Transaction Unit-Of-Work.
+ *     3. RedisModule & RateLimitModule: Bộ đệm phân tán và bảo vệ chống brute-force / DDoS.
+ *     4. AuthModule: Đăng ký, đăng nhập JWT, giải mã phiên, mã hóa mật khẩu Bcrypt.
+ *     5. Movies, Cinemas, Rooms, Seats, Showtimes: Quản lý danh mục rạp, phim, phòng chiếu, ghế và suất chiếu.
+ *     6. BookingsModule: Khóa giữ ghế 5 phút, kiểm tra Orphan Seat, tính giá vé, mã coupon, đổi điểm C'MEMBER.
+ *     7. RealtimeModule: Cổng Socket.IO phát sự kiện ghế thời gian thực (`/seats namespace`).
+ *     8. PaymentsModule: Tạo liên kết Sandbox thanh toán có chữ ký số HMAC-SHA256 chống gian lận.
+ *     9. NotificationsModule: Hàng đợi BullMQ gửi email vé xem phim có mã QR qua SMTP Mailpit.
+ *     10. ReportsModule: Báo cáo tài chính doanh thu, số vé bán và dọn dẹp hàng đợi Outbox.
+ *
+ * TOÀN BỘ GUARDS & INTERCEPTORS TOÀN CỤC:
+ *   - `ResponseInterceptor`: Chuẩn hóa định dạng trả về JSON `{ success: true, data: ..., timestamp }`.
+ *   - `ThrottlerGuard`: Giới hạn tần suất gọi API (Rate limiting).
+ *   - `JwtAuthGuard`: Kiểm tra và xác thực Access Token JWT.
+ *   - `RolesGuard`: Phân quyền dựa trên vai trò (CUSTOMER, STAFF, ADMIN).
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Tích hợp OpenTelemetry / Prometheus để giám sát thời gian phản hồi (APM Tracing).
+ * ==============================================================================
+ */
+
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";

@@ -1,3 +1,26 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/ShowtimeTimeline.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Lịch Chiếu Phim Trực Quan Theo Rạp & Suất Chiếu (Showtime Schedule Timeline).
+ *   - Hiển thị danh sách rạp (Hà Nội, TP.HCM, Đà Nẵng) và lịch chiếu theo ngày (hôm nay, ngày mai...).
+ *   - Tự động thăm dò (Polling) tình trạng ghế trống theo từng khung giờ (ví dụ: "Còn 142/160 ghế").
+ *   - Phân biệt mức giá vé ngày thường và cuối tuần (Thứ 7, Chủ Nhật).
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Khách hàng bấm chọn Cụm Rạp -> Chọn Phim -> Chọn Ngày chiếu.
+ *   2. Component hiển thị các thẻ khung giờ chiếu (10:00, 13:30, 16:45, 19:30, 22:30).
+ *   3. Khách hàng click vào một khung giờ -> kích hoạt `onBook(...)` để chuyển sang màn hình chọn ghế.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Khách hàng tra cứu lịch chiếu chi tiết của rạp yêu thích.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Bổ sung bộ lọc xem nhanh "Chỉ hiện suất chiếu IMAX" hoặc "Suất sau 18:00".
+ *   - Thêm nút "Nhận thông báo khi mở bán vé" cho các phim bom tấn sắp ra rạp.
+ * ==============================================================================
+ */
+
 import { useEffect, useState } from "react";
 import { ArrowUpRight, MapPin, Ticket } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";

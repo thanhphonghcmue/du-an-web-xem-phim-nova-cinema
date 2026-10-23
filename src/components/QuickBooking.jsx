@@ -1,3 +1,30 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/QuickBooking.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Thanh Đặt Vé Nhanh 4 Bước Trực Quan (4-Step Quick Booking Wizard).
+ *   - Quy trình tinh gọn cho khách hàng:
+ *     + Bước 1: Chọn Cụm rạp (NOVA Landmark 81, NOVA West Lake, NOVA Riverside)
+ *     + Bước 2: Chọn Phim chiếu rạp
+ *     + Bước 3: Chọn Ngày chiếu (Hôm nay, Ngày mai, hoặc các ngày trong tuần)
+ *     + Bước 4: Chọn Suất chiếu & Định dạng (IMAX Laser, 2D Laser, Dolby Atmos)
+ *   - Hiển thị số lượng ghế trống thực tế (`free: capacities[id]`) được cập nhật mỗi 10 giây.
+ *   - Hỗ trợ tùy chọn đặt nhóm (≤ 20 ghế) và đính kèm Party Combo bắp nước.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Người dùng chọn từng bước; hệ thống tự động suy luận bước kế tiếp (`inferred`).
+ *   2. Sau khi chọn đủ 4 bước -> Nút "Đặt vé ngay" hoặc "Xếp cụm nhóm" sáng lên.
+ *   3. Người dùng bấm nút -> kích hoạt `onSubmit` mở hộp thoại chọn ghế (`SeatBooking`).
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Khách hàng muốn đặt vé nhanh chóng mà không cần lướt qua từng trang chi tiết.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Tự động định vị GPS để chọn cụm rạp gần vị trí của khách hàng nhất.
+ *   - Tự động gợi ý suất chiếu gần thời điểm hiện tại nhất (ví dụ còn 30 phút nữa là chiếu).
+ * ==============================================================================
+ */
+
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {

@@ -1,3 +1,25 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/i18n.js
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Quản lý từ điển đa ngôn ngữ Song ngữ Việt - Anh (Internationalization i18n).
+ *   - Cung cấp Hook `useI18n` và hàm dịch `t(key)` để dịch linh hoạt các nhãn giao diện.
+ *   - Lưu trữ bản đồ dịch các thuật ngữ điện ảnh, trạng thái ghế, thông báo hệ thống.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Mặc định hệ thống dùng tiếng Việt (`language = "vi"`).
+ *   2. Khi người dùng bấm chuyển sang tiếng Anh ("EN"): `t("Đặt vé ngay")` -> "Book now".
+ *   3. Nếu chuỗi chưa có trong từ điển tiếng Anh: tự động trả về nguyên bản tiếng Việt (Fallback an toàn).
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Khách hàng trong nước và quốc tế truy cập website.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Mở rộng thêm ngôn ngữ tiếng Nhật (JA) và tiếng Hàn (KO) cho khách du lịch.
+ *   - Hỗ trợ file JSON riêng biệt cho từng ngôn ngữ (`locales/vi.json`, `locales/en.json`) khi dự án lớn hơn.
+ * ==============================================================================
+ */
+
 import { createContext, useContext } from "react";
 export const LanguageContext = createContext({
   language: "vi",

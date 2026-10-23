@@ -1,3 +1,26 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/CinematicCanvas.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Hiệu Ứng Bụi Ánh Sáng Máy Chiếu Điện Ảnh 3D (3D Cinematic Projector Dust Simulation).
+ *   - Sử dụng Three.js và @react-three/fiber:
+ *     + Mô phỏng các hạt bụi lơ lửng trong luồng ánh sáng máy chiếu rạp phim IMAX.
+ *     + Tối ưu hóa cực đại: Một draw call duy nhất (Single Draw Call Points), không setState trong vòng lặp Render.
+ *     + Tích hợp Error Boundary tự động fallback sang CSS nếu WebGL bị tắt trên máy người dùng.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Tạo mảng Float32Array vị trí 3D ngẫu nhiên cho hàng ngàn hạt bụi.
+ *   2. Trong `useFrame`: di chuyển nhẹ nhàng các hạt theo trục tọa độ độc lập với tần số làm tươi màn hình.
+ *   3. Render trên nền Three.js Canvas với độ mờ và chế độ hòa trộn AdditiveBlending.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Hiệu ứng phông nền thẩm mỹ cao của NOVA Cinema.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Thêm tương tác phản ứng theo con trỏ chuột (hạt bụi dạt sang hai bên khi rê chuột qua).
+ * ==============================================================================
+ */
+
 "use client";
 import {
   Component,

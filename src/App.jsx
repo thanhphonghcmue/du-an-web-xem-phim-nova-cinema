@@ -1,3 +1,31 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/App.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Nhạc Trưởng Điều Phối Giao Diện Toàn Cục Của Ứng Dụng (Central App Master View Orchestrator).
+ *   - Quản lý toàn bộ vòng đời trải nghiệm của khách hàng từ trang chủ đến các modal:
+ *     1. ĐIỀU HƯỚNG & XÁC THỰC: Thanh Header kính mờ, chuyển đổi ngôn ngữ VI/EN, hiển thị quyền ADMIN / STAFF / CUSTOMER.
+ *     2. PHIM BOM TẤN NỔI BẬT: Banner Hero chuyển cảnh, trailer 4K popup, thông tin chi tiết phim.
+ *     3. TIẾN TRÌNH ĐẶT VÉ TOÀN DIỆN: Kết nối QuickBooking -> SeatBooking -> Thanh toán Sandbox.
+ *     4. ĐẶC QUYỀN C'MEMBER: Quản lý điểm thưởng, ví vé điện tử QR, khôi phục đơn đang giữ.
+ *     5. BÀN LÀM VIỆC NỘI BỘ: Bảng soát vé cho Nhân viên (`StaffCheckIn`) và Bảng quản trị cho Admin (`AdminDashboard`).
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW TỪ ĐẦU ĐẾN CUỐI):
+ *   - Giai đoạn 1 (Khởi tạo): Nạp hồ sơ đăng nhập qua `apiGetProfile()`; nạp đơn đang giữ qua `apiGetMyBookings()`.
+ *   - Giai đoạn 2 (Duyệt phim): Khách hàng tìm kiếm phim qua HeaderSearch, xem trailer, xem lịch chiếu theo rạp.
+ *   - Giai đoạn 3 (Chọn suất): Khách hàng chọn rạp -> phim -> ngày -> suất chiếu tại QuickBooking hoặc ShowtimeTimeline.
+ *   - Giai đoạn 4 (Chọn ghế & Thanh toán): Kích hoạt modal `SeatBooking` xử lý giữ ghế 5 phút và thanh toán.
+ *   - Giai đoạn 5 (Nhận vé & Vào rạp): Mở ví vé `TicketHistory` lấy mã QR; nhân viên quét vé qua `StaffCheckIn`.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Tất cả người dùng: Khách vãng lai, Hội viên C'MEMBER, Nhân viên rạp (STAFF), Quản trị viên (ADMIN).
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Tích hợp thông báo đẩy (Web Push Notifications) nhắc nhở khách hàng 2 tiếng trước giờ chiếu.
+ *   - Tích hợp trợ lý ảo AI Chatbot tư vấn chọn phim dựa trên tâm trạng (Mood-based Movie Recommendation).
+ * ==============================================================================
+ */
+
 import { useEffect, useState } from "react";
 import {
   ArrowDown,

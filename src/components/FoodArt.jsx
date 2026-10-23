@@ -1,3 +1,25 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/FoodArt.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Nghệ Thuật Minh Họa Bắp Nước Rạp Chiếu Phim Dựng Hoàn Toàn Bằng CSS (Pure CSS Cinema Concessions Art).
+ *   - Lợi ích thiết kế:
+ *     + Không phụ thuộc vào file ảnh PNG/JPG bên ngoài, không lo mạng chậm làm vỡ hình ảnh.
+ *     + Hiệu ứng đổ bóng chuyển động, cốc nước với ống hút và hộp bắp vàng giòn rực rỡ mang biểu tượng NOVA.
+ *   - Dùng trong màn hình Đặt Combo ẩm thực và màn hình thanh toán.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Tạo cốc nước mát lạnh với logo NOVA Cinema và ống hút.
+ *   2. Tạo hộp bắp rang bơ với 26 hạt bắp sắp xếp ngẫu nhiên sinh động.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Khách hàng khi xem phần ưu đãi combo bắp nước 69K.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Thêm hiệu ứng hạt bắp nổ li ti (CSS particle animation) khi người dùng di chuột qua hộp bắp.
+ * ==============================================================================
+ */
+
 import { Infinity as InfinityIcon } from "lucide-react";
 // Hình bắp nước dựng bằng CSS để bước combo luôn hiển thị khi mạng ảnh bị chặn.
 export default function FoodArt() {

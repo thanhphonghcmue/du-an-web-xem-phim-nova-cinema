@@ -167,7 +167,7 @@ export class SeatBookingService {
             throw new ApiException(
               400,
               "ORPHAN_SEAT_DETECTED",
-              `Không được để lại ghế trống đơn lẻ (Orphan seat) tại vị trí ${orphan ? `${orphan.seatRow}${orphan.seatColumn}` : ""}. Vui lòng chọn ghế liền kề!`,
+              `Không được để lại ghế trống đơn lẻ (Orphan seat) tại vị trí ${orphan ? `${orphan.seatRow}${String(orphan.seatColumn)}` : ""}. Vui lòng chọn ghế liền kề!`,
             );
           }
 

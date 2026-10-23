@@ -1,3 +1,30 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/OperationalCatalog.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Mô-đun Quản Trị CRUD Danh Mục Hoạt Động Của Rạp (Operational Catalog CRUD Engine).
+ *   - Quản lý 5 thực thể cốt lõi trong cơ sở dữ liệu:
+ *     1. PHIM (Movies): Thêm/sửa thông tin phim, độ tuổi (P/K/T13/T16/T18), trạng thái, trailer YouTube, poster.
+ *     2. CỤM RẠP (Cinemas): Thêm rạp mới, địa chỉ, thành phố.
+ *     3. PHÒNG CHIẾU (Rooms): Cấu hình định dạng phòng (2D / IMAX Laser / Dolby Atmos) và TỰ ĐỘNG SINH SƠ ĐỒ 160 GHẾ cho phòng mới.
+ *     4. SUẤT CHIẾU (Showtimes): Tạo lịch chiếu theo ngày giờ, gắn phòng chiếu và đặt giá vé cơ bản.
+ *     5. COMBO BẮP NƯỚC (Combos): Thêm gói combo ẩm thực, giá bán và bật/tắt bán tại quầy.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Quản trị viên chọn phân hệ muốn quản lý (Phim, Rạp, Phòng, Suất, Combo).
+ *   2. Giao diện hiển thị bảng dữ liệu lấy từ API backend.
+ *   3. Nhập biểu mẫu -> Gửi `POST /api/v1/<resource>` tạo mới.
+ *   4. Gọi `reload()` từ `CatalogContext` để đồng bộ ngay lập tức sang giao diện khách hàng.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Quản trị viên (ADMIN) trong Bảng điều khiển quản trị.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Hỗ trợ tải file ảnh poster trực tiếp lên server (Multipart/form-data upload) thay vì chỉ dán link URL.
+ *   - Thêm tính năng sao chép lịch chiếu hàng loạt (Batch clone showtimes) cho cả tuần kế tiếp.
+ * ==============================================================================
+ */
+
 import { useEffect, useState } from "react";
 import { apiList, readCommand } from "../api/client.js";
 import { useCatalog } from "../catalog.js";

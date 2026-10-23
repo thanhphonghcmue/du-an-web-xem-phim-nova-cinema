@@ -1,3 +1,38 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/SeatBooking.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Mô-đun Chọn Ghế, Giữ Chỗ & Thanh Toán Toàn Diện (Interactive Seat Booking & Checkout Modal).
+ *   - Đây là trái tim của quy trình đặt vé xem phim điện ảnh:
+ *     1. SƠ ĐỒ GHẾ VÔ CỰC: Hiển thị trực quan 160 ghế với các loại (Standard, VIP, Sweetbox đôi).
+ *     2. THỜI GIAN THỰC (REALTIME SSE): Nhận thông báo khóa/bán ghế từ khán giả khác ngay lập tức.
+ *     3. LUẬT BẢO VỆ GHẾ ĐƠN (ORPHAN SEAT CHECK): Ngăn chặn để lại ghế trống đơn lẻ lẻ loi.
+ *     4. TUÂN THỦ KIỂM DUYỆT ĐỘ TUỔI (AGE RATING MODAL): Bắt buộc xác nhận độ tuổi T13, T16, T18 theo Thông tư 05/2023/TT-BVHTTDL.
+ *     5. ĐỒNG HỒ GIỮ GHẾ 5 PHÚT (HOLD TIMER): Đếm ngược chính xác, tự hủy đơn và nhả ghế khi hết hạn.
+ *     6. ĐỘNG CƠ GIẢM GIÁ & TÍCH ĐIỂM: Áp dụng mã Coupon (NOVA20, CINEMA10, U22...) và đổi điểm C'MEMBER (1 điểm = 1.000đ).
+ *     7. CỔNG THANH TOÁN ĐA DẠNG: Quét mã VietQR chuyển khoản ngân hàng, Ví MoMo, VNPay, và Sandbox Test 1-chạm.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW STEP-BY-STEP):
+ *   - Bước 1: Mở modal -> Kết nối SSE `/api/seat-events/[id]` và tải snapshot sơ đồ ghế từ Backend.
+ *   - Bước 2: Khán giả click chọn từng ghế hoặc chọn nhanh cụm 1-20 ghế liền nhau.
+ *   - Bước 3: Kiểm tra luật Orphan Seat phía Client ngay khi chọn; cảnh báo nếu vi phạm.
+ *   - Bước 4: Khán giả thêm số lượng combo bắp nước nếu có nhu cầu.
+ *   - Bước 5: Bấm "Giữ ghế an toàn 5 phút" -> Kiểm tra đăng nhập -> Gửi `apiHoldSeats` lên server với `Idempotency-Key`.
+ *   - Bước 6: Nhận mã đơn hàng (orderCode) và hạn hết giờ -> Bắt đầu đếm ngược 5 phút.
+ *   - Bước 7: Chọn phương thức thanh toán (VietQR / MoMo / VNPay / Sandbox) -> Áp dụng mã giảm giá / Đổi điểm.
+ *   - Bước 8: Bấm "Thanh toán" -> Nếu phim giới hạn tuổi: hiện AgeRatingModal yêu cầu cam kết mang CCCD/VNeID.
+ *   - Bước 9: Chuyển sang Sandbox hoặc thanh toán mô phỏng thành công -> Phát hành vé điện tử có mã QR.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Khách hàng đặt vé xem phim.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Tích hợp WebRTC camera quét mã vạch thẻ quà tặng / voucher giấy tại quầy.
+ *   - Hỗ trợ thanh toán Apple Pay và Google Pay trực tiếp qua Web Payments API.
+ *   - Gửi tin nhắn SMS / Zalo ZNS kèm link vé QR ngay khi thanh toán thành công.
+ * ==============================================================================
+ */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Clock3,

@@ -1,3 +1,31 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/StaffCheckIn.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Bàn Soát Vé & Quét Mã QR Của Nhân Viên Kiểm Soát Rạp (Staff Ticket Scanner & Check-in Station).
+ *   - Dành riêng cho tài khoản có vai trò STAFF hoặc ADMIN.
+ *   - Hai chế độ soát vé:
+ *     1. QUÉT CAMERA WEBRTC: Sử dụng Camera điện thoại/laptop và `BarcodeDetector` API nhận diện mã QR tự động.
+ *     2. NHẬP MÃ THỦ CÔNG: Nhập mã hash hoặc mã đơn khi camera không khả dụng hoặc vé mờ.
+ *   - Cơ chế nghiệp vụ bảo mật:
+ *     + Backend kiểm tra khung giờ chiếu (chỉ cho vào trước giờ chiếu 30 phút đến 15 phút sau khi phim bắt đầu).
+ *     + Đảm bảo mỗi vé chỉ được soát đúng một lần duy nhất; ngăn chặn vé giả mạo hoặc dùng lại nhiều lần.
+ *     + Cung cấp danh sách vé mẫu 1-chạm (Sample Tickets) để giảng viên/sinh viên kiểm thử nghiệm thu nhanh.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Nhân viên mở modal "Soát vé" -> Bật Camera hoặc chọn vé mẫu.
+ *   2. Khi phát hiện mã QR -> Gọi `readCommand("/staff/check-in", { ticketHash })`.
+ *   3. Hiển thị bảng kết quả: Tên phim, phòng chiếu, danh sách số ghế, thời gian soát vé thành công.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Nhân viên soát vé tại cửa phòng chiếu (STAFF / ADMIN).
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Bổ sung hiệu ứng âm thanh beep tiếng "bíp" thành công hoặc "ting ting" cảnh báo vé hết hạn.
+ *   - Tích hợp chế độ soát vé ngoại tuyến (Offline Check-in) đồng bộ dữ liệu vào cơ sở dữ liệu khi có mạng lại.
+ * ==============================================================================
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { Camera, CameraOff, Keyboard, QrCode, Sparkles, CheckCircle2 } from "lucide-react";
 import Modal from "./Modal.jsx";

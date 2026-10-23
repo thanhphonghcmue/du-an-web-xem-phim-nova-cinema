@@ -3,7 +3,7 @@ import { validateNoOrphanSeats, PhysicalSeatCandidate } from "./orphan-seats";
 describe("validateNoOrphanSeats", () => {
   const makeRow = (count: number, row = "A"): PhysicalSeatCandidate[] =>
     Array.from({ length: count }, (_, i) => ({
-      id: `${row}${i + 1}`,
+      id: `${row}${String(i + 1)}`,
       seatRow: row,
       seatColumn: i + 1,
     }));

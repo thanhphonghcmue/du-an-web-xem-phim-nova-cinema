@@ -1,3 +1,31 @@
+/**
+ * ==============================================================================
+ * TỆP TIN: src/components/AuthForm.jsx
+ * VAI TRÒ / NHIỆM VỤ CHÍNH:
+ *   - Mô-đun Xác Thực Tài Khoản Đăng Nhập & Đăng Ký (Authentication Modal: Login & Register).
+ *   - Quản lý phiên khách hàng và thành viên C'MEMBER:
+ *     1. TAB ĐĂNG NHẬP: Nhập email và mật khẩu; tùy chọn "Ghi nhớ phiên đăng nhập".
+ *     2. TAB ĐĂNG KÝ: Tạo tài khoản mới, mật khẩu tiêu chuẩn bảo mật cao (12 - 128 ký tự).
+ *     3. GỢI Ý ĐIỀN NHANH (QUICK DEMO ACCOUNTS): Giúp thầy cô/sinh viên kiểm thử nhanh tài khoản
+ *        Admin, Staff và Customer mà không cần gõ phím nhiều.
+ *     4. KIỂM THỰC DỮ LIỆU THỜI GIAN THỰC (Realtime Validation): Kiểm tra regex email, độ dài tên,
+ *        độ mạnh mật khẩu và so khớp mật khẩu xác nhận.
+ *
+ * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
+ *   1. Người dùng bấm "Đăng nhập" hoặc "Gia nhập C'MEMBER" trên thanh điều hướng.
+ *   2. Nhập thông tin -> Client kiểm tra form -> Gửi `apiLogin` hoặc `apiRegister`.
+ *   3. Backend xác thực mật khẩu bcrypt và tạo JWT; Proxy Next.js ghi HttpOnly Cookie.
+ *   4. Gọi `onSuccess()`: cập nhật thông tin người dùng lên toàn bộ hệ thống và đóng popup.
+ *
+ * ĐỐI TƯỢNG SỬ DỤNG:
+ *   - Khách vãng lai muốn đăng nhập, người dùng mới đăng ký thành viên.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Tích hợp Đăng nhập bằng Google (Google OAuth2) hoặc Apple ID 1-chạm.
+ *   - Bổ sung xác thực 2 lớp (2FA OTP) qua ứng dụng Google Authenticator hoặc tin nhắn SMS.
+ * ==============================================================================
+ */
+
 import { useState } from "react";
 import {
   AlertCircle,

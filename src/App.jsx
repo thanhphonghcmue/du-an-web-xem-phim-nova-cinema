@@ -164,9 +164,7 @@ export default function App() {
   const hero = featured[slide % featured.length] || movies[0] || {};
   const eventMovie = movies.find((m) => m.artId === "oppenheimer");
   const [cinemaId, setCinemaId] = useQuerySelection("cinema");
-  const [movieId, setMovieId] = useState(
-    () => new URLSearchParams(window.location.search).get("movie") || "",
-  );
+  const [movieId, setMovieId] = useQuerySelection("movie");
   const [dateId, setDateId] = useState("");
   const [timeId, setTimeId] = useState("");
   const [group, setGroup] = useState(false);
@@ -174,6 +172,7 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [activeMovie, setActiveMovie] = useState(null);
   const [booking, setBooking] = useState(null);
+  const [pendingBooking, setPendingBooking] = useState(null);
   const [menu, setMenu] = useState(false);
   const [query, setQuery] = useState("");
   const [member, setMember] = useState(null);
@@ -266,7 +265,7 @@ export default function App() {
     setModal(null);
     document
       .getElementById("booking")
-      .scrollIntoView({ behavior: "smooth", block: "center" });
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   function openSeats(e) {
     e.preventDefault();
@@ -277,20 +276,29 @@ export default function App() {
       setTimeId("");
       return;
     }
-    if (!member) {
-      setModal("login");
-      return;
-    }
-    setBooking({
+    const context = {
       showtimeId: time.id,
-      movie: movies.find((m) => m.id === movieId),
+      movie: movies.find((movie) => movie.id === movieId),
       cinema,
-      date: dates.find((d) => d.id === dateId),
+      date: dates.find((date) => date.id === dateId),
       time,
       group,
       combo: withCombo,
-    });
+    };
+    if (!member) {
+      setPendingBooking(context);
+      setModal("login");
+      return;
+    }
+    setBooking(context);
   }
+  function updateBookingSelection(patch) {
+    if ("cinemaId" in patch) setCinemaId(patch.cinemaId);
+    if ("movieId" in patch) setMovieId(patch.movieId);
+    if ("dateId" in patch) setDateId(patch.dateId);
+    setTimeId("");
+  }
+
   function openMovie(movie, type = "movie") {
     if (type === "trailer" && !movie.trailer) type = "movie";
     setActiveMovie(movie);
@@ -308,7 +316,7 @@ export default function App() {
     setMenu(false);
     document
       .getElementById("booking")
-      .scrollIntoView({ behavior: "smooth", block: "center" });
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   const results = movies.filter((m) =>
     `${t(m.title)} ${m.original} ${m.director}`
@@ -358,7 +366,9 @@ export default function App() {
               onMovie={openMovie}
               onCinema={(c) => {
                 if (!["home", "dat-ve"].includes(view)) {
-                  window.location.assign("/dat-ve");
+                  window.location.assign(
+                    `/dat-ve?cinema=${encodeURIComponent(c.id)}`,
+                  );
                   return;
                 }
                 setCinemaId(c.id);
@@ -367,7 +377,7 @@ export default function App() {
                 setTimeId("");
                 document
                   .getElementById("booking")
-                  .scrollIntoView({ behavior: "smooth" });
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               onExpand={() => setModal("search")}
             />
@@ -567,8 +577,11 @@ export default function App() {
               onBook={bookMovie}
             />
             <LichChieuPhim
+              selection={{ cinemaId: resolvedCinemaId, movieId, dateId }}
+              onSelectionChange={updateBookingSelection}
               onBook={(value) => {
                 if (!member) {
+                  setPendingBooking(value);
                   setModal("login");
                   return;
                 }
@@ -576,10 +589,6 @@ export default function App() {
               }}
             />
             <Discovery view="offers-home" />
-            <Discovery
-              view="food-home"
-              onBooking={() => window.location.assign("/dat-ve")}
-            />
             <NovaJourney />
             <section
               id="membership"
@@ -881,8 +890,11 @@ export default function App() {
             }
             timeline={
               <LichChieuPhim
+                selection={{ cinemaId: resolvedCinemaId, movieId, dateId }}
+                onSelectionChange={updateBookingSelection}
                 onBook={(value) => {
                   if (!member) {
+                    setPendingBooking(value);
                     setModal("login");
                     return;
                   }
@@ -933,6 +945,7 @@ export default function App() {
                             : t("Điều khoản & thông tin dự án")
           }
           onClose={() => {
+            if (modal === "login") setPendingBooking(null);
             setModal(null);
             setQuery("");
           }}
@@ -980,6 +993,12 @@ export default function App() {
                   className="search-cinema-result"
                   key={c.id}
                   onClick={() => {
+                    if (!["home", "dat-ve"].includes(view)) {
+                      window.location.assign(
+                        `/dat-ve?cinema=${encodeURIComponent(c.id)}`,
+                      );
+                      return;
+                    }
                     setCinemaId(c.id);
                     setMovieId("");
                     setDateId("");
@@ -987,7 +1006,7 @@ export default function App() {
                     setModal(null);
                     document
                       .getElementById("booking")
-                      .scrollIntoView({ behavior: "smooth" });
+                      ?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
                   <MapPin size={21} />
@@ -1013,7 +1032,11 @@ export default function App() {
             <DangNhap_DangKy
               onSuccess={(next) => {
                 setMember(next);
-                setModal("account");
+                if (pendingBooking) {
+                  setBooking(pendingBooking);
+                  setPendingBooking(null);
+                  setModal(null);
+                } else setModal("account");
               }}
             />
           )}
@@ -1336,9 +1359,13 @@ export default function App() {
                 className="button button-primary"
                 onClick={() => {
                   setModal(null);
+                  if (!["home", "dat-ve"].includes(view)) {
+                    window.location.assign("/dat-ve");
+                    return;
+                  }
                   document
                     .getElementById("booking")
-                    .scrollIntoView({ behavior: "smooth" });
+                    ?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
                 {t("Bắt đầu đặt vé")} <ArrowRight size={17} />

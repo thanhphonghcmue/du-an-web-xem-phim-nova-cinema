@@ -5,7 +5,7 @@
  *   - Lớp đệm ranh giới Client (Client Boundary Wrapper) cho trải nghiệm điện ảnh.
  *   - Nạp động (Dynamic Import với ssr: false) component NovaClient để tránh lỗi
  *     bất đồng bộ thủy hóa (Hydration mismatch) khi truy cập window, localStorage.
- *   - Cung cấp màn hình chào đón (Splash Screen) điện ảnh với poster Dune và thanh loading.
+ *   - Cung cấp màn hình chào đón với concept art NOVA và thanh loading.
  *
  * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
  *   1. Next.js hiển thị giao diện Splash Screen ngay lập tức khi người dùng tải trang.
@@ -27,8 +27,8 @@ const NovaClient = dynamic(() => import("./NovaClient.jsx"), {
   loading: () => (
     <main className="initial-screen">
       <img
-        src="/images/dune-scene.jpg"
-        alt="Dune: Part Two — thế giới điện ảnh"
+        src="/images/campaigns/nova-dream-city.png"
+        alt="NOVA Cinema — bước vào điện ảnh"
         width="1920"
         height="804"
       />

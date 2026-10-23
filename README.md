@@ -172,3 +172,14 @@ npm run dev:full
 
 Cần cập nhật DB test bằng `npm --prefix backend run db:migrate:test` trước khi
 chạy các bộ kiểm thử. Không chạy reset database để cập nhật bản này.
+
+### Bản giao diện theo nghiên cứu (23/10/2026)
+
+Be Vietnam Pro + Space Grotesk, chọn rạp có tìm kiếm, lịch tháng tiếng Việt, chọn
+phim/giờ bằng bảng trực quan và trang chi tiết phim có link riêng. Thanh đặt nhanh
+đồng bộ với lịch; có tóm tắt lựa chọn, zoom ghế và đăng nhập tiếp tục suất đang chọn.
+Xem [phạm vi, nguồn mở và bằng chứng](docs/design/booking-refresh.md).
+
+Sau khi kéo nhánh `feat/nova-discovery-ui`, chạy `npm ci` ở thư mục gốc để cài các
+package mới. Nếu backend đã setup, chạy `npm --prefix backend run build` rồi
+`npm run dev:full`, mở `http://localhost:3000`. Backend và dữ liệu cũ được dùng tiếp.

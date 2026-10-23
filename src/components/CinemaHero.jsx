@@ -23,6 +23,17 @@ export default function CinemaHero({
   onMovie,
   onWelcome,
 }) {
+  const invitations = {
+    inception: ["Thực tại", "chỉ là", "khởi đầu."],
+    kong: ["Màn ảnh lớn.", "Đại chiến", "bắt đầu."],
+    oppenheimer: ["Lịch sử.", "Sức mạnh.", "Dư âm."],
+    dune: ["Sa mạc.", "Định mệnh.", "Vô tận."],
+  };
+  const invitation = invitations[movie.artId] || [
+    "Một bộ phim.",
+    "Vạn điều",
+    "đáng nhớ.",
+  ];
   const { rooms, cinemas, showtimes, isLive } = useCatalog();
   return (
     <section
@@ -99,11 +110,11 @@ export default function CinemaHero({
         <div className="premiere-side">
           <span>A NOVA CINEMA EXPERIENCE</span>
           <strong>
-            Thực tại
+            {invitation[0]}
             <br />
-            chỉ là
+            {invitation[1]}
             <br />
-            <em>khởi đầu.</em>
+            <em>{invitation[2]}</em>
           </strong>
           <button
             onClick={() => onMovie(movie)}

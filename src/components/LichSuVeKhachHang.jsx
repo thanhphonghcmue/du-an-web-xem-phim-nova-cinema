@@ -32,6 +32,7 @@ import TicketConfirmation from "./TicketConfirmation.jsx";
 import { CalendarDays, Download, Ticket } from "lucide-react";
 export default function LichSuVeKhachHang({ member, onResume }) {
   const { contextFor, movies } = useCatalog();
+  const [filter, setFilter] = useState("all");
   const [tickets, setTickets] = useState([]),
     [orders, setOrders] = useState([]),
     [error, setError] = useState(""),
@@ -60,10 +61,31 @@ export default function LichSuVeKhachHang({ member, onResume }) {
   if (!member) return <p>Vui lòng đăng nhập để tra cứu vé của bạn.</p>;
   return (
     <div className="history-list">
+      <div className="history-tabs" role="group" aria-label="Lọc lịch sử vé">
+        {[
+          ["all", "Tất cả vé"],
+          ["holding", "Đang giữ ghế"],
+          ["unused", "Chưa soát vé"],
+          ["used", "Đã sử dụng"],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={filter === value}
+            onClick={() => setFilter(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       {loading && <p role="status">Đang tải vé…</p>}
       {error && <p role="alert">{error}</p>}
       {orders
-        .filter((o) => ["HOLDING", "PENDING"].includes(o.status))
+        .filter(
+          (o) =>
+            ["all", "holding"].includes(filter) &&
+            ["HOLDING", "PENDING"].includes(o.status),
+        )
         .map((o) => (
           <article key={o.id}>
             <div>
@@ -96,65 +118,109 @@ export default function LichSuVeKhachHang({ member, onResume }) {
             Đơn {o.orderCode}: Đã thanh toán · đang phát hành vé QR.
           </p>
         ))}
-      {tickets.map((ticket) => (
-        <article className="cinema-ticket" key={ticket.id}>
-          <img
-            className="ticket-movie-poster"
-            src={
-              movies.find((movie) => movie.title === ticket.movie)
-                ?.localPoster || "/images/cinema-auditorium.jpg"
-            }
-            alt={ticket.movie}
-          />
-          <div className="ticket-story">
-            <p className="nova-kicker">
-              <Ticket size={13} />
-              NOVA CINEMA · ADMIT ONE BOOKING
-            </p>
-            <h3>{ticket.movie}</h3>
-            <p>
-              {ticket.cinema} · {ticket.room}
-            </p>
-            <p>
-              {new Date(ticket.startTime).toLocaleString("vi-VN", {
-                timeZone: "Asia/Ho_Chi_Minh",
-              })}
-            </p>
-            <p>
-              Ghế: {ticket.seats.map((s) => s.label).join(", ")} ·{" "}
-              {money(ticket.amount)}
-            </p>
-            <small
-              className={`ticket-state ${ticket.isCheckedIn ? "used" : ""}`}
-            >
-              {ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}
-            </small>
-            <p className="ticket-order-code">Mã đơn: {ticket.orderCode}</p>
-          </div>
-          <div className="ticket-stub">
-            <img src={ticket.qrCodeBase64} alt={`QR vé ${ticket.orderCode}`} />
-            <p>
-              <a
-                className="text-button"
-                href={ticket.qrCodeBase64}
-                download={`${ticket.orderCode}.png`}
+      {tickets
+        .filter(
+          (ticket) =>
+            filter === "all" ||
+            (filter === "used"
+              ? ticket.isCheckedIn
+              : filter === "unused"
+                ? !ticket.isCheckedIn
+                : false),
+        )
+        .map((ticket) => (
+          <article className="cinema-ticket" key={ticket.id}>
+            <img
+              className="ticket-movie-poster"
+              src={
+                movies.find((movie) => movie.title === ticket.movie)
+                  ?.localPoster || "/images/cinema-auditorium.jpg"
+              }
+              alt={ticket.movie}
+            />
+            <div className="ticket-story">
+              <p className="nova-kicker">
+                <Ticket size={13} />
+                NOVA CINEMA · ADMIT ONE BOOKING
+              </p>
+              <h3>{ticket.movie}</h3>
+              <p>
+                {ticket.cinema} · {ticket.room}
+              </p>
+              <p>
+                {new Date(ticket.startTime).toLocaleString("vi-VN", {
+                  timeZone: "Asia/Ho_Chi_Minh",
+                })}
+              </p>
+              <p>
+                Ghế: {ticket.seats.map((s) => s.label).join(", ")} ·{" "}
+                {money(ticket.amount)}
+              </p>
+              <small
+                className={`ticket-state ${ticket.isCheckedIn ? "used" : ""}`}
               >
-                <Download size={12} />
-                Tải QR
-              </a>{" "}
-              ·{" "}
-              <a
-                className="text-button"
-                href={`/api/v1/tickets/${ticket.id}/calendar`}
-              >
-                <CalendarDays size={12} />
-                Thêm lịch .ics
-              </a>
-            </p>
-          </div>
-          <TicketConfirmation ticketId={ticket.id} />
-        </article>
-      ))}
+                {ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}
+              </small>
+              <p className="ticket-order-code">Mã đơn: {ticket.orderCode}</p>
+            </div>
+            <div className="ticket-stub">
+              <img
+                src={ticket.qrCodeBase64}
+                alt={`QR vé ${ticket.orderCode}`}
+              />
+              <p>
+                <a
+                  className="text-button"
+                  href={ticket.qrCodeBase64}
+                  download={`${ticket.orderCode}.png`}
+                >
+                  <Download size={12} />
+                  Tải QR
+                </a>{" "}
+                ·{" "}
+                <a
+                  className="text-button"
+                  href={`/api/v1/tickets/${ticket.id}/calendar`}
+                >
+                  <CalendarDays size={12} />
+                  Thêm lịch .ics
+                </a>
+              </p>
+            </div>
+            <TicketConfirmation ticketId={ticket.id} />
+          </article>
+        ))}
+      {filter === "all" &&
+        orders.some((order) =>
+          ["CANCELLED", "EXPIRED"].includes(order.status),
+        ) && (
+          <details className="history-archive">
+            <summary>
+              Đơn đã hủy / hết hạn (
+              {
+                orders.filter((order) =>
+                  ["CANCELLED", "EXPIRED"].includes(order.status),
+                ).length
+              }
+              )
+            </summary>
+            {orders
+              .filter((order) =>
+                ["CANCELLED", "EXPIRED"].includes(order.status),
+              )
+              .map((order) => (
+                <article key={order.id}>
+                  <strong>{order.orderCode}</strong>
+                  <p>
+                    {order.status === "EXPIRED"
+                      ? "Đã hết hạn giữ ghế"
+                      : "Đã hủy"}{" "}
+                    · {money(order.finalAmount)}
+                  </p>
+                </article>
+              ))}
+          </details>
+        )}
       {!loading && !error && !orders.length && <p>Bạn chưa có đơn đặt vé.</p>}
     </div>
   );

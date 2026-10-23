@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { useCatalog } from "../catalog.js";
+import { Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -103,11 +106,76 @@ const paymentMethods = [
 
 export default function InfoPage({ view }) {
   const router = useRouter();
+  const { cinemas } = useCatalog();
+  const [query, setQuery] = useState("");
   const searchParams = useSearchParams();
   const method = searchParams.get("phuong-thuc") || "sandbox";
   const selected =
     paymentMethods.find((item) => item[0] === method) || paymentMethods[0];
   const isPolicy = view === "chinh-sach";
+  const matchingQuestions = (isPolicy ? policies : questions).filter(
+    ([question, answer]) =>
+      isPolicy ||
+      `${question} ${answer}`
+        .toLocaleLowerCase("vi")
+        .includes(query.toLocaleLowerCase("vi")),
+  );
+  if (view === "lien-he")
+    return (
+      <>
+        <PageBanner
+          label="KẾT NỐI CÙNG NOVA"
+          title={
+            <>
+              Đúng nơi cần đến.
+              <br />
+              Đúng điều bạn cần.
+            </>
+          }
+          description="Tra cứu đơn, tìm hướng dẫn và xem thông tin rạp trong cùng một nơi."
+          image="/images/cinema-lobby.jpg"
+        />
+        <section className="content-width discovery-section contact-workspace">
+          <div>
+            <p className="nova-kicker">BẠN CẦN HỖ TRỢ?</p>
+            <h2>
+              Cuộc hẹn của bạn.
+              <br />
+              <em>NOVA đồng hành.</em>
+            </h2>
+            <p>
+              Muốn kiểm tra thanh toán hoặc vé QR? Mở tài khoản để xem trạng
+              thái đơn mới nhất. Thông tin địa điểm dưới đây thuộc dữ liệu minh
+              họa của đồ án.
+            </p>
+            <Link href="/tai-khoan" className="button button-primary">
+              Kiểm tra đơn & vé <ArrowRight size={18} />
+            </Link>
+            <br />
+            <Link href="/ho-tro" className="info-secondary-link">
+              Tìm câu trả lời thường gặp <ArrowUpRight size={16} />
+            </Link>
+          </div>
+          <div>
+            {cinemas.map((cinema) => (
+              <article className="contact-venue" key={cinema.id}>
+                <p className="nova-kicker">{cinema.city}</p>
+                <h3>{cinema.name}</h3>
+                <p>
+                  <MapPin size={16} /> {cinema.address}
+                </p>
+                <Link
+                  className="button button-glass"
+                  href={`/dat-ve?cinema=${cinema.id}`}
+                >
+                  Xem lịch tại rạp này <ArrowUpRight size={17} />
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+      </>
+    );
   if (view === "thanh-toan")
     return (
       <>
@@ -415,7 +483,24 @@ export default function InfoPage({ view }) {
             </Link>
           </div>
           <div className="faq-list">
-            {(isPolicy ? policies : questions).map(([question, answer]) => (
+            {!matchingQuestions.length && (
+              <p role="status" className="workspace-message">
+                Chưa có câu hỏi phù hợp. Thử từ khóa đặt vé, giữ ghế hoặc thanh
+                toán.
+              </p>
+            )}
+            {!isPolicy && (
+              <label className="support-search">
+                <Search size={21} />
+                <input
+                  aria-label="Tìm câu hỏi hỗ trợ"
+                  placeholder="Tìm về đặt vé, thanh toán, QR…"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+            )}
+            {matchingQuestions.map(([question, answer]) => (
               <details key={question}>
                 <summary>
                   {question}

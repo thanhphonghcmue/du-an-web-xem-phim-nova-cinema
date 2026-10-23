@@ -4,13 +4,13 @@
  * VAI TRÒ / NHIỆM VỤ CHÍNH:
  *   - Bố cục gốc toàn cục của ứng dụng (Root Layout - Next.js App Router).
  *   - Nạp mã nguồn CSS giao diện (`styles.css`) và các bộ phông chữ hiện đại:
- *     Plus Jakarta Sans (tiêu đề/nội dung) và Space Grotesk (chữ số, mã vé, điểm thưởng).
+ *     Be Vietnam Pro (nội dung) và Space Grotesk (tiêu đề, chữ số, mã vé).
  *   - Định cấu hình thông số SEO Metadata chuẩn OpenGraph (tiêu đề rạp, mô tả, ảnh bìa, favicon).
  *
  * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
  *   1. Next.js bao bọc toàn bộ các trang bên trong thẻ <html> và <body> của RootLayout.
  *   2. Ngôn ngữ mặc định được thiết lập là "vi" (Tiếng Việt).
- *   3. Trình duyệt tải phông chữ và thiết lập chủ đề màu đen điện ảnh (`#08090C`).
+ *   3. Trình duyệt tải phông chữ cục bộ và chủ đề xanh đen điện ảnh.
  *
  * ĐỐI TƯỢNG SỬ DỤNG:
  *   - Toàn bộ ứng dụng web trên máy tính để bàn, máy tính bảng và điện thoại di động.
@@ -27,16 +27,16 @@ import "../premiere.css";
 import "../booking-experience.css";
 import "../clarity.css";
 import "../experience-details.css";
-import "@fontsource/plus-jakarta-sans/latin-400.css";
-import "@fontsource/plus-jakarta-sans/latin-500.css";
-import "@fontsource/plus-jakarta-sans/latin-600.css";
-import "@fontsource/plus-jakarta-sans/latin-700.css";
-import "@fontsource/plus-jakarta-sans/latin-800.css";
-import "@fontsource/plus-jakarta-sans/vietnamese-400.css";
-import "@fontsource/plus-jakarta-sans/vietnamese-500.css";
-import "@fontsource/plus-jakarta-sans/vietnamese-600.css";
-import "@fontsource/plus-jakarta-sans/vietnamese-700.css";
-import "@fontsource/plus-jakarta-sans/vietnamese-800.css";
+import "react-day-picker/style.css";
+import "../nova-refresh.css";
+import "@fontsource/be-vietnam-pro/latin-400.css";
+import "@fontsource/be-vietnam-pro/latin-500.css";
+import "@fontsource/be-vietnam-pro/latin-600.css";
+import "@fontsource/be-vietnam-pro/latin-700.css";
+import "@fontsource/be-vietnam-pro/vietnamese-400.css";
+import "@fontsource/be-vietnam-pro/vietnamese-500.css";
+import "@fontsource/be-vietnam-pro/vietnamese-600.css";
+import "@fontsource/be-vietnam-pro/vietnamese-700.css";
 import "@fontsource/space-grotesk/latin-500.css";
 import "@fontsource/space-grotesk/latin-600.css";
 import "@fontsource/space-grotesk/latin-700.css";

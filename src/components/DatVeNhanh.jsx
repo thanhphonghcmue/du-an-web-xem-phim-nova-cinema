@@ -1,4 +1,9 @@
 // DatVeNhanh: mã nguồn chức năng, dùng chung cho mọi trang.
+import CinemaPicker from "./CinemaPicker.jsx";
+import QuickChoice from "./QuickChoice.jsx";
+import DateSelector from "./DateSelector.jsx";
+import { friendlyDay } from "../bookingDates.js";
+import { money } from "../data.js";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -39,6 +44,8 @@ export default function DatVeNhanh({
   const dates = getDates("vi", cinemaId, movieId);
   const times =
     dateId && movieId ? getShowtimes(cinemaId, movieId, dateId) : [];
+  const movie = films.find((movie) => movie.id === movieId);
+  const selectedTime = times.find((time) => time.id === timeId);
   const timeKey = times.map((time) => time.id).join(",");
   useEffect(() => {
     let active = true;
@@ -87,19 +94,7 @@ export default function DatVeNhanh({
             <MapPin size={13} />
             01 · CỤM RẠP
           </span>
-          <select
-            aria-label="Chọn cụm rạp"
-            value={cinemaId}
-            onChange={(event) => onCinema(event.target.value)}
-            required
-          >
-            <option value="">Chọn rạp NOVA</option>
-            {cinemas.map((item) => (
-              <option value={item.id} key={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+          <CinemaPicker value={cinemaId} onChange={onCinema} />
           <small>
             {cinema
               ? `${rooms.filter((room) => room.cinemaId === cinema.id).length} phòng chiếu · ${cinema.city}`
@@ -111,21 +106,22 @@ export default function DatVeNhanh({
             <Film size={13} />
             02 · BỘ PHIM
           </span>
-          <select
-            aria-label="Chọn phim"
-            value={films.some((movie) => movie.id === movieId) ? movieId : ""}
-            onChange={(event) => onMovie(event.target.value)}
+          <QuickChoice
+            label="Chọn phim"
+            title="Bộ phim bạn muốn xem"
+            value={movieId}
+            onChange={onMovie}
             disabled={!cinemaId}
-            required
-          >
-            <option value="">Bạn muốn xem gì?</option>
-            {films.map((movie) => (
-              <option value={movie.id} key={movie.id}>
-                {movie.status === "soon" ? "Đặt trước · " : ""}
-                {movie.age} · {movie.title}
-              </option>
-            ))}
-          </select>
+            placeholder="Bạn muốn xem phim gì?"
+            items={films.map((movie) => ({
+              id: movie.id,
+              name: movie.title,
+              image: movie.localPoster || movie.poster,
+              description: `${movie.age} · ${movie.duration} phút`,
+              detail:
+                movie.status === "soon" ? "Đã mở bán trước" : "Đang chiếu",
+            }))}
+          />
           <small>
             {movieId
               ? "Một câu chuyện đang chờ bạn"
@@ -137,22 +133,14 @@ export default function DatVeNhanh({
             <CalendarDays size={13} />
             03 · NGÀY CHIẾU
           </span>
-          <select
-            aria-label="Chọn ngày chiếu"
+          <DateSelector
+            dates={dates}
             value={dateId}
-            onChange={(event) => onDate(event.target.value)}
+            onChange={onDate}
             disabled={!cinemaId || !movieId}
-            required
-          >
-            <option value="">Ngày nào gặp nhau?</option>
-            {dates.map((date) => (
-              <option value={date.id} key={date.id}>
-                {date.label}
-              </option>
-            ))}
-          </select>
+          />
           <small>
-            {dates.length
+            {cinemaId && movieId && dates.length
               ? `${dates.length} ngày có lịch phù hợp`
               : "Chọn ngày bạn muốn đi"}
           </small>
@@ -162,28 +150,22 @@ export default function DatVeNhanh({
             <Clock3 size={13} />
             04 · GIỜ & PHÒNG
           </span>
-          <select
-            aria-label="Chọn suất chiếu"
+          <QuickChoice
+            label="Chọn suất chiếu"
+            title="Chọn giờ & phòng chiếu"
             value={timeId}
-            onChange={(event) => onTime(event.target.value)}
+            onChange={onTime}
             disabled={!dateId}
-            required
-          >
-            <option value="">Chọn giờ đẹp của bạn</option>
-            {times.map((time) => (
-              <option
-                value={time.id}
-                key={time.id}
-                disabled={capacities[time.id] === 0}
-              >
-                {time.displayTime} ·{" "}
-                {time.roomName || time.label.split(" · ")[1]}
-                {typeof capacities[time.id] === "number"
-                  ? ` · còn ${capacities[time.id]} ghế`
-                  : ""}
-              </option>
-            ))}
-          </select>
+            placeholder="Chọn giờ phù hợp"
+            searchable={false}
+            items={times.map((time) => ({
+              id: time.id,
+              name: time.displayTime,
+              description: time.roomName,
+              detail: `Từ ${money(time.baseTicketPrice)}${typeof capacities[time.id] === "number" ? ` · Còn ${capacities[time.id]} ghế` : " · Đang cập nhật ghế"}`,
+              disabled: capacities[time.id] === 0,
+            }))}
+          />
           <small>
             {times.length
               ? `${times.length} lựa chọn giờ & phòng`
@@ -197,6 +179,27 @@ export default function DatVeNhanh({
           Đặt ngay <ArrowRight size={18} />
         </button>
       </form>
+      {(cinema || movie) && (
+        <div
+          className="booking-choice-summary"
+          aria-label="Lựa chọn đặt vé của bạn"
+        >
+          <div>
+            <p className="nova-kicker">LỰA CHỌN CỦA BẠN</p>
+            <strong>{movie?.title || "Chọn bộ phim bạn muốn xem"}</strong>
+            <p>
+              {cinema?.name}
+              {dateId ? ` · ${friendlyDay(dateId)}` : ""}
+              {selectedTime
+                ? ` · ${selectedTime.displayTime} · ${selectedTime.roomName}`
+                : ""}
+            </p>
+          </div>
+          <a href="#showtimes">
+            So sánh lịch chiếu <ArrowRight size={18} />
+          </a>
+        </div>
+      )}
       <div className="express-bottom">
         <label>
           <input

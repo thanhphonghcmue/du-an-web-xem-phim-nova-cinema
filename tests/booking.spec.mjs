@@ -1,3 +1,4 @@
+import { chooseOption, chooseDate } from "./ui-choices.mjs";
 import { test, expect } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -69,9 +70,7 @@ async function seats(page) {
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   // The timeline uses real room and showtime UUIDs loaded from the catalog.
-  await page
-    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
-    .selectOption(fixture().cinema.id);
+  await chooseOption(page, "Rạp trong lịch chiếu", fixture().cinema.id);
   const film = page
     .locator(".timeline-film-list [role=tab]")
     .filter({ hasText: "Dune" })
@@ -152,28 +151,26 @@ test("catalog, quick booking and search use backend UUIDs without browser errors
   await expect(page.locator(".site-header")).toBeVisible();
   expect((await read(page, "/runtime")).body.data.mode).toBe("backend");
   await expect(page.locator(".standalone-mode-notice")).toHaveCount(0);
-  await page
-    .getByRole("combobox", { name: "Chọn cụm rạp", exact: true })
-    .selectOption(fixture().cinema.id);
-  await page
-    .getByRole("combobox", { name: "Chọn phim", exact: true })
-    .selectOption(fixture().movie.id);
-  const day = await page
-    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
-    .locator("option")
-    .nth(1)
-    .getAttribute("value");
-  await page
-    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
-    .selectOption(day);
+  await chooseOption(page, "Chọn cụm rạp", fixture().cinema.id);
+  await chooseOption(page, "Chọn phim", fixture().movie.id);
+  const day = new Date(fixture().showtime.startTime).toLocaleDateString(
+    "en-CA",
+    { timeZone: "Asia/Ho_Chi_Minh" },
+  );
+  await chooseDate(page, "Chọn ngày chiếu", day);
   await expect(
     page.getByRole("combobox", { name: "Chọn suất chiếu", exact: true }),
   ).toBeEnabled();
+  await page
+    .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
+    .click();
   await expect(
     page
-      .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
-      .locator(`option[value="${fixture().showtime.id}"]`),
-  ).toHaveCount(1);
+      .getByRole("dialog")
+      .last()
+      .locator(`[role="option"][data-value="${fixture().showtime.id}"]`),
+  ).toBeEnabled();
+  await page.keyboard.press("Escape");
   await page.getByRole("textbox", { name: "Tìm phim, rạp..." }).fill("Dune");
   await expect(page.locator(".search-dropdown")).toContainText("Dune");
   expect(errors).toEqual([]);
@@ -246,9 +243,7 @@ test("guests can browse but must sign in before seat booking", async ({
 }) => {
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
-    .selectOption(fixture().cinema.id);
+  await chooseOption(page, "Rạp trong lịch chiếu", fixture().cinema.id);
   await page.locator(".timeline-show").first().click();
   await expect(
     page.getByRole("dialog", { name: "Chào mừng đến C’MEMBER" }),

@@ -351,6 +351,7 @@ export default function DatVeBackend({
       ...(combo ? { [combo.id]: Math.max(1, valid[combo.id] || 0) } : {}),
     };
   });
+  const [zoom, setZoom] = useState(100);
   const [count, setCount] = useState(3);
   const [now, setNow] = useState(Date.now);
   const [offset, setOffset] = useState(0);
@@ -751,8 +752,37 @@ export default function DatVeBackend({
                 </button>
               </div>
             )}
+            <div className="seat-map-controls">
+              <p>Màn hình phía trước · Kéo ngang để xem toàn bộ hàng ghế</p>
+              <div>
+                <button
+                  type="button"
+                  aria-label="Thu nhỏ sơ đồ ghế"
+                  disabled={zoom <= 70}
+                  onClick={() => setZoom((value) => value - 10)}
+                >
+                  −
+                </button>
+                <span aria-live="polite">{zoom}%</span>
+                <button
+                  type="button"
+                  aria-label="Phóng to sơ đồ ghế"
+                  disabled={zoom >= 160}
+                  onClick={() => setZoom((value) => value + 10)}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  aria-label="Toàn cảnh sơ đồ ghế"
+                  onClick={() => setZoom(100)}
+                >
+                  ↺
+                </button>
+              </div>
+            </div>
             <div className="seat-map-scroll">
-              <div className="seat-map">
+              <div className="seat-map" style={{ zoom: zoom / 100 }}>
                 <div className="curved-screen" />
                 <p className="screen-label">INFINITY / CINEMA SCREEN</p>
                 {rows.map((row) => (
@@ -778,6 +808,7 @@ export default function DatVeBackend({
                           <button
                             key={seat.seatId}
                             className={`seat ${state}${orphanSeat?.seatId === seat.seatId ? " orphan-seat" : ""}`}
+                            aria-pressed={chosen}
                             aria-describedby={
                               orphanSeat?.seatId === seat.seatId
                                 ? "orphan-warning"

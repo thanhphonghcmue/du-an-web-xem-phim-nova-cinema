@@ -24,6 +24,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+import { vietnamDay } from "../bookingDates.js";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
 import {
@@ -170,9 +171,9 @@ function FilmCard({ movie, onMovie, onBook }) {
   return (
     <article className="discovery-film" data-movie-id={movie.id}>
       <div className="discovery-poster">
-        <button
+        <Link
+          href={`/phim/${movie.id}`}
           className="poster-image-button"
-          onClick={() => onMovie(movie)}
           aria-label={`Thông tin ${movie.title}`}
         >
           <img
@@ -182,7 +183,7 @@ function FilmCard({ movie, onMovie, onBook }) {
             width="400"
             height="600"
           />
-        </button>
+        </Link>
         <div className="film-badges">
           <span className={`classification classification-${movie.age}`}>
             {movie.age}
@@ -220,9 +221,9 @@ function FilmCard({ movie, onMovie, onBook }) {
         </span>
       )}
       <p className="film-genre">{movie.genre || "Điện ảnh tuyển chọn"}</p>
-      <button className="film-name" onClick={() => onMovie(movie)}>
+      <Link className="film-name" href={`/phim/${movie.id}`}>
         {movie.title}
-      </button>
+      </Link>
       <div className="film-bottom">
         <span>
           <Clock3 size={12} />
@@ -267,10 +268,11 @@ function FilmCard({ movie, onMovie, onBook }) {
 }
 
 function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
-  const { movies } = useCatalog();
+  const { movies, showtimes } = useCatalog();
   const [tab, setTab] = useState(upcoming ? "soon" : "now");
   const [genre, setGenre] = useState("Tất cả");
   const [age, setAge] = useState("all");
+  const [todayOnly, setTodayOnly] = useState(false);
   const [query, setQuery] = useState("");
   const normalize = (value) =>
     value
@@ -283,9 +285,17 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
         (tab === "now" ? movie.status !== "soon" : movie.status === tab)) &&
       (genre === "Tất cả" || movie.genre?.includes(genre)) &&
       (age === "all" || movie.age === age) &&
-      normalize(movie.title + " " + movie.original).includes(normalize(query)),
+      normalize(movie.title + " " + movie.original).includes(
+        normalize(query),
+      ) &&
+      (!todayOnly ||
+        showtimes.some(
+          (show) =>
+            show.movieId === movie.id &&
+            vietnamDay(show.startTime) === vietnamDay(Date.now()),
+        )),
   );
-  const visible = compact ? selected.slice(0, 12) : selected;
+  const visible = compact ? selected.slice(0, 6) : selected;
   return (
     <section id="movies" className="content-width discovery-section">
       <div className="discovery-heading">
@@ -346,6 +356,16 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
             </button>
           ))}
         </div>
+      )}
+      {!upcoming && !compact && (
+        <label className="today-screenings">
+          <input
+            type="checkbox"
+            checked={todayOnly}
+            onChange={(event) => setTodayOnly(event.target.checked)}
+          />
+          Chỉ phim có suất hôm nay
+        </label>
       )}
       <div className="discovery-filters">
         <div className="filter-pills">

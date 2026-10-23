@@ -108,11 +108,11 @@ export default function AuthForm({ onSuccess }) {
     setFields((prev) => ({
       ...prev,
       email,
-      // Không tự động điền mật khẩu để bảo vệ tài khoản cấp cao
+      password: "nova@12345",
     }));
-    setTouched((prev) => ({ ...prev, email: true }));
+    setTouched((prev) => ({ ...prev, email: true, password: true }));
     setNoticeType("info");
-    setNotice(`Đã chọn tài khoản ${roleName}. Vui lòng nhập mật khẩu.`);
+    setNotice(`Đã chọn ${roleName} (${email}) - Mật khẩu: nova@12345`);
   }
 
   async function submit(e) {
@@ -232,7 +232,7 @@ export default function AuthForm({ onSuccess }) {
             <div className="auth-quick-header">
               <span>
                 <Sparkles size={14} style={{ display: "inline", marginRight: 5 }} />
-                Tài khoản nghiệp vụ rạp chiếu phim:
+                Tài khoản nghiệp vụ rạp chiếu phim (Mật khẩu: nova@12345):
               </span>
             </div>
             <div className="auth-quick-pills">

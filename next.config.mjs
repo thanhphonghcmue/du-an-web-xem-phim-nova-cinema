@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    agentUpgrade: "security",
+  },
   reactStrictMode: true,
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,

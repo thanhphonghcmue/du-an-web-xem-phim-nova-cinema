@@ -98,7 +98,9 @@ test("food draft survives navigation and transfers real combo IDs into seat sele
   expect(status).toBe(200);
   await page.reload();
   await expect(page.locator(".login-trigger")).toContainText("CUSTOMER");
-  await page.locator("#showtimes select").selectOption(data.cinema.id);
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .selectOption(data.cinema.id);
   await page.locator(".timeline-show").first().click();
   await expect(
     page.getByRole("dialog", { name: "Chọn ghế & đặt vé" }),
@@ -135,4 +137,99 @@ test("mobile page navigation and food categories remain within the viewport", as
   await expect(
     page.getByText("Thực đơn đang được cập nhật", { exact: true }),
   ).toBeVisible();
+});
+
+test("welcome campaign opens on first visit, respects dismiss preference and links to real food page", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const campaign = page.getByRole("dialog", { name: /Mở màn rực rỡ/ });
+  await expect(campaign).toBeVisible();
+  await expect(campaign.getByRole("img")).toBeVisible();
+  await page
+    .getByRole("checkbox", { name: "Không hiển thị lại hôm nay" })
+    .check();
+  await page.keyboard.press("Escape");
+  await expect(campaign).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".premiere-copy")).toBeVisible();
+  await expect(campaign).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Ưu đãi mở màn", exact: true })
+    .click();
+  await expect(campaign).toBeVisible();
+  await campaign.getByRole("link", { name: "Khám phá bắp nước" }).click();
+  await expect(page).toHaveURL(/\/bap-nuoc$/);
+  await expect(page.locator(".food-discovery")).toBeVisible();
+});
+
+test("footer headings, support answers and payment brands all open useful destinations", async ({
+  page,
+}) => {
+  await page.goto("/phim");
+  const footer = page.locator(".nova-footer");
+  await footer
+    .getByRole("link", { name: "KHÁM PHÁ NOVA", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/gioi-thieu$/);
+  await expect(page.locator(".info-destinations>a")).toHaveCount(3);
+  await footer
+    .getByRole("link", { name: "ĐỒNG HÀNH CÙNG BẠN", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/ho-tro$/);
+  await page
+    .locator("summary")
+    .filter({ hasText: "Ghế được giữ trong bao lâu?" })
+    .click();
+  await expect(page.locator("details[open]")).toContainText("5 phút");
+  await footer.getByRole("link", { name: "MoMo", exact: true }).click();
+  await expect(page).toHaveURL(/\/thanh-toan\?phuong-thuc=momo$/);
+  await expect(page.locator(".payment-explainer h2")).toHaveText("MoMo");
+  await expect(page.locator(".payment-explainer")).toContainText(
+    "chưa liên kết ví",
+  );
+  for (const [label, title] of [
+    ["VISA", "Visa"],
+    ["Mastercard", "Mastercard"],
+    ["ZaloPay", "ZaloPay"],
+  ]) {
+    await footer.getByRole("link", { name: label, exact: true }).click();
+    await expect(page.locator(".payment-explainer h2")).toHaveText(title);
+  }
+  await page.getByRole("tab", { name: "NOVA Sandbox", exact: true }).click();
+  await expect(page.locator(".payment-explainer h2")).toHaveText(
+    "NOVA Sandbox",
+  );
+  await page
+    .getByRole("link", { name: "Chọn suất & thanh toán Sandbox", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/dat-ve$/);
+});
+
+test("room and day-part controls filter four real screenings without changing showtime IDs", async ({
+  page,
+}) => {
+  const data = fixture();
+  await page.goto("/dat-ve");
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .selectOption(data.cinema.id);
+  await page
+    .locator(".timeline-film-list [role=tab]")
+    .filter({ hasText: "Dune" })
+    .first()
+    .click();
+  await page.locator(".timeline-dates button").last().click();
+  await page
+    .getByRole("combobox", { name: "Phòng chiếu trong lịch", exact: true })
+    .selectOption(data.programmeRoom.id);
+  await expect(page.locator(".timeline-show")).toHaveCount(4);
+  await page.getByRole("button", { name: "Buổi tối", exact: true }).click();
+  await expect(page.locator(".timeline-show")).toHaveCount(1);
+  await expect(page.locator(".timeline-show")).toContainText("18:00");
+  await page.getByRole("button", { name: "Suất muộn", exact: true }).click();
+  await expect(page.locator(".timeline-show")).toHaveCount(1);
+  await expect(page.locator(".timeline-show")).toContainText("22:00");
+  await page.getByRole("button", { name: "Tất cả giờ", exact: true }).click();
+  await expect(page.locator(".timeline-show")).toHaveCount(4);
 });

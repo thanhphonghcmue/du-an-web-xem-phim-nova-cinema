@@ -5,7 +5,7 @@
       "title": "Inception: Kẻ Đánh Cắp Giấc Mơ",
       "original": "INCEPTION",
       "short": "INCEPTION",
-      "part": "NOVA SELECTED",
+      "part": "KẺ ĐÁNH CẮP GIẤC MƠ",
       "genre": "Khoa học viễn tưởng",
       "duration": 148,
       "age": "T16",
@@ -18,9 +18,10 @@
       "format": "IMAX",
       "poster": "/images/posters/inception.jpg",
       "localPoster": "/images/posters/inception.jpg",
-      "localBackdrop": "/images/cinema-auditorium.jpg",
-      "description": "Inception: Kẻ Đánh Cắp Giấc Mơ trở lại màn ảnh lớn trong tuyển tập điện ảnh NOVA Selected. Khám phá câu chuyện và thế giới của đạo diễn Christopher Nolan.",
-      "week": null
+      "localBackdrop": "/images/campaigns/nova-dream-city.png",
+      "description": "Một ý tưởng có thể thay đổi cả thế giới. Cùng Dom Cobb bước qua những tầng giấc mơ, nơi thực tại không còn như bạn nghĩ.",
+      "week": null,
+      "tagline": "ĐỪNG CHỈ XEM. BƯỚC VÀO GIẤC MƠ."
     },
     {
       "id": "apes",

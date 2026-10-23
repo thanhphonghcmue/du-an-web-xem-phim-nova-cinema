@@ -31,6 +31,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Discovery from "./components/Discovery.jsx";
 import PortalPage from "./components/PortalPage.jsx";
+import CinemaHero from "./components/CinemaHero.jsx";
+import CinemaFooter from "./components/CinemaFooter.jsx";
+import WelcomeOffer from "./components/WelcomeOffer.jsx";
 import {
   ArrowDown,
   ArrowRight,
@@ -135,9 +138,23 @@ export default function App() {
   const { movies, cinemas, getDates, getShowtimes, contextFor } = useCatalog();
 
   const [slide, setSlide] = useState(0);
+  const [welcomeOpen, setWelcomeOpen] = useState(() => {
+    try {
+      const today = new Date().toLocaleDateString("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      });
+      return (
+        view === "home" &&
+        !sessionStorage.getItem("nova-welcome-seen") &&
+        localStorage.getItem("nova-welcome-hidden-day") !== today
+      );
+    } catch {
+      return false;
+    }
+  });
   const [wizardVersion, setWizardVersion] = useState(0);
-  const highlights = ["dune", "kong", "oppenheimer"].flatMap((key) =>
-    movies.filter((movie) => movie.artId === key),
+  const highlights = ["inception", "kong", "oppenheimer", "dune"].flatMap(
+    (key) => movies.filter((movie) => movie.artId === key),
   );
   const featured = (highlights.length ? highlights : movies).slice(0, 5);
   const hero = featured[slide % featured.length] || movies[0] || {};
@@ -392,6 +409,10 @@ export default function App() {
               <Ticket size={15} />
               {t("Đặt vé ngay")}{" "}
             </Link>
+            <Link href="/bap-nuoc" className="button header-food">
+              <Popcorn size={15} />
+              Đặt bắp nước
+            </Link>
             <button
               className="icon-button mobile-toggle"
               aria-label={menu ? t("Đóng menu") : t("Mở menu")}
@@ -466,139 +487,15 @@ export default function App() {
       <main id="main-content" tabIndex={-1}>
         {view === "home" ? (
           <>
-            <section
-              className={`hero hero-${hero.artId || hero.id}`}
-              aria-label="Phim nổi bật"
-            >
-              <div
-                key={hero.id}
-                className="hero-art"
-                style={{
-                  backgroundImage: `url("${hero.localBackdrop || hero.backdrop || "/images/cinema-imax.jpg"}")`,
-                }}
-              />
-              <div className="hero-shade" />
-              <div className="hero-grain" />
-              <div className="hero-content content-width">
-                <div className="hero-copy" key={hero.id}>
-                  <span className="hero-exclusive">
-                    <span className="live-dot" />
-                    NOVA EXCLUSIVE <span className="exclusive-divider" />{" "}
-                    {t("TRẢI NGHIỆM ĐIỆN ẢNH ĐỈNH CAO")}{" "}
-                  </span>
-                  <p className="hero-kicker">
-                    {hero.artId === "dune"
-                      ? "BEYOND THE ORDINARY."
-                      : hero.artId === "oppenheimer"
-                        ? "THE WORLD FOREVER CHANGES."
-                        : "RISE TOGETHER. FALL TOGETHER."}
-                  </p>
-                  <h1 className={hero.artId === "dune" ? "dune-title" : ""}>
-                    {hero.short}
-                  </h1>
-                  <p className="hero-part">{hero.part}</p>
-                  <div className="hero-meta">
-                    <span className="format-badge">
-                      {hero.artId === "oppenheimer"
-                        ? "IMAX 70MM LASER"
-                        : "IMAX LASER"}
-                    </span>
-                    <span className="dolby-badge">▣ DOLBY ATMOS</span>
-                    <span className="rating">
-                      <Star size={14} fill="currentColor" />
-                      {hero.rating}
-                      <small>/10</small>
-                    </span>
-                    <span className="age-badge">{hero.age}</span>
-                    <span className="duration">
-                      <Clock3 size={14} />
-                      {hero.duration} {t("phút")}{" "}
-                    </span>
-                  </div>
-                  <p className="hero-description">{t(hero.description)}</p>
-                  <div className="hero-buttons">
-                    <button
-                      className="button button-primary"
-                      disabled={!hero.id}
-                      onClick={() => bookMovie(hero)}
-                    >
-                      <Ticket size={18} />
-                      {t("Đặt vé bây giờ")} <ArrowUpRight size={18} />
-                    </button>
-                    <button
-                      className="button button-glass"
-                      onClick={() => openMovie(hero, "trailer")}
-                    >
-                      <Play size={16} fill="currentColor" />
-                      Xem trailer 4K
-                    </button>
-                  </div>
-                  <p className="hero-tagline">{t(hero.tagline)}</p>
-                  <div className="hero-shortcuts">
-                    <a href="/phim">
-                      {language === "en"
-                        ? "Now showing"
-                        : "Phim hot tháng " +
-                          new Date().toLocaleDateString("vi-VN", {
-                            month: "2-digit",
-                            timeZone: "Asia/Ho_Chi_Minh",
-                          })}
-                      <ArrowRight size={13} />
-                    </a>
-                    <a href="/uu-dai">
-                      Party Combo 69K
-                      <Popcorn size={13} />
-                    </a>
-                    <button onClick={jumpGroup}>
-                      {t("Xếp cụm nhóm")}
-                      <UsersRound size={13} />
-                    </button>
-                  </div>
-                </div>
-                <div className="hero-side-note">
-                  <span>THE INFINITY EXPERIENCE</span>
-                  <i />
-                  <small>01 / IMAX LASER</small>
-                </div>
-              </div>
-              <div className="hero-bottom content-width">
-                <a href="#booking" className="scroll-label">
-                  <ArrowDown size={16} /> {t("KHÁM PHÁ TRẢI NGHIỆM")}{" "}
-                </a>
-                <div className="carousel-controls">
-                  <button
-                    aria-label="Phim nổi bật trước"
-                    className="icon-button"
-                    onClick={() =>
-                      setSlide((slide + featured.length - 1) % featured.length)
-                    }
-                  >
-                    <ChevronLeft size={17} />
-                  </button>
-                  <div className="carousel-pages">
-                    {featured.map((m, i) => (
-                      <button
-                        className={i === slide ? "active" : ""}
-                        onClick={() => setSlide(i)}
-                        aria-label={`Xem banner ${t(m.title)}`}
-                        aria-current={i === slide ? "true" : undefined}
-                        key={m.id}
-                      >
-                        <span>0{i + 1}</span>
-                        <i />
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    aria-label="Phim nổi bật tiếp theo"
-                    className="icon-button"
-                    onClick={() => setSlide((slide + 1) % featured.length)}
-                  >
-                    <ChevronRight size={17} />
-                  </button>
-                </div>
-              </div>
-            </section>
+            <CinemaHero
+              movie={hero}
+              featured={featured}
+              active={slide}
+              onChange={setSlide}
+              onBook={bookMovie}
+              onMovie={openMovie}
+              onWelcome={() => setWelcomeOpen(true)}
+            />
             <QuickBooking
               key={wizardVersion}
               cinemaId={resolvedCinemaId}
@@ -958,72 +855,10 @@ export default function App() {
           />
         )}
       </main>
-      <footer className="site-footer">
-        <div className="content-width">
-          <div className="footer-main">
-            <div className="footer-brand">
-              <Brand />
-              <p>
-                {t("Không giới hạn cảm xúc.")} <br />
-                {t("Không giới hạn trải nghiệm.")}{" "}
-              </p>
-              <span>INFINITY EXPERIENCE.</span>
-            </div>
-            <div>
-              <h4>{t("KHÁM PHÁ NOVA")} </h4>
-              <a href="/phim">{t("Phim & lịch chiếu")} </a>
-              <a href="/rap">{t("Hệ thống rạp")} </a>
-              <a href="/uu-dai">{t("Ưu đãi & bắp nước")} </a>
-              <a href="/hoi-vien">{t("Thành viên C’MEMBER")} </a>
-            </div>
-            <div>
-              <h4>{t("ĐỒNG HÀNH CÙNG BẠN")} </h4>
-              <button onClick={() => setModal("help")}>
-                {t("Hướng dẫn đặt vé")}{" "}
-              </button>
-              <button onClick={() => setModal("policy")}>
-                {t("Điều khoản & chính sách")}{" "}
-              </button>
-              <button onClick={() => setModal("history")}>
-                {t("Tra cứu vé đã đặt")}{" "}
-              </button>
-              <span className="footer-contact">
-                {t("NOVA Cinema · Đồ án Nhóm 03")}{" "}
-              </span>
-            </div>
-            <div className="footer-payment">
-              <h4>{t("THANH TOÁN SANDBOX")} </h4>
-              <div>
-                <b>VISA</b>
-                <b>Mastercard</b>
-                <b>MoMo</b>
-                <b>ZaloPay</b>
-              </div>
-              <p>
-                <ShieldCheck size={16} />
-                {t("Giao dịch mô phỏng, không thu tiền thật.")}{" "}
-              </p>
-              <span className="footer-project-label">
-                {t("DỰ ÁN HỌC PHẦN / HCMUE")}{" "}
-              </span>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>
-              © {new Date().getFullYear()} NOVA Cinema. Crafted for the big
-              screen.
-            </p>
-            <span>
-              {t(
-                "Dữ liệu rạp, giá vé và quyền lợi được dùng để minh họa.",
-              )}{" "}
-            </span>
-            <a href="#top">
-              {t("VỀ ĐẦU TRANG")} <ArrowUpRight size={13} />
-            </a>
-          </div>
-        </div>
-      </footer>
+      <CinemaFooter />
+      {welcomeOpen && view === "home" && !booking && !modal && (
+        <WelcomeOffer onClose={() => setWelcomeOpen(false)} />
+      )}
       {booking && (
         <SeatBooking
           key={[

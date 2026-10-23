@@ -16,6 +16,7 @@ import AdminDashboard from "./AdminDashboard.jsx";
 import StaffCheckIn from "./StaffCheckIn.jsx";
 import TicketHistory from "./TicketHistory.jsx";
 import Discovery from "./Discovery.jsx";
+import InfoPage from "./InfoPage.jsx";
 
 export default function PortalPage({
   view,
@@ -29,6 +30,17 @@ export default function PortalPage({
   timeline,
 }) {
   const { cinemas, movies } = useCatalog();
+  if (
+    [
+      "gioi-thieu",
+      "ho-tro",
+      "huong-dan",
+      "chinh-sach",
+      "thanh-toan",
+      "lien-he",
+    ].includes(view)
+  )
+    return <InfoPage view={view} />;
   if (["phim", "sap-chieu", "uu-dai", "bap-nuoc"].includes(view))
     return (
       <Discovery

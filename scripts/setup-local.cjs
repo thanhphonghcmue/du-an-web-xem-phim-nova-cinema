@@ -17,6 +17,7 @@ const steps = [
   ["run", "db:migrate"],
   ["run", "db:seed"],
   ["run", "db:seed:discovery"],
+  ["run", "db:seed:programme"],
   ["run", "db:migrate:test"],
   ["run", "build"],
 ];

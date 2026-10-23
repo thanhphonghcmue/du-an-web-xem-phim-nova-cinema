@@ -34,3 +34,10 @@ are a proposed demo re-screening program, not official film release announcement
 
 All 16 illustrations in `menu/` are original SVG drawings made for NOVA: popcorn boxes, drinks,
 hotdog, fries and nachos. They use NOVA branding and are not Cinestar promotional material.
+
+## NOVA premiere campaign
+
+- `campaigns/nova-dream-city.png`: original AI-generated concept illustration created for NOVA,
+  showing a folding dream city with blue/amber light. It is not an official Inception still or poster.
+- `campaigns/nova-movie-night.png`: original AI-generated NOVA popcorn/drinks campaign illustration.
+  It is not a Cinestar advertisement. Promotional copy and demo combo pricing are rendered in HTML.

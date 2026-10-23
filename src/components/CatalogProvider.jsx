@@ -203,6 +203,8 @@ export default function CatalogProvider({ children }) {
         ...s,
         label: `${timeLabel(s.startTime)} · ${data.rooms.find((r) => r.id === s.roomId)?.name || ""}`,
         displayTime: timeLabel(s.startTime),
+        roomName: data.rooms.find((r) => r.id === s.roomId)?.name || "",
+        roomType: data.rooms.find((r) => r.id === s.roomId)?.roomType || "",
       }));
   const contextFor = (showtimeId) => {
     const show = data.showtimes.find((s) => s.id === showtimeId);

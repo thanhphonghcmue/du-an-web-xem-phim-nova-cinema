@@ -31,6 +31,9 @@ async function read(page, path) {
   }, path);
 }
 async function login(page, role = "customer") {
+  await page.addInitScript(() =>
+    sessionStorage.setItem("nova-welcome-seen", "1"),
+  );
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   const account = fixture().accounts[role];
@@ -47,11 +50,16 @@ async function login(page, role = "customer") {
   );
 }
 async function seats(page) {
+  await page.addInitScript(() =>
+    sessionStorage.setItem("nova-welcome-seen", "1"),
+  );
   const { showtime } = fixture();
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   // The timeline uses real room and showtime UUIDs loaded from the catalog.
-  await page.locator("#showtimes select").selectOption(fixture().cinema.id);
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .selectOption(fixture().cinema.id);
   const film = page
     .locator(".timeline-film-list [role=tab]")
     .filter({ hasText: "Dune" })
@@ -96,7 +104,10 @@ async function cancelAll(page) {
 }
 // Reset only this run's limiter namespace between independent cases. Production
 // limits remain enabled; the explicit limiter case below verifies them.
-test.beforeEach(async () => {
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() =>
+    sessionStorage.setItem("nova-welcome-seen", "1"),
+  );
   req("dotenv").config({
     path: new URL("../backend/.env", import.meta.url).pathname,
     quiet: true,
@@ -128,12 +139,27 @@ test("catalog, quick booking and search use backend UUIDs without browser errors
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   await page
-    .locator("#booking")
-    .getByRole("button", { name: fixture().cinema.name, exact: true })
-    .click();
-  await page.locator("#booking .mini-movie").first().click();
-  await page.locator("#booking .date-pills button").first().click();
-  await expect(page.locator("#booking .showtime-pill").first()).toBeVisible();
+    .getByRole("combobox", { name: "Chọn cụm rạp", exact: true })
+    .selectOption(fixture().cinema.id);
+  await page
+    .getByRole("combobox", { name: "Chọn phim", exact: true })
+    .selectOption(fixture().movie.id);
+  const day = await page
+    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
+    .locator("option")
+    .nth(1)
+    .getAttribute("value");
+  await page
+    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
+    .selectOption(day);
+  await expect(
+    page.getByRole("combobox", { name: "Chọn suất chiếu", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page
+      .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
+      .locator(`option[value="${fixture().showtime.id}"]`),
+  ).toHaveCount(1);
   await page.getByRole("textbox", { name: "Tìm phim, rạp..." }).fill("Dune");
   await expect(page.locator(".search-dropdown")).toContainText("Dune");
   expect(errors).toEqual([]);
@@ -201,7 +227,9 @@ test("guests can browse but must sign in before seat booking", async ({
 }) => {
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
-  await page.locator("#showtimes select").selectOption(fixture().cinema.id);
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .selectOption(fixture().cinema.id);
   await page.locator(".timeline-show").first().click();
   await expect(
     page.getByRole("dialog", { name: "Chào mừng đến C’MEMBER" }),

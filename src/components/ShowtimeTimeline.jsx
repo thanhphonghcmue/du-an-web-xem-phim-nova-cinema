@@ -22,15 +22,24 @@
  */
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, MapPin, Ticket } from "lucide-react";
+import {
+  ArrowUpRight,
+  MapPin,
+  Ticket,
+  Clock3,
+  SlidersHorizontal,
+} from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useCatalog } from "../catalog.js";
+import { money } from "../data.js";
 import { apiGetShowtimeSeats } from "../api/client.js";
 import { useI18n } from "../i18n.js";
 export default function ShowtimeTimeline({ onBook }) {
   const { language } = useI18n();
-  const { cinemas, movies, getDates, getShowtimes } = useCatalog();
+  const { cinemas, movies, rooms, getDates, getShowtimes } = useCatalog();
   const [capacities, setCapacities] = useState({});
+  const [period, setPeriod] = useState("all");
+  const [roomFilter, setRoomFilter] = useState("all");
   const reduced = useReducedMotion();
   const [cinemaId, setCinemaId] = useState(cinemas[0]?.id || "");
   const [dateId, setDateId] = useState(() => getDates()[0]?.id || "");
@@ -49,7 +58,22 @@ export default function ShowtimeTimeline({ onBook }) {
     activeDateObj?.label?.includes("CN") ||
     activeDateObj?.label?.includes("Sat") ||
     activeDateObj?.label?.includes("Sun");
-  const times = getShowtimes(activeCinemaId, film?.id, activeDate);
+  const cinemaRooms = rooms.filter((room) => room.cinemaId === activeCinemaId);
+  const activeRoom = cinemaRooms.some((room) => room.id === roomFilter)
+    ? roomFilter
+    : "all";
+  const allTimes = getShowtimes(activeCinemaId, film?.id, activeDate);
+  const times = allTimes.filter((time) => {
+    const hour = Number(time.displayTime.slice(0, 2));
+    return (
+      (activeRoom === "all" || time.roomId === activeRoom) &&
+      (period === "all" ||
+        (period === "morning" && hour < 12) ||
+        (period === "afternoon" && hour >= 12 && hour < 17) ||
+        (period === "evening" && hour >= 17 && hour < 21) ||
+        (period === "late" && hour >= 21))
+    );
+  });
   const timeKey = times.map((t) => t.id).join(",");
   useEffect(() => {
     let active = true;
@@ -116,6 +140,8 @@ export default function ShowtimeTimeline({ onBook }) {
               }
               onChange={(e) => {
                 setCinemaId(e.target.value);
+                setRoomFilter("all");
+                setPeriod("all");
                 setFilmId(
                   cinemas.find((c) => c.id === e.target.value).movies[0],
                 );
@@ -181,7 +207,69 @@ export default function ShowtimeTimeline({ onBook }) {
                 {film.format} · {cinema.name}
               </span>
             </div>
+            <div className="schedule-tools">
+              <div
+                className="schedule-periods"
+                role="group"
+                aria-label="Lọc buổi chiếu"
+              >
+                {[
+                  ["all", "Tất cả giờ"],
+                  ["morning", "Buổi sáng"],
+                  ["afternoon", "Buổi chiều"],
+                  ["evening", "Buổi tối"],
+                  ["late", "Suất muộn"],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    aria-pressed={period === key}
+                    className={period === key ? "active" : ""}
+                    onClick={() => setPeriod(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <label className="schedule-room-filter">
+                <SlidersHorizontal size={14} />
+                <select
+                  aria-label="Phòng chiếu trong lịch"
+                  value={activeRoom}
+                  onChange={(event) => setRoomFilter(event.target.value)}
+                >
+                  <option value="all">
+                    Tất cả phòng ({cinemaRooms.length})
+                  </option>
+                  {cinemaRooms.map((room) => (
+                    <option value={room.id} key={room.id}>
+                      {room.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="schedule-count">
+              <Clock3 size={13} />
+              {times.length} suất phù hợp
+              {activeDateObj ? ` · ${activeDateObj.label}` : ""}
+              <span>Chọn một giờ để xem sơ đồ ghế</span>
+            </div>
             <div className="timeline-shows">
+              {times.length === 0 && (
+                <div className="schedule-empty">
+                  <Clock3 size={25} />
+                  <h4>Chưa có suất phù hợp bộ lọc</h4>
+                  <p>Chọn ngày khác hoặc mở lại tất cả giờ và phòng.</p>
+                  <button
+                    onClick={() => {
+                      setPeriod("all");
+                      setRoomFilter("all");
+                    }}
+                  >
+                    Xóa bộ lọc giờ & phòng
+                  </button>
+                </div>
+              )}
               {times.map((time) => {
                 const free = capacities[time.id]?.available ?? "—";
                 const total = capacities[time.id]?.total ?? "—";
@@ -214,7 +302,10 @@ export default function ShowtimeTimeline({ onBook }) {
                       )}
                     </span>
                     <strong>{time.displayTime}</strong>
-                    <small>{time.room}</small>
+                    <small>{time.roomName}</small>
+                    <span className="show-price">
+                      Từ {money(time.baseTicketPrice)}
+                    </span>
                     <span className="seat-capacity-track">
                       <i
                         style={{
@@ -234,28 +325,10 @@ export default function ShowtimeTimeline({ onBook }) {
             {times.length > 0 && (
               <div className="timeline-price-hint">
                 <span>
-                  💡 <b>Quy luật giá vé:</b> Ngày thường từ 90.000đ · Cuối tuần
-                  (T7, CN) phụ thu +15.000đ/vé · Ghế VIP +20%, Sweetbox đôi
-                  +50%. Giảm giá tự động theo hạng thành viên & mã Voucher.
+                  Giá vé theo từng suất và phòng chiếu. Ghế VIP, Sweetbox, bắp
+                  nước và quyền lợi thành viên được tính vào tổng tiền khi giữ
+                  chỗ.
                 </span>
-              </div>
-            )}
-            {!times.length && (
-              <div className="timeline-empty">
-                <p>
-                  {language === "en"
-                    ? "The curtain has fallen for today."
-                    : "Hôm nay đã hạ màn."}
-                </p>
-                <button
-                  className="button button-glass"
-                  onClick={() => setDateId(dates[1].id)}
-                >
-                  {language === "en"
-                    ? "See tomorrow’s showtimes"
-                    : "Xem suất chiếu ngày mai"}
-                  <ArrowUpRight size={17} />
-                </button>
               </div>
             )}
           </div>

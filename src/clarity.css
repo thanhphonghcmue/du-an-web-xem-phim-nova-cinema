@@ -1,0 +1,727 @@
+/* Readable Vietnamese typography and a calendar that scales beyond the first week. */
+:root {
+  --secondary: #c1cbdc;
+  --muted: #a3b1c7;
+  --nova-muted: #bdc7d8;
+  --heading-font: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+}
+body {
+  font-weight: 500;
+  line-height: 1.7;
+}
+h1,
+h2,
+h3,
+h4 {
+  color: #f8fafc;
+  font-synthesis: none;
+}
+.section-heading h2,
+.page-banner h1,
+.info-intro h2,
+.footer-invitation h2 {
+  font-family: var(--heading-font);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+}
+.section-heading h2 {
+  font-size: clamp(32px, 3.4vw, 48px);
+  line-height: 1.2;
+}
+.section-kicker,
+.nova-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  color: #e9c68e;
+}
+.desktop-nav a,
+.nova-subnav a {
+  font-size: 13px;
+  font-weight: 650;
+  color: #d9e0ec;
+  white-space: nowrap;
+}
+.desktop-nav a:hover,
+.nova-subnav a:hover {
+  color: white;
+}
+.site-header .nav-inner {
+  gap: 22px;
+}
+.header-actions {
+  gap: 12px;
+}
+.header-actions .text-button,
+.login-trigger {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.header-actions > .button {
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+.page-banner-description {
+  font-size: 15px;
+  line-height: 1.9;
+  color: #d1d9e8;
+  max-width: 650px;
+}
+.page-breadcrumb,
+.page-breadcrumb a {
+  font-size: 12px;
+  color: #ccd5e4;
+}
+.premiere-eyebrow {
+  font-size: 10px;
+}
+.premiere-invitation {
+  font-size: 21px;
+}
+.premiere-description {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #d2d9e6;
+  max-width: 460px;
+}
+.premiere-meta > span {
+  font-size: 12px;
+  color: #d4dbe6;
+}
+.premiere-actions .button {
+  font-size: 14px;
+  font-weight: 750;
+}
+.premiere-discover a,
+.premiere-discover button {
+  font-size: 12px;
+  color: #e2d1b4;
+}
+.premiere-facts > span {
+  font-size: 11px;
+  color: #c4cede;
+}
+.premiere-facts a {
+  font-size: 11px;
+  color: #d0d7e3;
+}
+.premiere-subtitle {
+  font-size: 12px;
+  color: #eedec3;
+  letter-spacing: 3px;
+}
+.movie-meta,
+.film-genre,
+.film-bottom,
+.movie-note,
+.film-description {
+  color: #c0cadb;
+}
+.film-name {
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.55;
+  color: #f7f9fc;
+}
+.film-genre,
+.film-bottom {
+  font-size: 12px;
+}
+.food-description,
+.food-card p,
+.campaign-body p,
+.membership-card p {
+  color: #c7d1e1;
+  font-size: 13px;
+  line-height: 1.85;
+}
+.booking-express form > label > span {
+  font-size: 10px;
+  color: #e8cd9f;
+  letter-spacing: 0.7px;
+}
+.booking-express form > label > small {
+  font-size: 10px;
+  color: #aebbd1;
+  line-height: 1.6;
+}
+.booking-express select {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #f3f6fc;
+  min-height: 32px;
+}
+.booking-express select:disabled {
+  color: #b1bbcd;
+}
+.express-title h2 {
+  font-size: 20px;
+}
+.express-title p {
+  font-size: 11px;
+  color: #bbc7dc;
+}
+.express-bottom,
+.express-bottom > span,
+.express-combo {
+  font-size: 11px;
+  color: #c9d3e3;
+}
+.timeline-workspace {
+  border-color: #354052;
+  background: #10151f;
+  box-shadow: 0 18px 65px #0003;
+}
+.timeline-filters {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 20px;
+  padding: 25px;
+  background: #151b28;
+}
+.timeline-filters > label {
+  grid-row: 1/4;
+  align-self: stretch;
+  min-width: 0;
+  border-right: 1px solid #354052;
+  padding-right: 15px;
+}
+.timeline-filters select {
+  font-size: 15px;
+  font-weight: 650;
+  max-width: 205px;
+}
+.schedule-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+.schedule-calendar-header .nova-kicker {
+  font-size: 10px;
+  margin: 0 0 5px;
+}
+.schedule-calendar-header strong {
+  font-size: 14px;
+  color: #e4eaf5;
+}
+.schedule-calendar-header > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d4ddee;
+  flex-shrink: 0;
+}
+.schedule-calendar-header label > span {
+  font-size: 12px;
+}
+.schedule-calendar-header input {
+  color-scheme: dark;
+  min-width: 145px;
+  background: #0c111d;
+  border: 1px solid #53627b;
+  color: #fff;
+  border-radius: 7px;
+  padding: 9px 11px;
+  font-size: 13px;
+}
+.schedule-week-nav {
+  display: flex;
+  gap: 9px;
+  align-items: stretch;
+  min-width: 0;
+}
+.schedule-week-arrow {
+  flex: 0 0 33px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #4c5870;
+  background: #1c2536;
+  color: #e8edfa;
+  border-radius: 7px;
+}
+.schedule-week-arrow:disabled {
+  opacity: 0.35;
+}
+.timeline-dates {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  overflow: auto;
+}
+.timeline-dates button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 11px 5px;
+  background: #1c2433;
+  border: 1px solid #42506a;
+  min-height: 80px;
+  color: #e8edf7;
+}
+.timeline-dates button:hover {
+  border-color: #f0c88a;
+  background: #263046;
+}
+.timeline-dates button.active {
+  background: linear-gradient(135deg, #ae1535, #63162c);
+  border: 1px solid #ff6a83;
+  box-shadow: 0 4px 22px #d61e3b25;
+}
+.timeline-dates strong {
+  font-size: 25px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #fff;
+}
+.timeline-dates strong small {
+  font-size: 11px;
+  color: #c1cde3;
+  margin-left: 2px;
+}
+.timeline-dates span {
+  font-size: 12px;
+  color: #c9d5e9;
+  font-weight: 600;
+}
+.timeline-dates .active span,
+.timeline-dates .active small {
+  color: #fff1d9;
+}
+.schedule-date-range {
+  font-size: 11px;
+  color: #c1cbe0;
+  line-height: 1.8;
+}
+.timeline-body {
+  grid-template-columns: 290px minmax(0, 1fr);
+}
+.timeline-film-list {
+  background: #111824;
+  border-right: 1px solid #313d51;
+  max-height: 720px;
+}
+.timeline-film-list button {
+  min-height: 89px;
+  padding: 12px;
+  gap: 12px;
+}
+.timeline-film-list button.active {
+  background: #2b2032;
+  border-color: #98536a;
+}
+.timeline-film-list strong {
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.55;
+  color: #f2f5fb;
+}
+.timeline-film-list small {
+  font-size: 12px;
+  font-weight: 500;
+  color: #becbe0;
+}
+.timeline-film-list img {
+  width: 43px;
+  height: 64px;
+}
+.timeline-film-heading {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.timeline-film-heading h3 {
+  font-family: var(--heading-font);
+  font-size: 26px;
+  line-height: 1.4;
+}
+.timeline-film-heading > span {
+  font-size: 12px;
+  white-space: normal;
+  color: #bfcce1;
+}
+.timeline-content {
+  padding: 25px;
+  min-width: 0;
+}
+.timeline-shows {
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 13px;
+}
+.timeline-show {
+  min-height: 225px;
+  padding: 18px;
+  background: #1a2433;
+  border-color: #4a586d;
+}
+.timeline-show:hover {
+  background: #263248;
+  border-color: #e9c285;
+}
+.timeline-show > strong {
+  font-size: 34px;
+  color: #fff;
+  font-weight: 700;
+}
+.timeline-show > small,
+.timeline-show-format {
+  font-size: 12px;
+  color: #d2deef;
+  letter-spacing: 0;
+}
+.show-price {
+  font-size: 13px;
+  color: #ffe0a1;
+}
+.show-capacity-label {
+  font-size: 12px;
+  color: #cdd9ec;
+}
+.schedule-periods button {
+  font-size: 12px;
+  font-weight: 650;
+  color: #d9e2f1;
+  border-color: #4c5a70;
+  background: #1a2230;
+  padding: 9px 12px;
+  min-height: 39px;
+}
+.schedule-periods button.active {
+  color: #ffe3af;
+  background: #60422050;
+  border-color: #d5a55f;
+}
+.schedule-room-filter select {
+  font-size: 12px;
+  color: #e0e8f6;
+  max-width: 260px;
+  min-height: 40px;
+  border-color: #576780;
+}
+.schedule-count {
+  font-size: 12px;
+  color: #f0d7aa;
+  flex-wrap: wrap;
+}
+.schedule-count > span {
+  font-size: 11px;
+  color: #becae0;
+}
+.timeline-price-hint {
+  font-size: 12px;
+  color: #c6d0e1;
+  line-height: 1.85;
+}
+.timeline-status {
+  font-size: 13px;
+  color: #c6d1e3;
+}
+.presale-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 4px;
+  padding: 5px 9px;
+  border: 1px solid #e7b66a88;
+  border-radius: 5px;
+  background: #53361955;
+  color: #ffdda3;
+  font-size: 11px;
+  font-weight: 700;
+}
+.presale-reminder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #cfdbec;
+  background: none;
+  border: 0;
+  padding: 8px 0;
+  font-size: 12px;
+}
+.presale-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid #a77e45;
+  border-radius: 8px;
+  background: #60401a25;
+  color: #ead5b0;
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.presale-notice svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.nova-footer .footer-main > div > a {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #c5d1e5;
+}
+.nova-footer h4 > a {
+  font-size: 13px;
+  color: #f7e3bf;
+}
+.nova-footer .footer-bottom {
+  font-size: 11px;
+  color: #bdcbe0;
+}
+.auth-notice,
+.sandbox-note {
+  font-size: 13px;
+  line-height: 1.8;
+}
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #ffcf83;
+  outline-offset: 3px;
+}
+@media (max-width: 1200px) {
+  .desktop-nav {
+    gap: 8px;
+  }
+  .desktop-nav a {
+    font-size: 12px;
+    padding-inline: 6px;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .header-actions > .button {
+    font-size: 11px;
+    padding-inline: 12px;
+  }
+  .timeline-filters {
+    grid-template-columns: 190px minmax(0, 1fr);
+    padding: 20px;
+    gap: 16px;
+  }
+  .timeline-filters select {
+    max-width: 170px;
+  }
+  .timeline-body {
+    grid-template-columns: 255px minmax(0, 1fr);
+  }
+}
+@media (max-width: 1000px) {
+  .desktop-nav {
+    display: none;
+  }
+  .mobile-toggle {
+    display: flex;
+  }
+  .timeline-filters {
+    grid-template-columns: 1fr;
+  }
+  .timeline-filters > label {
+    grid-row: auto;
+    border: 0;
+    padding: 0;
+  }
+  .timeline-filters select {
+    max-width: 100%;
+  }
+  .timeline-body {
+    grid-template-columns: 230px minmax(0, 1fr);
+  }
+  .timeline-film-heading h3 {
+    font-size: 23px;
+  }
+  .timeline-content {
+    padding: 20px;
+  }
+}
+@media (max-width: 700px) {
+  .section-heading h2 {
+    font-size: 32px;
+  }
+  .premiere-description {
+    font-size: 13px;
+  }
+  .premiere-invitation {
+    font-size: 19px;
+  }
+  .premiere-actions .button {
+    font-size: 12px;
+  }
+  .premiere-subtitle {
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+  .premiere-eyebrow {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+  .premiere-discover {
+    gap: 16px;
+  }
+  .premiere-discover a,
+  .premiere-discover button {
+    font-size: 10px;
+  }
+  .page-banner-description {
+    font-size: 14px;
+  }
+  .schedule-calendar-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .schedule-calendar-header > label {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .schedule-calendar-header input {
+    flex: 1;
+    max-width: 180px;
+    font-size: 14px;
+  }
+  .timeline-filters {
+    padding: 18px 14px;
+    gap: 17px;
+  }
+  .schedule-week-nav {
+    gap: 5px;
+  }
+  .schedule-week-arrow {
+    flex-basis: 24px;
+  }
+  .timeline-dates {
+    grid-template-columns: repeat(7, minmax(47px, 1fr));
+    gap: 5px;
+    overflow: auto;
+    scrollbar-width: thin;
+    padding-bottom: 6px;
+  }
+  .timeline-dates button {
+    min-width: 47px;
+    min-height: 71px;
+    padding: 9px 4px;
+  }
+  .timeline-dates strong {
+    font-size: 22px;
+  }
+  .timeline-dates span {
+    font-size: 11px;
+  }
+  .timeline-dates strong small {
+    display: block;
+    font-size: 10px;
+    margin: 4px 0 0;
+  }
+  .timeline-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .timeline-film-list {
+    display: flex;
+    flex-direction: row;
+    overflow: auto;
+    max-height: none;
+    gap: 9px;
+    border-right: 0;
+    border-bottom: 1px solid #35425a;
+    padding: 13px;
+  }
+  .timeline-film-list button {
+    flex: 0 0 225px;
+    min-width: 225px;
+    min-height: 93px;
+    padding: 10px;
+  }
+  .timeline-film-list strong {
+    font-size: 13px;
+  }
+  .timeline-film-list small {
+    font-size: 11px;
+  }
+  .timeline-film-list button > svg {
+    display: block;
+  }
+  .timeline-content {
+    padding: 18px 14px;
+  }
+  .timeline-film-heading h3 {
+    font-size: 24px;
+  }
+  .timeline-shows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .timeline-show {
+    min-height: 225px;
+    padding: 15px 12px;
+  }
+  .timeline-show > strong {
+    font-size: 30px;
+  }
+  .timeline-show > small,
+  .timeline-show-format {
+    font-size: 11px;
+  }
+  .show-price {
+    font-size: 12px;
+  }
+  .show-capacity-label {
+    font-size: 11px;
+  }
+  .schedule-periods {
+    gap: 7px;
+  }
+  .schedule-periods button {
+    font-size: 11px;
+    padding: 9px 10px;
+  }
+  .schedule-room-filter {
+    width: 100%;
+  }
+  .schedule-room-filter select {
+    max-width: 100%;
+    width: 100%;
+  }
+  .schedule-count > span {
+    flex-basis: 100%;
+    margin: 0;
+  }
+  .booking-express select {
+    font-size: 13px;
+  }
+  .booking-express form > label > small {
+    font-size: 10px;
+    white-space: normal;
+  }
+  .express-bottom > span {
+    font-size: 10px;
+  }
+}
+
+.admin-header-trigger {
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 1600px) {
+  .site-header:has(.admin-header-trigger) .desktop-nav {
+    display: none;
+  }
+  .site-header:has(.admin-header-trigger) .mobile-toggle {
+    display: flex;
+  }
+}

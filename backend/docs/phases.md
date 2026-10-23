@@ -89,3 +89,11 @@ Fixture cũ gây 27 lỗi HTTP đã sửa để tuân thủ luật ghế lẻ, k
 Kết quả: 75 unit, 197 HTTP/Socket.IO/SMTP, 22 DB và 24 Playwright PASS; lint/typecheck,
 build hai package và compiled production smoke PASS. Evidence và phạm vi còn lại:
 [LAB04 booking audit](../../docs/design/lab04-booking-audit.md).
+
+## Mở rộng lịch & độ dễ đọc (23/10/2026)
+
+Theo yêu cầu tiếp tục: thêm public programme snapshot giới hạn 60 ngày để tải lịch
+không chạm rate limit do nhiều trang; giữ pagination100, DB/RBAC/Decimal và booking
+state machine. Seed additive 30 ngày, phòng và suất COMING_SOON theo ngày dự kiến;
+frontend mở luồng đặt trước theo suất thực. Không đánh dấu Phase11–12 hoàn tất.
+Evidence: [advance booking/readability](../../docs/design/advance-booking-readability.md).

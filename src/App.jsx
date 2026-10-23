@@ -145,6 +145,7 @@ export default function App() {
       });
       return (
         view === "home" &&
+        !new URLSearchParams(window.location.search).has("booking") &&
         !sessionStorage.getItem("nova-welcome-seen") &&
         localStorage.getItem("nova-welcome-hidden-day") !== today
       );
@@ -241,7 +242,10 @@ export default function App() {
   }, []);
   function bookMovie(movie, combo = false) {
     if (!movie) return;
-    if (movie.status === "soon") {
+    if (
+      movie.status === "soon" &&
+      !cinemas.some((c) => getDates("vi", c.id, movie.id).length)
+    ) {
       openMovie(movie);
       return;
     }
@@ -1195,7 +1199,12 @@ export default function App() {
                 <div className="detail-actions">
                   <button
                     className="button button-primary"
-                    disabled={activeMovie.status === "soon"}
+                    disabled={
+                      activeMovie.status === "soon" &&
+                      !cinemas.some(
+                        (c) => getDates("vi", c.id, activeMovie.id).length,
+                      )
+                    }
                     onClick={() => bookMovie(activeMovie)}
                   >
                     <Ticket size={17} />
@@ -1233,7 +1242,12 @@ export default function App() {
               </a>
               <button
                 className="button button-primary"
-                disabled={activeMovie.status === "soon"}
+                disabled={
+                  activeMovie.status === "soon" &&
+                  !cinemas.some(
+                    (c) => getDates("vi", c.id, activeMovie.id).length,
+                  )
+                }
                 onClick={() => bookMovie(activeMovie)}
               >
                 {t("Đặt vé")} {t(activeMovie.title)}

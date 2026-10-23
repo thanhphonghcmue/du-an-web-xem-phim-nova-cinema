@@ -121,14 +121,22 @@ export const read = async (path) => (await apiRequest(path)).data;
  * Tự động phân trang và thu thập toàn bộ danh sách đối tượng
  */
 export async function apiList(path, params = {}) {
-  const items = [];
-  for (let page = 1; ; page++) {
-    const data = await read(
-      `${path}?${new URLSearchParams({ ...params, limit: 100, page })}`,
+  const query = (page) =>
+    `${path}?${new URLSearchParams({ ...params, limit: 100, page })}`;
+  const first = await read(query(1));
+  const items = [...first.items];
+  // Four pages at a time keeps the month-long schedule responsive and bounded.
+  for (let page = 2; page <= first.meta.totalPages; page += 4) {
+    const pages = Array.from(
+      { length: Math.min(4, first.meta.totalPages - page + 1) },
+      (_, offset) => page + offset,
     );
-    items.push(...data.items);
-    if (page >= data.meta.totalPages) return items;
+    const results = await Promise.all(
+      pages.map((number) => read(query(number))),
+    );
+    for (const result of results) items.push(...result.items);
   }
+  return items;
 }
 
 // ==========================================

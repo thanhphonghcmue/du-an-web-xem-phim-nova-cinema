@@ -889,4 +889,94 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
     expect(spec.paths).toHaveProperty("/api/v1/showtimes");
     await request(server).get("/api/v1/showtimes").expect(200);
   });
+  it("serves more than 100 real screenings in one public bounded catalogue snapshot", async () => {
+    const film = await movie("programme", { status: "NOW_SHOWING" });
+    const ended = await movie("programme-ended", { status: "ENDED" });
+    const venue = await cinema("programme");
+    const hall = await room(venue.id, "programme");
+    const first = Date.now() + 3600000;
+    await prisma.showtime.createMany({
+      data: Array.from({ length: 110 }, (_, i) => ({
+        movieId: film.id,
+        roomId: hall.id,
+        startTime: new Date(first + i * 3 * 3600000),
+        endTime: new Date(first + (i * 180 + 135) * 60000),
+        baseTicketPrice: "90000.01",
+      })),
+    });
+    const far = await prisma.showtime.create({
+      data: {
+        movieId: film.id,
+        roomId: hall.id,
+        startTime: new Date(first + 70 * 86400000),
+        endTime: new Date(first + 70 * 86400000 + 135 * 60000),
+        baseTicketPrice: "90000.00",
+      },
+    });
+    const hidden = await prisma.showtime.create({
+      data: {
+        movieId: ended.id,
+        roomId: hall.id,
+        startTime: new Date(first + 40 * 86400000),
+        endTime: new Date(first + 40 * 86400000 + 135 * 60000),
+        baseTicketPrice: "90000.00",
+      },
+    });
+    const snapshot = data(
+      await request(server).get("/api/v1/showtimes/programme").expect(200),
+    ) as {
+      movies: Entity[];
+      rooms: Entity[];
+      showtimes: Array<{
+        id: string;
+        movieId: string;
+        baseTicketPrice: string;
+      }>;
+      asOf: string;
+      until: string;
+    };
+    const shows = snapshot.showtimes.filter((show) => show.movieId === film.id);
+    expect(shows).toHaveLength(110);
+    expect(shows.every((show) => show.baseTicketPrice === "90000.01")).toBe(
+      true,
+    );
+    expect(
+      snapshot.showtimes.some(
+        (show) => show.id === far.id || show.id === hidden.id,
+      ),
+    ).toBe(false);
+    expect(snapshot.movies.some((movie) => movie.id === ended.id)).toBe(false);
+    expect(snapshot.rooms.some((room) => room.id === hall.id)).toBe(true);
+    expect(
+      new Date(snapshot.until).getTime() - new Date(snapshot.asOf).getTime(),
+    ).toBe(60 * 86400000);
+    expect(Object.keys(snapshot).sort()).toEqual([
+      "asOf",
+      "cinemas",
+      "combos",
+      "movies",
+      "rooms",
+      "showtimes",
+      "until",
+    ]);
+  });
+  it("validates the public programme horizon and retains ordinary pagination limits", async () => {
+    for (const days of ["0", "61", "abc", "1.5"])
+      await request(server)
+        .get("/api/v1/showtimes/programme")
+        .query({ days })
+        .expect(400);
+    await request(server)
+      .get("/api/v1/showtimes/programme")
+      .query({ days: 1 })
+      .expect(200);
+    await request(server)
+      .get("/api/v1/showtimes/programme")
+      .query({ userId: randomUUID() })
+      .expect(400);
+    await request(server)
+      .get("/api/v1/showtimes")
+      .query({ limit: 101 })
+      .expect(400);
+  });
 });

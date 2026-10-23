@@ -196,8 +196,18 @@ async function seedProgramme() {
         }
       }
     }
+    const expanded =
+      await require("./advance-programme.cjs").seedAdvanceProgramme(
+        db,
+        discovery,
+      );
     console.log(
-      `NOVA programme prepared: 8 rooms/cinema, 7 days, ${added} new screenings. Existing bookings and screenings preserved.`,
+      JSON.stringify({
+        legacyAdded: added,
+        ...expanded,
+        message:
+          "Today + 30 days; existing bookings, schedules and layouts preserved.",
+      }),
     );
   } finally {
     await db.$disconnect();

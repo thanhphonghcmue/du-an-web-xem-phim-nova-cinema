@@ -57,7 +57,7 @@ Các trang `/gioi-thieu`, `/ho-tro`, `/huong-dan`, `/chinh-sach`, `/lien-he` và
 có thể đóng/ẩn trong ngày, sau đó là hero Inception với ảnh concept riêng.
 
 Seed bổ sung chuẩn bị **24 phim (16 đang chiếu/tuyển chọn, 8 sắp tái chiếu), 16 món/combo**,
-ít nhất **8 phòng mỗi rạp mẫu** và lịch **7 ngày theo giờ Việt Nam**. Lịch có buổi sáng,
+**24 phòng mỗi rạp mẫu**, lịch **hôm nay + 30 ngày tới theo giờ Việt Nam**. Lịch có buổi sáng,
 chiều, tối và suất muộn; có bộ lọc phòng/buổi và thanh chọn rạp → phim → ngày → giờ/phòng.
 Các ngày sắp chiếu là chương trình tái chiếu dự kiến tháng sau, không phải ngày phát hành chính thức.
 Với máy đã setup trước đó, chạy trong `backend/`:
@@ -69,7 +69,12 @@ npm run db:seed:programme
 
 Các lệnh chỉ thêm dữ liệu còn thiếu, không ghi đè nội dung admin hoặc dịch chuyển suất đã có.
 Lệnh programme bổ sung lịch cho các phòng riêng do nó tạo, tránh chồng lịch, và có thể
-chạy lại để bổ sung những ngày mới. Không chạy seed demo trong production.
+chạy lại để bổ sung những ngày mới. `dev:full` tự chuẩn bị lịch này khi khởi động
+(có thể tắt bằng `NOVA_REFRESH_PROGRAMME=false`). Không chạy seed demo trong production.
+Phim sắp chiếu có lịch thật được **đặt vé trước**, giữ ghế và thanh toán Sandbox như
+vé thường. Phim chưa mở bán vẫn có nhắc lịch. Lịch có bộ chọn ngày xa, nhóm bảy ngày
+và tên phòng thực; xem [mở rộng lịch & chữ dễ đọc](docs/design/advance-booking-readability.md).
+
 Bắp nước chọn ở cửa hàng được giữ trong phiên trình duyệt và chuyển vào bước chọn ghế;
 chỉ xác nhận đơn, giá và thời hạn qua backend. Xem [ghi chú Discovery](docs/design/discovery-upgrade.md)
 và [đợt nâng cấp trang mở màn & lịch chiếu](docs/design/premiere-upgrade.md).

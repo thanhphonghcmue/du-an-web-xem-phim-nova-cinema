@@ -35,9 +35,7 @@ export default function DatVeNhanh({
     useCatalog();
   const [capacities, setCapacities] = useState({});
   const cinema = cinemas.find((item) => item.id === cinemaId);
-  const films = movies.filter(
-    (movie) => cinema?.movies.includes(movie.id) && movie.status !== "soon",
-  );
+  const films = movies.filter((movie) => cinema?.movies.includes(movie.id));
   const dates = getDates("vi", cinemaId, movieId);
   const times =
     dateId && movieId ? getShowtimes(cinemaId, movieId, dateId) : [];
@@ -123,6 +121,7 @@ export default function DatVeNhanh({
             <option value="">Bạn muốn xem gì?</option>
             {films.map((movie) => (
               <option value={movie.id} key={movie.id}>
+                {movie.status === "soon" ? "Đặt trước · " : ""}
                 {movie.age} · {movie.title}
               </option>
             ))}

@@ -22,6 +22,28 @@ function start(args, cwd, env) {
   return child;
 }
 async function main() {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.NOVA_REFRESH_PROGRAMME !== "false"
+  ) {
+    for (const script of ["seed-discovery.cjs", "seed-programme.cjs"]) {
+      console.log("Preparing additive NOVA demo schedule:", script);
+      const code = await new Promise((resolveCode, reject) => {
+        const seed = spawn(process.execPath, ["scripts/" + script], {
+          cwd: resolve(root, "backend"),
+          env: process.env,
+          stdio: "inherit",
+        });
+        children.push(seed);
+        seed.once("error", reject);
+        seed.once("exit", (code) => resolveCode(code));
+      });
+      if (code !== 0 || stopping) {
+        stop(code || 1);
+        return;
+      }
+    }
+  }
   start(["dist/main.js"], resolve(root, "backend"), {
     ...process.env,
     PORT: String(apiPort),
@@ -61,7 +83,11 @@ async function main() {
       String(webPort),
     ],
     root,
-    { ...process.env, BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1` },
+    {
+      ...process.env,
+      NOVA_STANDALONE: "false",
+      BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1`,
+    },
   );
 }
 main().catch(() => stop(1));

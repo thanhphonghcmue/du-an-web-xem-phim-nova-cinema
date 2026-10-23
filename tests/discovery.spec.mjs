@@ -219,7 +219,12 @@ test("room and day-part controls filter four real screenings without changing sh
     .filter({ hasText: "Dune" })
     .first()
     .click();
-  await page.locator(".timeline-dates button").last().click();
+  const targetDay = new Date(
+    data.programmeShowtimes[0].startTime,
+  ).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  await page
+    .getByLabel("Chọn ngày xa trong lịch chiếu", { exact: true })
+    .fill(targetDay);
   await page
     .getByRole("combobox", { name: "Phòng chiếu trong lịch", exact: true })
     .selectOption(data.programmeRoom.id);
@@ -232,4 +237,248 @@ test("room and day-part controls filter four real screenings without changing sh
   await expect(page.locator(".timeline-show")).toContainText("22:00");
   await page.getByRole("button", { name: "Tất cả giờ", exact: true }).click();
   await expect(page.locator(".timeline-show")).toHaveCount(4);
+});
+
+async function authenticate(page, role = "customer") {
+  const data = fixture();
+  const status = await page.evaluate(
+    async ({ email, password }) =>
+      (
+        await fetch("/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        })
+      ).status,
+    { email: data.accounts[role].email, password: data.password },
+  );
+  expect(status).toBe(200);
+  await page.reload();
+  await expect(page.locator(".login-trigger")).toContainText(
+    role.toUpperCase(),
+  );
+}
+test("month calendar loads over 100 screenings once and books an actual show 30 days ahead", async ({
+  page,
+}) => {
+  const data = fixture(),
+    requests = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1/showtimes"))
+      requests.push(new URL(request.url()).pathname);
+  });
+  await page.goto("/dat-ve");
+  await authenticate(page);
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .selectOption(data.cinema.id);
+  await page
+    .locator(".timeline-film-list [role=tab]")
+    .filter({ hasText: "Dune" })
+    .first()
+    .click();
+  const picker = page.getByLabel("Chọn ngày xa trong lịch chiếu", {
+    exact: true,
+  });
+  const far = new Date(data.advanceShows.at(-1).startTime).toLocaleDateString(
+    "en-CA",
+    { timeZone: "Asia/Ho_Chi_Minh" },
+  );
+  await expect(picker).toHaveAttribute("max", far);
+  await expect(page.locator(".timeline-dates button")).toHaveCount(7);
+  await page
+    .getByRole("button", { name: "7 ngày tiếp theo", exact: true })
+    .click();
+  const next = await picker.inputValue();
+  expect(
+    next >
+      new Date(data.showtime.startTime).toLocaleDateString("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      }),
+  ).toBe(true);
+  await picker.fill(far);
+  await expect(page.locator(".timeline-show")).toHaveCount(4);
+  await expect(
+    page
+      .getByRole("combobox", { name: "Phòng chiếu trong lịch", exact: true })
+      .locator("option"),
+  ).toHaveCount(3);
+  expect(requests.some((path) => path === "/api/v1/showtimes/programme")).toBe(
+    true,
+  );
+  expect(requests.some((path) => path === "/api/v1/showtimes")).toBe(false);
+  await page.locator(".timeline-show").filter({ hasText: "21:00" }).click();
+  await page
+    .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
+    .click();
+  const held = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/bookings/hold") &&
+      response.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Giữ ghế 5 phút", exact: true })
+    .click();
+  const response = await held;
+  expect(response.status()).toBe(201);
+  const order = (await response.json()).data;
+  expect(order.showtimeId).toBe(data.advanceShows.at(-1).id);
+  await page
+    .getByRole("button", { name: "Hủy đơn & trả ghế", exact: true })
+    .click();
+  await expect(page.getByTestId("server-total")).toHaveCount(0);
+});
+
+test("a coming-soon film with a real schedule can be prebooked, paid and issued as a real QR ticket", async ({
+  page,
+}) => {
+  const data = fixture();
+  await page.goto("/sap-chieu");
+  await authenticate(page);
+  const card = page.locator(
+    `.discovery-film[data-movie-id="${data.presaleMovie.id}"]`,
+  );
+  await expect(card.locator(".presale-label")).toContainText("mở bán");
+  await card
+    .getByRole("button", {
+      name: `Đặt trước ${data.presaleMovie.title}`,
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(
+    new RegExp("/dat-ve\\?movie=" + data.presaleMovie.id + "$"),
+  );
+  await expect(
+    page.getByRole("combobox", { name: "Chọn phim", exact: true }),
+  ).toHaveValue(data.presaleMovie.id);
+  const date = new Date(data.presaleShow.startTime).toLocaleDateString(
+    "en-CA",
+    { timeZone: "Asia/Ho_Chi_Minh" },
+  );
+  await page
+    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
+    .selectOption(date);
+  await page
+    .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
+    .selectOption(data.presaleShow.id);
+  await page
+    .locator("#booking")
+    .getByRole("button", { name: "Đặt ngay", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
+    .click();
+  const held = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/bookings/hold") &&
+      response.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Giữ ghế 5 phút", exact: true })
+    .click();
+  const response = await held;
+  expect(response.status()).toBe(201);
+  const order = (await response.json()).data;
+  expect(order.showtimeId).toBe(data.presaleShow.id);
+  await page
+    .getByRole("checkbox", {
+      name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
+    })
+    .check();
+  await page
+    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Thanh toán thành công", exact: true })
+    .click();
+  await page
+    .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Xem vé trong tài khoản", exact: true })
+    .click();
+  await expect(page.getByRole("dialog", { name: /Mở màn rực rỡ/ })).toHaveCount(
+    0,
+  );
+  await page.locator(".login-trigger").click();
+  await expect(page.getByAltText(`QR vé ${order.orderCode}`)).toBeVisible();
+  const result = await page.request.get("/api/v1/tickets/me?limit=100");
+  const tickets = (await result.json()).data.items.filter(
+    (ticket) => ticket.bookingId === order.id,
+  );
+  expect(tickets).toHaveLength(1);
+  expect(tickets[0].startTime).toBe(data.presaleShow.startTime);
+});
+
+test("schedule labels remain readable with sufficient contrast and no mobile overflow", async ({
+  page,
+}) => {
+  await page.goto("/dat-ve");
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .selectOption(fixture().cinema.id);
+  await expect(page.locator(".timeline-show").first()).toBeVisible();
+  const values = await page.evaluate(() => {
+    const luminance = (color) => {
+      const nums = color
+        .match(/[\d.]+/g)
+        .slice(0, 3)
+        .map(Number)
+        .map((value) => {
+          const c = value / 255;
+          return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
+      return 0.2126 * nums[0] + 0.7152 * nums[1] + 0.0722 * nums[2];
+    };
+    return [
+      ".timeline-film-list small",
+      ".timeline-show>small",
+      ".schedule-periods button",
+    ].map((selector) => {
+      const element = document.querySelector(selector),
+        style = getComputedStyle(element);
+      let parent = element;
+      while (getComputedStyle(parent).backgroundColor === "rgba(0, 0, 0, 0)")
+        parent = parent.parentElement;
+      const a = luminance(style.color),
+        b = luminance(getComputedStyle(parent).backgroundColor);
+      return {
+        selector,
+        size: parseFloat(style.fontSize),
+        ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05),
+      };
+    });
+  });
+  for (const value of values) {
+    expect(value.size).toBeGreaterThanOrEqual(12);
+    expect(value.ratio).toBeGreaterThanOrEqual(4.5);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page
+    .getByLabel("Chọn ngày xa trong lịch chiếu", { exact: true })
+    .fill(
+      new Date(fixture().advanceShows.at(-1).startTime).toLocaleDateString(
+        "en-CA",
+        { timeZone: "Asia/Ho_Chi_Minh" },
+      ),
+    );
+  await expect(page.locator(".timeline-show")).toHaveCount(4);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await authenticate(page, "admin");
+  await expect(page.locator(".admin-header-trigger")).toBeVisible();
+  expect(
+    await page
+      .locator(".admin-header-trigger")
+      .evaluate((element) => getComputedStyle(element).whiteSpace),
+  ).toBe("nowrap");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });

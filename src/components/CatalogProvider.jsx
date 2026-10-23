@@ -70,15 +70,23 @@ export default function CatalogProvider({ children }) {
   const [error, setError] = useState("");
   const load = useCallback(async () => {
     try {
-      const [films, locations, showtimes, rooms, combos, runtime] =
-        await Promise.all([
-          apiGetMovies(),
-          apiGetCinemas(),
-          apiGetShowtimes(),
-          apiList("/rooms"),
-          apiList("/combos"),
-          read("/runtime"),
-        ]);
+      const runtime = await read("/runtime");
+      const [films, locations, showtimes, rooms, combos] =
+        runtime.mode === "backend"
+          ? await read("/showtimes/programme").then((data) => [
+              data.movies,
+              data.cinemas,
+              data.showtimes,
+              data.rooms,
+              data.combos,
+            ])
+          : await Promise.all([
+              apiGetMovies(),
+              apiGetCinemas(),
+              apiGetShowtimes(),
+              apiList("/rooms"),
+              apiList("/combos"),
+            ]);
       const normalize = (s) =>
         s.toLocaleLowerCase("vi").replace(/[^\p{L}\p{N}]/gu, "");
       const movies = films

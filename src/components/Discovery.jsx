@@ -159,6 +159,14 @@ function CampaignCard({ campaign, onOpen, large = false }) {
 
 function FilmCard({ movie, onMovie, onBook }) {
   const upcoming = movie.status === "soon";
+  const { showtimes } = useCatalog();
+  const presale =
+    upcoming &&
+    showtimes.some(
+      (show) =>
+        show.movieId === movie.id && new Date(show.startTime) > new Date(),
+    );
+  const remindOnly = upcoming && !presale;
   return (
     <article className="discovery-film" data-movie-id={movie.id}>
       <div className="discovery-poster">
@@ -192,13 +200,25 @@ function FilmCard({ movie, onMovie, onBook }) {
             <Play size={17} /> Xem trailer
           </button>
           <button
-            onClick={() => (upcoming ? downloadReminder(movie) : onBook(movie))}
+            onClick={() =>
+              remindOnly ? downloadReminder(movie) : onBook(movie)
+            }
           >
-            {upcoming ? <CalendarDays size={17} /> : <Ticket size={17} />}{" "}
-            {upcoming ? "Nhắc lịch .ics" : "Đặt vé"}
+            {remindOnly ? <CalendarDays size={17} /> : <Ticket size={17} />}{" "}
+            {remindOnly
+              ? "Nhắc lịch .ics"
+              : presale
+                ? "Đặt vé trước"
+                : "Đặt vé"}
           </button>
         </div>
       </div>
+      {presale && (
+        <span className="presale-label">
+          <Ticket size={13} />
+          Đã mở bán vé trước
+        </span>
+      )}
       <p className="film-genre">{movie.genre || "Điện ảnh tuyển chọn"}</p>
       <button className="film-name" onClick={() => onMovie(movie)}>
         {movie.title}
@@ -209,14 +229,27 @@ function FilmCard({ movie, onMovie, onBook }) {
           {movie.duration} phút
         </span>
         <button
-          onClick={() => (upcoming ? downloadReminder(movie) : onBook(movie))}
+          onClick={() => (remindOnly ? downloadReminder(movie) : onBook(movie))}
           aria-label={
-            upcoming ? `Nhắc lịch ${movie.title}` : `Đặt vé ${movie.title}`
+            remindOnly
+              ? `Nhắc lịch ${movie.title}`
+              : presale
+                ? `Đặt trước ${movie.title}`
+                : `Đặt vé ${movie.title}`
           }
         >
-          {upcoming ? <CalendarDays size={16} /> : <ArrowUpRight size={17} />}
+          {remindOnly ? <CalendarDays size={16} /> : <ArrowUpRight size={17} />}
         </button>
       </div>
+      {upcoming && (
+        <button
+          className="presale-reminder"
+          onClick={() => downloadReminder(movie)}
+        >
+          <CalendarDays size={13} />
+          Lưu nhắc lịch .ics
+        </button>
+      )}
       {upcoming && (
         <p className="film-release">
           Dự kiến{" "}
@@ -749,7 +782,7 @@ export default function Discovery({ view, onMovie, onBook, onBooking }) {
               Những cuộc hẹn mới.
             </>
           }
-          description="Tuyển tập tái chiếu dự kiến trong tháng sau. Lưu nhắc lịch để sẵn sàng trở lại màn ảnh lớn."
+          description="Tuyển tập tái chiếu dự kiến tháng sau. Phim đã mở bán cho phép đặt trước, chọn phòng và giữ ghế ngay; các phim còn lại có thể lưu nhắc lịch."
           image="/images/cinema-imax.jpg"
         >
           <div className="banner-chips">

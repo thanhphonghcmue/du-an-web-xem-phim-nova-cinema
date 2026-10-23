@@ -25,6 +25,7 @@ import "../styles.css";
 import "../cinema.css";
 import "../premiere.css";
 import "../booking-experience.css";
+import "../clarity.css";
 import "@fontsource/plus-jakarta-sans/latin-400.css";
 import "@fontsource/plus-jakarta-sans/latin-500.css";
 import "@fontsource/plus-jakarta-sans/latin-600.css";

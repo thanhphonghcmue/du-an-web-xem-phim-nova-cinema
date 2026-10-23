@@ -757,7 +757,7 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.route("**/api/v1/movies?**", (route) =>
+  await page.route("**/api/v1/showtimes/programme", (route) =>
     route.fulfill({
       status: 503,
       contentType: "application/json",

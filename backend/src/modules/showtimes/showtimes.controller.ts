@@ -26,6 +26,8 @@ import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { DeletedDto } from "../../common/dto/pagination.dto";
 import {
   CreateShowtimeDto,
+  ProgrammeDto,
+  ProgrammeQueryDto,
   ListShowtimesDto,
   ShowtimeDto,
   UpdateShowtimeDto,
@@ -48,6 +50,17 @@ export class ShowtimesController {
   @ApiPageResponse(ShowtimeDto)
   list(@Query() query: ListShowtimesDto) {
     return this.service.list(query);
+  }
+
+  @Get("programme")
+  @Public()
+  @ApiOperation({
+    summary:
+      "Public catalogue snapshot plus future schedule, bounded to 60 days/10000 screenings; never silently truncated.",
+  })
+  @ApiDataResponse(ProgrammeDto)
+  programme(@Query() query: ProgrammeQueryDto) {
+    return this.service.programme(query.days);
   }
 
   @Get(":id")

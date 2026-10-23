@@ -25,9 +25,17 @@
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
-export default function Modal({ title, onClose, children, wide = false }) {
+export default function Modal({
+  title,
+  onClose,
+  children,
+  wide = false,
+  embedded = false,
+  image = "/images/cinema-lobby.jpg",
+}) {
   const panel = useRef(null);
   useEffect(() => {
+    if (embedded) return;
     const previous = document.activeElement;
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -36,8 +44,9 @@ export default function Modal({ title, onClose, children, wide = false }) {
       document.body.style.overflow = oldOverflow;
       previous?.focus();
     };
-  }, []);
+  }, [embedded]);
   useEffect(() => {
+    if (embedded) return;
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
       if (e.key === "Tab") {
@@ -69,28 +78,35 @@ export default function Modal({ title, onClose, children, wide = false }) {
     return () => {
       document.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [onClose, embedded]);
   return (
     <div
-      className="modal-backdrop"
+      className={embedded ? "embedded-dialog" : "modal-backdrop"}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <section
         ref={panel}
         tabIndex={-1}
         role="dialog"
-        aria-modal="true"
+        aria-modal={embedded ? undefined : true}
         aria-label={title}
         className={`modal-panel ${wide ? "modal-wide" : ""}`}
       >
-        <header className="modal-header">
+        <header
+          className="modal-header"
+          style={{
+            backgroundImage: `linear-gradient(90deg, rgba(10,12,18,.94), rgba(10,12,18,.45)), url("${image}")`,
+          }}
+        >
           <div>
             <span className="eyebrow">NOVA / INFINITY EXPERIENCE</span>
             <h2>{title}</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Đóng">
-            <X size={21} />
-          </button>
+          {!embedded && (
+            <button className="icon-button" onClick={onClose} aria-label="Đóng">
+              <X size={21} />
+            </button>
+          )}
         </header>
         {children}
       </section>

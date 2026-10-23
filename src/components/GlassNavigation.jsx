@@ -31,11 +31,11 @@ export default function GlassNavigation() {
   const [hovered, setHovered] = useState(null);
   const [active, setActive] = useState("#movies");
   const links = [
-    ["#movies", "Lịch chiếu"],
-    ["#cinemas", "Rạp Cinema"],
-    ["#offers", "Ưu đãi & Khuyến mãi"],
-    ["#membership", "C’MEMBER"],
-    ["#events", "Sự kiện"],
+    ["/phim", "Phim"],
+    ["/rap", "Rạp NOVA"],
+    ["/uu-dai", "Ưu đãi"],
+    ["/hoi-vien", "C’MEMBER"],
+    ["/bap-nuoc", "Bắp nước"],
   ];
   return (
     <nav

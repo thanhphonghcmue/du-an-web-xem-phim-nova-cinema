@@ -379,11 +379,9 @@ button:focus-visible {
 
 /* Điều hướng: chỉ vệt sáng chia sẻ di chuyển giữa các mục. */
 .site-header {
-  position: fixed !important;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: var(--z-nav) !important;
+  z-index: var(--z-nav);
   background: #08090cce;
   backdrop-filter: blur(24px);
   border-bottom: 1px solid #ffffff0f;

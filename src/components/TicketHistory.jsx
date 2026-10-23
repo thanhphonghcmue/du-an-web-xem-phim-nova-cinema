@@ -27,8 +27,9 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGetMyBookings, apiGetMyTickets } from "../api/client.js";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
+import { CalendarDays, Download, Ticket } from "lucide-react";
 export default function TicketHistory({ member, onResume }) {
-  const { contextFor } = useCatalog();
+  const { contextFor, movies } = useCatalog();
   const [tickets, setTickets] = useState([]),
     [orders, setOrders] = useState([]),
     [error, setError] = useState(""),
@@ -94,9 +95,20 @@ export default function TicketHistory({ member, onResume }) {
           </p>
         ))}
       {tickets.map((ticket) => (
-        <article key={ticket.id}>
-          <img src={ticket.qrCodeBase64} alt={`QR vé ${ticket.orderCode}`} />
-          <div>
+        <article className="cinema-ticket" key={ticket.id}>
+          <img
+            className="ticket-movie-poster"
+            src={
+              movies.find((movie) => movie.title === ticket.movie)
+                ?.localPoster || "/images/cinema-auditorium.jpg"
+            }
+            alt={ticket.movie}
+          />
+          <div className="ticket-story">
+            <p className="nova-kicker">
+              <Ticket size={13} />
+              NOVA CINEMA · ADMIT ONE BOOKING
+            </p>
             <h3>{ticket.movie}</h3>
             <p>
               {ticket.cinema} · {ticket.room}
@@ -110,13 +122,22 @@ export default function TicketHistory({ member, onResume }) {
               Ghế: {ticket.seats.map((s) => s.label).join(", ")} ·{" "}
               {money(ticket.amount)}
             </p>
-            <small>{ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}</small>
+            <small
+              className={`ticket-state ${ticket.isCheckedIn ? "used" : ""}`}
+            >
+              {ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}
+            </small>
+            <p className="ticket-order-code">Mã đơn: {ticket.orderCode}</p>
+          </div>
+          <div className="ticket-stub">
+            <img src={ticket.qrCodeBase64} alt={`QR vé ${ticket.orderCode}`} />
             <p>
               <a
                 className="text-button"
                 href={ticket.qrCodeBase64}
                 download={`${ticket.orderCode}.png`}
               >
+                <Download size={12} />
                 Tải QR
               </a>{" "}
               ·{" "}
@@ -124,6 +145,7 @@ export default function TicketHistory({ member, onResume }) {
                 className="text-button"
                 href={`/api/v1/tickets/${ticket.id}/calendar`}
               >
+                <CalendarDays size={12} />
                 Thêm lịch .ics
               </a>
             </p>

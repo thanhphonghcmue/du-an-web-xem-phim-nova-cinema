@@ -27,11 +27,18 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Keyboard, QrCode, Sparkles, CheckCircle2 } from "lucide-react";
+import {
+  Camera,
+  CameraOff,
+  Keyboard,
+  QrCode,
+  Sparkles,
+  CheckCircle2,
+} from "lucide-react";
 import Modal from "./Modal.jsx";
 import { readCommand, read } from "../api/client.js";
 
-export default function StaffCheckIn({ onClose }) {
+export default function StaffCheckIn({ onClose, embedded = false }) {
   const [mode, setMode] = useState("camera"); // camera | manual
   const [hash, setHash] = useState("");
   const [result, setResult] = useState(null);
@@ -63,7 +70,9 @@ export default function StaffCheckIn({ onClose }) {
     setError("");
     setResult(null);
     try {
-      const res = await readCommand("/staff/check-in", { ticketHash: targetHash.trim() });
+      const res = await readCommand("/staff/check-in", {
+        ticketHash: targetHash.trim(),
+      });
       setResult(res);
       stopCamera();
     } catch (err) {
@@ -85,7 +94,11 @@ export default function StaffCheckIn({ onClose }) {
         throw new Error("Trình duyệt không hỗ trợ WebRTC Camera.");
       }
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
+        video: {
+          facingMode: "environment",
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+        },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -95,7 +108,10 @@ export default function StaffCheckIn({ onClose }) {
         startScanLoop();
       }
     } catch (err) {
-      setCameraError(err.message || "Không thể truy cập camera. Vui lòng cấp quyền hoặc dùng nhập tay.");
+      setCameraError(
+        err.message ||
+          "Không thể truy cập camera. Vui lòng cấp quyền hoặc dùng nhập tay.",
+      );
       setCameraActive(false);
     }
   }
@@ -129,7 +145,8 @@ export default function StaffCheckIn({ onClose }) {
             // Parse rawValue: can be direct 64-char hash or URL containing ticketHash
             let extracted = rawValue;
             if (rawValue.includes("hash=")) {
-              extracted = new URL(rawValue).searchParams.get("hash") || rawValue;
+              extracted =
+                new URL(rawValue).searchParams.get("hash") || rawValue;
             }
             if (/^[a-f0-9]{64}$/i.test(extracted)) {
               setHash(extracted);
@@ -163,7 +180,11 @@ export default function StaffCheckIn({ onClose }) {
   }
 
   return (
-    <Modal title="Soát vé tại rạp (Nhân viên)" onClose={onClose}>
+    <Modal
+      title="Soát vé tại rạp (Nhân viên)"
+      onClose={onClose}
+      embedded={embedded}
+    >
       <div className="staff-mode-switch">
         <button
           type="button"
@@ -184,7 +205,12 @@ export default function StaffCheckIn({ onClose }) {
       {mode === "camera" && (
         <div className="camera-scanner-container">
           <div className="scanner-viewfinder">
-            <video ref={videoRef} playsInline muted className="camera-video-stream" />
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className="camera-video-stream"
+            />
             <div className="scanner-reticle">
               <div className="reticle-corner top-left" />
               <div className="reticle-corner top-right" />
@@ -248,7 +274,10 @@ export default function StaffCheckIn({ onClose }) {
             placeholder="Dán hoặc nhập chuỗi 64 ký tự hash vé..."
           />
         </div>
-        <button className="button button-primary" disabled={busy || !hash.trim()}>
+        <button
+          className="button button-primary"
+          disabled={busy || !hash.trim()}
+        >
           {busy ? "Đang xác thực…" : "Xác nhận soát vé"}
         </button>
       </form>
@@ -258,7 +287,9 @@ export default function StaffCheckIn({ onClose }) {
         <div className="sample-tickets-helper">
           <div className="sample-tickets-header">
             <Sparkles size={14} />
-            <small>Vé thực tế trong hệ thống (Thử nghiệm nhanh không cần camera):</small>
+            <small>
+              Vé thực tế trong hệ thống (Thử nghiệm nhanh không cần camera):
+            </small>
           </div>
           <div className="sample-tickets-list">
             {sampleTickets.map((t) => (
@@ -279,7 +310,11 @@ export default function StaffCheckIn({ onClose }) {
         </div>
       )}
 
-      {error && <p role="alert" className="auth-notice mt-3">{error}</p>}
+      {error && (
+        <p role="alert" className="auth-notice mt-3">
+          {error}
+        </p>
+      )}
 
       {result && (
         <div role="status" className="ticket-success checkin-success mt-3">

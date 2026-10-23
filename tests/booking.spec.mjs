@@ -369,6 +369,11 @@ for (const [button, state] of [
     await login(page);
     const order = await hold(page);
     await page
+      .getByRole("checkbox", {
+        name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
+      })
+      .check();
+    await page
       .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
       .click();
     await expect(
@@ -394,7 +399,8 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
   // A second active order must not replace the just-paid result when points refresh.
   const map = (await read(page, `/showtimes/${fixture().showtime.id}/seats`))
     .body.data;
-  const anotherSeat = map.seats.find((s) => s.row === "A" && s.column === 2);
+  // Use an edge seat so the second booking respects the existing orphan-seat rule.
+  const anotherSeat = map.seats.find((s) => s.row === "A" && s.column === 1);
   expect(
     (
       await command(page, "/bookings/hold", {
@@ -403,6 +409,11 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
       })
     ).status,
   ).toBe(201);
+  await page
+    .getByRole("checkbox", {
+      name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
+    })
+    .check();
   await page
     .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
     .click();
@@ -509,9 +520,12 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
     }),
   );
   await page.reload();
-  await expect(page.locator(".initial-screen [role=alert]")).toContainText(
-    "Backend unavailable",
-  );
+  await expect(
+    page.locator(".catalog-connection-notice [role=alert]"),
+  ).toContainText("Backend unavailable");
+  // A failed catalog request leaves discovery available without invented bookable slots.
+  await expect(page.locator(".discovery-film").first()).toBeVisible();
+  await expect(page.locator(".timeline-show")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Thử kết nối lại" }),
   ).toBeVisible();

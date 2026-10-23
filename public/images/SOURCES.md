@@ -23,3 +23,14 @@ Availability of a public copy does not confer commercial use rights. Review lice
 - `cinema-lobby.jpg`: illustrative Galaxy Cinema lobby, https://github.com/ywhnaht/CinemaWeb/blob/fe9a290f4d5d1282fce2e6cb17cbcc4f6523a282/assets/images/ohayou/galaxy-da-nang-5_1698052220835.jpg
 
 These venue photographs are references, not photographs of real NOVA properties.
+
+## NOVA Discovery catalog
+
+The 18 additional files in `posters/` are film posters from the `posters/` directory of
+https://github.com/BegzatMamatkarimov/Movie_poster/tree/e0ee4547349d7971a7c2ff68ed0e669eab3e581b/posters.
+Only those image blobs were copied; no source code or executable artifacts from that repository were used.
+Titles, release years and directors describe the original films. The upcoming dates in the NOVA catalog
+are a proposed demo re-screening program, not official film release announcements.
+
+All 16 illustrations in `menu/` are original SVG drawings made for NOVA: popcorn boxes, drinks,
+hotdog, fries and nachos. They use NOVA branding and are not Cinestar promotional material.

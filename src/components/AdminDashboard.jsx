@@ -50,6 +50,19 @@ import {
   Download,
 } from "lucide-react";
 import { money } from "../data.js";
+
+function revenueShare(value, ticketAmount, comboAmount) {
+  const cents = (amount) => {
+    const match = String(amount || "0").match(/^(\d+)(?:\.(\d{1,2}))?$/);
+    return match
+      ? BigInt(match[1]) * 100n + BigInt((match[2] || "").padEnd(2, "0"))
+      : 0n;
+  };
+  const total = cents(ticketAmount) + cents(comboAmount);
+  return total > 0n
+    ? Math.min(100, Number((cents(value) * 10000n) / total) / 100) + "%"
+    : "0%";
+}
 import OperationalCatalog from "./OperationalCatalog.jsx";
 import {
   apiGetAdminOverview,
@@ -70,7 +83,11 @@ function getVietnamDate(offsetDays = 0) {
   return formatter.format(target);
 }
 
-export default function AdminDashboard({ onClose, adminUser }) {
+export default function AdminDashboard({
+  onClose,
+  adminUser,
+  embedded = false,
+}) {
   const [activeTab, setActiveTab] = useState("revenue"); // revenue | users | catalog | maintenance
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -192,14 +209,20 @@ export default function AdminDashboard({ onClose, adminUser }) {
     lines.push("");
     lines.push("TỔNG QUAN TÀI CHÍNH");
     lines.push("Chỉ số,Giá trị");
-    lines.push(`Tổng doanh thu ròng (Net Revenue),${revenue.totalRevenue || 0} VNĐ`);
-    lines.push(`Số đơn thanh toán thành công (PAID),${revenue.paidBookingCount || 0}`);
+    lines.push(
+      `Tổng doanh thu ròng (Net Revenue),${revenue.totalRevenue || 0} VNĐ`,
+    );
+    lines.push(
+      `Số đơn thanh toán thành công (PAID),${revenue.paidBookingCount || 0}`,
+    );
     lines.push(`Doanh thu vé xem phim,${revenue.ticketRevenue || 0} VNĐ`);
     lines.push(`Doanh thu bắp nước F&B,${revenue.comboRevenue || 0} VNĐ`);
     lines.push(`Tổng tiền ưu đãi & Voucher,${revenue.discountAmount || 0} VNĐ`);
     lines.push("");
     lines.push("CHI TIẾT CÁC ĐƠN ĐẶT VÉ TRONG KỲ");
-    lines.push("Mã Đơn,Khách Hàng,Phim,Rạp Chiếu,Phòng Chiếu,Tổng Tiền (VNĐ),Trạng Thái,Thời Gian Đặt Vé");
+    lines.push(
+      "Mã Đơn,Khách Hàng,Phim,Rạp Chiếu,Phòng Chiếu,Tổng Tiền (VNĐ),Trạng Thái,Thời Gian Đặt Vé",
+    );
 
     const orders = overview?.recentBookings || [];
     for (const b of orders) {
@@ -244,19 +267,25 @@ export default function AdminDashboard({ onClose, adminUser }) {
   }
 
   return (
-    <div className="admin-portal-overlay">
+    <div
+      className={
+        embedded
+          ? "admin-portal-overlay admin-embedded"
+          : "admin-portal-overlay"
+      }
+    >
       <div className="admin-portal-modal">
         {/* Header */}
         <div className="admin-header">
           <div className="admin-title-area">
             <div className="admin-badge">
               <Crown size={18} />
-              <span>HỆ THỐNG QUẢN TRỊ ADMIN (PORTAL)</span>
+              <span>NOVA OPERATIONS</span>
             </div>
-            <h2>Bảng Điều Khiển Số Liệu & Quản Trị Rạp NOVA</h2>
+            <h2>Không gian quản trị NOVA</h2>
             <p className="admin-subtitle">
               Đăng nhập bởi: <b>{adminUser?.email || "admin@nova.local"}</b> ·
-              Kết nối trực tiếp PostgreSQL 17 & Redis 7.4 (NestJS Backend v1)
+              Tổng quan vận hành · Danh mục · Thành viên
             </p>
           </div>
           <div className="admin-actions">
@@ -380,8 +409,11 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     onClick={loadAllData}
                     title="Làm mới số liệu"
                   >
-                    <RefreshCw size={14} className={revenueLoading ? "spin" : ""} />
-                    <span>Làm mới</span>
+                    <RefreshCw
+                      size={14}
+                      className={revenueLoading ? "spin" : ""}
+                    />
+                    <span>Cập nhật báo cáo</span>
                   </button>
 
                   <button
@@ -464,7 +496,16 @@ export default function AdminDashboard({ onClose, adminUser }) {
                   <div className="rev-bar-row">
                     <span>Tiền vé rạp (Gross Ticket):</span>
                     <div className="bar-track">
-                      <div className="bar-fill blue" style={{ width: "80%" }} />
+                      <div
+                        className="bar-fill blue"
+                        style={{
+                          width: revenueShare(
+                            revenue?.ticketRevenue,
+                            revenue?.ticketRevenue,
+                            revenue?.comboRevenue,
+                          ),
+                        }}
+                      />
                     </div>
                     <strong>
                       {revenue ? money(revenue.ticketRevenue) : "0 đ"}
@@ -474,7 +515,16 @@ export default function AdminDashboard({ onClose, adminUser }) {
                   <div className="rev-bar-row">
                     <span>Bắp nước F&B:</span>
                     <div className="bar-track">
-                      <div className="bar-fill gold" style={{ width: "20%" }} />
+                      <div
+                        className="bar-fill gold"
+                        style={{
+                          width: revenueShare(
+                            revenue?.comboRevenue,
+                            revenue?.ticketRevenue,
+                            revenue?.comboRevenue,
+                          ),
+                        }}
+                      />
                     </div>
                     <strong>
                       {revenue ? money(revenue.comboRevenue) : "0 đ"}
@@ -486,7 +536,13 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     <div className="bar-track">
                       <div
                         className="bar-fill green"
-                        style={{ width: "15%" }}
+                        style={{
+                          width: revenueShare(
+                            revenue?.discountAmount,
+                            revenue?.ticketRevenue,
+                            revenue?.comboRevenue,
+                          ),
+                        }}
                       />
                     </div>
                     <strong>
@@ -506,7 +562,8 @@ export default function AdminDashboard({ onClose, adminUser }) {
                     </p>
                   </div>
                   <span className="badge-note">
-                    💡 Chỉ đơn <strong>Đã thanh toán (PAID)</strong> mới được tính vào tổng doanh thu
+                    💡 Chỉ đơn <strong>Đã thanh toán (PAID)</strong> mới được
+                    tính vào tổng doanh thu
                   </span>
                 </div>
 
@@ -549,7 +606,9 @@ export default function AdminDashboard({ onClose, adminUser }) {
                                 {money(b.finalAmount)}
                               </strong>
                             </td>
-                            <td style={{ fontSize: "12.5px", color: "#94a3b8" }}>
+                            <td
+                              style={{ fontSize: "12.5px", color: "#94a3b8" }}
+                            >
                               {new Date(b.createdAt).toLocaleString("vi-VN")}
                             </td>
                             <td>

@@ -25,6 +25,16 @@ in trong terminal, mặc định cổng **3000**; backend cổng **4000**. Nhấ
 hai ứng dụng. Docker giữ dữ liệu cho lần chạy tiếp theo. Dừng container bằng các
 lệnh `infra:down` / `mail:down` trong `backend/` khi cần; không xóa volumes.
 
+Giao diện Discovery có các trang riêng `/phim`, `/sap-chieu`, `/uu-dai`, `/bap-nuoc`,
+`/rap`, `/hoi-vien`, `/dang-nhap`, `/tai-khoan`, `/dat-ve`, `/quan-tri` và `/soat-ve`.
+Seed bổ sung chuẩn bị **24 phim (16 đang chiếu/tuyển chọn, 8 sắp tái chiếu), 16 món/combo**
+và một phòng NOVA Selected để các phim bổ sung có suất đặt vé thật trong dữ liệu demo.
+Các ngày sắp chiếu là chương trình tái chiếu dự kiến tháng sau, không phải ngày phát hành chính thức.
+Với máy đã setup trước đó, chạy `npm run db:seed:discovery` trong `backend/` rồi tải lại web.
+Lệnh chỉ thêm dữ liệu còn thiếu, không ghi đè thay đổi của admin hoặc dịch chuyển suất đã có.
+Bắp nước chọn ở cửa hàng được giữ trong phiên trình duyệt và chuyển vào bước chọn ghế;
+chỉ xác nhận đơn, giá và thời hạn qua backend. Xem [ghi chú giao diện Discovery](docs/design/discovery-upgrade.md).
+
 Bạn có thể **đăng ký tài khoản mới ngay trên giao diện**, mật khẩu 12–128 ký tự.
 Tài khoản mới có vai trò CUSTOMER, hạng SILVER, 0 điểm. Không có mật khẩu mẫu
 được công khai hoặc nút tự gán vai trò. Seed có admin@nova.local, staff@nova.local,

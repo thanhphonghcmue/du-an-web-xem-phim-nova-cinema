@@ -21,6 +21,8 @@
  * ==============================================================================
  */
 
+import discovery from "../content/cinema.json";
+
 const tmdb = (path, size = "w780") =>
   `https://image.tmdb.org/t/p/${size}/${path}`;
 export const movies = [
@@ -160,51 +162,8 @@ export const movies = [
       "Kiệt tác của Christopher Nolan trở lại màn ảnh rộng. Khám phá câu chuyện về J. Robert Oppenheimer và khoảnh khắc thay đổi thế giới mãi mãi.",
   },
 ];
-// Lịch tái chiếu sắp tới là dữ liệu minh họa, chưa mở bán.
-movies.push(
-  {
-    id: "interstellar-return",
-    title: "Interstellar: Infinity Return",
-    original: "INTERSTELLAR",
-    short: "INTERSTELLAR",
-    part: "INFINITY RETURN",
-    genre: "Khoa học viễn tưởng",
-    duration: 169,
-    age: "T13",
-    rating: "8.7",
-    format: "IMAX",
-    year: 2014,
-    director: "Christopher Nolan",
-    cast: "Matthew McConaughey, Anne Hathaway",
-    poster: "/images/interstellar-poster.jpg",
-    localPoster: "/images/interstellar-poster.jpg",
-    status: "soon",
-    trailer: "zSWdZVtXT7E",
-    description:
-      "Hành trình xuyên không gian trở lại màn ảnh Infinity. Suất tái chiếu minh họa sắp mở bán.",
-  },
-  {
-    id: "dark-knight-midnight",
-    title: "The Dark Knight: Midnight Screening",
-    original: "THE DARK KNIGHT",
-    short: "THE DARK KNIGHT",
-    part: "MIDNIGHT SCREENING",
-    genre: "Hành động · Bí ẩn",
-    duration: 152,
-    age: "T16",
-    rating: "9.0",
-    format: "Dolby Vision",
-    year: 2008,
-    director: "Christopher Nolan",
-    cast: "Christian Bale, Heath Ledger",
-    poster: "/images/batman-poster.jpg",
-    localPoster: "/images/batman-poster.jpg",
-    status: "soon",
-    trailer: "EXeTwQWrcwY",
-    description:
-      "Đêm Gotham trở lại trong chương trình chiếu đặc biệt minh họa. Chưa mở bán vé.",
-  },
-);
+// Enriched local artwork; availability and booking IDs come from the API.
+movies.push(...discovery.movies);
 export const cinemas = [
   {
     id: "landmark",

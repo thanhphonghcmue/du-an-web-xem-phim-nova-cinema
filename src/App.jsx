@@ -78,6 +78,17 @@ import AuthForm from "./components/AuthForm.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import HeaderSearch from "./components/HeaderSearch.jsx";
 import { useI18n } from "./i18n.js";
+import ChonGhe_Va_ThanhToan from "./components/ChonGhe_Va_ThanhToan.jsx";
+import DatVeNhanh from "./components/DatVeNhanh.jsx";
+import SoatVeNhanVien from "./components/SoatVeNhanVien.jsx";
+import QuanTriHeThong from "./components/QuanTriHeThong.jsx";
+import LichSuVeKhachHang from "./components/LichSuVeKhachHang.jsx";
+import DangNhap_DangKy from "./components/DangNhap_DangKy.jsx";
+import LichChieuPhim from "./components/LichChieuPhim.jsx";
+import TimKiemPhim from "./components/TimKiemPhim.jsx";
+import MenuDieuHuong from "./components/MenuDieuHuong.jsx";
+import HopThoaiModal from "./components/HopThoaiModal.jsx";
+
 
 function Brand() {
   return (

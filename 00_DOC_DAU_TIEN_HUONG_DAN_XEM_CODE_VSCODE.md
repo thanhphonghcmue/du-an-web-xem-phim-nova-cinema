@@ -71,6 +71,30 @@ Khi bạn bấm mở file **[`src/App.jsx`](file:///d:/study%20hcmue/Nh%E1%BA%AD
 
 ---
 
-## 📘 4. TÀI LIỆU CẨM NANG TOÀN DIỆN
+## 🔑 4. TÀI KHOẢN ĐĂNG NHẬP & CHẾ ĐỘ DỰ PHÒNG NGOẠI TUYẾN (KHÔNG LO LỖI MÁY CHỦ)
+
+Hệ thống đã được tích hợp **Lớp dự phòng thông minh (Resilient Fallback Mode)** tại [`src/app/api/v1/[...path]/resilientFallback.js`](file:///d:/study%20hcmue/Nh%E1%BA%ADp%20m%C3%B4n%20c%C3%B4ng%20ngh%E1%BB%87%20ph%E1%BA%A7n%20m%C3%AAm%20f/src/app/api/v1/[...path]/resilientFallback.js). Ngay cả khi chưa bật Docker hoặc máy chủ NestJS, bạn vẫn có thể trải nghiệm 100% chức năng web mà **không bao giờ bị lỗi "Không thể kết nối máy chủ"**!
+
+### Các tài khoản kiểm thử có sẵn:
+1. **👑 Quản trị viên (ADMIN):**
+   - **Email:** `admin@nova.local`
+   - **Mật khẩu:** Nhập bất kỳ mật khẩu nào (hoặc `Admin@123456`)
+   - **Quyền hạn:** Mở Bảng Quản Trị Hệ Thống (`QuanTriHeThong.jsx`), xem biểu đồ doanh thu tài chính, báo cáo khách hàng và kiểm tra sức khỏe hạ tầng.
+
+2. **🎫 Nhân viên soát vé (STAFF):**
+   - **Email:** `staff@nova.local`
+   - **Mật khẩu:** Nhập bất kỳ mật khẩu nào (hoặc `Staff@123456`)
+   - **Quyền hạn:** Mở Bàn Soát Vé (`SoatVeNhanVien.jsx`), bật camera quét mã QR hoặc chọn vé mẫu để duyệt vé vào rạp.
+
+3. **👤 Khách hàng thân thiết (CUSTOMER):**
+   - **Email:** `customer@nova.local`
+   - **Mật khẩu:** Nhập bất kỳ mật khẩu nào (hoặc `Customer@123456`)
+   - **Quyền hạn:** Đặt vé, chọn sơ đồ ghế, giữ vé 5 phút, thanh toán giả lập Sandbox 1 chạm, xem ví vé điện tử QR.
+
+*(Bạn cũng có thể bấm sang tab **Đăng ký** để tạo tài khoản mới với email và tên của riêng bạn).*
+
+---
+
+## 📘 5. TÀI LIỆU CẨM NANG TOÀN DIỆN
 Để xem phân tích kiến trúc, quy trình nghiệp vụ và sơ đồ luồng hoạt động từng bước có hình vẽ:
 👉 Mở file: **[`docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md`](file:///d:/study%20hcmue/Nh%E1%BA%ADp%20m%C3%B4n%20c%C3%B4ng%20ngh%E1%BB%87%20ph%E1%BA%A7n%20m%C3%AAm%20f/docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md)**

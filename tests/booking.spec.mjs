@@ -31,6 +31,9 @@ async function read(page, path) {
   }, path);
 }
 async function login(page, role = "customer") {
+  await page.addInitScript(() =>
+    sessionStorage.setItem("nova-welcome-seen", "1"),
+  );
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   const account = fixture().accounts[role];
@@ -47,11 +50,16 @@ async function login(page, role = "customer") {
   );
 }
 async function seats(page) {
+  await page.addInitScript(() =>
+    sessionStorage.setItem("nova-welcome-seen", "1"),
+  );
   const { showtime } = fixture();
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   // The timeline uses real room and showtime UUIDs loaded from the catalog.
-  await page.locator("#showtimes select").selectOption(fixture().cinema.id);
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .selectOption(fixture().cinema.id);
   const film = page
     .locator(".timeline-film-list [role=tab]")
     .filter({ hasText: "Dune" })
@@ -96,7 +104,10 @@ async function cancelAll(page) {
 }
 // Reset only this run's limiter namespace between independent cases. Production
 // limits remain enabled; the explicit limiter case below verifies them.
-test.beforeEach(async () => {
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() =>
+    sessionStorage.setItem("nova-welcome-seen", "1"),
+  );
   req("dotenv").config({
     path: new URL("../backend/.env", import.meta.url).pathname,
     quiet: true,
@@ -128,12 +139,27 @@ test("catalog, quick booking and search use backend UUIDs without browser errors
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   await page
-    .locator("#booking")
-    .getByRole("button", { name: fixture().cinema.name, exact: true })
-    .click();
-  await page.locator("#booking .mini-movie").first().click();
-  await page.locator("#booking .date-pills button").first().click();
-  await expect(page.locator("#booking .showtime-pill").first()).toBeVisible();
+    .getByRole("combobox", { name: "Chọn cụm rạp", exact: true })
+    .selectOption(fixture().cinema.id);
+  await page
+    .getByRole("combobox", { name: "Chọn phim", exact: true })
+    .selectOption(fixture().movie.id);
+  const day = await page
+    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
+    .locator("option")
+    .nth(1)
+    .getAttribute("value");
+  await page
+    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
+    .selectOption(day);
+  await expect(
+    page.getByRole("combobox", { name: "Chọn suất chiếu", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page
+      .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
+      .locator(`option[value="${fixture().showtime.id}"]`),
+  ).toHaveCount(1);
   await page.getByRole("textbox", { name: "Tìm phim, rạp..." }).fill("Dune");
   await expect(page.locator(".search-dropdown")).toContainText("Dune");
   expect(errors).toEqual([]);
@@ -201,7 +227,9 @@ test("guests can browse but must sign in before seat booking", async ({
 }) => {
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
-  await page.locator("#showtimes select").selectOption(fixture().cinema.id);
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .selectOption(fixture().cinema.id);
   await page.locator(".timeline-show").first().click();
   await expect(
     page.getByRole("dialog", { name: "Chào mừng đến C’MEMBER" }),
@@ -369,6 +397,11 @@ for (const [button, state] of [
     await login(page);
     const order = await hold(page);
     await page
+      .getByRole("checkbox", {
+        name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
+      })
+      .check();
+    await page
       .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
       .click();
     await expect(
@@ -394,7 +427,8 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
   // A second active order must not replace the just-paid result when points refresh.
   const map = (await read(page, `/showtimes/${fixture().showtime.id}/seats`))
     .body.data;
-  const anotherSeat = map.seats.find((s) => s.row === "A" && s.column === 2);
+  // Use an edge seat so the second booking respects the existing orphan-seat rule.
+  const anotherSeat = map.seats.find((s) => s.row === "A" && s.column === 1);
   expect(
     (
       await command(page, "/bookings/hold", {
@@ -403,6 +437,11 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
       })
     ).status,
   ).toBe(201);
+  await page
+    .getByRole("checkbox", {
+      name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
+    })
+    .check();
   await page
     .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
     .click();
@@ -509,9 +548,12 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
     }),
   );
   await page.reload();
-  await expect(page.locator(".initial-screen [role=alert]")).toContainText(
-    "Backend unavailable",
-  );
+  await expect(
+    page.locator(".catalog-connection-notice [role=alert]"),
+  ).toContainText("Backend unavailable");
+  // A failed catalog request leaves discovery available without invented bookable slots.
+  await expect(page.locator(".discovery-film").first()).toBeVisible();
+  await expect(page.locator(".timeline-show")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Thử kết nối lại" }),
   ).toBeVisible();

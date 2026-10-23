@@ -27,6 +27,13 @@
  */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Discovery from "./components/Discovery.jsx";
+import PortalPage from "./components/PortalPage.jsx";
+import CinemaHero from "./components/CinemaHero.jsx";
+import CinemaFooter from "./components/CinemaFooter.jsx";
+import WelcomeOffer from "./components/WelcomeOffer.jsx";
 import {
   ArrowDown,
   ArrowRight,
@@ -59,52 +66,22 @@ import {
   apiGetMyBookings,
   memberProfile,
 } from "./api/client.js";
-// ==============================================================================
-// CÁC PHÂN HỆ GIAO DIỆN CHUẨN HÓA THEO CHỨC NĂNG & NHIỆM VỤ TIẾNG VIỆT
-// ==============================================================================
-import LichSuVeKhachHang from "./components/LichSuVeKhachHang.jsx";
-import SoatVeNhanVien from "./components/SoatVeNhanVien.jsx";
-import HopThoaiModal from "./components/HopThoaiModal.jsx";
-import ChonGhe_Va_ThanhToan from "./components/ChonGhe_Va_ThanhToan.jsx";
-import NenDienAnh from "./components/NenDienAnh.jsx";
-import MenuDieuHuong from "./components/MenuDieuHuong.jsx";
-import PosterNghieng3D from "./components/PosterNghieng3D.jsx";
-import LichChieuPhim from "./components/LichChieuPhim.jsx";
-import DatVeNhanh from "./components/DatVeNhanh.jsx";
-import DangNhap_DangKy from "./components/DangNhap_DangKy.jsx";
-import QuanTriHeThong from "./components/QuanTriHeThong.jsx";
-import TimKiemPhim from "./components/TimKiemPhim.jsx";
-
-// Giữ lại tên tiếng Anh song song để tương thích hoàn toàn:
-const TicketHistory = LichSuVeKhachHang;
-const StaffCheckIn = SoatVeNhanVien;
-const Modal = HopThoaiModal;
-const SeatBooking = ChonGhe_Va_ThanhToan;
-const CinematicBackdrop = NenDienAnh;
-const GlassNavigation = MenuDieuHuong;
-const TiltPoster = PosterNghieng3D;
-const ShowtimeTimeline = LichChieuPhim;
-const QuickBooking = DatVeNhanh;
-const AuthForm = DangNhap_DangKy;
-const AdminDashboard = QuanTriHeThong;
-const HeaderSearch = TimKiemPhim;
-
-
-
-
-
-
-
-import { motion, useReducedMotion } from "framer-motion";
-
-
-
-
+import TicketHistory from "./components/TicketHistory.jsx";
+import StaffCheckIn from "./components/StaffCheckIn.jsx";
+import Modal from "./components/Modal.jsx";
+import SeatBooking from "./components/SeatBooking.jsx";
+import CinematicBackdrop from "./components/CinematicBackdrop.jsx";
+import GlassNavigation from "./components/GlassNavigation.jsx";
+import ShowtimeTimeline from "./components/ShowtimeTimeline.jsx";
+import QuickBooking from "./components/QuickBooking.jsx";
+import AuthForm from "./components/AuthForm.jsx";
+import AdminDashboard from "./components/AdminDashboard.jsx";
+import HeaderSearch from "./components/HeaderSearch.jsx";
 import { useI18n } from "./i18n.js";
 
 function Brand() {
   return (
-    <a className="brand" href="#top" aria-label="NOVA Cinema trang chủ">
+    <a className="brand" href="/" aria-label="NOVA Cinema trang chủ">
       <InfinityIcon
         className="brand-symbol"
         strokeWidth={1.8}
@@ -155,24 +132,41 @@ function MoviePoster({ movie, className = "" }) {
   );
 }
 export default function App() {
+  const pathname = usePathname();
+  const view = pathname.split("/")[1] || "home";
   const { language, setLanguage, t } = useI18n();
   const { movies, cinemas, getDates, getShowtimes, contextFor } = useCatalog();
-  const reducedMotion = useReducedMotion();
+
   const [slide, setSlide] = useState(0);
+  const [welcomeOpen, setWelcomeOpen] = useState(() => {
+    try {
+      const today = new Date().toLocaleDateString("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      });
+      return (
+        view === "home" &&
+        !sessionStorage.getItem("nova-welcome-seen") &&
+        localStorage.getItem("nova-welcome-hidden-day") !== today
+      );
+    } catch {
+      return false;
+    }
+  });
   const [wizardVersion, setWizardVersion] = useState(0);
-  const highlights = movies.filter((m) =>
-    ["dune", "oppenheimer", "kong"].includes(m.artId),
+  const highlights = ["inception", "kong", "oppenheimer", "dune"].flatMap(
+    (key) => movies.filter((movie) => movie.artId === key),
   );
-  const featured = (highlights.length ? highlights : movies).slice(0, 3);
+  const featured = (highlights.length ? highlights : movies).slice(0, 5);
   const hero = featured[slide % featured.length] || movies[0] || {};
   const eventMovie = movies.find((m) => m.artId === "oppenheimer");
   const [cinemaId, setCinemaId] = useState("");
-  const [movieId, setMovieId] = useState("");
+  const [movieId, setMovieId] = useState(
+    () => new URLSearchParams(window.location.search).get("movie") || "",
+  );
   const [dateId, setDateId] = useState("");
   const [timeId, setTimeId] = useState("");
   const [group, setGroup] = useState(false);
   const [withCombo, setWithCombo] = useState(false);
-  const [filter, setFilter] = useState("now");
   const [modal, setModal] = useState(null);
   const [activeMovie, setActiveMovie] = useState(null);
   const [booking, setBooking] = useState(null);
@@ -206,6 +200,7 @@ export default function App() {
   useEffect(() => {
     if (!memberId) return;
     const id = new URLSearchParams(window.location.search).get("booking");
+    if (view !== "home" && !id) return;
     let active = true;
     apiGetMyBookings()
       .then((orders) => {
@@ -215,7 +210,7 @@ export default function App() {
         const context = order && contextFor(order.showtimeId);
         if (active && context) {
           setBooking({ ...context, orderId: order.id });
-          window.history.replaceState({}, "", "/");
+          if (id) window.history.replaceState({}, "", "/");
         }
       })
       .catch((err) => {
@@ -224,11 +219,15 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [memberId, contextFor]);
+  }, [memberId, contextFor, view]);
   const [city, setCity] = useState("Tất cả");
 
   const dates = getDates(language);
-  const cinema = cinemas.find((c) => c.id === cinemaId);
+  const resolvedCinemaId =
+    cinemaId ||
+    (movieId ? cinemas.find((c) => c.movies.includes(movieId))?.id : "") ||
+    "";
+  const cinema = cinemas.find((c) => c.id === resolvedCinemaId);
   useEffect(() => {
     const shortcut = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -246,6 +245,10 @@ export default function App() {
       openMovie(movie);
       return;
     }
+    if (!["home", "dat-ve"].includes(view)) {
+      window.location.assign("/dat-ve?movie=" + encodeURIComponent(movie.id));
+      return;
+    }
     if (!cinema?.movies.includes(movie.id))
       setCinemaId(cinemas.find((c) => c.movies.includes(movie.id))?.id || "");
     setWizardVersion((v) => v + 1);
@@ -260,7 +263,7 @@ export default function App() {
   }
   function openSeats(e) {
     e.preventDefault();
-    const time = getShowtimes(cinemaId, movieId, dateId).find(
+    const time = getShowtimes(resolvedCinemaId, movieId, dateId).find(
       (t) => t.id === timeId,
     );
     if (!time) {
@@ -290,14 +293,16 @@ export default function App() {
     setModal(type);
   }
   function jumpGroup() {
+    if (!["home", "dat-ve"].includes(view)) {
+      window.location.assign("/dat-ve");
+      return;
+    }
     setGroup(true);
     setMenu(false);
     document
       .getElementById("booking")
       .scrollIntoView({ behavior: "smooth", block: "center" });
   }
-  const visibleMovies =
-    filter === "all" ? movies : movies.filter((m) => m.status === filter);
   const results = movies.filter((m) =>
     `${t(m.title)} ${m.original} ${m.director}`
       .toLocaleLowerCase("vi")
@@ -318,7 +323,23 @@ export default function App() {
       <a href="#main-content" className="skip-link">
         {language === "en" ? "Skip to content" : "Đến nội dung chính"}
       </a>
-      <NenDienAnh />
+      <CinematicBackdrop />
+      <div className="nova-utility">
+        <div className="content-width">
+          <span>ĐIỆN ẢNH KHÔNG GIỚI HẠN.</span>
+          <div>
+            <Link href="/rap">
+              <MapPin size={12} />
+              Tìm rạp NOVA
+            </Link>
+            <Link href="/tai-khoan">
+              <Ticket size={12} />
+              Vé của tôi
+            </Link>
+            <span>VI / EN</span>
+          </div>
+        </div>
+      </div>
       <header className="site-header">
         <div className="nav-inner">
           <Brand />
@@ -329,6 +350,10 @@ export default function App() {
               cinemas={cinemas}
               onMovie={openMovie}
               onCinema={(c) => {
+                if (!["home", "dat-ve"].includes(view)) {
+                  window.location.assign("/dat-ve");
+                  return;
+                }
                 setCinemaId(c.id);
                 setMovieId("");
                 setDateId("");
@@ -352,7 +377,7 @@ export default function App() {
             {member?.role === "ADMIN" && (
               <button
                 className="admin-header-trigger"
-                onClick={() => setModal("admin")}
+                onClick={() => window.location.assign("/quan-tri")}
                 title="Mở Bảng Quản Trị Admin & Doanh Thu"
               >
                 <Crown size={15} />
@@ -360,7 +385,10 @@ export default function App() {
               </button>
             )}
             {["ADMIN", "STAFF"].includes(member?.role) && (
-              <button className="text-button" onClick={() => setModal("staff")}>
+              <button
+                className="text-button"
+                onClick={() => window.location.assign("/soat-ve")}
+              >
                 Soát vé
               </button>
             )}
@@ -377,10 +405,14 @@ export default function App() {
                 t("Đăng nhập")
               )}
             </button>
-            <a href="#booking" className="button button-primary header-book">
+            <Link href="/dat-ve" className="button button-primary header-book">
               <Ticket size={15} />
               {t("Đặt vé ngay")}{" "}
-            </a>
+            </Link>
+            <Link href="/bap-nuoc" className="button header-food">
+              <Popcorn size={15} />
+              Đặt bắp nước
+            </Link>
             <button
               className="icon-button mobile-toggle"
               aria-label={menu ? t("Đóng menu") : t("Mở menu")}
@@ -394,17 +426,29 @@ export default function App() {
         {menu && (
           <nav className="mobile-nav" aria-label="Điều hướng di động">
             {[
-              ["#movies", t("Lịch chiếu")],
-              ["#cinemas", t("Rạp Cinema")],
-              ["#offers", t("Khuyến mãi 69K")],
-              ["#membership", "C’MEMBER"],
-              ["#events", t("Sự kiện")],
+              ["/phim", t("Phim đang chiếu")],
+              ["/sap-chieu", t("Sắp chiếu tháng sau")],
+              ["/dat-ve", t("Lịch chiếu & đặt vé")],
+              ["/rap", t("Rạp Cinema")],
+              ["/uu-dai", t("Ưu đãi & sự kiện")],
+              ["/bap-nuoc", t("Bắp nước & đồ ăn")],
+              ["/hoi-vien", "C’MEMBER"],
             ].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMenu(false)}>
                 {t(label)}
                 <ArrowUpRight size={16} />
               </a>
             ))}
+            {member?.role === "ADMIN" && (
+              <Link href="/quan-tri">
+                Quản trị rạp <Crown size={16} />
+              </Link>
+            )}
+            {["ADMIN", "STAFF"].includes(member?.role) && (
+              <Link href="/soat-ve">
+                Soát vé <ShieldCheck size={16} />
+              </Link>
+            )}
             <button onClick={jumpGroup}>
               {t("Xếp cụm nhóm")} <UsersRound size={16} />
             </button>
@@ -419,751 +463,402 @@ export default function App() {
           </nav>
         )}
       </header>
+      <nav className="nova-subnav" aria-label="Khám phá NOVA">
+        <div className="content-width">
+          {[
+            ["/phim", "Phim đang chiếu"],
+            ["/sap-chieu", "Sắp chiếu tháng sau"],
+            ["/dat-ve", "Lịch chiếu & đặt vé"],
+            ["/bap-nuoc", "Bắp nước & đồ ăn"],
+            ["/uu-dai", "Ưu đãi & sự kiện"],
+            ["/rap", "Rạp & trải nghiệm"],
+            ["/hoi-vien", "C’MEMBER"],
+          ].map(([href, label]) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={pathname === href ? "page" : undefined}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </nav>
       <main id="main-content" tabIndex={-1}>
-        <section
-          className={`hero hero-${hero.artId || hero.id}`}
-          aria-label="Phim nổi bật"
-        >
-          <div
-            key={hero.id}
-            className="hero-art"
-            style={{
-              backgroundImage: `url("${hero.localBackdrop || hero.backdrop || "/images/cinema-imax.jpg"}")`,
-            }}
-          />
-          <div className="hero-shade" />
-          <div className="hero-grain" />
-          <div className="hero-content content-width">
-            <div className="hero-copy" key={hero.id}>
-              <span className="hero-exclusive">
-                <span className="live-dot" />
-                NOVA EXCLUSIVE <span className="exclusive-divider" />{" "}
-                {t("TRẢI NGHIỆM ĐIỆN ẢNH ĐỈNH CAO")}{" "}
+        {view === "home" ? (
+          <>
+            <CinemaHero
+              movie={hero}
+              featured={featured}
+              active={slide}
+              onChange={setSlide}
+              onBook={bookMovie}
+              onMovie={openMovie}
+              onWelcome={() => setWelcomeOpen(true)}
+            />
+            <QuickBooking
+              key={wizardVersion}
+              cinemaId={resolvedCinemaId}
+              movieId={movieId}
+              dateId={dateId}
+              timeId={timeId}
+              onCinema={(v) => {
+                setCinemaId(v);
+                setMovieId("");
+                setDateId("");
+                setTimeId("");
+              }}
+              onMovie={(v) => {
+                setMovieId(v);
+                setDateId("");
+                setTimeId("");
+              }}
+              onDate={(v) => {
+                setDateId(v);
+                setTimeId("");
+              }}
+              onTime={setTimeId}
+              group={group}
+              onGroup={setGroup}
+              onSubmit={openSeats}
+              withCombo={withCombo}
+              onRemoveCombo={() => setWithCombo(false)}
+            />
+            <div className="experience-strip content-width">
+              <span>
+                <InfinityIcon size={23} />
+                <b>
+                  {t("Không chỉ xem phim.")} <br />
+                  <em>{t("Sống trong từng khung hình.")} </em>
+                </b>
               </span>
-              <p className="hero-kicker">
-                {hero.artId === "dune"
-                  ? "BEYOND THE ORDINARY."
-                  : hero.artId === "oppenheimer"
-                    ? "THE WORLD FOREVER CHANGES."
-                    : "RISE TOGETHER. FALL TOGETHER."}
-              </p>
-              <h1 className={hero.artId === "dune" ? "dune-title" : ""}>
-                {hero.short}
-              </h1>
-              <p className="hero-part">{hero.part}</p>
-              <div className="hero-meta">
-                <span className="format-badge">
-                  {hero.artId === "oppenheimer"
-                    ? "IMAX 70MM LASER"
-                    : "IMAX LASER"}
-                </span>
-                <span className="dolby-badge">▣ DOLBY ATMOS</span>
-                <span className="rating">
-                  <Star size={14} fill="currentColor" />
-                  {hero.rating}
-                  <small>/10</small>
-                </span>
-                <span className="age-badge">{hero.age}</span>
-                <span className="duration">
-                  <Clock3 size={14} />
-                  {hero.duration} {t("phút")}{" "}
-                </span>
-              </div>
-              <p className="hero-description">{t(hero.description)}</p>
-              <div className="hero-buttons">
-                <button
-                  className="button button-primary"
-                  disabled={!hero.id}
-                  onClick={() => bookMovie(hero)}
-                >
-                  <Ticket size={18} />
-                  {t("Đặt vé bây giờ")} <ArrowUpRight size={18} />
-                </button>
+              <span>
+                <i>IMAX</i>
+                <small>{t("MÀN ẢNH VÔ CỰC")} </small>
+              </span>
+              <span>
+                <i className="dolby-type">▣ Dolby Atmos</i>
+                <small>{t("ÂM THANH ĐA CHIỀU")} </small>
+              </span>
+              <span>
+                <ShieldCheck size={22} />
+                <b>
+                  {t("5 phút giữ ghế")}{" "}
+                  <small>{t("AN TÂM MỖI LỰA CHỌN")} </small>
+                </b>
+              </span>
+              <span>
+                <Ticket size={22} />
+                <b>
+                  {t("Vé điện tử QR")} <small>{t("CHẠM LÀ VÀO RẠP")} </small>
+                </b>
+              </span>
+            </div>
+            <Discovery
+              view="movies-home"
+              onMovie={openMovie}
+              onBook={bookMovie}
+            />
+            <ShowtimeTimeline
+              onBook={(value) => {
+                if (!member) {
+                  setModal("login");
+                  return;
+                }
+                setBooking(value);
+              }}
+            />
+            <Discovery view="offers-home" />
+            <Discovery
+              view="food-home"
+              onBooking={() => window.location.assign("/dat-ve")}
+            />
+            <section
+              id="membership"
+              className="membership-section content-width section-space"
+            >
+              <div className="membership-copy">
+                <p className="eyebrow">
+                  <span />
+                  THE INNER CIRCLE
+                </p>
+                <h2>
+                  {t("Điện ảnh là đam mê.")} <br />
+                  <em>{t("Đặc quyền là của bạn.")} </em>
+                </h2>
+                <p className="section-description">
+                  {t("Gia nhập C’MEMBER. Để mỗi lần đến rạp")} <br />
+                  {t("đều là một trải nghiệm xứng đáng hơn.")}{" "}
+                </p>
+                <div className="member-benefits">
+                  <span>
+                    <Crown size={18} />
+                    {t("Ưu đãi dành riêng")}{" "}
+                  </span>
+                  <span>
+                    <Sparkles size={18} />
+                    {t("Tích điểm mỗi vé")}{" "}
+                  </span>
+                  <span>
+                    <Ticket size={18} />
+                    {t("Lưu vé trong tài khoản")}{" "}
+                  </span>
+                </div>
                 <button
                   className="button button-glass"
-                  onClick={() => openMovie(hero, "trailer")}
+                  onClick={() => setModal(member ? "account" : "login")}
                 >
-                  <Play size={16} fill="currentColor" />
-                  Xem trailer 4K
+                  {member
+                    ? t("Khám phá tài khoản của bạn")
+                    : t("Trở thành C’MEMBER")}
+                  <ArrowUpRight size={17} />
                 </button>
               </div>
-              <p className="hero-tagline">{t(hero.tagline)}</p>
-              <div className="hero-shortcuts">
-                <a href="#movies">
-                  {language === "en"
-                    ? "Now showing"
-                    : "Phim hot tháng " +
-                      new Date().toLocaleDateString("vi-VN", {
-                        month: "2-digit",
-                        timeZone: "Asia/Ho_Chi_Minh",
-                      })}
-                  <ArrowRight size={13} />
-                </a>
-                <a href="#offers">
-                  Party Combo 69K
-                  <Popcorn size={13} />
-                </a>
-                <button onClick={jumpGroup}>
-                  {t("Xếp cụm nhóm")}
-                  <UsersRound size={13} />
-                </button>
-              </div>
-            </div>
-            <div className="hero-side-note">
-              <span>THE INFINITY EXPERIENCE</span>
-              <i />
-              <small>01 / IMAX LASER</small>
-            </div>
-          </div>
-          <div className="hero-bottom content-width">
-            <a href="#booking" className="scroll-label">
-              <ArrowDown size={16} /> {t("KHÁM PHÁ TRẢI NGHIỆM")}{" "}
-            </a>
-            <div className="carousel-controls">
-              <button
-                aria-label="Phim nổi bật trước"
-                className="icon-button"
-                onClick={() =>
-                  setSlide((slide + featured.length - 1) % featured.length)
-                }
-              >
-                <ChevronLeft size={17} />
-              </button>
-              <div className="carousel-pages">
-                {featured.map((m, i) => (
-                  <button
-                    className={i === slide ? "active" : ""}
-                    onClick={() => setSlide(i)}
-                    aria-label={`Xem banner ${t(m.title)}`}
-                    aria-current={i === slide ? "true" : undefined}
-                    key={m.id}
-                  >
-                    <span>0{i + 1}</span>
-                    <i />
-                  </button>
-                ))}
-              </div>
-              <button
-                aria-label="Phim nổi bật tiếp theo"
-                className="icon-button"
-                onClick={() => setSlide((slide + 1) % featured.length)}
-              >
-                <ChevronRight size={17} />
-              </button>
-            </div>
-          </div>
-        </section>
-        <DatVeNhanh
-          key={wizardVersion}
-          cinemaId={cinemaId}
-          movieId={movieId}
-          dateId={dateId}
-          timeId={timeId}
-          onCinema={(v) => {
-            setCinemaId(v);
-            setMovieId("");
-            setDateId("");
-            setTimeId("");
-          }}
-          onMovie={(v) => {
-            setMovieId(v);
-            setDateId("");
-            setTimeId("");
-          }}
-          onDate={(v) => {
-            setDateId(v);
-            setTimeId("");
-          }}
-          onTime={setTimeId}
-          group={group}
-          onGroup={setGroup}
-          onSubmit={openSeats}
-          withCombo={withCombo}
-          onRemoveCombo={() => setWithCombo(false)}
-        />
-        <div className="experience-strip content-width">
-          <span>
-            <InfinityIcon size={23} />
-            <b>
-              {t("Không chỉ xem phim.")} <br />
-              <em>{t("Sống trong từng khung hình.")} </em>
-            </b>
-          </span>
-          <span>
-            <i>IMAX</i>
-            <small>{t("MÀN ẢNH VÔ CỰC")} </small>
-          </span>
-          <span>
-            <i className="dolby-type">▣ Dolby Atmos</i>
-            <small>{t("ÂM THANH ĐA CHIỀU")} </small>
-          </span>
-          <span>
-            <ShieldCheck size={22} />
-            <b>
-              {t("5 phút giữ ghế")} <small>{t("AN TÂM MỖI LỰA CHỌN")} </small>
-            </b>
-          </span>
-          <span>
-            <Ticket size={22} />
-            <b>
-              {t("Vé điện tử QR")} <small>{t("CHẠM LÀ VÀO RẠP")} </small>
-            </b>
-          </span>
-        </div>
-        <section
-          id="movies"
-          className="movies-section content-width section-space"
-        >
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">
-                <span />
-                {t("SPOTLIGHT / TRÊN MÀN ẢNH LỚN")}{" "}
-              </p>
-              <h2>
-                {t("Câu chuyện tiếp theo")} <em>{t("của bạn.")} </em>
-              </h2>
-              <p className="section-description">
-                {t("Những thước phim đáng xem. Những cảm xúc đáng nhớ.")}{" "}
-              </p>
-            </div>
-            <button
-              className="text-button view-all"
-              onClick={() => setFilter("all")}
-            >
-              {t("Khám phá tất cả")} <ArrowUpRight size={18} />
-            </button>
-          </div>
-          <div className="movie-toolbar">
-            <div
-              className="movie-tabs"
-              role="tablist"
-              aria-label="Danh mục phim"
-            >
-              {[
-                ["now", t("Đang chiếu")],
-                ["soon", t("Sắp chiếu")],
-                ["special", t("Suất chiếu đặc biệt")],
-                ["all", t("Tất cả phim")],
-              ].map(([id, label]) => (
-                <button
-                  key={id}
-                  role="tab"
-                  aria-selected={filter === id}
-                  className={filter === id ? "active" : ""}
-                  onClick={() => setFilter(id)}
-                >
-                  {label}
-                  {filter === id && <span>{visibleMovies.length}</span>}
-                </button>
-              ))}
-            </div>
-            <span className="movie-curated">
-              <Sparkles size={13} />
-              NOVA CURATED
-            </span>
-          </div>
-          <div className="movie-grid">
-            {visibleMovies.map((m, index) => (
-              <motion.article
-                className="movie-card"
-                key={m.id}
-                initial={false}
-                whileInView={
-                  reducedMotion ? undefined : { y: [16, 0], opacity: [0.8, 1] }
-                }
-                viewport={{ once: true, amount: 0.15 }}
-                transition={{ duration: 0.5, delay: index * 0.055 }}
-              >
-                <PosterNghieng3D>
-                  <MoviePoster movie={m} />
-                  <span className="poster-age">{m.age}</span>
-                  <span className="poster-rating">
-                    <Star size={13} fill="currentColor" />
-                    {m.rating}
-                  </span>
-
-                  <div className="poster-overlay">
-                    <button
-                      className="poster-play"
-                      aria-label={`Xem trailer ${t(m.title)}`}
-                      onClick={() => openMovie(m, "trailer")}
-                    >
-                      <Play size={18} fill="currentColor" />
-                      <span>{t("Xem Trailer")}</span>
-                    </button>
-                    <div>
-                      <p>
-                        {t("ĐẠO DIỄN")} <span>{m.director}</span>
-                      </p>
-                      <p>
-                        {t("DIỄN VIÊN")} <span>{m.cast}</span>
-                      </p>
-                      <button
-                        className="button button-primary"
-                        onClick={() => bookMovie(m)}
-                        disabled={m.status === "soon"}
-                      >
-                        <Ticket size={15} />
-                        {t("Đặt Vé")}{" "}
-                      </button>
-                      <button
-                        className="poster-detail"
-                        onClick={() => openMovie(m)}
-                      >
-                        {t("Thông tin phim")} <ArrowRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </PosterNghieng3D>
-                <div className="movie-card-meta">
-                  <span>{t(m.genre)}</span>
-                  <b>
-                    <Star size={12} fill="currentColor" />
-                    {m.rating}
-                  </b>
+              <div className="membership-card">
+                <div className="card-metal-line" />
+                <div className="member-card-top">
+                  <InfinityIcon size={31} />
+                  <span>C’MEMBER</span>
                 </div>
-                <button className="movie-title" onClick={() => openMovie(m)}>
-                  {t(m.title)}
-                </button>
-                <p className="movie-duration">
-                  <Clock3 size={12} />
-                  {m.duration} {t("phút")} <span>·</span>
-                  {m.year}
-                  <button
-                    onClick={() => bookMovie(m)}
-                    disabled={m.status === "soon"}
-                    aria-label={`Đặt vé ${t(m.title)}`}
-                  >
-                    <ArrowUpRight size={16} />
-                  </button>
+                <p>
+                  YOUR PASS TO
+                  <br />
+                  <strong>INFINITY.</strong>
                 </p>
-              </motion.article>
-            ))}
-          </div>
-          <div className="movie-note">
-            <span className="live-dot" />
-            <p>
-              {t(
-                "Lịch chiếu và dữ liệu phim minh họa cho trải nghiệm NOVA Cinema.",
-              )}{" "}
-            </p>
-            <span className="age-guide">
-              {t("Phân loại: P · K · T13 · T16 · T18")}{" "}
-            </span>
-          </div>
-        </section>
-        <LichChieuPhim
-          onBook={(value) => {
-            if (!member) {
-              setModal("login");
-              return;
-            }
-            setBooking(value);
-          }}
-        />
-        <section id="offers" className="offers-section content-width">
-          <div className="combo-offer">
-            <div className="combo-copy">
-              <p className="eyebrow">
-                <span />
-                THE PERFECT MOVIE PAIRING
-              </p>
-              <div className="offer-flash">
-                <Sparkles size={13} />
-                FLASH SALE · PARTY COMBO 69K
+                <div className="member-card-bottom">
+                  <span>
+                    {member?.name?.toUpperCase() || "NOVA CINEMA"}
+                    <small>INFINITY EXPERIENCE</small>
+                  </span>
+                  <Crown size={30} strokeWidth={1} />
+                </div>
+                <div className="card-orbit" />
               </div>
-              <h2>
-                {language === "en" ? "Great films." : "Phim hay."}
-                <br />
-                {language === "en" ? "Great company." : "Combo trọn vị."}
-              </h2>
-              <p>
-                {t("Một bắp lớn, hai ly mát lạnh.")} <br />
-                {t("Đủ vị cho một buổi hẹn hoàn hảo.")}{" "}
-              </p>
-              <div className="offer-price">
-                <strong>
-                  69<span>K</span>
-                </strong>
+            </section>
+            <section
+              id="cinemas"
+              className="cinemas-section content-width section-space"
+            >
+              <div className="section-heading">
                 <div>
-                  <del>{t("109.000đ")} </del>
-                  <span>{t("CHO CẢ COMBO")} </span>
+                  <p className="eyebrow">
+                    <span />
+                    FIND YOUR NEXT DESTINATION
+                  </p>
+                  <h2>
+                    {t("Màn ảnh lớn.")} <em>{t("Ngay gần bạn.")} </em>
+                  </h2>
                 </div>
+                <label className="city-select">
+                  <MapPin size={16} />
+                  <select
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    aria-label="Lọc rạp theo thành phố"
+                  >
+                    {["Tất cả", "TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng"].map(
+                      (c) => (
+                        <option key={c} value={c}>
+                          {t(c)}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                  <ChevronDown size={14} />
+                </label>
               </div>
-              <button
-                className="button button-primary"
-                onClick={() => bookMovie(hero, true)}
-              >
-                <Popcorn size={17} />
-                {t("Thêm combo vào vé")} <ArrowUpRight size={17} />
-              </button>
-              <small className="offer-fineprint">
-                {t(
-                  "Giá combo minh họa · Áp dụng khi đặt cùng vé xem phim",
-                )}{" "}
-              </small>
-            </div>
-            <div
-              className="combo-visual"
-              aria-label="Bắp rang và nước ngọt NOVA"
-            >
-              <div className="combo-orbit orbit-one" />
-              <div className="combo-orbit orbit-two" />
-              <span className="combo-stamp">
-                BEST
-                <br />
-                <b>PAIRING</b>
-                <Sparkles size={16} />
-              </span>
-              <div className="drink drink-one">
-                <div className="drink-straw" />
-                <div className="drink-lid" />
-                <InfinityIcon size={30} />
-                <b>NOVA</b>
-                <small>CINEMA</small>
-              </div>
-              <div className="drink drink-two">
-                <div className="drink-straw" />
-                <div className="drink-lid" />
-                <InfinityIcon size={30} />
-                <b>NOVA</b>
-                <small>CINEMA</small>
-              </div>
-              <div className="popcorn-bucket">
-                <div className="popcorn-top">
-                  {Array.from({ length: 26 }, (_, i) => (
-                    <i
-                      key={i}
-                      style={{
-                        left: `${(i * 29) % 94}%`,
-                        top: `${(i * 17) % 58}%`,
-                        transform: `rotate(${i * 37}deg)`,
-                      }}
-                    />
+              <div className="cinema-grid">
+                {cinemas
+                  .filter((c) => city === "Tất cả" || c.city === city)
+                  .map((c, i) => (
+                    <article className="cinema-card" key={c.id}>
+                      <div className={`cinema-graphic cinema-graphic-${i % 3}`}>
+                        <img
+                          className="cinema-photo"
+                          src={
+                            [
+                              "/images/cinema-imax.jpg",
+                              "/images/cinema-auditorium.jpg",
+                              "/images/cinema-lobby.jpg",
+                              "/images/cinema-auditorium.jpg",
+                            ][i]
+                          }
+                          alt={
+                            language === "en"
+                              ? "Illustrative cinema interior"
+                              : "Ảnh minh họa không gian rạp chiếu"
+                          }
+                          width="1000"
+                          height="600"
+                          loading="lazy"
+                        />
+                        <span>{c.city}</span>
+                        <span className="cinema-graphic-label">
+                          {language === "en"
+                            ? "ILLUSTRATIVE CINEMA INTERIOR"
+                            : "KHÔNG GIAN RẠP THAM KHẢO"}
+                        </span>
+                      </div>
+                      <div className="cinema-info">
+                        <h3>{c.name}</h3>
+                        <p>
+                          <MapPin size={13} />
+                          {c.address}
+                        </p>
+                        <span>{c.formats}</span>
+                        <button
+                          className="text-button"
+                          onClick={() => {
+                            setCinemaId(c.id);
+                            setMovieId("");
+                            setDateId("");
+                            setTimeId("");
+                            document.getElementById("booking").scrollIntoView({
+                              behavior: "smooth",
+                              block: "center",
+                            });
+                          }}
+                        >
+                          {t("Xem lịch chiếu")} <ArrowUpRight size={17} />
+                        </button>
+                      </div>
+                    </article>
                   ))}
-                </div>
-                <div className="bucket-body">
-                  <InfinityIcon size={48} />
-                  <strong>NOVA</strong>
-                  <small>CINEMA</small>
-                </div>
               </div>
-              <span className="combo-visual-caption"></span>
-            </div>
-          </div>
-          <div className="group-offer">
-            <div className="group-offer-glow" />
-            <UsersRound size={34} strokeWidth={1.2} />
-            <span className="eyebrow">BETTER TOGETHER</span>
-            <h3>
-              {language === "en" ? "Together." : "Đi cùng."}
-              <br />
-              {language === "en" ? "Better." : "Vui cùng."}
-            </h3>
-            <p>
-              {t("Cùng một hàng ghế.")} <br />
-              {t("Cùng một thế giới điện ảnh.")}{" "}
-            </p>
-            <div className="group-avatar-stack">
-              {["P", "H", "M", "N"].map((l, i) => (
-                <span
-                  key={l}
-                  style={{
-                    background: ["#71574b", "#555f53", "#546573", "#806257"][i],
-                  }}
-                >
-                  {l}
-                </span>
-              ))}
-              <span>+16</span>
-            </div>
-            <span className="group-max">
-              {t("Xếp cụm tối đa 20 ghế liền nhau")}{" "}
-            </span>
-            <button className="button button-glass" onClick={jumpGroup}>
-              {t("Đặt vé cho cả nhóm")} <ArrowUpRight size={17} />
-            </button>
-          </div>
-        </section>
-        <section
-          id="membership"
-          className="membership-section content-width section-space"
-        >
-          <div className="membership-copy">
-            <p className="eyebrow">
-              <span />
-              THE INNER CIRCLE
-            </p>
-            <h2>
-              {t("Điện ảnh là đam mê.")} <br />
-              <em>{t("Đặc quyền là của bạn.")} </em>
-            </h2>
-            <p className="section-description">
-              {t("Gia nhập C’MEMBER. Để mỗi lần đến rạp")} <br />
-              {t("đều là một trải nghiệm xứng đáng hơn.")}{" "}
-            </p>
-            <div className="member-benefits">
-              <span>
-                <Crown size={18} />
-                {t("Ưu đãi dành riêng")}{" "}
-              </span>
-              <span>
-                <Sparkles size={18} />
-                {t("Tích điểm mỗi vé")}{" "}
-              </span>
-              <span>
-                <Ticket size={18} />
-                {t("Lưu vé trong tài khoản")}{" "}
-              </span>
-            </div>
-            <button
-              className="button button-glass"
-              onClick={() => setModal(member ? "account" : "login")}
-            >
-              {member
-                ? t("Khám phá tài khoản của bạn")
-                : t("Trở thành C’MEMBER")}
-              <ArrowUpRight size={17} />
-            </button>
-          </div>
-          <div className="membership-card">
-            <div className="card-metal-line" />
-            <div className="member-card-top">
-              <InfinityIcon size={31} />
-              <span>C’MEMBER</span>
-            </div>
-            <p>
-              YOUR PASS TO
-              <br />
-              <strong>INFINITY.</strong>
-            </p>
-            <div className="member-card-bottom">
-              <span>
-                {member?.name?.toUpperCase() || "NOVA CINEMA"}
-                <small>INFINITY EXPERIENCE</small>
-              </span>
-              <Crown size={30} strokeWidth={1} />
-            </div>
-            <div className="card-orbit" />
-          </div>
-        </section>
-        <section
-          id="cinemas"
-          className="cinemas-section content-width section-space"
-        >
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">
-                <span />
-                FIND YOUR NEXT DESTINATION
-              </p>
-              <h2>
-                {t("Màn ảnh lớn.")} <em>{t("Ngay gần bạn.")} </em>
-              </h2>
-            </div>
-            <label className="city-select">
-              <MapPin size={16} />
-              <select
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                aria-label="Lọc rạp theo thành phố"
-              >
-                {["Tất cả", "TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng"].map((c) => (
-                  <option key={c} value={c}>
-                    {t(c)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} />
-            </label>
-          </div>
-          <div className="cinema-grid">
-            {cinemas
-              .filter((c) => city === "Tất cả" || c.city === city)
-              .map((c, i) => (
-                <article className="cinema-card" key={c.id}>
-                  <div className={`cinema-graphic cinema-graphic-${i % 3}`}>
-                    <img
-                      className="cinema-photo"
-                      src={
-                        [
-                          "/images/cinema-imax.jpg",
-                          "/images/cinema-auditorium.jpg",
-                          "/images/cinema-lobby.jpg",
-                          "/images/cinema-auditorium.jpg",
-                        ][i]
-                      }
-                      alt={
-                        language === "en"
-                          ? "Illustrative cinema interior"
-                          : "Ảnh minh họa không gian rạp chiếu"
-                      }
-                      width="1000"
-                      height="600"
-                      loading="lazy"
-                    />
-                    <span>{c.city}</span>
-                    <span className="cinema-graphic-label">
-                      {language === "en"
-                        ? "ILLUSTRATIVE CINEMA INTERIOR"
-                        : "KHÔNG GIAN RẠP THAM KHẢO"}
+            </section>
+            {eventMovie && (
+              <section id="events" className="events-section content-width">
+                <div>
+                  <p className="eyebrow">
+                    <span />
+                    NOVA SPECIAL SCREENINGS
+                  </p>
+                  <h2>
+                    {language === "en" ? "Special films." : "Suất đặc biệt."}
+                    <br />
+                    {language === "en" ? "Worth returning." : "Đáng trở lại."}
+                  </h2>
+                </div>
+                <article className="event-card">
+                  <img
+                    src={eventMovie.localBackdrop || eventMovie.backdrop}
+                    alt="Oppenheimer suất chiếu đặc biệt"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.opacity = 0;
+                    }}
+                  />
+                  <div className="event-content">
+                    <span className="format-badge">
+                      70MM SPECIAL RE-RELEASE
                     </span>
-                  </div>
-                  <div className="cinema-info">
-                    <h3>{c.name}</h3>
+                    <h3>
+                      Oppenheimer.
+                      <br />
+                      {t("Trở lại, hoành tráng hơn.")}{" "}
+                    </h3>
                     <p>
-                      <MapPin size={13} />
-                      {c.address}
+                      {t(
+                        "Kiệt tác của Christopher Nolan trên màn ảnh IMAX.",
+                      )}{" "}
                     </p>
-                    <span>{c.formats}</span>
                     <button
                       className="text-button"
-                      onClick={() => {
-                        setCinemaId(c.id);
-                        setMovieId("");
-                        setDateId("");
-                        setTimeId("");
-                        document.getElementById("booking").scrollIntoView({
-                          behavior: "smooth",
-                          block: "center",
-                        });
-                      }}
+                      onClick={() => bookMovie(eventMovie)}
                     >
-                      {t("Xem lịch chiếu")} <ArrowUpRight size={17} />
+                      {t("Khám phá suất chiếu")} <ArrowUpRight size={17} />
                     </button>
                   </div>
                 </article>
-              ))}
-          </div>
-        </section>
-        {eventMovie && (
-          <section id="events" className="events-section content-width">
-            <div>
-              <p className="eyebrow">
-                <span />
-                NOVA SPECIAL SCREENINGS
-              </p>
-              <h2>
-                {language === "en" ? "Special films." : "Suất đặc biệt."}
-                <br />
-                {language === "en" ? "Worth returning." : "Đáng trở lại."}
-              </h2>
-            </div>
-            <article className="event-card">
-              <img
-                src={eventMovie.localBackdrop || eventMovie.backdrop}
-                alt="Oppenheimer suất chiếu đặc biệt"
-                loading="lazy"
-                onError={(e) => {
-                  e.currentTarget.style.opacity = 0;
+              </section>
+            )}
+            <section className="app-banner content-width">
+              <div className="app-symbol">
+                <Smartphone size={29} />
+                <InfinityIcon size={18} />
+              </div>
+              <div>
+                <h3>{t("Cả rạp phim, trong tầm tay.")} </h3>
+                <p>
+                  {t(
+                    "NOVA đồng hành trên mọi màn hình. Đặt vé trực tiếp từ trình duyệt điện thoại.",
+                  )}{" "}
+                </p>
+              </div>
+              <button
+                className="button button-glass"
+                onClick={() => setModal("app")}
+              >
+                {t("Khám phá NOVA Mobile")} <ArrowUpRight size={16} />
+              </button>
+            </section>
+          </>
+        ) : (
+          <PortalPage
+            view={view}
+            member={member}
+            onMember={(next) => {
+              setMember(next);
+            }}
+            onLogout={async () => {
+              try {
+                await apiLogout();
+                setMember(null);
+              } catch (err) {
+                setSessionError(err.message);
+              }
+            }}
+            onMovie={openMovie}
+            onBook={bookMovie}
+            onResume={setBooking}
+            bookingWidget={
+              <QuickBooking
+                key={wizardVersion}
+                cinemaId={resolvedCinemaId}
+                movieId={movieId}
+                dateId={dateId}
+                timeId={timeId}
+                onCinema={(v) => {
+                  setCinemaId(v);
+                  setMovieId("");
+                  setDateId("");
+                  setTimeId("");
+                }}
+                onMovie={(v) => {
+                  setMovieId(v);
+                  setDateId("");
+                  setTimeId("");
+                }}
+                onDate={(v) => {
+                  setDateId(v);
+                  setTimeId("");
+                }}
+                onTime={setTimeId}
+                group={group}
+                onGroup={setGroup}
+                onSubmit={openSeats}
+                withCombo={withCombo}
+                onRemoveCombo={() => setWithCombo(false)}
+              />
+            }
+            timeline={
+              <ShowtimeTimeline
+                onBook={(value) => {
+                  if (!member) {
+                    setModal("login");
+                    return;
+                  }
+                  setBooking(value);
                 }}
               />
-              <div className="event-content">
-                <span className="format-badge">70MM SPECIAL RE-RELEASE</span>
-                <h3>
-                  Oppenheimer.
-                  <br />
-                  {t("Trở lại, hoành tráng hơn.")}{" "}
-                </h3>
-                <p>{t("Kiệt tác của Christopher Nolan trên màn ảnh IMAX.")} </p>
-                <button
-                  className="text-button"
-                  onClick={() => bookMovie(eventMovie)}
-                >
-                  {t("Khám phá suất chiếu")} <ArrowUpRight size={17} />
-                </button>
-              </div>
-            </article>
-          </section>
+            }
+          />
         )}
-        <section className="app-banner content-width">
-          <div className="app-symbol">
-            <Smartphone size={29} />
-            <InfinityIcon size={18} />
-          </div>
-          <div>
-            <h3>{t("Cả rạp phim, trong tầm tay.")} </h3>
-            <p>
-              {t(
-                "NOVA đồng hành trên mọi màn hình. Đặt vé trực tiếp từ trình duyệt điện thoại.",
-              )}{" "}
-            </p>
-          </div>
-          <button
-            className="button button-glass"
-            onClick={() => setModal("app")}
-          >
-            {t("Khám phá NOVA Mobile")} <ArrowUpRight size={16} />
-          </button>
-        </section>
       </main>
-      <footer className="site-footer">
-        <div className="content-width">
-          <div className="footer-main">
-            <div className="footer-brand">
-              <Brand />
-              <p>
-                {t("Không giới hạn cảm xúc.")} <br />
-                {t("Không giới hạn trải nghiệm.")}{" "}
-              </p>
-              <span>INFINITY EXPERIENCE.</span>
-            </div>
-            <div>
-              <h4>{t("KHÁM PHÁ NOVA")} </h4>
-              <a href="#movies">{t("Phim & lịch chiếu")} </a>
-              <a href="#cinemas">{t("Hệ thống rạp")} </a>
-              <a href="#offers">{t("Ưu đãi & bắp nước")} </a>
-              <a href="#membership">{t("Thành viên C’MEMBER")} </a>
-            </div>
-            <div>
-              <h4>{t("ĐỒNG HÀNH CÙNG BẠN")} </h4>
-              <button onClick={() => setModal("help")}>
-                {t("Hướng dẫn đặt vé")}{" "}
-              </button>
-              <button onClick={() => setModal("policy")}>
-                {t("Điều khoản & chính sách")}{" "}
-              </button>
-              <button onClick={() => setModal("history")}>
-                {t("Tra cứu vé đã đặt")}{" "}
-              </button>
-              <span className="footer-contact">
-                {t("NOVA Cinema · Đồ án Nhóm 03")}{" "}
-              </span>
-            </div>
-            <div className="footer-payment">
-              <h4>{t("THANH TOÁN SANDBOX")} </h4>
-              <div>
-                <b>VISA</b>
-                <b>Mastercard</b>
-                <b>MoMo</b>
-                <b>ZaloPay</b>
-              </div>
-              <p>
-                <ShieldCheck size={16} />
-                {t("Giao dịch mô phỏng, không thu tiền thật.")}{" "}
-              </p>
-              <span className="footer-project-label">
-                {t("DỰ ÁN HỌC PHẦN / HCMUE")}{" "}
-              </span>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>
-              © {new Date().getFullYear()} NOVA Cinema. Crafted for the big
-              screen.
-            </p>
-            <span>
-              {t(
-                "Dữ liệu rạp, giá vé và quyền lợi được dùng để minh họa.",
-              )}{" "}
-            </span>
-            <a href="#top">
-              {t("VỀ ĐẦU TRANG")} <ArrowUpRight size={13} />
-            </a>
-          </div>
-        </div>
-      </footer>
+      <CinemaFooter />
+      {welcomeOpen && view === "home" && !booking && !modal && (
+        <WelcomeOffer onClose={() => setWelcomeOpen(false)} />
+      )}
       {booking && (
         <ChonGhe_Va_ThanhToan
           key={[
@@ -1302,7 +997,7 @@ export default function App() {
                 <div style={{ margin: "14px 0" }}>
                   <button
                     className="button button-primary w-full"
-                    onClick={() => setModal("admin")}
+                    onClick={() => window.location.assign("/quan-tri")}
                     style={{
                       background: "linear-gradient(135deg, #d97706, #b45309)",
                       color: "#fff",
@@ -1389,14 +1084,23 @@ export default function App() {
                       <strong>4.9</strong>
                       <div className="stars-row">
                         {[1, 2, 3, 4, 5].map((i) => (
-                          <Star key={i} size={15} fill="#f59e0b" color="#f59e0b" />
+                          <Star
+                            key={i}
+                            size={15}
+                            fill="#f59e0b"
+                            color="#f59e0b"
+                          />
                         ))}
                       </div>
                       <small>1.420 lượt đánh giá</small>
                     </div>
                     <div className="rating-metrics">
-                      <div className="metric-badge">👍 98% Khán giả khuyên xem</div>
-                      <div className="metric-badge">🏆 Đánh giá cao nhất tuần</div>
+                      <div className="metric-badge">
+                        👍 98% Khán giả khuyên xem
+                      </div>
+                      <div className="metric-badge">
+                        🏆 Đánh giá cao nhất tuần
+                      </div>
                     </div>
                   </div>
 
@@ -1416,12 +1120,22 @@ export default function App() {
                         >
                           <Star
                             size={20}
-                            fill={(hoverRating || userRating) >= star ? "#f59e0b" : "none"}
-                            color={(hoverRating || userRating) >= star ? "#f59e0b" : "#64748b"}
+                            fill={
+                              (hoverRating || userRating) >= star
+                                ? "#f59e0b"
+                                : "none"
+                            }
+                            color={
+                              (hoverRating || userRating) >= star
+                                ? "#f59e0b"
+                                : "#64748b"
+                            }
                           />
                         </button>
                       ))}
-                      <span className="rating-score-label">{userRating} / 5 sao</span>
+                      <span className="rating-score-label">
+                        {userRating} / 5 sao
+                      </span>
                     </div>
 
                     {!reviewSubmitted ? (
@@ -1444,7 +1158,10 @@ export default function App() {
                     ) : (
                       <div className="review-thank-you">
                         <CheckCircle2 size={16} color="#22c55e" />
-                        <span>Cảm ơn bạn! Đánh giá ({userRating} sao: &ldquo;{userReview}&rdquo;) của bạn đã được ghi nhận.</span>
+                        <span>
+                          Cảm ơn bạn! Đánh giá ({userRating} sao: &ldquo;
+                          {userReview}&rdquo;) của bạn đã được ghi nhận.
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1457,14 +1174,20 @@ export default function App() {
                         <b>Nguyễn Hoàng Nam</b>
                         <span className="stars-mini">⭐⭐⭐⭐⭐</span>
                       </div>
-                      <p>Kỹ xảo IMAX Laser mãn nhãn, âm thanh Dolby Atmos tái hiện từng rung chuyển sống động đến choáng ngợp!</p>
+                      <p>
+                        Kỹ xảo IMAX Laser mãn nhãn, âm thanh Dolby Atmos tái
+                        hiện từng rung chuyển sống động đến choáng ngợp!
+                      </p>
                     </div>
                     <div className="review-bubble">
                       <div className="bubble-head">
                         <b>Trần Thu Thảo</b>
                         <span className="stars-mini">⭐⭐⭐⭐⭐</span>
                       </div>
-                      <p>Kịch bản chặt chẽ, diễn xuất cuốn hút từng phút. Rạp Nova phục vụ rất chu đáo và bắp rang rất ngon.</p>
+                      <p>
+                        Kịch bản chặt chẽ, diễn xuất cuốn hút từng phút. Rạp
+                        Nova phục vụ rất chu đáo và bắp rang rất ngon.
+                      </p>
                     </div>
                   </div>
                 </div>

@@ -99,7 +99,9 @@ async function proxy(request, context) {
         { message: "Vui lòng đăng nhập lại." },
         { status: 401 },
       );
-      clear(response);
+      // A guest refresh can finish after a concurrent login. With no refresh
+      // cookie in that request, do not erase the newly established session.
+      if (endpoint === "/auth/logout") clear(response);
       return response;
     }
     body = JSON.stringify({ refreshToken });

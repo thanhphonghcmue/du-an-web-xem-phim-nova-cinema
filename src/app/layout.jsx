@@ -22,6 +22,8 @@
  */
 
 import "../styles.css";
+import "../cinema.css";
+import "../premiere.css";
 import "@fontsource/plus-jakarta-sans/latin-400.css";
 import "@fontsource/plus-jakarta-sans/latin-500.css";
 import "@fontsource/plus-jakarta-sans/latin-600.css";

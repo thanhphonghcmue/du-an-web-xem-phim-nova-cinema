@@ -94,7 +94,7 @@ export class PaymentsController {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
         "Content-Security-Policy":
-          "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+          "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
       })
       .type("html")
       .send(sandboxPage(dto, state.canPay, state.bookingStatus));
@@ -119,7 +119,7 @@ export class PaymentsController {
         "Cache-Control": "no-store",
         "Referrer-Policy": "no-referrer",
         "Content-Security-Policy":
-          "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+          "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
       })
       .type("html")
       .send(sandboxResult(dto.returnUrl, state.bookingStatus));

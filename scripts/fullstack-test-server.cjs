@@ -145,6 +145,44 @@ async function main() {
       baseTicketPrice: "90000.00",
     },
   });
+  // Separate owned room with four day-parts for schedule-filter acceptance.
+  const programmeRoom = await prisma.room.create({
+    data: {
+      cinemaId: cinema.id,
+      name: "NOVA Laser Test 02",
+      roomType: "STANDARD_2D",
+      totalSeats: 20,
+    },
+  });
+  await prisma.seat.createMany({
+    data: Array.from({ length: 20 }, (_, index) => ({
+      roomId: programmeRoom.id,
+      seatRow: "A",
+      seatColumn: index + 1,
+      seatType: "STANDARD",
+      priceModifier: "1.00",
+    })),
+  });
+  const localDate = new Date(Date.now() + 7 * 3600000 + 86400000)
+    .toISOString()
+    .slice(0, 10);
+  const programmeShowtimes = [];
+  for (const hour of [9, 13, 18, 22]) {
+    const start = new Date(
+      `${localDate}T${String(hour).padStart(2, "0")}:00:00+07:00`,
+    );
+    programmeShowtimes.push(
+      await prisma.showtime.create({
+        data: {
+          movieId: movie.id,
+          roomId: programmeRoom.id,
+          startTime: start,
+          endTime: new Date(start.getTime() + 135 * 60000),
+          baseTicketPrice: "90000.00",
+        },
+      }),
+    );
+  }
   const combo = await prisma.combo.create({
     data: {
       name: prefix + " Party Combo",
@@ -167,6 +205,8 @@ async function main() {
       room,
       movie,
       showtime,
+      programmeRoom,
+      programmeShowtimes,
       combo,
     }),
     { mode: 0o600 },

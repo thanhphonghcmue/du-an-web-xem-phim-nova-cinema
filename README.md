@@ -43,6 +43,30 @@ in trong terminal, mặc định cổng **3000**; backend cổng **4000**. Nhấ
 hai ứng dụng. Docker giữ dữ liệu cho lần chạy tiếp theo. Dừng container bằng các
 lệnh `infra:down` / `mail:down` trong `backend/` khi cần; không xóa volumes.
 
+Giao diện Discovery có các trang riêng `/phim`, `/sap-chieu`, `/uu-dai`, `/bap-nuoc`,
+`/rap`, `/hoi-vien`, `/dang-nhap`, `/tai-khoan`, `/dat-ve`, `/quan-tri` và `/soat-ve`.
+Các trang `/gioi-thieu`, `/ho-tro`, `/huong-dan`, `/chinh-sach`, `/lien-he` và
+`/thanh-toan` nối đầy đủ các liên kết cuối trang. Trang chủ mở bằng ưu đãi NOVA
+có thể đóng/ẩn trong ngày, sau đó là hero Inception với ảnh concept riêng.
+
+Seed bổ sung chuẩn bị **24 phim (16 đang chiếu/tuyển chọn, 8 sắp tái chiếu), 16 món/combo**,
+ít nhất **8 phòng mỗi rạp mẫu** và lịch **7 ngày theo giờ Việt Nam**. Lịch có buổi sáng,
+chiều, tối và suất muộn; có bộ lọc phòng/buổi và thanh chọn rạp → phim → ngày → giờ/phòng.
+Các ngày sắp chiếu là chương trình tái chiếu dự kiến tháng sau, không phải ngày phát hành chính thức.
+Với máy đã setup trước đó, chạy trong `backend/`:
+
+```bash
+npm run db:seed:discovery
+npm run db:seed:programme
+```
+
+Các lệnh chỉ thêm dữ liệu còn thiếu, không ghi đè nội dung admin hoặc dịch chuyển suất đã có.
+Lệnh programme bổ sung lịch cho các phòng riêng do nó tạo, tránh chồng lịch, và có thể
+chạy lại để bổ sung những ngày mới. Không chạy seed demo trong production.
+Bắp nước chọn ở cửa hàng được giữ trong phiên trình duyệt và chuyển vào bước chọn ghế;
+chỉ xác nhận đơn, giá và thời hạn qua backend. Xem [ghi chú Discovery](docs/design/discovery-upgrade.md)
+và [đợt nâng cấp trang mở màn & lịch chiếu](docs/design/premiere-upgrade.md).
+
 Bạn có thể **đăng ký tài khoản mới ngay trên giao diện**, mật khẩu 12–128 ký tự.
 Tài khoản mới có vai trò CUSTOMER, hạng SILVER, 0 điểm. Không có mật khẩu mẫu
 được công khai hoặc nút tự gán vai trò. Seed có admin@nova.local, staff@nova.local,
@@ -62,8 +86,8 @@ npm run dev:full
 
 Nếu sửa backend, chạy `npm run build` trong `backend/` trước khi khởi động lại
 `dev:full`, hoặc chạy `npm run start:dev` riêng tại đó. Nếu sửa frontend, Next.js
-cập nhật tự động. Seed mặc định tạo lịch từ ngày mai; khi lịch đã cũ, tạo suất mới
-trong trang quản trị. Seed không di chuyển lịch đã tồn tại để bảo toàn lịch sử.
+cập nhật tự động. Khi lịch đã cũ, chạy lại `db:seed:programme` trong `backend/` hoặc
+tạo suất mới trong quản trị. Seed không di chuyển lịch đã tồn tại để bảo toàn lịch sử.
 
 ## Cách thử đặt vé
 

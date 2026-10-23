@@ -30,6 +30,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CatalogContext, dayKey, timeLabel } from "../catalog.js";
+import discovery from "../../content/cinema.json";
 import { movies as artwork, cinemas as defaultCinemas } from "../data.js";
 import {
   apiGetMovies,
@@ -39,26 +40,6 @@ import {
 } from "../api/client.js";
 
 function getInitialCatalog() {
-  const fallbackRooms = defaultCinemas.flatMap((c) => [
-    { id: `${c.id}-r1`, cinemaId: c.id, name: "Cinema 1 (Laser)", roomType: "STANDARD_2D" },
-    { id: `${c.id}-r2`, cinemaId: c.id, name: "IMAX Laser", roomType: "IMAX_70MM_LASER" },
-  ]);
-  const fallbackShowtimes = defaultCinemas.flatMap((c) =>
-    artwork.slice(0, 4).flatMap((m, mi) =>
-      [0, 1, 2, 3].map((dayOffset) => {
-        const date = new Date(Date.now() + dayOffset * 86400000);
-        date.setHours(10 + mi * 3, 30, 0, 0);
-        return {
-          id: `st-${c.id}-${m.id}-${dayOffset}`,
-          movieId: m.id,
-          roomId: `${c.id}-r1`,
-          startTime: date.toISOString(),
-          endTime: new Date(date.getTime() + 120 * 60000).toISOString(),
-          baseTicketPrice: "90000.00",
-        };
-      }),
-    ),
-  );
   return {
     movies: artwork.map((m) => ({
       ...m,
@@ -72,13 +53,14 @@ function getInitialCatalog() {
       formats: c.formats || "IMAX Laser · 2D Laser",
       movies: artwork.map((m) => m.id),
     })),
-    rooms: fallbackRooms,
-    showtimes: fallbackShowtimes,
-    combos: [
-      { id: "combo-1", name: "Solo Combo 69K", description: "1 bắp + 1 nước", price: "69000.00", isActive: true },
-      { id: "combo-2", name: "Duo Combo 99K", description: "1 bắp lớn + 2 nước", price: "99000.00", isActive: true },
-      { id: "combo-3", name: "Party Combo 199K", description: "2 bắp lớn + 4 nước + snack", price: "199000.00", isActive: true },
-    ],
+    rooms: [],
+    showtimes: [],
+    combos: discovery.menu.map((item) => ({
+      ...item,
+      id: item.key,
+      isActive: true,
+    })),
+    isLive: false,
   };
 }
 
@@ -147,6 +129,7 @@ export default function CatalogProvider({ children }) {
         ],
       }));
       setData({
+        isLive: true,
         movies,
         cinemas,
         rooms,
@@ -154,9 +137,13 @@ export default function CatalogProvider({ children }) {
         combos: combos.filter((c) => c.isActive),
       });
       setError("");
-    } catch {
-      setData((prev) => prev || getInitialCatalog());
-      setError("");
+    } catch (cause) {
+      setData((prev) => ({
+        ...(prev || getInitialCatalog()),
+        isLive: false,
+        showtimes: [],
+      }));
+      setError(cause.message || "Đặt vé đang tạm gián đoạn.");
     }
   }, []);
   useEffect(() => {
@@ -216,6 +203,8 @@ export default function CatalogProvider({ children }) {
         ...s,
         label: `${timeLabel(s.startTime)} · ${data.rooms.find((r) => r.id === s.roomId)?.name || ""}`,
         displayTime: timeLabel(s.startTime),
+        roomName: data.rooms.find((r) => r.id === s.roomId)?.name || "",
+        roomType: data.rooms.find((r) => r.id === s.roomId)?.roomType || "",
       }));
   const contextFor = (showtimeId) => {
     const show = data.showtimes.find((s) => s.id === showtimeId);
@@ -236,8 +225,24 @@ export default function CatalogProvider({ children }) {
   };
   return (
     <CatalogContext.Provider
-      value={{ ...data, getDates, getShowtimes, contextFor, reload: load }}
+      value={{
+        ...data,
+        error,
+        getDates,
+        getShowtimes,
+        contextFor,
+        reload: load,
+      }}
     >
+      {error && (
+        <div className="catalog-connection-notice">
+          <p role="alert">
+            Đặt vé đang tạm gián đoạn. Bạn vẫn có thể khám phá phim và thực đơn.{" "}
+            <span>{error}</span>
+          </p>
+          <button onClick={load}>Thử kết nối lại</button>
+        </div>
+      )}
       {children}
     </CatalogContext.Provider>
   );

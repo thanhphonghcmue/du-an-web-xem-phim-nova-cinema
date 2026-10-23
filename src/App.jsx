@@ -59,19 +59,47 @@ import {
   apiGetMyBookings,
   memberProfile,
 } from "./api/client.js";
-import TicketHistory from "./components/TicketHistory.jsx";
-import StaffCheckIn from "./components/StaffCheckIn.jsx";
-import Modal from "./components/Modal.jsx";
-import SeatBooking from "./components/SeatBooking.jsx";
-import CinematicBackdrop from "./components/CinematicBackdrop.jsx";
-import GlassNavigation from "./components/GlassNavigation.jsx";
-import TiltPoster from "./components/TiltPoster.jsx";
-import ShowtimeTimeline from "./components/ShowtimeTimeline.jsx";
+// ==============================================================================
+// CÁC PHÂN HỆ GIAO DIỆN CHUẨN HÓA THEO CHỨC NĂNG & NHIỆM VỤ TIẾNG VIỆT
+// ==============================================================================
+import LichSuVeKhachHang from "./components/LichSuVeKhachHang.jsx";
+import SoatVeNhanVien from "./components/SoatVeNhanVien.jsx";
+import HopThoaiModal from "./components/HopThoaiModal.jsx";
+import ChonGhe_Va_ThanhToan from "./components/ChonGhe_Va_ThanhToan.jsx";
+import NenDienAnh from "./components/NenDienAnh.jsx";
+import MenuDieuHuong from "./components/MenuDieuHuong.jsx";
+import PosterNghieng3D from "./components/PosterNghieng3D.jsx";
+import LichChieuPhim from "./components/LichChieuPhim.jsx";
+import DatVeNhanh from "./components/DatVeNhanh.jsx";
+import DangNhap_DangKy from "./components/DangNhap_DangKy.jsx";
+import QuanTriHeThong from "./components/QuanTriHeThong.jsx";
+import TimKiemPhim from "./components/TimKiemPhim.jsx";
+
+// Giữ lại tên tiếng Anh song song để tương thích hoàn toàn:
+const TicketHistory = LichSuVeKhachHang;
+const StaffCheckIn = SoatVeNhanVien;
+const Modal = HopThoaiModal;
+const SeatBooking = ChonGhe_Va_ThanhToan;
+const CinematicBackdrop = NenDienAnh;
+const GlassNavigation = MenuDieuHuong;
+const TiltPoster = PosterNghieng3D;
+const ShowtimeTimeline = LichChieuPhim;
+const QuickBooking = DatVeNhanh;
+const AuthForm = DangNhap_DangKy;
+const AdminDashboard = QuanTriHeThong;
+const HeaderSearch = TimKiemPhim;
+
+
+
+
+
+
+
 import { motion, useReducedMotion } from "framer-motion";
-import QuickBooking from "./components/QuickBooking.jsx";
-import AuthForm from "./components/AuthForm.jsx";
-import AdminDashboard from "./components/AdminDashboard.jsx";
-import HeaderSearch from "./components/HeaderSearch.jsx";
+
+
+
+
 import { useI18n } from "./i18n.js";
 
 function Brand() {
@@ -290,13 +318,13 @@ export default function App() {
       <a href="#main-content" className="skip-link">
         {language === "en" ? "Skip to content" : "Đến nội dung chính"}
       </a>
-      <CinematicBackdrop />
+      <NenDienAnh />
       <header className="site-header">
         <div className="nav-inner">
           <Brand />
-          <GlassNavigation />
+          <MenuDieuHuong />
           <div className="header-actions">
-            <HeaderSearch
+            <TimKiemPhim
               movies={movies}
               cinemas={cinemas}
               onMovie={openMovie}
@@ -525,7 +553,7 @@ export default function App() {
             </div>
           </div>
         </section>
-        <QuickBooking
+        <DatVeNhanh
           key={wizardVersion}
           cinemaId={cinemaId}
           movieId={movieId}
@@ -647,7 +675,7 @@ export default function App() {
                 viewport={{ once: true, amount: 0.15 }}
                 transition={{ duration: 0.5, delay: index * 0.055 }}
               >
-                <TiltPoster>
+                <PosterNghieng3D>
                   <MoviePoster movie={m} />
                   <span className="poster-age">{m.age}</span>
                   <span className="poster-rating">
@@ -687,7 +715,7 @@ export default function App() {
                       </button>
                     </div>
                   </div>
-                </TiltPoster>
+                </PosterNghieng3D>
                 <div className="movie-card-meta">
                   <span>{t(m.genre)}</span>
                   <b>
@@ -725,7 +753,7 @@ export default function App() {
             </span>
           </div>
         </section>
-        <ShowtimeTimeline
+        <LichChieuPhim
           onBook={(value) => {
             if (!member) {
               setModal("login");
@@ -1137,7 +1165,7 @@ export default function App() {
         </div>
       </footer>
       {booking && (
-        <SeatBooking
+        <ChonGhe_Va_ThanhToan
           key={[
             booking.cinema.id,
             booking.movie.id,
@@ -1151,7 +1179,7 @@ export default function App() {
         />
       )}
       {modal && !["admin", "staff"].includes(modal) && (
-        <Modal
+        <HopThoaiModal
           title={
             modal === "search"
               ? t("Tìm câu chuyện của bạn")
@@ -1249,7 +1277,7 @@ export default function App() {
             </div>
           )}
           {modal === "login" && (
-            <AuthForm
+            <DangNhap_DangKy
               onSuccess={(next) => {
                 setMember(next);
                 setModal("account");
@@ -1285,7 +1313,7 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <TicketHistory
+              <LichSuVeKhachHang
                 member={member}
                 onResume={(value) => {
                   setBooking(value);
@@ -1310,7 +1338,7 @@ export default function App() {
             </div>
           )}
           {modal === "history" && (
-            <TicketHistory
+            <LichSuVeKhachHang
               member={member}
               onResume={(value) => {
                 setBooking(value);
@@ -1574,11 +1602,11 @@ export default function App() {
               </p>
             </div>
           )}
-        </Modal>
+        </HopThoaiModal>
       )}
-      {modal === "staff" && <StaffCheckIn onClose={() => setModal(null)} />}
+      {modal === "staff" && <SoatVeNhanVien onClose={() => setModal(null)} />}
       {modal === "admin" && (
-        <AdminDashboard onClose={() => setModal(null)} adminUser={member} />
+        <QuanTriHeThong onClose={() => setModal(null)} adminUser={member} />
       )}
     </div>
   );

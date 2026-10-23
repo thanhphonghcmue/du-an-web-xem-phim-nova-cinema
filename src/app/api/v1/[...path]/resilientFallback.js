@@ -294,7 +294,12 @@ function generateSeatMap(showtimeId) {
   const availableCount = seats.filter((s) => s.status === "AVAILABLE").length;
   const soldCount = seats.filter((s) => s.status === "SOLD").length;
 
+    const foundShowtime = fallbackShowtimes.find((s) => s.id === showtimeId);
   return {
+    showtimeId: showtimeId || fallbackShowtimes[0]?.id || "st-landmark81-dune-0",
+    roomId: foundShowtime?.roomId || "landmark81-r1",
+    startTime: foundShowtime?.startTime || new Date(Date.now() + 3600000).toISOString(),
+    canBook: true,
     asOf: new Date().toISOString(),
     capacity: {
       total: seats.length,
@@ -516,36 +521,92 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
     }
 
     const seatIds = Array.isArray(payload.seatIds) ? payload.seatIds : ["F7", "F8"];
-    const showtimeId = payload.showtimeId || "st-landmark81-dune-0";
+    const showtimeId = payload.showtimeId || fallbackShowtimes[0]?.id || "st-landmark81-dune-0";
+    const foundShowtime = fallbackShowtimes.find((s) => s.id === showtimeId);
+    const foundMovie = artwork.find((m) => m.id === foundShowtime?.movieId) || artwork[0];
+    const foundCinema = defaultCinemas.find((c) => showtimeId.includes(c.id)) || defaultCinemas[0];
+
     const bookingId = "ord_" + Math.random().toString(36).substring(2, 9);
     const code = "NV-" + Math.floor(100000 + Math.random() * 900000);
 
-    const seatItems = seatIds.map((id) => ({
-      seatId: id,
-      row: id.charAt(0) || "F",
-      column: parseInt(id.slice(1)) || 7,
-      price: ["E", "F", "G"].includes(id.charAt(0)) ? 115000 : 95000,
-      status: "HOLDING",
-    }));
+    const seatItems = seatIds.map((id) => {
+      const row = id.charAt(0) || "F";
+      const col = parseInt(id.slice(1)) || 1;
+      let price = 95000;
+      let type = "STANDARD";
+      if (row === "H") {
+        price = 150000;
+        type = "SWEETBOX";
+      } else if (["E", "F", "G"].includes(row)) {
+        price = 115000;
+        type = "VIP";
+      }
+      return {
+        seatId: id,
+        row,
+        column: col,
+        type,
+        price,
+        status: "HOLDING",
+      };
+    });
 
     const ticketTotal = seatItems.reduce((acc, s) => acc + s.price, 0);
+
+    // Xử lý Combo bắp nước
+    const comboPayload = Array.isArray(payload.comboItems)
+      ? payload.comboItems
+      : Array.isArray(payload.combos)
+        ? payload.combos
+        : [];
+    const combos = comboPayload
+      .map((item) => {
+        const found = defaultCombos.find((c) => c.id === item.comboId);
+        const qty = Number(item.quantity) || 0;
+        if (!found || qty <= 0) return null;
+        return {
+          comboId: found.id,
+          name: found.name,
+          quantity: qty,
+          price: Number(found.price),
+        };
+      })
+      .filter(Boolean);
+
+    const comboTotal = combos.reduce((acc, c) => acc + c.price * c.quantity, 0);
+
+    // Xử lý mã giảm giá Coupon
+    let couponDiscount = 0;
+    const couponCode = (payload.couponCode || "").trim().toUpperCase();
+    if (couponCode === "NOVA20") couponDiscount = Math.round(ticketTotal * 0.2);
+    else if (couponCode === "CINEMA10") couponDiscount = Math.round(ticketTotal * 0.1);
+    else if (couponCode === "U22") couponDiscount = 25000;
+    else if (couponCode === "CHAOBANMOI") couponDiscount = 30000;
+    else if (couponCode === "VIP50") couponDiscount = 50000;
+
+    const subtotal = ticketTotal + comboTotal;
+    const finalAmount = Math.max(0, subtotal - couponDiscount);
+
     const booking = {
       id: bookingId,
       code,
       orderCode: code,
       showtimeId,
       status: "HOLDING",
-      totalAmount: ticketTotal,
-      discountAmount: 0,
-      finalAmount: ticketTotal,
+      totalTicketAmount: ticketTotal,
+      totalComboAmount: comboTotal,
+      totalAmount: subtotal,
+      discountAmount: couponDiscount,
+      finalAmount,
+      membershipTier: currentUser?.cMemberTier || "SILVER",
       expiredAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
       createdAt: new Date().toISOString(),
       seats: seatItems,
-      combos: payload.combos || [],
+      combos,
       customerEmail: currentUser?.email || "customer@nova.local",
-      customerName: currentUser?.fullName || "Khách Hàng NOVA",
-      movieTitle: "Dune: Hành Tinh Cát 2",
-      cinemaName: "NOVA Landmark 81",
+      customerName: currentUser?.fullName || "Khách Hàng Thân Thiết NOVA",
+      movieTitle: foundMovie.title,
+      cinemaName: foundCinema.name,
       roomName: "Phòng Laser 01",
     };
 
@@ -625,48 +686,72 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   // 13. HOÀN TẤT THANH TOÁN 1 CHẠM SANDBOX (/payments/sandbox/complete)
   // -------------------------------------------------------------
   if (endpoint === "/payments/sandbox/complete") {
-    // Chuyển trạng thái đơn sang PAID và tạo vé QR
-    for (const b of bookingsStore.values()) {
-      if (b.status === "HOLDING") {
-        b.status = "PAID";
-        const tkId = "tk_" + Math.random().toString(36).substring(2, 9);
-        const code = "TK-" + Math.floor(10000 + Math.random() * 90000);
-        const orderCode = b.orderCode || b.code || "NV-889214";
-        ticketsStore.set(tkId, {
-          id: tkId,
-          bookingId: b.id,
-          code,
-          orderCode,
-          seatLabel: b.seats.map((s) => `${s.row || s.seatId?.charAt(0)}${s.column || s.seatId?.slice(1)}`).join(", "),
-          seats: b.seats.map((s) => ({
-            label: `${s.row || s.seatId?.charAt(0)}${s.column || s.seatId?.slice(1)}`,
-            type: "VIP",
-            price: String(s.price || 95000),
-          })),
-          combos: b.combos || [],
-          movie: b.movieTitle || "Dune: Hành Tinh Cát 2",
-          movieTitle: b.movieTitle || "Dune: Hành Tinh Cát 2",
-          cinema: b.cinemaName || "NOVA Landmark 81",
-          cinemaName: b.cinemaName || "NOVA Landmark 81",
-          room: b.roomName || "Phòng Laser 01",
-          roomName: b.roomName || "Phòng Laser 01",
-          startTime: new Date(Date.now() + 7200000).toISOString(),
-          endTime: new Date(Date.now() + 15000000).toISOString(),
-          amount: String(b.finalAmount || b.totalAmount || 190000),
-          currency: "VND",
-          ticketHash: sampleHash,
-          qrHash: sampleHash,
-          qrCodeBase64: sampleQrBase64,
-          isCheckedIn: false,
-          checkedInAt: null,
-          status: "VALID",
-          customerEmail: b.customerEmail || "customer@nova.local",
-        });
+    let targetBookingId = null;
+    try {
+      if (rawBody?.startsWith("{")) {
+        const parsed = JSON.parse(rawBody);
+        targetBookingId = parsed.bookingId || parsed.orderId;
+      } else if (rawBody) {
+        const params = new URLSearchParams(rawBody);
+        targetBookingId = params.get("bookingId") || params.get("orderId");
       }
+    } catch {
+      // bỏ qua
     }
+
+    let targetBooking = null;
+    if (targetBookingId) {
+      targetBooking = bookingsStore.get(targetBookingId);
+    }
+    if (!targetBooking) {
+      const allHoldings = Array.from(bookingsStore.values()).filter((b) => b.status === "HOLDING");
+      targetBooking = allHoldings[allHoldings.length - 1];
+    }
+
+    if (targetBooking) {
+      targetBooking.status = "PAID";
+      for (const s of targetBooking.seats || []) {
+        s.status = "SOLD";
+      }
+
+      const tkId = "tk_" + Math.random().toString(36).substring(2, 9);
+      const code = "TK-" + Math.floor(10000 + Math.random() * 90000);
+      const orderCode = targetBooking.orderCode || targetBooking.code || "NV-889214";
+      ticketsStore.set(tkId, {
+        id: tkId,
+        bookingId: targetBooking.id,
+        code,
+        orderCode,
+        seatLabel: (targetBooking.seats || []).map((s) => s.seatId || `${s.row}${s.column}`).join(", "),
+        seats: (targetBooking.seats || []).map((s) => ({
+          label: s.seatId || `${s.row}${s.column}`,
+          type: s.type || "STANDARD",
+          price: String(s.price || 95000),
+        })),
+        combos: targetBooking.combos || [],
+        movie: targetBooking.movieTitle || "Dune: Hành Tinh Cát 2",
+        movieTitle: targetBooking.movieTitle || "Dune: Hành Tinh Cát 2",
+        cinema: targetBooking.cinemaName || "NOVA Landmark 81",
+        cinemaName: targetBooking.cinemaName || "NOVA Landmark 81",
+        room: targetBooking.roomName || "Phòng Laser 01",
+        roomName: targetBooking.roomName || "Phòng Laser 01",
+        startTime: new Date(Date.now() + 7200000).toISOString(),
+        endTime: new Date(Date.now() + 15000000).toISOString(),
+        amount: String(targetBooking.finalAmount || targetBooking.totalAmount || 190000),
+        currency: "VND",
+        ticketHash: sampleHash,
+        qrHash: sampleHash,
+        qrCodeBase64: sampleQrBase64,
+        isCheckedIn: false,
+        checkedInAt: null,
+        status: "VALID",
+        customerEmail: targetBooking.customerEmail || "customer@nova.local",
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      data: { status: "PAID", message: "Thanh toán giả lập Sandbox thành công." },
+      data: { status: "PAID", message: "Thanh toán thành công. Vé điện tử QR đã được phát hành." },
     });
   }
 
@@ -674,9 +759,18 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   // 14. TRẠNG THÁI THANH TOÁN (/payments/:id/status)
   // -------------------------------------------------------------
   if (endpoint.startsWith("/payments/") && endpoint.endsWith("/status")) {
+    const id = endpoint.split("/")[2];
+    const booking = bookingsStore.get(id);
+    const isHolding = booking ? ["PENDING", "HOLDING"].includes(booking.status) : true;
     return NextResponse.json({
       success: true,
-      data: { status: "PAID" },
+      data: {
+        bookingId: id,
+        bookingStatus: booking?.status || "HOLDING",
+        canPay: isHolding,
+        amount: String(booking?.finalAmount || 190000),
+        status: booking?.status === "PAID" ? "SUCCESS" : "PENDING",
+      },
     });
   }
 
@@ -725,18 +819,21 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   }
 
   // -------------------------------------------------------------
+    // -------------------------------------------------------------
   // 18. QUẢN TRỊ ADMIN: TỔNG QUAN HỆ THỐNG (/admin/reports/overview)
   // -------------------------------------------------------------
   if (endpoint === "/admin/reports/overview") {
-    const paidBookings = Array.from(bookingsStore.values());
+    const paidBookings = Array.from(bookingsStore.values()).filter((b) => b.status === "PAID");
+    const totalRev = 15420000 + paidBookings.reduce((sum, b) => sum + (Number(b.finalAmount) || 0), 0);
+    const allBookings = Array.from(bookingsStore.values());
     return NextResponse.json({
       success: true,
       data: {
-        todayRevenue: 15420000,
-        totalBookings: 128,
-        recentBookings: paidBookings.map((b) => ({
+        todayRevenue: totalRev,
+        totalBookings: 128 + paidBookings.length,
+        recentBookings: allBookings.map((b) => ({
           id: b.id,
-          orderCode: b.code,
+          orderCode: b.code || b.orderCode,
           customer: b.customerName || "Khách Hàng NOVA",
           movie: b.movieTitle || "Dune: Hành Tinh Cát 2",
           cinema: b.cinemaName || "NOVA Landmark 81",
@@ -753,14 +850,20 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   // 19. QUẢN TRỊ ADMIN: BÁO CÁO DOANH THU (/admin/reports/revenue)
   // -------------------------------------------------------------
   if (endpoint === "/admin/reports/revenue") {
+    const paidBookings = Array.from(bookingsStore.values()).filter((b) => b.status === "PAID");
+    const dynamicTicketRev = paidBookings.reduce((sum, b) => sum + (Number(b.totalTicketAmount) || Number(b.totalAmount) || 0), 0);
+    const dynamicComboRev = paidBookings.reduce((sum, b) => sum + (Number(b.totalComboAmount) || 0), 0);
+    const dynamicDiscount = paidBookings.reduce((sum, b) => sum + (Number(b.discountAmount) || 0), 0);
+    const dynamicNet = paidBookings.reduce((sum, b) => sum + (Number(b.finalAmount) || 0), 0);
+
     return NextResponse.json({
       success: true,
       data: {
-        netRevenue: 185600000,
-        ticketRevenue: 154200000,
-        comboRevenue: 31400000,
-        discountAmount: 12500000,
-        paidBookingCount: 248,
+        netRevenue: 185600000 + dynamicNet,
+        ticketRevenue: 154200000 + dynamicTicketRev,
+        comboRevenue: 31400000 + dynamicComboRev,
+        discountAmount: 12500000 + dynamicDiscount,
+        paidBookingCount: 248 + paidBookings.length,
         bookings: Array.from(bookingsStore.values()),
       },
     });

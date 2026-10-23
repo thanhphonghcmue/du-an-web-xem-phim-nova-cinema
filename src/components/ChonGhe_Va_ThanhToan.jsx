@@ -891,10 +891,10 @@ export default function ChonGhe_Va_ThanhToan({
                   Mã đơn: <small>{order.orderCode}</small>
                 </p>
                 <p>
-                  Tiền vé <b>{money(order.totalTicketAmount)}</b>
+                  Tiền vé <b>{money((order.totalTicketAmount ?? order.totalAmount))}</b>
                 </p>
                 <p>
-                  Combo <b>{money(order.totalComboAmount)}</b>
+                  Combo <b>{money((order.totalComboAmount ?? 0))}</b>
                 </p>
                 <p>
                   Ưu đãi {order.membershipTier}{" "}
@@ -1218,7 +1218,7 @@ export default function ChonGhe_Va_ThanhToan({
                     !initialized ||
                     !selected.length ||
                     Boolean(orphanWarning) ||
-                    !snapshot?.canBook
+                    snapshot?.canBook === false
                   }
                   onClick={hold}
                 >

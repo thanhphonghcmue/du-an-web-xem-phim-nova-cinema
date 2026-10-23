@@ -51,7 +51,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
         statusCode >= 500 && !safeServiceFailure
           ? "An unexpected error occurred."
           : payload.message || exception.message;
-      details = safeServiceFailure ? payload.details : undefined;
+      // Admission details are explicitly safe and protected by STAFF/ADMIN guards.
+      const safeAdmission =
+        exception instanceof ApiException &&
+        statusCode === 409 &&
+        ["TICKET_ALREADY_USED", "TICKET_SHOWTIME_MISMATCH"].includes(error);
+      details =
+        safeServiceFailure || safeAdmission ? payload.details : undefined;
       if (statusCode === 400 && isParserError(exception)) {
         error = "INVALID_JSON";
         message = "Request body must contain valid JSON.";

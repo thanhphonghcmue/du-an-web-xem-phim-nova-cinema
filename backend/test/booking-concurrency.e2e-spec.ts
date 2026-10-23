@@ -549,7 +549,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     const f = await fixture();
     const results = await Promise.all([
       hold(f, customerA, [seat(f)]),
-      hold(f, customerB, [seat(f, 1)], otherServer),
+      hold(f, customerB, [seat(f, 23)], otherServer),
     ]);
     expect(results.map((row) => row.status)).toEqual([201, 201]);
     const another = await fixture();
@@ -670,9 +670,9 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
 
   it("rejects Decimal overflow before persisting any partial booking", async () => {
     const f = await fixture("999999999999.99");
-    expect(code(await hold(f, customerA, [seat(f, 1)]).expect(400))).toBe(
-      "BOOKING_AMOUNT_OUT_OF_RANGE",
-    );
+    expect(
+      code(await hold(f, customerA, [seat(f), seat(f, 1)]).expect(400)),
+    ).toBe("BOOKING_AMOUNT_OUT_OF_RANGE");
     expect(
       await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
     ).toBe(0);
@@ -816,7 +816,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     const a = booking(await hold(f).expect(201));
     await expireFixture(a.id);
     expect(booking(await get(a.id).expect(200)).status).toBe("EXPIRED");
-    const b = booking(await hold(f, customerA, [seat(f, 1)]).expect(201));
+    const b = booking(await hold(f, customerA, [seat(f, 23)]).expect(201));
     await expireFixture(b.id);
     const listed = data(
       await request(server)

@@ -62,3 +62,7 @@ không coi kết quả suite đó là toàn bộ PASS.
 
 Không có lỗi JavaScript hoặc tràn ngang trong lượt kiểm tra trực quan trên trang chủ,
 đặt vé, hướng dẫn thanh toán và hỗ trợ. Mỗi rạp mẫu hiển thị đủ 8 phòng trong bộ lọc.
+
+Bản rà soát tiếp theo đã sửa fixture 27 ca HTTP cũ và bổ sung kiểm tra mới.
+Xem kết quả hiện tại trong [LAB04 booking audit](lab04-booking-audit.md); các bảng trên
+là bằng chứng lịch sử tại thời điểm từng đợt, không phải trạng thái kiểm thử mới nhất.

@@ -325,7 +325,7 @@ export default function SeatBooking({
   const [initialized, setInitialized] = useState(false);
   const [live, setLive] = useState(false);
   const [notice, setNotice] = useState("");
-  const [orphanWarning, setOrphanWarning] = useState(null);
+  const [groupType, setGroupType] = useState("");
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [comboItems, setComboItems] = useState(() => {
@@ -431,6 +431,11 @@ export default function SeatBooking({
   const seats = snapshot?.seats || [];
   const rows = [...new Set(seats.map((s) => s.row))].sort();
   const holding = order && ["PENDING", "HOLDING"].includes(order.status);
+  // Derive from each fresh snapshot so another viewer's hold cannot leave a stale warning.
+  const orphanSeat = !holding ? checkClientOrphanSeats(selected, seats) : null;
+  const orphanWarning = orphanSeat
+    ? `Không để trống 1 ghế lẻ tại ${orphanSeat.row}${orphanSeat.column}. Hãy chọn ghế này hoặc đổi vị trí để chừa ít nhất 2 ghế liền nhau.`
+    : null;
   const remaining = holding
     ? Math.max(
         0,
@@ -476,31 +481,21 @@ export default function SeatBooking({
     }
     setSelected(next);
     setNotice("");
-
-    // Check orphan seat rule locally
-    const orphan = checkClientOrphanSeats(next, seats);
-    setOrphanWarning(
-      orphan
-        ? `Ghế ${orphan.row}${orphan.column} sẽ bị trống đơn lẻ (Orphan seat). Vui lòng chọn ghế liền kề!`
-        : null,
-    );
   }
 
   async function suggest(quantity) {
     setBusy(true);
     try {
-      const result = await apiGetGroupSuggestions(showtimeId, quantity);
+      const result = await apiGetGroupSuggestions(
+        showtimeId,
+        quantity,
+        groupType,
+      );
       setSelected(result.seatIds);
       setNotice(
         result.seatIds.length
           ? "Đã chọn dải ghế. Bấm Giữ ghế để xác nhận với máy chủ."
           : "Không còn dải ghế phù hợp.",
-      );
-      const orphan = checkClientOrphanSeats(result.seatIds, seats);
-      setOrphanWarning(
-        orphan
-          ? `Ghế ${orphan.row}${orphan.column} sẽ bị trống đơn lẻ (Orphan seat). Vui lòng chọn ghế liền kề!`
-          : null,
       );
     } catch (err) {
       setNotice(err.message);
@@ -677,7 +672,7 @@ export default function SeatBooking({
       </p>
 
       {orphanWarning && !holding && (
-        <div className="orphan-warning-banner">
+        <div className="orphan-warning-banner" id="orphan-warning" role="alert">
           <AlertTriangle size={16} />
           <span>{orphanWarning}</span>
         </div>
@@ -725,6 +720,19 @@ export default function SeatBooking({
                     </option>
                   ))}
                 </select>
+                <label className="group-type-label">
+                  Ưu tiên chỗ ngồi
+                  <select
+                    value={groupType}
+                    onChange={(event) => setGroupType(event.target.value)}
+                    aria-label="Loại ghế gợi ý"
+                  >
+                    <option value="">Trung tâm · Tất cả loại ghế</option>
+                    <option value="STANDARD">Ghế thường</option>
+                    <option value="VIP">Ghế VIP</option>
+                    <option value="SWEETBOX">Sweetbox · Chọn số chẵn</option>
+                  </select>
+                </label>
                 <button
                   className="button button-glass"
                   disabled={busy || !initialized}
@@ -767,7 +775,12 @@ export default function SeatBooking({
                         return (
                           <button
                             key={seat.seatId}
-                            className={`seat ${state}`}
+                            className={`seat ${state}${orphanSeat?.seatId === seat.seatId ? " orphan-seat" : ""}`}
+                            aria-describedby={
+                              orphanSeat?.seatId === seat.seatId
+                                ? "orphan-warning"
+                                : undefined
+                            }
                             disabled={
                               busy ||
                               Boolean(holding) ||

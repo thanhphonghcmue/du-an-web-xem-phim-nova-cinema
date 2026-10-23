@@ -29,6 +29,30 @@ export function findGroupSeats(
     const last = row[row.length - 1];
     if (!first || !last) continue;
     const center = (first.column + last.column) / 2;
+    // Counts use physical availability, even when the caller filters by seat type.
+    // A contiguous choice can only create a new singleton immediately to its sides.
+    const left: number[] = [],
+      right: number[] = [];
+    for (let i = 0; i < row.length; i++) {
+      const current = row[i];
+      left[i] =
+        current?.status === "AVAILABLE"
+          ? 1 +
+            (i > 0 && row[i - 1]?.column === current.column - 1
+              ? (left[i - 1] ?? 0)
+              : 0)
+          : 0;
+    }
+    for (let i = row.length - 1; i >= 0; i--) {
+      const current = row[i];
+      right[i] =
+        current?.status === "AVAILABLE"
+          ? 1 +
+            (row[i + 1]?.column === current.column + 1
+              ? (right[i + 1] ?? 0)
+              : 0)
+          : 0;
+    }
     let run = 0;
     let previous: number | undefined;
     for (let index = 0; index < row.length; index++) {
@@ -49,6 +73,12 @@ export function findGroupSeats(
       const start = index - quantity + 1;
       const beginning = row[start];
       if (!beginning) continue;
+      if (
+        (row[start - 1]?.column === beginning.column - 1 &&
+          left[start - 1] === 1) ||
+        (row[index + 1]?.column === seat.column + 1 && right[index + 1] === 1)
+      )
+        continue;
       const window = row.slice(start, index + 1);
       if (
         window.some(

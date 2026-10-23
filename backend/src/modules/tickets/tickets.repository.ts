@@ -75,6 +75,13 @@ export class TicketsRepository {
       tx.eTicket.count({ where }),
     ]);
   }
+  emailStatus(bookingId: string) {
+    return this.prisma.outboxEvent.findFirst({
+      where: { aggregateId: bookingId, eventType: "ticket.email.requested" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, processedAt: true, attempts: true, lastError: true },
+    });
+  }
   async lockStaff(id: string, tx: Prisma.TransactionClient) {
     await tx.$queryRaw`SELECT id FROM users WHERE id=${id}::uuid FOR SHARE`;
     return tx.user.findUnique({ where: { id }, select: { role: true } });

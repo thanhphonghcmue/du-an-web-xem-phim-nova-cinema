@@ -105,6 +105,7 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
         : rawMsg || "Yêu cầu không thành công.";
     const error = new Error(msg);
     error.status = response.status;
+    error.details = payload.details;
     error.code = payload.error || payload.errorCode || payload.code;
     throw error;
   }
@@ -207,8 +208,10 @@ export const apiLayLichChieuPhim = apiGetShowtimes;
 export const apiGetShowtimeSeats = (id) => read(`/showtimes/${id}/seats`);
 export const apiLaySoDoGheSuatChieu = apiGetShowtimeSeats;
 
-export const apiGetGroupSuggestions = (id, quantity = 2) =>
-  read(`/showtimes/${id}/group-seat-suggestion?quantity=${quantity}`);
+export const apiGetGroupSuggestions = (id, quantity = 2, seatType = "") =>
+  read(
+    `/showtimes/${id}/group-seat-suggestion?${new URLSearchParams({ quantity, ...(seatType ? { seatType } : {}) })}`,
+  );
 export const apiGoiYNhomGheLienKe = apiGetGroupSuggestions;
 
 // ==========================================

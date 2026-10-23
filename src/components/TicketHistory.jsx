@@ -27,6 +27,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGetMyBookings, apiGetMyTickets } from "../api/client.js";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
+import TicketConfirmation from "./TicketConfirmation.jsx";
 import { CalendarDays, Download, Ticket } from "lucide-react";
 export default function TicketHistory({ member, onResume }) {
   const { contextFor, movies } = useCatalog();
@@ -150,6 +151,7 @@ export default function TicketHistory({ member, onResume }) {
               </a>
             </p>
           </div>
+          <TicketConfirmation ticketId={ticket.id} />
         </article>
       ))}
       {!loading && !error && !orders.length && <p>Bạn chưa có đơn đặt vé.</p>}

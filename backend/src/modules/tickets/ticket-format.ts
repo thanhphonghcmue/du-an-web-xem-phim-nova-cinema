@@ -4,6 +4,7 @@ export function ticketDetails(row: TicketRecord) {
   const showtime = booking.showtime;
   return {
     id: row.id,
+    showtimeId: booking.showtimeId,
     bookingId: booking.id,
     orderCode: booking.orderCode,
     movie: showtime.movie.title,
@@ -76,8 +77,13 @@ export function ticketCalendar(row: TicketRecord): string {
     `DTSTART:${stamp(details.startTime)}`,
     `DTEND:${stamp(new Date(details.startTime.getTime() + row.booking.showtime.movie.durationMinutes * 60000))}`,
     `SUMMARY:${escape(details.movie + " — NOVA Cinema")}`,
-    `LOCATION:${escape(details.cinema + " / " + details.room)}`,
+    `LOCATION:${escape(details.cinema + " / " + details.room + " / " + row.booking.showtime.room.cinema.address)}`,
     `DESCRIPTION:${escape("Đơn " + details.orderCode + "; Ghế " + details.seats.map((seat) => seat.label).join(", "))}`,
+    "BEGIN:VALARM",
+    "TRIGGER:-PT30M",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:Nhắc lịch xem phim NOVA Cinema",
+    "END:VALARM",
     "END:VEVENT",
     "END:VCALENDAR",
     "",

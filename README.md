@@ -85,6 +85,12 @@ cũng có nút **Tiếp tục đơn**. Bấm **Hủy đơn & trả ghế** để
 thanh toán thất bại hoặc hủy thanh toán sẽ trả ghế. Hai máy dùng cùng server
 không thể giữ thành công cùng một ghế.
 
+Trong tài khoản, mỗi vé có nút **Xem email xác nhận** để đọc bản xem trước từ backend
+và trạng thái gửi thật của outbox. `.ics` có địa chỉ rạp và nhắc trước 30 phút.
+Quầy `/soat-ve` chọn ngày/suất, **Kiểm tra vé** trước rồi **Xác nhận soát vé**;
+quét/kiểm tra chưa làm mất hiệu lực vé. Camera cần trình duyệt hỗ trợ BarcodeDetector;
+nhập mã QR vẫn dùng được. Xem [báo cáo rà soát LAB04](docs/design/lab04-booking-audit.md).
+
 ADMIN có quản trị danh mục (phim/rạp/phòng/suất/combo), tạo sơ đồ cho phòng trống,
 doanh thu, người dùng và health/outbox. STAFF/ADMIN có màn hình **Soát vé** nhập
 mã đọc từ QR; backend kiểm tra khung giờ và chỉ chấp nhận một lần.

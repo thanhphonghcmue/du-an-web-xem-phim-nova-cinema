@@ -163,6 +163,15 @@ async function main() {
       priceModifier: "1.00",
     })),
   });
+  const admissionShowtime = await prisma.showtime.create({
+    data: {
+      movieId: movie.id,
+      roomId: programmeRoom.id,
+      startTime: new Date(Date.now() - 5 * 60000),
+      endTime: new Date(Date.now() + 130 * 60000),
+      baseTicketPrice: "90000.00",
+    },
+  });
   const localDate = new Date(Date.now() + 7 * 3600000 + 86400000)
     .toISOString()
     .slice(0, 10);
@@ -207,6 +216,7 @@ async function main() {
       showtime,
       programmeRoom,
       programmeShowtimes,
+      admissionShowtime,
       combo,
     }),
     { mode: 0o600 },

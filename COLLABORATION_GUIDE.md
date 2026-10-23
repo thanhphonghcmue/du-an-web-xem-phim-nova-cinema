@@ -5,21 +5,21 @@
 
 ## 🔗 1. THÔNG TIN REPOSITORY & CÁCH THAM GIA
 
-- **Link Repository GitHub:** [https://github.com/thanhphonghcmue/nova-cinema-skills-thanh-phong](https://github.com/thanhphonghcmue/nova-cinema-skills-thanh-phong)
+- **Link Repository GitHub:** [https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema)
 - **Quyền truy cập:** Nhóm phát triển (Collaborators).
 
 ### 👥 Các bước để thành viên mới tham gia code & push:
 1. **Chủ dự án (Owner) cấp quyền:**
-   - Truy cập: `https://github.com/thanhphonghcmue/nova-cinema-skills-thanh-phong/settings/access`
+   - Truy cập: `https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/settings/access`
    - Bấm **Add people** -> Nhập username GitHub hoặc email của bạn bè -> Bấm **Add... to this repository**.
 2. **Thành viên chấp nhận lời mời:**
    - Mở email thông báo từ GitHub hoặc truy cập trực tiếp:  
-     👉 [https://github.com/thanhphonghcmue/nova-cinema-skills-thanh-phong/invitations](https://github.com/thanhphonghcmue/nova-cinema-skills-thanh-phong/invitations)
+     👉 [https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/invitations](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/invitations)
    - Bấm **Accept invitation**.
 3. **Clone mã nguồn về máy:**
    ```bash
-   git clone https://github.com/thanhphonghcmue/nova-cinema-skills-thanh-phong.git
-   cd "nova-cinema-skills-thanh-phong"
+   git clone https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema.git
+   cd "du-an-web-xem-phim-nova-cinema"
    ```
 
 ---
@@ -147,5 +147,5 @@ Các thành viên có thể chọn một trong các hạng mục sau để mở 
 
 ## 📞 7. LIÊN HỆ & HỖ TRỢ TRONG QUÁ TRÌNH PHÁT TRIỂN
 
-- **Repository Issue Tracker:** Mở issue tại [GitHub Issues](https://github.com/thanhphonghcmue/nova-cinema-skills-thanh-phong/issues) để báo cáo lỗi hoặc thảo luận tính năng mới.
+- **Repository Issue Tracker:** Mở issue tại [GitHub Issues](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/issues) để báo cáo lỗi hoặc thảo luận tính năng mới.
 - **Trạng thái hệ thống:** Khi gặp bất kỳ sự cố kết nối, chạy `npm run lint` và `node scripts/test-enhancements.mjs` để định vị nguyên nhân.

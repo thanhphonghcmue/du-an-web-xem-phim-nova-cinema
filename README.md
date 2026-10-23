@@ -6,10 +6,35 @@ backend, giữ ghế đúng 5 phút và thanh toán **Sandbox, không thu tiền
 
 > 🤝 **Dành cho thành viên nhóm / Cộng tác viên:** Xem ngay [Tài liệu hướng dẫn cộng tác & luồng phát triển dự án](COLLABORATION_GUIDE.md) và [Bản đồ chức năng, tiến trình & giải thích code toàn diện](docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md) để nắm rõ vai trò từng file, tiến trình từng trang, luồng đặt vé và các gợi ý mở rộng tính năng mới.
 
-## Chạy trên máy của bạn
+## ⚡ Chạy Nhanh Nhất Để Chấm Bài (KHÔNG CẦN DOCKER)
 
-Cài Node.js theo `.nvmrc` (24.19.0) và Docker Desktop có Docker Compose v2.
-Mở Docker trước. Trong terminal tại thư mục repository:
+Hệ thống được tích hợp sẵn **Chế độ độc lập thông minh (Standalone Mode)**. Thầy cô và bạn bè chỉ cần tải code về và chạy đúng 1 lệnh duy nhất:
+
+```bash
+npm install
+npm run dev
+```
+
+Mở trình duyệt tại: **`http://localhost:3000`**
+
+Đây là **chế độ demo độc lập dùng bộ nhớ tạm**, không phải PostgreSQL/NestJS.
+Chỉ tự chọn trong development khi chưa cấu hình `BACKEND_API_URL`; có thể chọn rõ
+bằng `NOVA_STANDALONE=true`. Website có nhãn demo; khởi động lại có thể mất dữ liệu.
+Tài khoản mẫu demo dùng mật khẩu `nova@12345`, và đăng nhập vẫn kiểm tra mật khẩu.
+Các mở rộng email preview, soát vé hai bước và bảo đảm concurrency trong báo cáo dưới
+đây được kiểm chứng trên **backend NestJS thật**, chưa chứng nhận cho kho demo.
+
+Khi có `BACKEND_API_URL` hoặc chạy `dev:full`, mọi đơn/vé dùng backend đã cấu hình.
+Mất kết nối sẽ báo lỗi và cho thử lại, không tự chuyển sang kho demo. Production luôn
+sử dụng backend NestJS. Mật khẩu tài khoản PostgreSQL giữ theo `.env` riêng, không
+bị đổi theo mật khẩu demo. Không dùng mật khẩu demo cho dữ liệu triển khai thật.
+
+---
+
+## 🐳 Tùy chọn chạy kèm Docker & Backend NestJS (Môi trường Production)
+
+Nếu muốn khởi động toàn bộ hạ tầng cơ sở dữ liệu vật lý (PostgreSQL 17, Redis 7.4, Mailpit):
+Mở Docker Desktop trước. Trong terminal tại thư mục repository:
 
 ```bash
 npm ci

@@ -96,3 +96,19 @@ nhánh trình duyệt thiếu hỗ trợ và quy trình nhập mã được ki�
 Ảnh lấy từ fixture test riêng đã cleanup, QR/hash được che; không dùng tài khoản
 hoặc mã vé của khách thật. Có thể tạo lại khi chạy test với `NOVA_CAPTURE_DIR`
 trỏ tới thư mục ảnh mong muốn; mặc định kiểm thử không ghi ảnh vào repository.
+
+## Hợp nhất cập nhật GitHub cùng thời điểm
+
+Hợp nhất nhánh đã có cập nhật tên file tiếng Việt, hướng dẫn VS Code, Next 16.4.2 và
+module demo standalone. Các file tiếng Việt là nguồn chức năng duy nhất; tên tiếng Anh
+re-export để mọi trang dùng cùng luật ghế, đặt vé, email và soát vé. Giữ module demo
+nhưng chọn chế độ cho cả phiên: development không có BACKEND_API_URL, hoặc chỉ định
+NOVA_STANDALONE=true. Khi đã cấu hình backend (bao gồm dev:full/tests), lỗi upstream
+trả 503; không âm thầm giữ ghế/đăng nhập trong kho khác. Production dùng backend.
+Trang demo có nhãn bộ nhớ tạm; các kết quả kiểm thử ở trên là chế độ backend thật.
+
+Sau hợp nhất: frontend lint/build Next16.4.2 và Playwright 24/24 PASS. Probe production
+với upstream không hoạt động (kể cả đặt NOVA_STANDALONE=true) xác nhận mode backend,
+health/login 503 và không cấp cookie. Probe development standalone xác nhận nhãn demo,
+sai mật khẩu 401/đúng mật khẩu 200, health không giả PostgreSQL UP, endpoint chưa hỗ trợ
+trả 501. Probe 8 trang production kết nối API thật vẫn HTTP200, health200, không lỗi JS.

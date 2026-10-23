@@ -66,18 +66,18 @@ import {
   apiGetMyBookings,
   memberProfile,
 } from "./api/client.js";
-import TicketHistory from "./components/TicketHistory.jsx";
-import StaffCheckIn from "./components/StaffCheckIn.jsx";
-import Modal from "./components/Modal.jsx";
-import SeatBooking from "./components/SeatBooking.jsx";
 import CinematicBackdrop from "./components/CinematicBackdrop.jsx";
-import GlassNavigation from "./components/GlassNavigation.jsx";
-import ShowtimeTimeline from "./components/ShowtimeTimeline.jsx";
-import QuickBooking from "./components/QuickBooking.jsx";
-import AuthForm from "./components/AuthForm.jsx";
-import AdminDashboard from "./components/AdminDashboard.jsx";
-import HeaderSearch from "./components/HeaderSearch.jsx";
 import { useI18n } from "./i18n.js";
+import ChonGhe_Va_ThanhToan from "./components/ChonGhe_Va_ThanhToan.jsx";
+import DatVeNhanh from "./components/DatVeNhanh.jsx";
+import SoatVeNhanVien from "./components/SoatVeNhanVien.jsx";
+import QuanTriHeThong from "./components/QuanTriHeThong.jsx";
+import LichSuVeKhachHang from "./components/LichSuVeKhachHang.jsx";
+import DangNhap_DangKy from "./components/DangNhap_DangKy.jsx";
+import LichChieuPhim from "./components/LichChieuPhim.jsx";
+import TimKiemPhim from "./components/TimKiemPhim.jsx";
+import MenuDieuHuong from "./components/MenuDieuHuong.jsx";
+import HopThoaiModal from "./components/HopThoaiModal.jsx";
 
 function Brand() {
   return (
@@ -343,9 +343,9 @@ export default function App() {
       <header className="site-header">
         <div className="nav-inner">
           <Brand />
-          <GlassNavigation />
+          <MenuDieuHuong />
           <div className="header-actions">
-            <HeaderSearch
+            <TimKiemPhim
               movies={movies}
               cinemas={cinemas}
               onMovie={openMovie}
@@ -496,7 +496,7 @@ export default function App() {
               onMovie={openMovie}
               onWelcome={() => setWelcomeOpen(true)}
             />
-            <QuickBooking
+            <DatVeNhanh
               key={wizardVersion}
               cinemaId={resolvedCinemaId}
               movieId={movieId}
@@ -559,7 +559,7 @@ export default function App() {
               onMovie={openMovie}
               onBook={bookMovie}
             />
-            <ShowtimeTimeline
+            <LichChieuPhim
               onBook={(value) => {
                 if (!member) {
                   setModal("login");
@@ -812,7 +812,7 @@ export default function App() {
             onBook={bookMovie}
             onResume={setBooking}
             bookingWidget={
-              <QuickBooking
+              <DatVeNhanh
                 key={wizardVersion}
                 cinemaId={resolvedCinemaId}
                 movieId={movieId}
@@ -842,7 +842,7 @@ export default function App() {
               />
             }
             timeline={
-              <ShowtimeTimeline
+              <LichChieuPhim
                 onBook={(value) => {
                   if (!member) {
                     setModal("login");
@@ -860,7 +860,7 @@ export default function App() {
         <WelcomeOffer onClose={() => setWelcomeOpen(false)} />
       )}
       {booking && (
-        <SeatBooking
+        <ChonGhe_Va_ThanhToan
           key={[
             booking.cinema.id,
             booking.movie.id,
@@ -874,7 +874,7 @@ export default function App() {
         />
       )}
       {modal && !["admin", "staff"].includes(modal) && (
-        <Modal
+        <HopThoaiModal
           title={
             modal === "search"
               ? t("Tìm câu chuyện của bạn")
@@ -972,7 +972,7 @@ export default function App() {
             </div>
           )}
           {modal === "login" && (
-            <AuthForm
+            <DangNhap_DangKy
               onSuccess={(next) => {
                 setMember(next);
                 setModal("account");
@@ -1008,7 +1008,7 @@ export default function App() {
                   </button>
                 </div>
               )}
-              <TicketHistory
+              <LichSuVeKhachHang
                 member={member}
                 onResume={(value) => {
                   setBooking(value);
@@ -1033,7 +1033,7 @@ export default function App() {
             </div>
           )}
           {modal === "history" && (
-            <TicketHistory
+            <LichSuVeKhachHang
               member={member}
               onResume={(value) => {
                 setBooking(value);
@@ -1325,11 +1325,11 @@ export default function App() {
               </p>
             </div>
           )}
-        </Modal>
+        </HopThoaiModal>
       )}
-      {modal === "staff" && <StaffCheckIn onClose={() => setModal(null)} />}
+      {modal === "staff" && <SoatVeNhanVien onClose={() => setModal(null)} />}
       {modal === "admin" && (
-        <AdminDashboard onClose={() => setModal(null)} adminUser={member} />
+        <QuanTriHeThong onClose={() => setModal(null)} adminUser={member} />
       )}
     </div>
   );

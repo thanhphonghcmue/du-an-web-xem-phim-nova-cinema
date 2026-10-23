@@ -150,6 +150,8 @@ test("catalog, quick booking and search use backend UUIDs without browser errors
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
+  expect((await read(page, "/runtime")).body.data.mode).toBe("backend");
+  await expect(page.locator(".standalone-mode-notice")).toHaveCount(0);
   await page
     .getByRole("combobox", { name: "Chọn cụm rạp", exact: true })
     .selectOption(fixture().cinema.id);
@@ -673,13 +675,11 @@ test("staff date lookup includes started shows, camera fallback is clear and mob
   await login(page, "staff");
   await page.goto("/soat-ve");
   const data = fixture();
-  await page
-    .getByLabel("Ngày đang soát", { exact: true })
-    .fill(
-      new Date(data.admissionShowtime.startTime).toLocaleDateString("en-CA", {
-        timeZone: "Asia/Ho_Chi_Minh",
-      }),
-    );
+  await page.getByLabel("Ngày đang soát", { exact: true }).fill(
+    new Date(data.admissionShowtime.startTime).toLocaleDateString("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }),
+  );
   await page
     .getByRole("combobox", { name: "Suất chiếu đang soát", exact: true })
     .selectOption(data.admissionShowtime.id);

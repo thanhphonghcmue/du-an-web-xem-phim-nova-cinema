@@ -1,42 +1,24 @@
 /**
- * ==============================================================================
- * TỆP TIN: src/app/api/v1/[...path]/route.js
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Cổng Reverse Proxy trung gian BFF (Backend-For-Frontend) của Next.js.
- *   - Đứng giữa Trình duyệt và NestJS API Backend:
- *     1. Bảo vệ chống tấn công CSRF / Cross-origin mutation.
- *     2. Chuyển đổi mã JWT thành HttpOnly / SameSite=Lax Cookies để bảo vệ người dùng khỏi XSS.
- *     3. Tự động bóc tách và ẩn access token / refresh token khỏi JavaScript phía trình duyệt.
- *     4. Chuyển tiếp nguyên vẹn file nhị phân (như file lịch .ics hoặc file CSV báo cáo doanh thu).
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Trình duyệt gọi `/api/v1/auth/login`.
- *   2. Proxy nhận thông tin, gửi tiếp sang NestJS backend (`http://127.0.0.1:4000/api/v1/auth/login`).
- *   3. Nhận response từ NestJS chứa token: Proxy xóa token khỏi body JSON và đính vào `Set-Cookie` (HttpOnly).
- *   4. Các yêu cầu sau: Proxy tự động đọc cookie `nova_access` và gắn `Authorization: Bearer <token>` gửi tới Backend.
- *
- * ĐỐI TƯỢNG SỬ DỤNG:
- *   - Tất cả các yêu cầu API RESTful từ client.
- *
- * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
- *   - Thêm rate limiting trực tiếp ở tầng Next.js edge middleware để chặn DDoS sớm hơn.
- *   - Tích hợp nén phản hồi Brotli/Gzip để giảm băng thông tải dữ liệu di động.
- * ==============================================================================
+ * BFF cùng origin: cookie HttpOnly, kiểm tra Origin, proxy sang API đã cấu hình.
+ * Local standalone là kho demo riêng khi không cấu hình BACKEND_API_URL trong development,
+ * hoặc NOVA_STANDALONE=true. Không chuyển kho dữ liệu khi backend gặp sự cố.
  */
-
 import { NextResponse } from "next/server";
+import { handleResilientFallback } from "./resilientFallback.js";
 
-// Only this server-side value selects the upstream. Browser input cannot select a host.
+// Chỉ biến máy chủ này chọn upstream; trình duyệt không thể điều hướng sang host khác.
 const upstream = () =>
   (process.env.BACKEND_API_URL || "http://127.0.0.1:4000/api/v1").replace(
     /\/$/,
     "",
   );
+
 const names = {
   access: "nova_access",
   refresh: "nova_refresh",
   remember: "nova_remember",
 };
+
 function clear(response) {
   for (const name of Object.values(names))
     response.cookies.set(name, "", {
@@ -46,6 +28,7 @@ function clear(response) {
       sameSite: "lax",
     });
 }
+
 function sameOrigin(request) {
   const origin = request.headers.get("origin");
   if (!origin) return true;
@@ -59,22 +42,54 @@ function sameOrigin(request) {
     return false;
   }
 }
+
 async function proxy(request, context) {
   const { path } = await context.params;
   if (!path?.length || path.some((part) => !/^[a-zA-Z0-9_-]+$/.test(part)))
     return NextResponse.json({ message: "Invalid API path." }, { status: 400 });
+
   const endpoint = "/" + path.join("/");
   const mutation = !["GET", "HEAD"].includes(request.method);
+
   if (mutation && !sameOrigin(request))
     return NextResponse.json(
       { message: "Cross-origin request rejected." },
       { status: 403 },
     );
+
   let body = mutation ? await request.text() : undefined;
+  // Local demo and configured API use separate stores for the entire session.
+  const standalone =
+    process.env.NODE_ENV !== "production" &&
+    (process.env.NOVA_STANDALONE === "true" || !process.env.BACKEND_API_URL);
+  if (endpoint === "/runtime" && request.method === "GET")
+    return NextResponse.json(
+      { success: true, data: { mode: standalone ? "standalone" : "backend" } },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  if (standalone) {
+    let rememberDemo = request.cookies.get(names.remember)?.value === "1";
+    if (endpoint === "/auth/login") {
+      try {
+        rememberDemo = JSON.parse(body || "{}").remember === true;
+      } catch {
+        return NextResponse.json({ message: "Invalid JSON." }, { status: 400 });
+      }
+    }
+    return handleResilientFallback(
+      endpoint,
+      request,
+      body,
+      rememberDemo,
+      request.cookies.get(names.access)?.value,
+    );
+  }
+
   let remember = request.cookies.get(names.remember)?.value === "1";
+
   if (endpoint === "/auth/login") {
     try {
-      const input = JSON.parse(body);
+      const input = JSON.parse(body || "{}");
       remember = input.remember === true;
       delete input.remember;
       body = JSON.stringify(input);
@@ -82,6 +97,7 @@ async function proxy(request, context) {
       return NextResponse.json({ message: "Invalid JSON." }, { status: 400 });
     }
   }
+
   if (["/auth/refresh", "/auth/logout"].includes(endpoint)) {
     const refreshToken = request.cookies.get(names.refresh)?.value;
     if (!refreshToken) {
@@ -96,6 +112,7 @@ async function proxy(request, context) {
     }
     body = JSON.stringify({ refreshToken });
   }
+
   const headers = new Headers();
   for (const name of ["content-type", "idempotency-key"]) {
     const value = request.headers.get(name);
@@ -103,8 +120,10 @@ async function proxy(request, context) {
   }
   if (["/auth/refresh", "/auth/logout"].includes(endpoint))
     headers.set("content-type", "application/json");
+
   const token = request.cookies.get(names.access)?.value;
   if (token) headers.set("authorization", `Bearer ${token}`);
+
   try {
     const target = upstream() + endpoint + new URL(request.url).search;
     const result = await fetch(target, {
@@ -115,8 +134,10 @@ async function proxy(request, context) {
       redirect: "manual",
       signal: AbortSignal.timeout(15000),
     });
+
     const type = result.headers.get("content-type") || "application/json";
     let response;
+
     if (type.includes("application/json")) {
       const payload = await result.json();
       if (
@@ -127,6 +148,7 @@ async function proxy(request, context) {
       }
       const session = payload.data;
       response = NextResponse.json(payload, { status: result.status });
+
       if (
         result.ok &&
         ["/auth/login", "/auth/refresh"].includes(endpoint) &&
@@ -166,6 +188,7 @@ async function proxy(request, context) {
       const disposition = result.headers.get("content-disposition");
       if (disposition) response.headers.set("Content-Disposition", disposition);
     }
+
     response.headers.set("Cache-Control", "no-store");
     if (
       endpoint === "/auth/logout" ||
@@ -184,6 +207,7 @@ async function proxy(request, context) {
     );
   }
 }
+
 export {
   proxy as GET,
   proxy as POST,

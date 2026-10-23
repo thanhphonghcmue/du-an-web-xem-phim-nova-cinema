@@ -33,6 +33,7 @@ import { CatalogContext, dayKey, timeLabel } from "../catalog.js";
 import discovery from "../../content/cinema.json";
 import { movies as artwork, cinemas as defaultCinemas } from "../data.js";
 import {
+  read,
   apiGetMovies,
   apiGetCinemas,
   apiGetShowtimes,
@@ -69,13 +70,15 @@ export default function CatalogProvider({ children }) {
   const [error, setError] = useState("");
   const load = useCallback(async () => {
     try {
-      const [films, locations, showtimes, rooms, combos] = await Promise.all([
-        apiGetMovies(),
-        apiGetCinemas(),
-        apiGetShowtimes(),
-        apiList("/rooms"),
-        apiList("/combos"),
-      ]);
+      const [films, locations, showtimes, rooms, combos, runtime] =
+        await Promise.all([
+          apiGetMovies(),
+          apiGetCinemas(),
+          apiGetShowtimes(),
+          apiList("/rooms"),
+          apiList("/combos"),
+          read("/runtime"),
+        ]);
       const normalize = (s) =>
         s.toLocaleLowerCase("vi").replace(/[^\p{L}\p{N}]/gu, "");
       const movies = films
@@ -130,6 +133,7 @@ export default function CatalogProvider({ children }) {
       }));
       setData({
         isLive: true,
+        runtimeMode: runtime.mode,
         movies,
         cinemas,
         rooms,
@@ -157,6 +161,12 @@ export default function CatalogProvider({ children }) {
           <p role={error ? "alert" : "status"}>
             {error || "Đang tải phim và lịch chiếu…"}
           </p>
+          {data.runtimeMode === "standalone" && (
+            <div className="standalone-mode-notice" role="status">
+              DEMO ĐỘC LẬP · Dữ liệu mẫu trong bộ nhớ tạm, không phải đơn/vé từ
+              máy chủ NestJS. Khởi động lại có thể mất dữ liệu.
+            </div>
+          )}
           {error && (
             <button className="button button-primary" onClick={load}>
               Thử kết nối lại
@@ -234,6 +244,12 @@ export default function CatalogProvider({ children }) {
         reload: load,
       }}
     >
+      {data.runtimeMode === "standalone" && (
+        <div className="standalone-mode-notice" role="status">
+          DEMO ĐỘC LẬP · Dữ liệu mẫu trong bộ nhớ tạm, không phải đơn/vé từ máy
+          chủ NestJS. Khởi động lại có thể mất dữ liệu.
+        </div>
+      )}
       {error && (
         <div className="catalog-connection-notice">
           <p role="alert">

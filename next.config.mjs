@@ -4,6 +4,9 @@ const nextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   devIndicators: false,
+  experimental: {
+    agentUpgrade: "security",
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "image.tmdb.org", pathname: "/t/p/**" },

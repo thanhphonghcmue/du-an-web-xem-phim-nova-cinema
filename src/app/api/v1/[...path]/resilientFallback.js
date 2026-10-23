@@ -100,6 +100,13 @@ const usersStore = new Map([
   ],
 ]);
 
+// Ảnh mã QR SVG mẫu chuẩn hiển thị ngay lập tức
+const sampleQrBase64 =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="140" height="140"><rect width="140" height="140" fill="#ffffff" rx="10"/><g fill="#111111"><rect x="15" y="15" width="35" height="35" rx="4"/><rect x="22" y="22" width="21" height="21" fill="#fff"/><rect x="27" y="27" width="11" height="11"/><rect x="90" y="15" width="35" height="35" rx="4"/><rect x="97" y="22" width="21" height="21" fill="#fff"/><rect x="102" y="27" width="11" height="11"/><rect x="15" y="90" width="35" height="35" rx="4"/><rect x="22" y="97" width="21" height="21" fill="#fff"/><rect x="27" y="102" width="11" height="11"/><rect x="60" y="20" width="20" height="10"/><rect x="60" y="40" width="10" height="20"/><rect x="60" y="70" width="20" height="20"/><rect x="90" y="60" width="35" height="15"/><rect x="90" y="90" width="15" height="35"/><rect x="115" y="105" width="10" height="20"/></g><text x="70" y="132" font-size="9" font-family="system-ui,sans-serif" font-weight="bold" text-anchor="middle" fill="#E50914">NOVA CINEMA</text></svg>',
+  );
+
 // Bộ nhớ trong lưu trữ đơn đặt vé
 const bookingsStore = new Map([
   [
@@ -107,6 +114,7 @@ const bookingsStore = new Map([
     {
       id: "ord_sample_paid",
       code: "NV-889214",
+      orderCode: "NV-889214",
       showtimeId: fallbackShowtimes[0]?.id || "st-landmark81-dune-0",
       status: "PAID",
       totalAmount: 190000,
@@ -137,12 +145,30 @@ const ticketsStore = new Map([
       id: "tk_sample_01",
       bookingId: "ord_sample_paid",
       code: "TK-90218",
+      orderCode: "NV-889214",
       seatLabel: "F7, F8",
+      seats: [
+        { label: "F7", type: "VIP", price: "95000" },
+        { label: "F8", type: "VIP", price: "95000" },
+      ],
+      combos: [
+        { name: "Solo Combo 69K", quantity: 1, unitPrice: "69000" },
+      ],
+      movie: "Dune: Hành Tinh Cát 2",
       movieTitle: "Dune: Hành Tinh Cát 2",
+      cinema: "NOVA Landmark 81",
       cinemaName: "NOVA Landmark 81",
+      room: "Phòng Laser 01",
       roomName: "Phòng Laser 01",
       startTime: new Date(Date.now() + 7200000).toISOString(),
+      endTime: new Date(Date.now() + 15000000).toISOString(),
+      amount: "190000",
+      currency: "VND",
+      ticketHash: sampleHash,
       qrHash: sampleHash,
+      qrCodeBase64: sampleQrBase64,
+      isCheckedIn: false,
+      checkedInAt: null,
       status: "VALID",
       customerEmail: "customer@nova.local",
     },
@@ -461,6 +487,7 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
     const booking = {
       id: bookingId,
       code,
+      orderCode: code,
       showtimeId,
       status: "HOLDING",
       totalAmount: ticketTotal,
@@ -558,18 +585,37 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
       if (b.status === "HOLDING") {
         b.status = "PAID";
         const tkId = "tk_" + Math.random().toString(36).substring(2, 9);
+        const code = "TK-" + Math.floor(10000 + Math.random() * 90000);
+        const orderCode = b.orderCode || b.code || "NV-889214";
         ticketsStore.set(tkId, {
           id: tkId,
           bookingId: b.id,
-          code: "TK-" + Math.floor(10000 + Math.random() * 90000),
-          seatLabel: b.seats.map((s) => `${s.row}${s.column}`).join(", "),
+          code,
+          orderCode,
+          seatLabel: b.seats.map((s) => `${s.row || s.seatId?.charAt(0)}${s.column || s.seatId?.slice(1)}`).join(", "),
+          seats: b.seats.map((s) => ({
+            label: `${s.row || s.seatId?.charAt(0)}${s.column || s.seatId?.slice(1)}`,
+            type: "VIP",
+            price: String(s.price || 95000),
+          })),
+          combos: b.combos || [],
+          movie: b.movieTitle || "Dune: Hành Tinh Cát 2",
           movieTitle: b.movieTitle || "Dune: Hành Tinh Cát 2",
+          cinema: b.cinemaName || "NOVA Landmark 81",
           cinemaName: b.cinemaName || "NOVA Landmark 81",
+          room: b.roomName || "Phòng Laser 01",
           roomName: b.roomName || "Phòng Laser 01",
           startTime: new Date(Date.now() + 7200000).toISOString(),
+          endTime: new Date(Date.now() + 15000000).toISOString(),
+          amount: String(b.finalAmount || b.totalAmount || 190000),
+          currency: "VND",
+          ticketHash: sampleHash,
           qrHash: sampleHash,
+          qrCodeBase64: sampleQrBase64,
+          isCheckedIn: false,
+          checkedInAt: null,
           status: "VALID",
-          customerEmail: b.customerEmail,
+          customerEmail: b.customerEmail || "customer@nova.local",
         });
       }
     }

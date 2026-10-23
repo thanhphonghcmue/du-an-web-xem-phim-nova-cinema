@@ -6,10 +6,28 @@ backend, giữ ghế đúng 5 phút và thanh toán **Sandbox, không thu tiền
 
 > 🤝 **Dành cho thành viên nhóm / Cộng tác viên:** Xem ngay [Tài liệu hướng dẫn cộng tác & luồng phát triển dự án](COLLABORATION_GUIDE.md) và [Bản đồ chức năng, tiến trình & giải thích code toàn diện](docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md) để nắm rõ vai trò từng file, tiến trình từng trang, luồng đặt vé và các gợi ý mở rộng tính năng mới.
 
-## Chạy trên máy của bạn
+## ⚡ Chạy Nhanh Nhất Để Chấm Bài (KHÔNG CẦN DOCKER)
 
-Cài Node.js theo `.nvmrc` (24.19.0) và Docker Desktop có Docker Compose v2.
-Mở Docker trước. Trong terminal tại thư mục repository:
+Hệ thống được tích hợp sẵn **Chế độ độc lập thông minh (Standalone Mode)**. Thầy cô và bạn bè chỉ cần tải code về và chạy đúng 1 lệnh duy nhất:
+
+```bash
+npm install
+npm run dev
+```
+
+Mở trình duyệt tại: **`http://localhost:3000`**
+
+Toàn bộ 100% chức năng rạp chiếu phim sẵn sàng hoạt động ngay lập tức:
+- 👑 **Quản trị viên (Admin):** Đăng nhập `admin@nova.local` (mật khẩu bất kỳ) $\rightarrow$ Xem báo cáo doanh thu tài chính, biểu đồ, danh sách thành viên.
+- 🎫 **Nhân viên soát vé (Staff):** Đăng nhập `staff@nova.local` (mật khẩu bất kỳ) $\rightarrow$ Mở camera WebRTC quét mã QR hoặc chọn vé mẫu duyệt vào rạp.
+- 👤 **Khách hàng (Customer):** Đăng nhập `customer@nova.local` hoặc đăng ký mới $\rightarrow$ Xem lịch chiếu, chọn sơ đồ ghế 96 chỗ, giữ ghế 5 phút, thanh toán Sandbox 1 chạm, nhận vé QR điện tử.
+
+---
+
+## 🐳 Tùy chọn chạy kèm Docker & Backend NestJS (Môi trường Production)
+
+Nếu muốn khởi động toàn bộ hạ tầng cơ sở dữ liệu vật lý (PostgreSQL 17, Redis 7.4, Mailpit):
+Mở Docker Desktop trước. Trong terminal tại thư mục repository:
 
 ```bash
 npm ci

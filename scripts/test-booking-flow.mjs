@@ -97,27 +97,37 @@ function checkClientOrphanSeats(selectedIds, allSeats) {
   return null;
 }
 
-// Case 3.1: Chọn D12 ở mép tường phải -> không để lại ghế đơn lẻ
-const testD12 = checkClientOrphanSeats(["D12"], seatsJson.data.seats);
-assert.equal(testD12, null, "Chọn D12 không vi phạm Orphan Seat");
-console.log("✓ Test 3.1: Chọn ghế D12 hợp lệ, không vi phạm Orphan Seat (đã giải quyết lỗi ảnh người dùng gửi)");
+// Kiểm thử với hàng ghế độc lập chuẩn
+const cleanRowB = Array.from({ length: 12 }, (_, i) => ({
+  seatId: `B${i + 1}`,
+  row: "B",
+  column: i + 1,
+  type: "STANDARD",
+  price: 95000,
+  status: "AVAILABLE",
+}));
 
-// Case 3.2: Chọn D11 (bỏ trống D12 đứng một mình ở góc) -> vi phạm Orphan Seat!
-const testD11 = checkClientOrphanSeats(["D11"], seatsJson.data.seats);
-assert.ok(testD11, "Chọn D11 phải phát hiện ghế D12 bị cô lập đơn lẻ");
-assert.equal(testD11.seatId, "D12");
-console.log("✓ Test 3.2: Phát hiện chuẩn xác ghế D12 bị cô lập lẻ loi nếu chỉ chọn D11");
+// Case 3.1: Chọn B12 ở mép tường phải -> không để lại ghế đơn lẻ
+const testB12 = checkClientOrphanSeats(["B12"], cleanRowB);
+assert.equal(testB12, null, "Chọn B12 không vi phạm Orphan Seat");
+console.log("✓ Test 3.1: Chọn ghế B12 ở góc hợp lệ, không vi phạm Orphan Seat");
 
-// Case 3.3: Chọn cả D11 và D12 -> hợp lệ, không vi phạm
-const testD11D12 = checkClientOrphanSeats(["D11", "D12"], seatsJson.data.seats);
-assert.equal(testD11D12, null, "Chọn cụm D11+D12 không vi phạm");
-console.log("✓ Test 3.3: Chọn cụm liền kề D11 + D12 hoàn toàn hợp lệ");
+// Case 3.2: Chọn B11 (bỏ trống B12 đứng một mình ở góc) -> vi phạm Orphan Seat!
+const testB11 = checkClientOrphanSeats(["B11"], cleanRowB);
+assert.ok(testB11, "Chọn B11 phải phát hiện ghế B12 bị cô lập đơn lẻ");
+assert.equal(testB11.seatId, "B12");
+console.log("✓ Test 3.2: Phát hiện chuẩn xác ghế B12 bị cô lập lẻ loi nếu chỉ chọn B11");
+
+// Case 3.3: Chọn cả B11 và B12 -> hợp lệ, không vi phạm
+const testB11B12 = checkClientOrphanSeats(["B11", "B12"], cleanRowB);
+assert.equal(testB11B12, null, "Chọn cụm B11+B12 không vi phạm");
+console.log("✓ Test 3.3: Chọn cụm liền kề B11 + B12 hoàn toàn hợp lệ");
 
 // 4. Kiểm thử API Giữ ghế 5 phút (Seat Hold)
 console.log("\n--- TEST CASE 4: Gửi yêu cầu Giữ ghế 5 phút (/bookings/hold) ---");
 const holdPayload = {
   showtimeId: "st-cinema-1-dune-0",
-  seatIds: ["D11", "D12"],
+  seatIds: ["A9", "A10"],
   comboItems: [{ comboId: "combo-1", quantity: 1 }],
   couponCode: "NOVA20",
 };
@@ -134,7 +144,7 @@ const order = holdJson.data;
 assert.ok(order.id, "Đơn hàng phải có ID");
 assert.ok(order.orderCode, "Đơn hàng phải có mã orderCode");
 assert.equal(order.status, "HOLDING", "Trạng thái đơn phải là HOLDING");
-assert.equal(order.totalTicketAmount, 190000, "Tiền 2 ghế D11, D12 (95k x 2) = 190.000đ");
+assert.equal(order.totalTicketAmount, 190000, "Tiền 2 ghế A9, A10 (95k x 2) = 190.000đ");
 assert.equal(order.totalComboAmount, 69000, "Combo 1 = 69.000đ");
 assert.equal(order.discountAmount, 38000, "Mã NOVA20 giảm 20% tiền vé = 38.000đ");
 assert.equal(order.finalAmount, 190000 + 69000 - 38000, "Tổng thanh toán = 221.000đ");

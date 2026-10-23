@@ -17,10 +17,10 @@ npm run dev
 
 Mở trình duyệt tại: **`http://localhost:3000`**
 
-Toàn bộ 100% chức năng rạp chiếu phim sẵn sàng hoạt động ngay lập tức:
-- 👑 **Quản trị viên (Admin):** Đăng nhập `admin@nova.local` (mật khẩu bất kỳ) $\rightarrow$ Xem báo cáo doanh thu tài chính, biểu đồ, danh sách thành viên.
-- 🎫 **Nhân viên soát vé (Staff):** Đăng nhập `staff@nova.local` (mật khẩu bất kỳ) $\rightarrow$ Mở camera WebRTC quét mã QR hoặc chọn vé mẫu duyệt vào rạp.
-- 👤 **Khách hàng (Customer):** Đăng nhập `customer@nova.local` hoặc đăng ký mới $\rightarrow$ Xem lịch chiếu, chọn sơ đồ ghế 96 chỗ, giữ ghế 5 phút, thanh toán Sandbox 1 chạm, nhận vé QR điện tử.
+Toàn bộ 100% chức năng rạp chiếu phim sẵn sàng hoạt động ngay lập tức (Mật khẩu chuẩn: `nova@12345`):
+- 👑 **Quản trị viên (Admin):** Đăng nhập `admin@nova.local` (Mật khẩu: `nova@12345`) $\rightarrow$ Xem báo cáo doanh thu tài chính, biểu đồ, danh sách thành viên.
+- 🎫 **Nhân viên soát vé (Staff):** Đăng nhập `staff@nova.local` (Mật khẩu: `nova@12345`) $\rightarrow$ Mở camera WebRTC quét mã QR hoặc chọn vé mẫu duyệt vào rạp.
+- 👤 **Khách hàng (Customer):** Đăng nhập `customer@nova.local` (Mật khẩu: `nova@12345`) hoặc đăng ký mới $\rightarrow$ Xem lịch chiếu, chọn sơ đồ ghế 96 chỗ, giữ ghế 5 phút, thanh toán Sandbox 1 chạm, nhận vé QR điện tử.
 
 ---
 

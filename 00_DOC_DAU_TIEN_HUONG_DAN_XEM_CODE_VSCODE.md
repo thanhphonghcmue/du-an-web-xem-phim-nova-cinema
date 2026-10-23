@@ -78,20 +78,20 @@ Hệ thống đã được tích hợp **Lớp dự phòng thông minh (Resilien
 ### Các tài khoản kiểm thử có sẵn:
 1. **👑 Quản trị viên (ADMIN):**
    - **Email:** `admin@nova.local`
-   - **Mật khẩu:** Nhập bất kỳ mật khẩu nào (hoặc `Admin@123456`)
+   - **Mật khẩu:** `nova@12345`
    - **Quyền hạn:** Mở Bảng Quản Trị Hệ Thống (`QuanTriHeThong.jsx`), xem biểu đồ doanh thu tài chính, báo cáo khách hàng và kiểm tra sức khỏe hạ tầng.
 
 2. **🎫 Nhân viên soát vé (STAFF):**
    - **Email:** `staff@nova.local`
-   - **Mật khẩu:** Nhập bất kỳ mật khẩu nào (hoặc `Staff@123456`)
+   - **Mật khẩu:** `nova@12345`
    - **Quyền hạn:** Mở Bàn Soát Vé (`SoatVeNhanVien.jsx`), bật camera quét mã QR hoặc chọn vé mẫu để duyệt vé vào rạp.
 
 3. **👤 Khách hàng thân thiết (CUSTOMER):**
    - **Email:** `customer@nova.local`
-   - **Mật khẩu:** Nhập bất kỳ mật khẩu nào (hoặc `Customer@123456`)
+   - **Mật khẩu:** `nova@12345`
    - **Quyền hạn:** Đặt vé, chọn sơ đồ ghế, giữ vé 5 phút, thanh toán giả lập Sandbox 1 chạm, xem ví vé điện tử QR.
 
-*(Bạn cũng có thể bấm sang tab **Đăng ký** để tạo tài khoản mới với email và tên của riêng bạn).*
+*(Bạn cũng có thể bấm sang tab **Đăng ký** để tạo tài khoản mới với email và mật khẩu riêng của bạn).*
 
 ---
 

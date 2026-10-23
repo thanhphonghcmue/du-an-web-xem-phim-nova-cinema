@@ -108,11 +108,11 @@ export default function DangNhap_DangKy({ onSuccess }) {
     setFields((prev) => ({
       ...prev,
       email,
-      // Không tự động điền mật khẩu để bảo vệ tài khoản cấp cao
+      password: "nova@12345",
     }));
-    setTouched((prev) => ({ ...prev, email: true }));
+    setTouched((prev) => ({ ...prev, email: true, password: true }));
     setNoticeType("info");
-    setNotice(`Đã chọn tài khoản ${roleName}. Vui lòng nhập mật khẩu.`);
+    setNotice(`Đã chọn tài khoản ${roleName}. Mật khẩu: nova@12345`);
   }
 
   async function submit(e) {
@@ -232,7 +232,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
             <div className="auth-quick-header">
               <span>
                 <Sparkles size={14} style={{ display: "inline", marginRight: 5 }} />
-                Tài khoản nghiệp vụ rạp chiếu phim:
+                Tài khoản kiểm thử (Mật khẩu: <code>nova@12345</code>):
               </span>
             </div>
             <div className="auth-quick-pills">
@@ -240,7 +240,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                 type="button"
                 className="auth-quick-pill admin"
                 onClick={() => handleQuickFill("admin@nova.local", "Quản trị viên")}
-                title="admin@nova.local"
+                title="admin@nova.local · Mật khẩu: nova@12345"
               >
                 👑 Quản trị viên
               </button>
@@ -248,17 +248,17 @@ export default function DangNhap_DangKy({ onSuccess }) {
                 type="button"
                 className="auth-quick-pill staff"
                 onClick={() => handleQuickFill("staff@nova.local", "Nhân viên soát vé")}
-                title="staff@nova.local"
+                title="staff@nova.local · Mật khẩu: nova@12345"
               >
                 🎫 Nhân viên soát vé
               </button>
               <button
                 type="button"
                 className="auth-quick-pill customer"
-                onClick={() => handleQuickFill("customer@nova.local", "Người dùng")}
-                title="customer@nova.local"
+                onClick={() => handleQuickFill("customer@nova.local", "Khách hàng")}
+                title="customer@nova.local · Mật khẩu: nova@12345"
               >
-                👤 Người dùng
+                👤 Khách hàng
               </button>
             </div>
           </div>

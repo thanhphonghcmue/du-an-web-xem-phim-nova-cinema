@@ -1,35 +1,26 @@
-/**
- * ==============================================================================
- * TỆP TIN: src/app/api/v1/[...path]/resilientFallback.js
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Lớp dự phòng ngoại tuyến thông minh (Intelligent Resilient Fallback Layer).
- *   - Khi NestJS API Backend (port 4000) hoặc PostgreSQL / Redis không hoạt động
- *     (ví dụ chưa bật Docker Desktop hoặc chạy cục bộ chỉ với Next.js):
- *     Module này tự động tiếp quản và xử lý tất cả các API nghiệp vụ:
- *       1. Đăng nhập / Đăng ký tài khoản (Admin, Staff, Customer).
- *       2. Xem sơ đồ ghế 96 chỗ thời gian thực, gợi ý cụm ghế trống.
- *       3. Giữ ghế 5 phút (Seat Hold), Đặt vé và Thanh toán giả lập (Sandbox).
- *       4. Quản lý vé điện tử QR, tải file lịch (.ics), hủy giữ vé.
- *       5. Bàn làm việc Soát vé Nhân viên (`/staff/check-in`).
- *       6. Bảng điều khiển Quản trị viên (`/admin/reports/*`) với biểu đồ doanh thu và khách hàng.
- *       7. Trạng thái kiểm tra sức khỏe hệ thống (`/health`).
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   - Route proxy `route.js` thử kết nối tới NestJS backend.
- *   - Nếu Backend phản hồi -> trả về dữ liệu thật từ NestJS.
- *   - Nếu Backend lỗi kết nối -> tự động chuyển giao yêu cầu sang `handleResilientFallback`.
- *   - Người dùng hoàn toàn không bị gián đoạn và KHÔNG BAO GIỜ gặp lỗi
- *     "Không thể kết nối máy chủ. Vui lòng thử lại sau."!
- * ==============================================================================
+/** Local development demo store only. Not an outage fallback for configured NestJS.
+ * Data is in memory; unsupported features return an explicit error.
  */
-
 import { NextResponse } from "next/server";
-import { movies as artwork, cinemas as defaultCinemas } from "../../../../data.js";
+import {
+  movies as artwork,
+  cinemas as defaultCinemas,
+} from "../../../../data.js";
 
 // Khởi tạo danh mục phòng chiếu dự phòng
 const fallbackRooms = defaultCinemas.flatMap((c) => [
-  { id: `${c.id}-r1`, cinemaId: c.id, name: "Phòng Laser 01", roomType: "STANDARD_2D" },
-  { id: `${c.id}-r2`, cinemaId: c.id, name: "Phòng IMAX Laser 02", roomType: "IMAX_70MM_LASER" },
+  {
+    id: `${c.id}-r1`,
+    cinemaId: c.id,
+    name: "Phòng Laser 01",
+    roomType: "STANDARD_2D",
+  },
+  {
+    id: `${c.id}-r2`,
+    cinemaId: c.id,
+    name: "Phòng IMAX Laser 02",
+    roomType: "IMAX_70MM_LASER",
+  },
 ]);
 
 // Khởi tạo danh mục suất chiếu dự phòng
@@ -52,9 +43,27 @@ const fallbackShowtimes = defaultCinemas.flatMap((c) =>
 
 // Danh mục bắp nước dự phòng
 const defaultCombos = [
-  { id: "combo-1", name: "Solo Combo 69K", description: "1 bắp ngọt lớn + 1 Coca-Cola tươi", price: "69000.00", isActive: true },
-  { id: "combo-2", name: "Duo Combo 99K", description: "1 bắp phô mai lớn + 2 Coca-Cola tươi", price: "99000.00", isActive: true },
-  { id: "combo-3", name: "Party Combo 199K", description: "2 bắp khổng lồ mix vị + 4 nước ngọt + 1 snack khoai tây", price: "199000.00", isActive: true },
+  {
+    id: "combo-1",
+    name: "Solo Combo 69K",
+    description: "1 bắp ngọt lớn + 1 Coca-Cola tươi",
+    price: "69000.00",
+    isActive: true,
+  },
+  {
+    id: "combo-2",
+    name: "Duo Combo 99K",
+    description: "1 bắp phô mai lớn + 2 Coca-Cola tươi",
+    price: "99000.00",
+    isActive: true,
+  },
+  {
+    id: "combo-3",
+    name: "Party Combo 199K",
+    description: "2 bắp khổng lồ mix vị + 4 nước ngọt + 1 snack khoai tây",
+    price: "199000.00",
+    isActive: true,
+  },
 ];
 
 // Bộ nhớ trong lưu trữ dữ liệu người dùng (In-Memory Database)
@@ -129,7 +138,14 @@ const bookingsStore = new Map([
         { seatId: "F7", row: "F", column: 7, price: 95000, status: "SOLD" },
         { seatId: "F8", row: "F", column: 8, price: 95000, status: "SOLD" },
       ],
-      combos: [{ comboId: "combo-1", name: "Solo Combo 69K", quantity: 1, price: 69000 }],
+      combos: [
+        {
+          comboId: "combo-1",
+          name: "Solo Combo 69K",
+          quantity: 1,
+          price: 69000,
+        },
+      ],
       movieTitle: "Dune: Hành Tinh Cát 2",
       cinemaName: "NOVA Landmark 81",
       roomName: "Phòng Laser 01",
@@ -140,7 +156,8 @@ const bookingsStore = new Map([
 ]);
 
 // Bộ nhớ trong lưu trữ vé điện tử
-const sampleHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+const sampleHash =
+  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 const ticketsStore = new Map([
   [
     "tk_sample_01",
@@ -154,9 +171,7 @@ const ticketsStore = new Map([
         { label: "F7", type: "VIP", price: "95000" },
         { label: "F8", type: "VIP", price: "95000" },
       ],
-      combos: [
-        { name: "Solo Combo 69K", quantity: 1, unitPrice: "69000" },
-      ],
+      combos: [{ name: "Solo Combo 69K", quantity: 1, unitPrice: "69000" }],
       movie: "Dune: Hành Tinh Cát 2",
       movieTitle: "Dune: Hành Tinh Cát 2",
       cinema: "NOVA Landmark 81",
@@ -229,9 +244,18 @@ function setAuthCookies(response, user, remember = true) {
     secure: false,
   };
   const maxAge = remember ? 604800 : undefined; // 7 ngày
-  response.cookies.set("nova_access", token, { ...options, ...(maxAge ? { maxAge: 86400 } : {}) });
-  response.cookies.set("nova_refresh", token + "_rf", { ...options, ...(maxAge ? { maxAge } : {}) });
-  response.cookies.set("nova_remember", remember ? "1" : "0", { ...options, ...(maxAge ? { maxAge } : {}) });
+  response.cookies.set("nova_access", token, {
+    ...options,
+    ...(maxAge ? { maxAge: 86400 } : {}),
+  });
+  response.cookies.set("nova_refresh", token + "_rf", {
+    ...options,
+    ...(maxAge ? { maxAge } : {}),
+  });
+  response.cookies.set("nova_remember", remember ? "1" : "0", {
+    ...options,
+    ...(maxAge ? { maxAge } : {}),
+  });
 }
 
 /**
@@ -314,7 +338,13 @@ function generateSeatMap(showtimeId) {
 /**
  * BỘ ĐIỀU PHỐI XỬ LÝ NGOẠI TUYẾN DỰ PHÒNG TOÀN DIỆN (MAIN FALLBACK HANDLER)
  */
-export async function handleResilientFallback(endpoint, request, rawBody, remember, tokenCookie) {
+export async function handleResilientFallback(
+  endpoint,
+  request,
+  rawBody,
+  remember,
+  tokenCookie,
+) {
   const method = request.method;
   const token =
     tokenCookie ||
@@ -337,22 +367,16 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
 
     const user = usersStore.get(email);
 
-    // Kiểm tra mật khẩu chuẩn xác như trang web thật:
-    // Chấp nhận mật khẩu đã lưu của tài khoản hoặc mật khẩu hệ thống nova@12345
-    const isPasswordCorrect =
-      Boolean(user) &&
-      (user.password === password ||
-        password === "nova@12345" ||
-        password === "Admin@123456" ||
-        password === "Staff@123456" ||
-        password === "Customer@123456");
+    // Demo credentials still belong to their individual account.
+    const isPasswordCorrect = Boolean(user) && user.password === password;
 
     if (!user || !isPasswordCorrect) {
       return NextResponse.json(
         {
           success: false,
           error: "INVALID_CREDENTIALS",
-          message: "Email hoặc mật khẩu không chính xác. Mật khẩu chuẩn là: nova@12345",
+          message:
+            "Email hoặc mật khẩu không chính xác. Mật khẩu chuẩn là: nova@12345",
         },
         { status: 401 },
       );
@@ -397,7 +421,8 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
         {
           success: false,
           error: "USER_EXISTS",
-          message: "Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.",
+          message:
+            "Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.",
         },
         { status: 409 },
       );
@@ -450,7 +475,10 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   // -------------------------------------------------------------
   if (endpoint === "/auth/refresh") {
     if (!currentUser) {
-      const res = NextResponse.json({ message: "Vui lòng đăng nhập lại." }, { status: 401 });
+      const res = NextResponse.json(
+        { message: "Vui lòng đăng nhập lại." },
+        { status: 401 },
+      );
       clearAuthCookies(res);
       return res;
     }
@@ -525,7 +553,6 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
     const foundShowtime = fallbackShowtimes.find((s) => s.id === showtimeId);
     const foundMovie = artwork.find((m) => m.id === foundShowtime?.movieId) || artwork[0];
     const foundCinema = defaultCinemas.find((c) => showtimeId.includes(c.id)) || defaultCinemas[0];
-
     const bookingId = "ord_" + Math.random().toString(36).substring(2, 9);
     const code = "NV-" + Math.floor(100000 + Math.random() * 900000);
 
@@ -621,9 +648,14 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   // -------------------------------------------------------------
   // 9. LẤY CHI TIẾT ĐƠN ĐẶT (/bookings/:id)
   // -------------------------------------------------------------
-  if (endpoint.startsWith("/bookings/") && !endpoint.includes("/cancel") && !endpoint.endsWith("/me")) {
+  if (
+    endpoint.startsWith("/bookings/") &&
+    !endpoint.includes("/cancel") &&
+    !endpoint.endsWith("/me")
+  ) {
     const id = endpoint.split("/")[2];
-    const booking = bookingsStore.get(id) || bookingsStore.get("ord_sample_paid");
+    const booking =
+      bookingsStore.get(id) || bookingsStore.get("ord_sample_paid");
     return NextResponse.json({
       success: true,
       data: booking,
@@ -686,7 +718,7 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   // 13. HOÀN TẤT THANH TOÁN 1 CHẠM SANDBOX (/payments/sandbox/complete)
   // -------------------------------------------------------------
   if (endpoint === "/payments/sandbox/complete") {
-    let targetBookingId = null;
+let targetBookingId = null;
     try {
       if (rawBody?.startsWith("{")) {
         const parsed = JSON.parse(rawBody);
@@ -751,7 +783,7 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
 
     return NextResponse.json({
       success: true,
-      data: { status: "PAID", message: "Thanh toán thành công. Vé điện tử QR đã được phát hành." },
+data: { status: "PAID", message: "Thanh toán thành công. Vé điện tử QR đã được phát hành." },
     });
   }
 
@@ -885,7 +917,10 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   if (endpoint === "/admin/reports/purge-outbox") {
     return NextResponse.json({
       success: true,
-      data: { message: "Đã dọn dẹp các thông báo Outbox cũ thành công.", purged: 0 },
+      data: {
+        message: "Đã dọn dẹp các thông báo Outbox cũ thành công.",
+        purged: 0,
+      },
     });
   }
 
@@ -896,13 +931,13 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
     return NextResponse.json({
       success: true,
       data: {
-        status: "ok",
-        mode: "standalone-resilient",
+        status: "demo",
+        mode: "standalone",
         checks: {
-          postgres: { status: "up" },
-          redis: { status: "up" },
-          queue: { status: "up" },
-          realtime: { status: "up" },
+          postgres: { status: "not_configured" },
+          redis: { status: "not_configured" },
+          queue: { status: "not_configured" },
+          realtime: { status: "not_configured" },
         },
       },
     });
@@ -928,34 +963,51 @@ export async function handleResilientFallback(endpoint, request, rawBody, rememb
   if (endpoint === "/cinemas") {
     return NextResponse.json({
       success: true,
-      data: { items: defaultCinemas, meta: { totalPages: 1, totalItems: defaultCinemas.length } },
+      data: {
+        items: defaultCinemas,
+        meta: { totalPages: 1, totalItems: defaultCinemas.length },
+      },
     });
   }
 
   if (endpoint === "/rooms") {
     return NextResponse.json({
       success: true,
-      data: { items: fallbackRooms, meta: { totalPages: 1, totalItems: fallbackRooms.length } },
+      data: {
+        items: fallbackRooms,
+        meta: { totalPages: 1, totalItems: fallbackRooms.length },
+      },
     });
   }
 
   if (endpoint === "/showtimes") {
     return NextResponse.json({
       success: true,
-      data: { items: fallbackShowtimes, meta: { totalPages: 1, totalItems: fallbackShowtimes.length } },
+      data: {
+        items: fallbackShowtimes,
+        meta: { totalPages: 1, totalItems: fallbackShowtimes.length },
+      },
     });
   }
 
   if (endpoint === "/combos") {
     return NextResponse.json({
       success: true,
-      data: { items: defaultCombos, meta: { totalPages: 1, totalItems: defaultCombos.length } },
+      data: {
+        items: defaultCombos,
+        meta: { totalPages: 1, totalItems: defaultCombos.length },
+      },
     });
   }
 
-  // Mặc định trả về thành công với dữ liệu rỗng nếu endpoint hợp lệ
-  return NextResponse.json({
-    success: true,
-    data: {},
-  });
+  // Unsupported demo features must never appear to have succeeded.
+  return NextResponse.json(
+    {
+      success: false,
+      error: "DEMO_ENDPOINT_UNAVAILABLE",
+      message:
+        "Chức năng này cần backend NestJS. Hãy chạy npm run dev:full để sử dụng.",
+    },
+    { status: 501 },
+  );
 }

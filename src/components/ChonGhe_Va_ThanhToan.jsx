@@ -1,3 +1,4 @@
+// ChonGhe_Va_ThanhToan: mã nguồn chức năng, dùng chung cho mọi trang.
 /**
  * ==============================================================================
  * TỆP TIN: src/components/SeatBooking.jsx
@@ -54,6 +55,7 @@ import {
 import Modal from "./Modal.jsx";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
+import { menuDetails } from "../commerce.js";
 import {
   apiGetShowtimeSeats,
   apiGetMyBookings,
@@ -62,14 +64,15 @@ import {
   apiHoldSeats,
   apiCancelBooking,
   apiCheckout,
-  apiInstantPay,
   apiPaymentStatus,
   apiGetProfile,
   memberProfile,
 } from "../api/client.js";
 
 function getAgeRestriction(ageRating) {
-  const str = String(ageRating || "").trim().toUpperCase();
+  const str = String(ageRating || "")
+    .trim()
+    .toUpperCase();
   if (str.includes("18") || str === "T18" || str === "C18") {
     return {
       code: "T18",
@@ -79,7 +82,8 @@ function getAgeRestriction(ageRating) {
       color: "#ef4444",
       bg: "rgba(239, 68, 68, 0.12)",
       border: "rgba(239, 68, 68, 0.35)",
-      shortNotice: "Phim giới hạn độ tuổi T18 (18+). Bắt buộc xuất trình CCCD/VNeID tại cửa phòng chiếu.",
+      shortNotice:
+        "Phim giới hạn độ tuổi T18 (18+). Bắt buộc xuất trình CCCD/VNeID tại cửa phòng chiếu.",
     };
   }
   if (str.includes("16") || str === "T16" || str === "C16") {
@@ -91,7 +95,8 @@ function getAgeRestriction(ageRating) {
       color: "#f97316",
       bg: "rgba(249, 115, 22, 0.12)",
       border: "rgba(249, 115, 22, 0.35)",
-      shortNotice: "Phim giới hạn độ tuổi T16 (16+). Bắt buộc xuất trình CCCD/VNeID tại cửa phòng chiếu.",
+      shortNotice:
+        "Phim giới hạn độ tuổi T16 (16+). Bắt buộc xuất trình CCCD/VNeID tại cửa phòng chiếu.",
     };
   }
   if (str.includes("13") || str === "T13" || str === "C13") {
@@ -103,7 +108,8 @@ function getAgeRestriction(ageRating) {
       color: "#eab308",
       bg: "rgba(234, 179, 8, 0.12)",
       border: "rgba(234, 179, 8, 0.35)",
-      shortNotice: "Phim giới hạn độ tuổi T13 (13+). Vui lòng mang giấy tờ chứng minh độ tuổi.",
+      shortNotice:
+        "Phim giới hạn độ tuổi T13 (13+). Vui lòng mang giấy tờ chứng minh độ tuổi.",
     };
   }
   return null;
@@ -114,16 +120,27 @@ function AgeRatingModal({ ageInfo, movieTitle, onConfirm, onCancel }) {
   return (
     <div className="age-modal-backdrop" onClick={onCancel}>
       <div className="age-modal-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="age-modal-header" style={{ borderColor: ageInfo.border }}>
-          <div className="age-modal-icon-wrap" style={{ background: ageInfo.bg, color: ageInfo.color }}>
+        <div
+          className="age-modal-header"
+          style={{ borderColor: ageInfo.border }}
+        >
+          <div
+            className="age-modal-icon-wrap"
+            style={{ background: ageInfo.bg, color: ageInfo.color }}
+          >
             <ShieldAlert size={28} />
           </div>
           <div>
-            <div className="age-modal-tag" style={{ background: ageInfo.color }}>
+            <div
+              className="age-modal-tag"
+              style={{ background: ageInfo.color }}
+            >
               {ageInfo.code}
             </div>
             <h3>Xác Nhận Độ Tuổi Khán Giả</h3>
-            <p className="age-modal-sub">Quy chuẩn kiểm duyệt Điện ảnh Việt Nam</p>
+            <p className="age-modal-sub">
+              Quy chuẩn kiểm duyệt Điện ảnh Việt Nam
+            </p>
           </div>
         </div>
 
@@ -134,7 +151,8 @@ function AgeRatingModal({ ageInfo, movieTitle, onConfirm, onCancel }) {
 
           <div className="age-law-quote">
             <p>
-              Theo <b>Thông tư 05/2023/TT-BVHTTDL</b> của Bộ Văn hóa, Thể thao và Du lịch:
+              Theo <b>Thông tư 05/2023/TT-BVHTTDL</b> của Bộ Văn hóa, Thể thao
+              và Du lịch:
             </p>
             <p className="age-rule-highlight" style={{ color: ageInfo.color }}>
               {ageInfo.name}
@@ -143,16 +161,22 @@ function AgeRatingModal({ ageInfo, movieTitle, onConfirm, onCancel }) {
 
           <ul className="age-checklist">
             <li>
-              <b>🪪 Giấy tờ hợp lệ:</b> Khán giả cần mang theo CCCD, Hộ chiếu, Thẻ HSSV hoặc tài khoản định danh VNeID mức 2 (có ảnh & ngày sinh).
+              <b>🪪 Giấy tờ hợp lệ:</b> Khán giả cần mang theo CCCD, Hộ chiếu,
+              Thẻ HSSV hoặc tài khoản định danh VNeID mức 2 (có ảnh & ngày
+              sinh).
             </li>
             <li>
-              <b>👥 Quy định từng khán giả:</b> Toàn bộ khán giả trong đơn vé đều phải chứng minh đủ độ tuổi quy định tại cửa kiểm soát rạp.
+              <b>👥 Quy định từng khán giả:</b> Toàn bộ khán giả trong đơn vé
+              đều phải chứng minh đủ độ tuổi quy định tại cửa kiểm soát rạp.
             </li>
             <li>
-              <b>🛑 Quyền từ chối của rạp:</b> Nhân viên soát vé có quyền từ chối cho vào phòng chiếu nếu khán giả không xuất trình được giấy tờ hợp lệ.
+              <b>🛑 Quyền từ chối của rạp:</b> Nhân viên soát vé có quyền từ
+              chối cho vào phòng chiếu nếu khán giả không xuất trình được giấy
+              tờ hợp lệ.
             </li>
             <li>
-              <b>💸 Không hoàn tiền:</b> Vé đã thanh toán thành công sẽ không được hoàn lại trong trường hợp bị từ chối do không đủ tuổi.
+              <b>💸 Không hoàn tiền:</b> Vé đã thanh toán thành công sẽ không
+              được hoàn lại trong trường hợp bị từ chối do không đủ tuổi.
             </li>
           </ul>
 
@@ -163,13 +187,19 @@ function AgeRatingModal({ ageInfo, movieTitle, onConfirm, onCancel }) {
               onChange={(e) => setAgreed(e.target.checked)}
             />
             <span>
-              Tôi và tất cả người đi cùng cam kết đã đủ <b>{ageInfo.age} tuổi</b> và hoàn toàn đồng ý xuất trình giấy tờ tùy thân tại rạp.
+              Tôi và tất cả người đi cùng cam kết đã đủ{" "}
+              <b>{ageInfo.age} tuổi</b> và hoàn toàn đồng ý xuất trình giấy tờ
+              tùy thân tại rạp.
             </span>
           </label>
         </div>
 
         <div className="age-modal-actions">
-          <button type="button" className="button button-outline" onClick={onCancel}>
+          <button
+            type="button"
+            className="button button-outline"
+            onClick={onCancel}
+          >
             Quay lại
           </button>
           <button
@@ -189,13 +219,32 @@ function AgeRatingModal({ ageInfo, movieTitle, onConfirm, onCancel }) {
 const PROMO_COUPONS = [
   { code: "NOVA20", desc: "Giảm 20.000đ mọi đơn", value: 20000, type: "fixed" },
   { code: "CINEMA10", desc: "Giảm 10% tổng vé", value: 10, type: "percent" },
-  { code: "U22", desc: "Giảm 25.000đ cho HSSV", value: 25000, type: "fixed", min: 50000 },
-  { code: "CHAOBANMOI", desc: "Giảm 30.000đ từ 100k", value: 30000, type: "fixed", min: 100000 },
-  { code: "VIP50", desc: "Giảm 50.000đ từ 150k", value: 50000, type: "fixed", min: 150000 },
+  {
+    code: "U22",
+    desc: "Giảm 25.000đ cho HSSV",
+    value: 25000,
+    type: "fixed",
+    min: 50000,
+  },
+  {
+    code: "CHAOBANMOI",
+    desc: "Giảm 30.000đ từ 100k",
+    value: 30000,
+    type: "fixed",
+    min: 100000,
+  },
+  {
+    code: "VIP50",
+    desc: "Giảm 50.000đ từ 150k",
+    value: 50000,
+    type: "fixed",
+    min: 150000,
+  },
 ];
 
 function checkClientOrphanSeats(selectedIds, allSeats) {
-  if (!selectedIds || !selectedIds.length || !allSeats || !allSeats.length) return null;
+  if (!selectedIds || !selectedIds.length || !allSeats || !allSeats.length)
+    return null;
   const byRow = new Map();
   for (const s of allSeats) {
     const list = byRow.get(s.row) ?? [];
@@ -218,13 +267,15 @@ function checkClientOrphanSeats(selectedIds, allSeats) {
         curOrigRun.push(s);
       } else {
         if (curOrigRun.length > 0) {
-          for (const item of curOrigRun) origRunSize.set(item.seatId, curOrigRun.length);
+          for (const item of curOrigRun)
+            origRunSize.set(item.seatId, curOrigRun.length);
         }
         curOrigRun = isAvail ? [s] : [];
       }
     }
     if (curOrigRun.length > 0) {
-      for (const item of curOrigRun) origRunSize.set(item.seatId, curOrigRun.length);
+      for (const item of curOrigRun)
+        origRunSize.set(item.seatId, curOrigRun.length);
     }
 
     const newAvail = new Set();
@@ -275,14 +326,29 @@ export default function ChonGhe_Va_ThanhToan({
   const [initialized, setInitialized] = useState(false);
   const [live, setLive] = useState(false);
   const [notice, setNotice] = useState("");
-  const [orphanWarning, setOrphanWarning] = useState(null);
+  const [groupType, setGroupType] = useState("");
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
-  const [payMethod, setPayMethod] = useState("vietqr"); // vietqr | momo | vnpay | sandbox
-  const [copiedKey, setCopiedKey] = useState("");
   const [comboItems, setComboItems] = useState(() => {
     const combo = booking.combo && combos.find((c) => c.price === "69000.00");
-    return combo ? { [combo.id]: 1 } : {};
+    let cart = {};
+    try {
+      cart = JSON.parse(sessionStorage.getItem("nova-food-cart") || "{}");
+    } catch {
+      /* Ignore an invalid local draft. */
+    }
+    const valid = Object.fromEntries(
+      combos
+        .filter((item) => cart[item.id] > 0)
+        .map((item) => [
+          item.id,
+          Math.min(20, Math.max(0, Math.trunc(cart[item.id]))),
+        ]),
+    );
+    return {
+      ...valid,
+      ...(combo ? { [combo.id]: Math.max(1, valid[combo.id] || 0) } : {}),
+    };
   });
   const [count, setCount] = useState(3);
   const [now, setNow] = useState(Date.now);
@@ -293,31 +359,7 @@ export default function ChonGhe_Va_ThanhToan({
 
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [showAgeModal, setShowAgeModal] = useState(false);
-  const [usePoints, setUsePoints] = useState(false);
-  const [pointsInput, setPointsInput] = useState("");
-
   const ageInfo = getAgeRestriction(booking.movie?.age);
-  const memberPoints = Number(member?.points || 0);
-  const rawFinalAmount = order ? Number(order.finalAmount) : 0;
-  const maxRedeemablePoints = Math.min(
-    memberPoints,
-    Math.floor(rawFinalAmount / 1000),
-  );
-  const parsedPoints = parseInt(pointsInput, 10) || 0;
-  const actualRedeemPoints = usePoints
-    ? Math.max(0, Math.min(parsedPoints, maxRedeemablePoints))
-    : 0;
-  const pointsDiscount = actualRedeemPoints * 1000;
-  const effectiveFinalAmount = Math.max(0, rawFinalAmount - pointsDiscount);
-
-  const isWeekend =
-    booking.date?.label?.includes("Thứ 7") ||
-    booking.date?.label?.includes("Chủ nhật") ||
-    booking.date?.label?.includes("CN") ||
-    booking.date?.label?.includes("Sat") ||
-    booking.date?.label?.includes("Sun") ||
-    [0, 6].includes(new Date().getDay());
-
   const refresh = useCallback(async () => {
     const map = await apiGetShowtimeSeats(showtimeId);
     if (!mounted.current) return;
@@ -390,6 +432,11 @@ export default function ChonGhe_Va_ThanhToan({
   const seats = snapshot?.seats || [];
   const rows = [...new Set(seats.map((s) => s.row))].sort();
   const holding = order && ["PENDING", "HOLDING"].includes(order.status);
+  // Derive from each fresh snapshot so another viewer's hold cannot leave a stale warning.
+  const orphanSeat = !holding ? checkClientOrphanSeats(selected, seats) : null;
+  const orphanWarning = orphanSeat
+    ? `Không để trống 1 ghế lẻ tại ${orphanSeat.row}${orphanSeat.column}. Hãy chọn ghế này hoặc đổi vị trí để chừa ít nhất 2 ghế liền nhau.`
+    : null;
   const remaining = holding
     ? Math.max(
         0,
@@ -397,23 +444,19 @@ export default function ChonGhe_Va_ThanhToan({
       )
     : 0;
 
-  function copyText(text, key) {
-    if (navigator?.clipboard) {
-      navigator.clipboard.writeText(text);
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(""), 2000);
-    }
-  }
-
   function applyCoupon() {
     const code = couponInput.trim().toUpperCase();
     const found = PROMO_COUPONS.find((c) => c.code === code);
     if (!found) {
-      setNotice(`Mã voucher "${code}" không hợp lệ. Hãy thử các mã: NOVA20, CINEMA10, U22, CHAOBANMOI.`);
+      setNotice(
+        `Mã voucher "${code}" không hợp lệ. Hãy thử các mã: NOVA20, CINEMA10, U22, CHAOBANMOI.`,
+      );
       return;
     }
     setAppliedCoupon(found);
-    setNotice(`Đã chọn áp dụng mã ${found.code}: ${found.desc}! Giá ưu đãi sẽ được cập nhật khi giữ ghế.`);
+    setNotice(
+      `Đã chọn áp dụng mã ${found.code}: ${found.desc}! Giá ưu đãi sẽ được cập nhật khi giữ ghế.`,
+    );
   }
 
   function toggle(seat) {
@@ -439,31 +482,21 @@ export default function ChonGhe_Va_ThanhToan({
     }
     setSelected(next);
     setNotice("");
-
-    // Check orphan seat rule locally
-    const orphan = checkClientOrphanSeats(next, seats);
-    setOrphanWarning(
-      orphan
-        ? `Ghế ${orphan.row}${orphan.column} sẽ bị trống đơn lẻ (Orphan seat). Vui lòng chọn ghế liền kề!`
-        : null,
-    );
   }
 
   async function suggest(quantity) {
     setBusy(true);
     try {
-      const result = await apiGetGroupSuggestions(showtimeId, quantity);
+      const result = await apiGetGroupSuggestions(
+        showtimeId,
+        quantity,
+        groupType,
+      );
       setSelected(result.seatIds);
       setNotice(
         result.seatIds.length
           ? "Đã chọn dải ghế. Bấm Giữ ghế để xác nhận với máy chủ."
           : "Không còn dải ghế phù hợp.",
-      );
-      const orphan = checkClientOrphanSeats(result.seatIds, seats);
-      setOrphanWarning(
-        orphan
-          ? `Ghế ${orphan.row}${orphan.column} sẽ bị trống đơn lẻ (Orphan seat). Vui lòng chọn ghế liền kề!`
-          : null,
       );
     } catch (err) {
       setNotice(err.message);
@@ -553,43 +586,12 @@ export default function ChonGhe_Va_ThanhToan({
     }
   }
 
-  async function handleInstantPay() {
-    setBusy(true);
-    setNotice("");
-    try {
-      await apiInstantPay(order.id);
-      await refresh();
-      const updated = await apiGetBooking(order.id);
-      setOrder(updated);
-      if (actualRedeemPoints > 0 && member) {
-        const remainingPoints = Math.max(
-          0,
-          (member.points || 0) - actualRedeemPoints,
-        );
-        onMemberUpdate({ ...member, points: remainingPoints });
-      }
-      setNotice(
-        `Thanh toán thành công! Vé đã được phát hành và lưu vào mục Vé của bạn.${
-          actualRedeemPoints > 0
-            ? ` Đã đổi ${actualRedeemPoints} điểm C-Member (tiết kiệm ${money(pointsDiscount)}).`
-            : ""
-        }`,
-      );
-    } catch (err) {
-      setNotice(
-        err.message || "Xác nhận thanh toán chưa thành công. Vui lòng thử lại!",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
   function handlePaymentClick() {
     if (ageInfo && !ageConfirmed) {
       setShowAgeModal(true);
       return;
     }
-    void handleInstantPay();
+    void checkout();
   }
 
   useEffect(() => {
@@ -600,8 +602,45 @@ export default function ChonGhe_Va_ThanhToan({
   }, [order?.status, onMemberUpdate]);
 
   return (
-    <Modal title="Chọn ghế & đặt vé" wide onClose={onClose}>
+    <Modal
+      title="Chọn ghế & đặt vé"
+      wide
+      onClose={onClose}
+      image={
+        booking.movie.localBackdrop ||
+        booking.movie.backdrop ||
+        "/images/cinema-imax.jpg"
+      }
+    >
+      <ol className="booking-stepper" aria-label="Tiến trình đặt vé">
+        {["Chọn ghế", "Bắp nước", "Thanh toán", "Nhận vé"].map(
+          (step, index) => (
+            <li
+              key={step}
+              className={
+                order?.status === "PAID"
+                  ? "complete"
+                  : index === (holding ? 2 : 0)
+                    ? "current"
+                    : ""
+              }
+            >
+              <span>{index + 1}</span>
+              {step}
+            </li>
+          ),
+        )}
+      </ol>
       <div className="booking-context">
+        <img
+          className="booking-film-poster"
+          src={
+            booking.movie.localPoster ||
+            booking.movie.poster ||
+            "/images/dune-poster.jpg"
+          }
+          alt={booking.movie.title}
+        />
         <div>
           <h3>{booking.movie.title}</h3>
           <p>
@@ -611,11 +650,6 @@ export default function ChonGhe_Va_ThanhToan({
             <span>
               {booking.date.label} · {booking.movie.age}
             </span>
-            {isWeekend && (
-              <span className="weekend-price-badge">
-                <Calendar size={13} /> Suất Cuối Tuần (+15.000đ)
-              </span>
-            )}
           </div>
         </div>
         {holding && (
@@ -635,11 +669,11 @@ export default function ChonGhe_Va_ThanhToan({
       <p className="sandbox-note">
         <ShieldCheck size={15} />
         {live ? "Đồng bộ ghế trực tiếp" : "Cập nhật ghế mỗi 5 giây"} · Hỗ trợ
-        thanh toán VietQR Napas 24/7, Ví MoMo, VNPAY hoặc Cổng Sandbox.
+        thanh toán mô phỏng qua Sandbox, không thu tiền thật.
       </p>
 
       {orphanWarning && !holding && (
-        <div className="orphan-warning-banner">
+        <div className="orphan-warning-banner" id="orphan-warning" role="alert">
           <AlertTriangle size={16} />
           <span>{orphanWarning}</span>
         </div>
@@ -657,8 +691,13 @@ export default function ChonGhe_Va_ThanhToan({
             <Check size={36} />
           </div>
           <h3>Thanh toán đã được xác nhận thành công!</h3>
-          <p>Mã đơn hàng: <b>{order.orderCode}</b></p>
-          <p>Vé điện tử e-Ticket kèm QR Code bảo mật đã sẵn sàng trong tài khoản của bạn.</p>
+          <p>
+            Mã đơn hàng: <b>{order.orderCode}</b>
+          </p>
+          <p>
+            Vé điện tử e-Ticket kèm QR Code bảo mật đã sẵn sàng trong tài khoản
+            của bạn.
+          </p>
           <button className="button button-primary" onClick={onClose}>
             Xem vé trong tài khoản
           </button>
@@ -682,6 +721,19 @@ export default function ChonGhe_Va_ThanhToan({
                     </option>
                   ))}
                 </select>
+                <label className="group-type-label">
+                  Ưu tiên chỗ ngồi
+                  <select
+                    value={groupType}
+                    onChange={(event) => setGroupType(event.target.value)}
+                    aria-label="Loại ghế gợi ý"
+                  >
+                    <option value="">Trung tâm · Tất cả loại ghế</option>
+                    <option value="STANDARD">Ghế thường</option>
+                    <option value="VIP">Ghế VIP</option>
+                    <option value="SWEETBOX">Sweetbox · Chọn số chẵn</option>
+                  </select>
+                </label>
                 <button
                   className="button button-glass"
                   disabled={busy || !initialized}
@@ -724,7 +776,12 @@ export default function ChonGhe_Va_ThanhToan({
                         return (
                           <button
                             key={seat.seatId}
-                            className={`seat ${state}`}
+                            className={`seat ${state}${orphanSeat?.seatId === seat.seatId ? " orphan-seat" : ""}`}
+                            aria-describedby={
+                              orphanSeat?.seatId === seat.seatId
+                                ? "orphan-warning"
+                                : undefined
+                            }
                             disabled={
                               busy ||
                               Boolean(holding) ||
@@ -777,7 +834,11 @@ export default function ChonGhe_Va_ThanhToan({
               <div className="live-combos">
                 {combos.map((combo) => (
                   <label key={combo.id}>
-                    {combo.name} · {money(combo.price)}
+                    <img src={menuDetails(combo).image} alt="" />
+                    <span>
+                      {combo.name}
+                      <small>{money(combo.price)}</small>
+                    </span>
                     <input
                       aria-label={`Số lượng ${combo.name}`}
                       type="number"
@@ -811,7 +872,9 @@ export default function ChonGhe_Va_ThanhToan({
                     type="text"
                     placeholder="VD: NOVA20, CINEMA10..."
                     value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      setCouponInput(e.target.value.toUpperCase())
+                    }
                   />
                   <button
                     type="button"
@@ -824,7 +887,8 @@ export default function ChonGhe_Va_ThanhToan({
                 {appliedCoupon && (
                   <div className="applied-voucher-badge">
                     <span>
-                      <Sparkles size={14} /> <b>{appliedCoupon.code}</b> ({appliedCoupon.desc})
+                      <Sparkles size={14} /> <b>{appliedCoupon.code}</b> (
+                      {appliedCoupon.desc})
                     </span>
                     <button
                       type="button"
@@ -861,7 +925,10 @@ export default function ChonGhe_Va_ThanhToan({
                 style={{ borderColor: ageInfo.border, background: ageInfo.bg }}
               >
                 <div className="age-card-top">
-                  <span className="age-badge-pill" style={{ background: ageInfo.color }}>
+                  <span
+                    className="age-badge-pill"
+                    style={{ background: ageInfo.color }}
+                  >
                     {ageInfo.code}
                   </span>
                   <span className="age-card-title">{ageInfo.name}</span>
@@ -900,302 +967,39 @@ export default function ChonGhe_Va_ThanhToan({
                   Ưu đãi {order.membershipTier}{" "}
                   <b>−{money(order.discountAmount)}</b>
                 </p>
-                {actualRedeemPoints > 0 && (
-                  <p className="points-discount-summary-row">
-                    <span>Đổi {actualRedeemPoints} điểm C-Member:</span>{" "}
-                    <b>−{money(pointsDiscount)}</b>
-                  </p>
-                )}
                 <p className="summary-total">
                   Tổng thanh toán{" "}
                   <strong data-testid="server-total">
-                    {money(effectiveFinalAmount)}
+                    {money(order.finalAmount)}
                   </strong>
                 </p>
-
-                {/* Loyalty Points Redemption Panel */}
-                {member && memberPoints > 0 && (
-                  <div className="points-redeem-card">
-                    <div className="points-redeem-header">
-                      <div className="points-title-wrap">
-                        <Coins size={16} />
-                        <span>Điểm thưởng C-Member</span>
-                      </div>
-                      <span className="points-balance-badge">
-                        {memberPoints.toLocaleString("vi-VN")} điểm
-                      </span>
-                    </div>
-
-                    <label className="points-toggle-label">
-                      <input
-                        type="checkbox"
-                        checked={usePoints}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setUsePoints(checked);
-                          if (checked && !parsedPoints) {
-                            setPointsInput(String(Math.min(maxRedeemablePoints, 20)));
-                          }
-                        }}
-                      />
-                      <span>Dùng điểm để giảm giá đơn hàng (1 điểm = 1.000đ)</span>
-                    </label>
-
-                    {usePoints && (
-                      <div className="points-controls">
-                        <div className="points-input-group">
-                          <input
-                            type="number"
-                            min="1"
-                            max={maxRedeemablePoints}
-                            value={pointsInput}
-                            onChange={(e) => setPointsInput(e.target.value)}
-                            className="points-number-input"
-                            placeholder={`Tối đa ${maxRedeemablePoints} điểm`}
-                          />
-                          <span className="points-unit">điểm</span>
-                        </div>
-
-                        <div className="points-quick-actions">
-                          {maxRedeemablePoints >= 10 && (
-                            <button
-                              type="button"
-                              className="quick-point-btn"
-                              onClick={() => {
-                                setUsePoints(true);
-                                setPointsInput("10");
-                              }}
-                            >
-                              10 điểm (-10k)
-                            </button>
-                          )}
-                          {maxRedeemablePoints >= 20 && (
-                            <button
-                              type="button"
-                              className="quick-point-btn"
-                              onClick={() => {
-                                setUsePoints(true);
-                                setPointsInput("20");
-                              }}
-                            >
-                              20 điểm (-20k)
-                            </button>
-                          )}
-                          {maxRedeemablePoints >= 50 && (
-                            <button
-                              type="button"
-                              className="quick-point-btn"
-                              onClick={() => {
-                                setUsePoints(true);
-                                setPointsInput("50");
-                              }}
-                            >
-                              50 điểm (-50k)
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="quick-point-btn highlight"
-                            onClick={() => {
-                              setUsePoints(true);
-                              setPointsInput(String(maxRedeemablePoints));
-                            }}
-                          >
-                            Dùng tối đa ({maxRedeemablePoints} điểm)
-                          </button>
-                        </div>
-
-                        {actualRedeemPoints > 0 && (
-                          <div className="points-discount-preview">
-                            Quy đổi thành công: <strong className="text-emerald-400">−{money(pointsDiscount)}</strong>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                <div className="payment-sandbox-card">
+                  <div className="payment-secure-icon">
+                    <ShieldCheck size={26} />
                   </div>
-                )}
-
-                {/* Real Payment Methods UI */}
-                <div className="payment-options-panel">
-                  <h4>Chọn Cổng Thanh Toán:</h4>
-                  <div className="pay-method-tabs">
-                    <button
-                      type="button"
-                      className={`pay-tab-btn ${payMethod === "vietqr" ? "active" : ""}`}
-                      onClick={() => setPayMethod("vietqr")}
-                    >
-                      <QrCode size={15} /> VietQR (Napas)
-                    </button>
-                    <button
-                      type="button"
-                      className={`pay-tab-btn ${payMethod === "momo" ? "active" : ""}`}
-                      onClick={() => setPayMethod("momo")}
-                    >
-                      <Smartphone size={15} /> MoMo
-                    </button>
-                    <button
-                      type="button"
-                      className={`pay-tab-btn ${payMethod === "vnpay" ? "active" : ""}`}
-                      onClick={() => setPayMethod("vnpay")}
-                    >
-                      <CreditCard size={15} /> VNPAY
-                    </button>
-                    <button
-                      type="button"
-                      className={`pay-tab-btn ${payMethod === "sandbox" ? "active" : ""}`}
-                      onClick={() => setPayMethod("sandbox")}
-                    >
-                      <ShieldCheck size={15} /> Sandbox
-                    </button>
+                  <h4>Một bước nữa tới màn ảnh lớn.</h4>
+                  <p>
+                    Đơn hàng và giá đã được xác nhận. Tiếp tục sang Sandbox để
+                    chọn kết quả thanh toán mô phỏng.
+                  </p>
+                  <div className="payment-assurances">
+                    <span>
+                      <Check size={14} />
+                      Không thu tiền thật
+                    </span>
+                    <span>
+                      <Clock3 size={14} />
+                      Giữ nguyên hạn giữ ghế
+                    </span>
                   </div>
-
-                  {payMethod === "vietqr" && (
-                    <div className="vietqr-box">
-                      <div className="vietqr-preview">
-                        <img
-                          src={`https://img.vietqr.io/image/MB-0987654321-compact2.png?amount=${Math.round(effectiveFinalAmount)}&addInfo=${order.orderCode}&accountName=NOVA%20CINEMA%20VIETNAM`}
-                          alt="VietQR Napas 24/7"
-                          className="vietqr-img"
-                        />
-                        <span className="vietqr-scan-label">
-                          Quét mã bằng app ngân hàng (MB, VCB, Techcombank...)
-                        </span>
-                      </div>
-
-                      <div className="vietqr-bank-details">
-                        <div className="vq-detail-row">
-                          <span>Ngân hàng:</span>
-                          <b>MBBank (Ngân Hàng Quân Đội)</b>
-                        </div>
-                        <div className="vq-detail-row">
-                          <span>Số tài khoản:</span>
-                          <div className="vq-copy-wrap">
-                            <code>0987654321</code>
-                            <button
-                              type="button"
-                              onClick={() => copyText("0987654321", "stk")}
-                              title="Sao chép"
-                            >
-                              {copiedKey === "stk" ? <Check size={13} color="#22c55e" /> : <Copy size={13} />}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="vq-detail-row">
-                          <span>Chủ tài khoản:</span>
-                          <b>NOVA CINEMA VIETNAM</b>
-                        </div>
-                        <div className="vq-detail-row">
-                          <span>Số tiền:</span>
-                          <div className="vq-copy-wrap">
-                            <strong className="text-gold">{money(effectiveFinalAmount)}</strong>
-                            <button
-                              type="button"
-                              onClick={() => copyText(String(Math.round(effectiveFinalAmount)), "amt")}
-                              title="Sao chép"
-                            >
-                              {copiedKey === "amt" ? <Check size={13} color="#22c55e" /> : <Copy size={13} />}
-                            </button>
-                          </div>
-                        </div>
-                        <div className="vq-detail-row">
-                          <span>Nội dung CK:</span>
-                          <div className="vq-copy-wrap">
-                            <code>{order.orderCode}</code>
-                            <button
-                              type="button"
-                              onClick={() => copyText(order.orderCode, "memo")}
-                              title="Sao chép"
-                            >
-                              {copiedKey === "memo" ? <Check size={13} color="#22c55e" /> : <Copy size={13} />}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        className="button button-primary checkout-btn-pulse"
-                        disabled={busy || !remaining}
-                        onClick={handlePaymentClick}
-                      >
-                        {busy ? "Đang xác thực giao dịch…" : "Xác nhận đã chuyển khoản VietQR"}
-                      </button>
-                    </div>
-                  )}
-
-                  {payMethod === "momo" && (
-                    <div className="vietqr-box momo-theme">
-                      <div className="vietqr-preview">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=2|99|0987654321|NOVA%20CINEMA||0|0|${Math.round(effectiveFinalAmount)}|${order.orderCode}|transfer_p2p`}
-                          alt="MoMo QR"
-                          className="vietqr-img"
-                        />
-                        <span className="vietqr-scan-label">
-                          Mở ứng dụng MoMo để quét mã thanh toán
-                        </span>
-                      </div>
-                      <button
-                        className="button button-primary momo-theme-btn"
-                        disabled={busy || !remaining}
-                        onClick={handlePaymentClick}
-                      >
-                        {busy ? "Đang xử lý…" : "Xác nhận đã thanh toán MoMo"}
-                      </button>
-                    </div>
-                  )}
-
-                  {payMethod === "vnpay" && (
-                    <div className="vietqr-box vnpay-theme">
-                      <div className="vietqr-preview">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://vnpay.vn/pay?code=${order.orderCode}%26amount=${Math.round(effectiveFinalAmount)}`}
-                          alt="VNPAY QR"
-                          className="vietqr-img"
-                        />
-                        <span className="vietqr-scan-label">
-                          Hỗ trợ ví VNPAY và 40+ ứng dụng ngân hàng liên kết
-                        </span>
-                      </div>
-                      <button
-                        className="button button-primary vnpay-theme-btn"
-                        disabled={busy || !remaining}
-                        onClick={handlePaymentClick}
-                      >
-                        {busy ? "Đang xử lý…" : "Xác nhận đã thanh toán VNPAY"}
-                      </button>
-                    </div>
-                  )}
-
-                  {payMethod === "sandbox" && (
-                    <div className="sandbox-panel-box">
-                      <p className="small muted">
-                        Chuyển hướng sang trang kiểm thử Sandbox mô phỏng kết quả đơn hàng.
-                      </p>
-                      <button
-                        className="button button-primary checkout-btn-pulse"
-                        disabled={busy || !remaining}
-                        onClick={checkout}
-                      >
-                        Thanh toán Sandbox
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    className="button button-primary"
+                    disabled={busy}
+                    onClick={handlePaymentClick}
+                  >
+                    Thanh toán Sandbox
+                  </button>
                 </div>
-
-                {/* Keep Sandbox button always accessible for automated test runs */}
-                {payMethod !== "sandbox" && (
-                  <div className="sandbox-fallback-row">
-                    <small>Môi trường kiểm thử:</small>
-                    <button
-                      className="button button-outline button-small"
-                      disabled={busy || !remaining}
-                      onClick={checkout}
-                    >
-                      Thanh toán Sandbox
-                    </button>
-                  </div>
-                )}
-
                 <button
                   className="text-button"
                   disabled={busy}
@@ -1237,7 +1041,7 @@ export default function ChonGhe_Va_ThanhToan({
           onConfirm={() => {
             setAgeConfirmed(true);
             setShowAgeModal(false);
-            void handleInstantPay();
+            void checkout();
           }}
           onCancel={() => setShowAgeModal(false)}
         />

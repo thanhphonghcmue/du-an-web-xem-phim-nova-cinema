@@ -1,29 +1,8 @@
 /**
- * ==============================================================================
- * TỆP TIN: src/app/api/v1/[...path]/route.js
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Cổng Reverse Proxy trung gian BFF (Backend-For-Frontend) của Next.js.
- *   - Đứng giữa Trình duyệt và NestJS API Backend:
- *     1. Bảo vệ chống tấn công CSRF / Cross-origin mutation.
- *     2. Chuyển đổi mã JWT thành HttpOnly / SameSite=Lax Cookies để bảo vệ người dùng khỏi XSS.
- *     3. Tự động bóc tách và ẩn access token / refresh token khỏi JavaScript phía trình duyệt.
- *     4. Chuyển tiếp nguyên vẹn file nhị phân (như file lịch .ics hoặc file CSV báo cáo doanh thu).
- *     5. TÍCH HỢP DỰ PHÒNG NGOẠI TUYẾN THÔNG MINH (Resilient Standalone Fallback):
- *        Khi NestJS API Backend (cổng 4000) hoặc Docker chưa được bật, tự động phục vụ
- *        toàn bộ nghiệp vụ (Đăng nhập, Đặt vé, Thanh toán Sandbox, Soát vé, Admin Dashboard)
- *        mà không bao giờ gây lỗi "Không thể kết nối máy chủ. Vui lòng thử lại sau."!
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Trình duyệt gọi `/api/v1/auth/login`.
- *   2. Proxy thử gửi tới NestJS backend (`http://127.0.0.1:4000/api/v1/auth/login`).
- *   3. Nếu Backend hoạt động: chuyển tiếp dữ liệu thật và ghi Set-Cookie HttpOnly.
- *   4. Nếu Backend ngoại tuyến: tự động kích hoạt `handleResilientFallback` xử lý trơn tru.
- *
- * ĐỐI TƯỢNG SỬ DỤNG:
- *   - Tất cả các yêu cầu API RESTful từ client.
- * ==============================================================================
+ * BFF cùng origin: cookie HttpOnly, kiểm tra Origin, proxy sang API đã cấu hình.
+ * Local standalone là kho demo riêng khi không cấu hình BACKEND_API_URL trong development,
+ * hoặc NOVA_STANDALONE=true. Không chuyển kho dữ liệu khi backend gặp sự cố.
  */
-
 import { NextResponse } from "next/server";
 import { handleResilientFallback } from "./resilientFallback.js";
 
@@ -79,6 +58,33 @@ async function proxy(request, context) {
     );
 
   let body = mutation ? await request.text() : undefined;
+  // Local demo and configured API use separate stores for the entire session.
+  const standalone =
+    process.env.NODE_ENV !== "production" &&
+    (process.env.NOVA_STANDALONE === "true" || !process.env.BACKEND_API_URL);
+  if (endpoint === "/runtime" && request.method === "GET")
+    return NextResponse.json(
+      { success: true, data: { mode: standalone ? "standalone" : "backend" } },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  if (standalone) {
+    let rememberDemo = request.cookies.get(names.remember)?.value === "1";
+    if (endpoint === "/auth/login") {
+      try {
+        rememberDemo = JSON.parse(body || "{}").remember === true;
+      } catch {
+        return NextResponse.json({ message: "Invalid JSON." }, { status: 400 });
+      }
+    }
+    return handleResilientFallback(
+      endpoint,
+      request,
+      body,
+      rememberDemo,
+      request.cookies.get(names.access)?.value,
+    );
+  }
+
   let remember = request.cookies.get(names.remember)?.value === "1";
 
   if (endpoint === "/auth/login") {
@@ -126,7 +132,7 @@ async function proxy(request, context) {
       body,
       cache: "no-store",
       redirect: "manual",
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(15000),
     });
 
     const type = result.headers.get("content-type") || "application/json";
@@ -191,14 +197,13 @@ async function proxy(request, context) {
       clear(response);
     return response;
   } catch {
-    // Khi NestJS backend (cổng 4000) chưa được bật hoặc gặp sự cố:
-    // Tự động kích hoạt lớp dự phòng ngoại tuyến thông minh (Resilient Fallback).
-    return handleResilientFallback(
-      endpoint,
-      request,
-      body,
-      remember,
-      request.cookies.get(names.access)?.value,
+    return NextResponse.json(
+      {
+        success: false,
+        code: "BACKEND_UNAVAILABLE",
+        message: "Không thể kết nối máy chủ. Vui lòng thử lại sau.",
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

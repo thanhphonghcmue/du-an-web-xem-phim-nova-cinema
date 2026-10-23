@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsBoolean, IsOptional, Matches } from "class-validator";
+import { IsBoolean, IsOptional, IsUUID, Matches } from "class-validator";
 import { PaginationDto } from "../../common/dto/pagination.dto";
 import { Transform } from "class-transformer";
 export class ListTicketsDto extends PaginationDto {
@@ -15,12 +15,37 @@ export class ListTicketsDto extends PaginationDto {
   isCheckedIn?: boolean;
 }
 export class CheckInDto {
+  @ApiPropertyOptional({
+    format: "uuid",
+    description: "Reject a QR for a different screening before admission.",
+  })
+  @IsOptional()
+  @IsUUID()
+  showtimeId?: string;
   @ApiProperty({
     description:
       "The opaque64 lowercase hex characters decoded from the QR PNG.",
   })
   @Matches(/^[a-f0-9]{64}$/)
   ticketHash!: string;
+}
+export class VerifyTicketDto {
+  @ApiProperty({ description: "Opaque lowercase QR hash." })
+  @Matches(/^[a-f0-9]{64}$/)
+  ticketHash!: string;
+  @ApiProperty({ format: "uuid" })
+  @IsUUID()
+  showtimeId!: string;
+}
+export class TicketConfirmationDto {
+  @ApiProperty() subject!: string;
+  @ApiProperty() to!: string;
+  @ApiProperty() html!: string;
+  @ApiProperty({ enum: ["QUEUED", "RETRYING", "SMTP_ACCEPTED", "UNKNOWN"] })
+  deliveryStatus!: "QUEUED" | "RETRYING" | "SMTP_ACCEPTED" | "UNKNOWN";
+  @ApiProperty({ nullable: true, type: String, format: "date-time" })
+  acceptedAt!: Date | null;
+  @ApiProperty() attempts!: number;
 }
 export class TicketSeatDto {
   @ApiProperty() label!: string;
@@ -33,6 +58,7 @@ export class TicketComboDto {
   @ApiProperty() unitPrice!: string;
 }
 export class TicketDetailsDto {
+  @ApiProperty({ format: "uuid" }) showtimeId!: string;
   @ApiProperty({ format: "uuid" }) id!: string;
   @ApiProperty({ format: "uuid" }) bookingId!: string;
   @ApiProperty() orderCode!: string;

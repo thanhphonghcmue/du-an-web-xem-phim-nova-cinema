@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 const req = createRequire(new URL("../backend/package.json", import.meta.url));
@@ -10,6 +11,17 @@ const fixture = () =>
       "utf8",
     ),
   );
+async function capture(target, name, mask = []) {
+  if (!process.env.NOVA_CAPTURE_DIR) return;
+  mkdirSync(process.env.NOVA_CAPTURE_DIR, { recursive: true });
+  await target.screenshot({
+    path: resolve(process.env.NOVA_CAPTURE_DIR, name + ".jpg"),
+    type: "jpeg",
+    quality: 80,
+    animations: "disabled",
+    mask,
+  });
+}
 const password = () => fixture().password;
 async function command(page, path, body, method = "POST") {
   return page.evaluate(
@@ -138,6 +150,8 @@ test("catalog, quick booking and search use backend UUIDs without browser errors
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
+  expect((await read(page, "/runtime")).body.data.mode).toBe("backend");
+  await expect(page.locator(".standalone-mode-notice")).toHaveCount(0);
   await page
     .getByRole("combobox", { name: "Chọn cụm rạp", exact: true })
     .selectOption(fixture().cinema.id);
@@ -242,6 +256,73 @@ test("guests can browse but must sign in before seat booking", async ({
       })
     ).status,
   ).toBe(401);
+});
+
+test("orphan warnings identify the real gap, block submission and match backend validation", async ({
+  page,
+}) => {
+  await login(page);
+  await seats(page);
+  await page
+    .getByRole("button", { name: "Ghế A2, còn trống", exact: true })
+    .click();
+  await expect(page.locator(".orphan-warning-banner")).toContainText("A1");
+  await page.locator(".orphan-warning-banner").scrollIntoViewIfNeeded();
+  await capture(page, "orphan-seat-warning");
+  await expect(page.locator(".seat.orphan-seat")).toHaveAttribute(
+    "aria-label",
+    "Ghế A1, còn trống",
+  );
+  await expect(
+    page.getByRole("button", { name: "Giữ ghế 5 phút", exact: true }),
+  ).toBeDisabled();
+  const map = (await read(page, `/showtimes/${fixture().showtime.id}/seats`))
+    .body.data;
+  const invalid = await command(page, "/bookings/hold", {
+    showtimeId: fixture().showtime.id,
+    seatIds: [
+      map.seats.find((seat) => seat.row === "A" && seat.column === 2).seatId,
+    ],
+  });
+  expect(invalid.status).toBe(400);
+  expect(invalid.body.error).toBe("ORPHAN_SEAT_DETECTED");
+  await page
+    .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
+    .click();
+  await expect(page.locator(".orphan-warning-banner")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Giữ ghế 5 phút", exact: true }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Ghế A2, đang chọn", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Ghế A3, còn trống", exact: true })
+    .click();
+  await expect(page.locator(".orphan-warning-banner")).toContainText("A2");
+  await page
+    .getByRole("combobox", { name: "Loại ghế gợi ý", exact: true })
+    .selectOption("VIP");
+  await page
+    .getByLabel("Số người trong nhóm", { exact: true })
+    .selectOption("2");
+  const suggestion = page.waitForResponse(
+    (response) =>
+      response.url().includes("group-seat-suggestion") &&
+      response.request().method() === "GET",
+  );
+  await page.getByRole("button", { name: "Xếp ghế", exact: true }).click();
+  const response = await suggestion;
+  expect(response.status()).toBe(200);
+  expect(response.url()).toContain("seatType=VIP");
+  await expect(page.locator(".orphan-warning-banner")).toHaveCount(0);
+  await expect(page.locator(".seat.selected")).toHaveCount(2);
+  const chosen = await page
+    .locator(".seat.selected")
+    .evaluateAll((items) =>
+      items.map((item) => item.getAttribute("aria-label")),
+    );
+  expect(chosen.every((label) => label.startsWith("Ghế B"))).toBe(true);
 });
 
 test("two independent sessions race for one seat with exactly one persisted winner", async ({
@@ -477,16 +558,98 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
   );
   expect(calendar.status()).toBe(200);
   expect(await calendar.text()).toContain("BEGIN:VCALENDAR");
+  expect(await calendar.text()).toContain("TRIGGER:-PT30M");
+  const ticketCard = page
+    .locator(".cinema-ticket")
+    .filter({ hasText: order.orderCode });
+  await ticketCard
+    .getByRole("button", { name: "Xem email xác nhận", exact: true })
+    .click();
+  await expect(ticketCard.locator(".confirmation-panel")).toContainText(
+    "NOVA Cinema — Vé",
+  );
+  await expect(
+    ticketCard
+      .frameLocator('iframe[title="Nội dung email NOVA Cinema"]')
+      .locator("body"),
+  ).toContainText(ticket.movie);
+  await expect(ticketCard.locator(".confirmation-delivery")).toContainText(
+    /SMTP|chờ gửi/,
+  );
+  await capture(
+    ticketCard.locator(".confirmation-panel"),
+    "owner-confirmation-email",
+    [
+      ticketCard
+        .frameLocator('iframe[title="Nội dung email NOVA Cinema"]')
+        .getByAltText("QR check-in"),
+    ],
+  );
   const other = await browser.newContext();
   const staff = await other.newPage();
   try {
     await login(staff, "staff");
     await staff.getByRole("button", { name: "Soát vé", exact: true }).click();
     await staff.getByLabel("Mã đọc từ QR").fill(ticket.ticketHash);
+    const wrongScreening = fixture().programmeShowtimes[0];
+    await staff.getByLabel("Ngày đang soát", { exact: true }).fill(
+      new Date(wrongScreening.startTime).toLocaleDateString("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      }),
+    );
+    await staff
+      .getByRole("combobox", { name: "Suất chiếu đang soát", exact: true })
+      .selectOption(wrongScreening.id);
+    await staff
+      .getByRole("button", { name: "Kiểm tra vé", exact: true })
+      .click();
+    await expect(staff.locator(".admission-result.warning")).toContainText(
+      "không khớp",
+    );
+    expect(
+      (await read(page, `/tickets/${ticket.id}`)).body.data.isCheckedIn,
+    ).toBe(false);
+    const screeningDay = new Date(
+      fixture().showtime.startTime,
+    ).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+    await staff
+      .getByLabel("Ngày đang soát", { exact: true })
+      .fill(screeningDay);
+    await staff
+      .getByRole("combobox", { name: "Suất chiếu đang soát", exact: true })
+      .selectOption(fixture().showtime.id);
+    await staff
+      .getByRole("button", { name: "Kiểm tra vé", exact: true })
+      .click();
+    await expect(staff.locator(".admission-result.valid")).toContainText(
+      "Chưa xác nhận vào rạp",
+    );
+    expect(
+      (await read(page, `/tickets/${ticket.id}`)).body.data.isCheckedIn,
+    ).toBe(false);
+    await capture(staff.locator(".modal-panel"), "staff-valid-preview", [
+      staff.locator("#ticket-hash"),
+    ]);
     await staff.getByRole("button", { name: "Xác nhận soát vé" }).click();
     await expect(
       staff.getByRole("heading", { name: "Soát vé thành công" }),
     ).toBeVisible();
+    await staff
+      .getByRole("button", { name: "Kiểm tra vé", exact: true })
+      .click();
+    await expect(staff.locator(".admission-result.invalid")).toContainText(
+      "Vé đã sử dụng",
+    );
+    await expect(staff.locator(".admission-result.invalid")).toContainText(
+      "Đã soát lúc",
+    );
+    await staff.getByLabel("Mã đọc từ QR").fill("0".repeat(64));
+    await staff
+      .getByRole("button", { name: "Kiểm tra vé", exact: true })
+      .click();
+    await expect(staff.locator(".admission-result.invalid")).toContainText(
+      "Không tìm thấy",
+    );
     expect(
       (
         await command(staff, "/staff/check-in", {
@@ -497,6 +660,60 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
   } finally {
     await other.close();
   }
+});
+
+test("staff date lookup includes started shows, camera fallback is clear and mobile has no overflow", async ({
+  page,
+}) => {
+  const errors = [];
+  const adminReads = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (request.url().includes("/admin/reports/overview"))
+      adminReads.push(request.url());
+  });
+  await login(page, "staff");
+  await page.goto("/soat-ve");
+  const data = fixture();
+  await page.getByLabel("Ngày đang soát", { exact: true }).fill(
+    new Date(data.admissionShowtime.startTime).toLocaleDateString("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }),
+  );
+  await page
+    .getByRole("combobox", { name: "Suất chiếu đang soát", exact: true })
+    .selectOption(data.admissionShowtime.id);
+  const defaultList = (await read(page, "/showtimes?limit=100")).body.data
+    .items;
+  expect(
+    defaultList.some((show) => show.id === data.admissionShowtime.id),
+  ).toBe(false);
+  await page
+    .getByRole("button", { name: "Quét Camera QR", exact: true })
+    .click();
+  await page.evaluate(() => {
+    delete window.BarcodeDetector;
+  });
+  await page.getByRole("button", { name: "Bật camera", exact: true }).click();
+  await expect(page.locator(".scanner-error-message")).toContainText(
+    "chưa hỗ trợ",
+  );
+  await page.getByRole("button", { name: "Nhập mã", exact: true }).click();
+  await page.getByLabel("Mã đọc từ QR").fill("0".repeat(64));
+  await page.getByRole("button", { name: "Kiểm tra vé", exact: true }).click();
+  await expect(page.locator(".admission-result.invalid")).toContainText(
+    "Không tìm thấy",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator(".admission-intro").scrollIntoViewIfNeeded();
+  await capture(page, "staff-mobile");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(adminReads).toEqual([]);
+  expect(errors).toEqual([]);
 });
 
 test("customer cannot forge payment or gain ADMIN access and health errors show UNKNOWN", async ({
@@ -540,7 +757,7 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.route("**/api/v1/movies?**", (route) =>
+  await page.route("**/api/v1/showtimes/programme", (route) =>
     route.fulfill({
       status: 503,
       contentType: "application/json",

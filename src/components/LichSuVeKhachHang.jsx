@@ -1,6 +1,7 @@
+// LichSuVeKhachHang: mã nguồn chức năng, dùng chung cho mọi trang.
 /**
  * ==============================================================================
- * TỆP TIN: src/components/LichSuVeKhachHang.jsx (TicketHistory.jsx)
+ * TỆP TIN: src/components/TicketHistory.jsx
  * VAI TRÒ / NHIỆM VỤ CHÍNH:
  *   - Ví Vé Điện Tử & Lịch Sử Đơn Hàng Của Khách Hàng (Customer Ticket Wallet).
  *   - Quản lý 2 trạng thái:
@@ -8,7 +9,6 @@
  *     2. VÉ ĐÃ PHÁT HÀNH (PAID): Hiển thị mã QR vé điện tử, thông tin ghế, rạp, phòng chiếu và giờ chiếu.
  *   - Tiện ích xuất vé: Tải mã QR dạng ảnh PNG và Tải file lịch iCalendar (.ics) đồng bộ vào điện thoại.
  *   - Hiển thị trạng thái soát vé thực tế: "Chưa soát vé" hoặc "Đã soát vé".
- *   - Cơ chế phòng thủ lỗi (Defensive Rendering): Không bao giờ bị crash khi thiếu trường dữ liệu.
  *
  * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
  *   1. Khách hàng đăng nhập và mở tab "Vé của tôi" hoặc "Lịch sử vé".
@@ -17,6 +17,10 @@
  *
  * ĐỐI TƯỢNG SỬ DỤNG:
  *   - Khách hàng đã đăng nhập tài khoản C'MEMBER.
+ *
+ * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
+ *   - Tích hợp Apple Wallet (.pkpass) và Google Wallet Pass để lưu vé vào ví điện thoại native.
+ *   - Thêm tính năng "Gửi tặng vé cho bạn bè" qua đường link bảo mật.
  * ==============================================================================
  */
 
@@ -24,14 +28,14 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGetMyBookings, apiGetMyTickets } from "../api/client.js";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
-
+import TicketConfirmation from "./TicketConfirmation.jsx";
+import { CalendarDays, Download, Ticket } from "lucide-react";
 export default function LichSuVeKhachHang({ member, onResume }) {
-  const { contextFor } = useCatalog();
+  const { contextFor, movies } = useCatalog();
   const [tickets, setTickets] = useState([]),
     [orders, setOrders] = useState([]),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
-
   const load = useCallback(async () => {
     if (!member) {
       setLoading(false);
@@ -48,15 +52,12 @@ export default function LichSuVeKhachHang({ member, onResume }) {
       setLoading(false);
     }
   }, [member]);
-
   useEffect(() => {
     void Promise.resolve().then(load);
     const poll = setInterval(load, 5000);
     return () => clearInterval(poll);
   }, [load]);
-
   if (!member) return <p>Vui lòng đăng nhập để tra cứu vé của bạn.</p>;
-
   return (
     <div className="history-list">
       {loading && <p role="status">Đang tải vé…</p>}
@@ -67,9 +68,9 @@ export default function LichSuVeKhachHang({ member, onResume }) {
           <article key={o.id}>
             <div>
               <h3>Đơn đang giữ ghế</h3>
-              <p>{o.orderCode || o.code || "NV-000000"}</p>
+              <p>{o.orderCode}</p>
               <p>
-                {money(o.finalAmount || o.totalAmount || 0)} · Hết hạn{" "}
+                {money(o.finalAmount)} · Hết hạn{" "}
                 {new Date(o.expiredAt).toLocaleTimeString("vi-VN")}
               </p>
             </div>
@@ -92,56 +93,69 @@ export default function LichSuVeKhachHang({ member, onResume }) {
         )
         .map((o) => (
           <p role="status" key={o.id}>
-            Đơn {o.orderCode || o.code || "NV-000000"}: Đã thanh toán · đang phát hành vé QR.
+            Đơn {o.orderCode}: Đã thanh toán · đang phát hành vé QR.
           </p>
         ))}
-      {tickets.map((ticket) => {
-        const seatLabels = Array.isArray(ticket.seats)
-          ? ticket.seats.map((s) => s.label || s).join(", ")
-          : ticket.seatLabel || "Ghế tiêu chuẩn";
-        const qrImage = ticket.qrCodeBase64 || "/images/mai-title.svg";
-        const code = ticket.orderCode || ticket.code || "NV-000000";
-        return (
-          <article key={ticket.id}>
-            <img src={qrImage} alt={`QR vé ${code}`} />
-            <div>
-              <h3>{ticket.movie || ticket.movieTitle || "Phim điện ảnh"}</h3>
-              <p>
-                {ticket.cinema || ticket.cinemaName || "NOVA Cinema"} ·{" "}
-                {ticket.room || ticket.roomName || "Phòng Laser 01"}
-              </p>
-              <p>
-                {new Date(ticket.startTime).toLocaleString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                })}
-              </p>
-              <p>
-                Ghế: {seatLabels} · {money(ticket.amount || 0)}
-              </p>
-              <small>{ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}</small>
-              <p>
-                <a
-                  className="text-button"
-                  href={qrImage}
-                  download={`${code}.png`}
-                >
-                  Tải QR
-                </a>{" "}
-                ·{" "}
-                <a
-                  className="text-button"
-                  href={`/api/v1/tickets/${ticket.id}/calendar`}
-                >
-                  Thêm lịch .ics
-                </a>
-              </p>
-            </div>
-          </article>
-        );
-      })}
-      {!loading && !error && !orders.length && !tickets.length && (
-        <p>Bạn chưa có đơn đặt vé.</p>
-      )}
+      {tickets.map((ticket) => (
+        <article className="cinema-ticket" key={ticket.id}>
+          <img
+            className="ticket-movie-poster"
+            src={
+              movies.find((movie) => movie.title === ticket.movie)
+                ?.localPoster || "/images/cinema-auditorium.jpg"
+            }
+            alt={ticket.movie}
+          />
+          <div className="ticket-story">
+            <p className="nova-kicker">
+              <Ticket size={13} />
+              NOVA CINEMA · ADMIT ONE BOOKING
+            </p>
+            <h3>{ticket.movie}</h3>
+            <p>
+              {ticket.cinema} · {ticket.room}
+            </p>
+            <p>
+              {new Date(ticket.startTime).toLocaleString("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+              })}
+            </p>
+            <p>
+              Ghế: {ticket.seats.map((s) => s.label).join(", ")} ·{" "}
+              {money(ticket.amount)}
+            </p>
+            <small
+              className={`ticket-state ${ticket.isCheckedIn ? "used" : ""}`}
+            >
+              {ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}
+            </small>
+            <p className="ticket-order-code">Mã đơn: {ticket.orderCode}</p>
+          </div>
+          <div className="ticket-stub">
+            <img src={ticket.qrCodeBase64} alt={`QR vé ${ticket.orderCode}`} />
+            <p>
+              <a
+                className="text-button"
+                href={ticket.qrCodeBase64}
+                download={`${ticket.orderCode}.png`}
+              >
+                <Download size={12} />
+                Tải QR
+              </a>{" "}
+              ·{" "}
+              <a
+                className="text-button"
+                href={`/api/v1/tickets/${ticket.id}/calendar`}
+              >
+                <CalendarDays size={12} />
+                Thêm lịch .ics
+              </a>
+            </p>
+          </div>
+          <TicketConfirmation ticketId={ticket.id} />
+        </article>
+      ))}
+      {!loading && !error && !orders.length && <p>Bạn chưa có đơn đặt vé.</p>}
     </div>
   );
 }

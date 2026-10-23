@@ -68,6 +68,33 @@ export class ShowtimesRepository {
     ]);
   }
 
+  programme(now: Date, until: Date, tx: Prisma.TransactionClient) {
+    return Promise.all([
+      tx.movie.findMany({
+        where: { status: { not: "ENDED" } },
+        orderBy: { title: "asc" },
+        take: 1001,
+      }),
+      tx.cinema.findMany({ orderBy: { name: "asc" }, take: 1001 }),
+      tx.room.findMany({
+        orderBy: [{ cinemaId: "asc" }, { name: "asc" }],
+        take: 2001,
+      }),
+      tx.combo.findMany({
+        where: { isActive: true },
+        orderBy: { name: "asc" },
+        take: 1001,
+      }),
+      tx.showtime.findMany({
+        where: {
+          startTime: { gte: now, lt: until },
+          movie: { status: { not: "ENDED" } },
+        },
+        orderBy: [{ startTime: "asc" }, { id: "asc" }],
+        take: 10001,
+      }),
+    ]);
+  }
   create(
     data: Prisma.ShowtimeUncheckedCreateInput,
     tx: Prisma.TransactionClient,

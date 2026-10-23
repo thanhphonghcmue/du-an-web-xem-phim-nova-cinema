@@ -101,11 +101,11 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         cinemaId,
         name: `${prefix}-${randomUUID()}`,
         roomType: "DOLBY_ATMOS",
-        totalSeats: 3,
+        totalSeats: 4,
       },
     });
     await prisma.seat.createMany({
-      data: [1, 2, 3].map((column) => ({
+      data: [1, 2, 3, 4].map((column) => ({
         roomId: room.id,
         seatRow: "A",
         seatColumn: column,
@@ -747,6 +747,13 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
       where: { id: event.id },
     });
     expect(failed.processedAt).toBeNull();
+    const retryPreview = data(
+      await request(server)
+        .get(`/api/v1/tickets/${ticket.id}/confirmation`)
+        .auth(token, { type: "bearer" })
+        .expect(200),
+    ) as { deliveryStatus: string };
+    expect(retryPreview.deliveryStatus).toBe("RETRYING");
     expect(failed.availableAt.getTime()).toBeGreaterThan(Date.now());
     expect(
       (await prisma.booking.findUniqueOrThrow({ where: { id: f.booking.id } }))
@@ -995,9 +1002,117 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     ).toBe(true);
     expect(calendar.match(/(?:^|\r\n)BEGIN:VEVENT/g)).toHaveLength(1);
     expect(calendar).not.toMatch(/[^\r]\n/);
+    expect(calendar).toContain("TRIGGER:-PT30M");
+    expect(calendar).toContain("BEGIN:VALARM");
     const email = ticketEmail(row, randomUUID(), "tickets@nova.local");
     expect(email.html).not.toContain("<script>");
     expect(email.html).toContain("&lt;script&gt;");
+  });
+  it("previews a real confirmation only for its owner without sending or acknowledging email", async () => {
+    const f = await fixture();
+    await pay(f);
+    const ticket = await generate(f);
+    const event = await emailEvent(f.booking.id);
+    const preview = () =>
+      request(server)
+        .get(`/api/v1/tickets/${ticket.id}/confirmation`)
+        .auth(token, { type: "bearer" });
+    const message = data(await preview().expect(200)) as {
+      html: string;
+      subject: string;
+      deliveryStatus: string;
+      acceptedAt: string | null;
+    };
+    expect(message.deliveryStatus).toBe("QUEUED");
+    expect(message.acceptedAt).toBeNull();
+    expect(message.subject).toContain(f.booking.orderCode);
+    expect(message.html).toContain(ticket.qrCodeBase64);
+    expect(message.html).not.toContain("cid:nova-ticket-qr");
+    expect(message.html).not.toMatch(
+      /passwordHash|refreshToken|accessToken|<script>/,
+    );
+    for (const auth of [foreignToken, adminToken, staffToken])
+      await request(server)
+        .get(`/api/v1/tickets/${ticket.id}/confirmation`)
+        .auth(auth, { type: "bearer" })
+        .expect(404);
+    await request(server)
+      .get(`/api/v1/tickets/${ticket.id}/confirmation`)
+      .expect(401);
+    expect(messages(event.id)).toHaveLength(0);
+    expect(
+      (await prisma.outboxEvent.findUniqueOrThrow({ where: { id: event.id } }))
+        .processedAt,
+    ).toBeNull();
+    await app.get(FulfillmentRelay).flush();
+    await delivered(event.id);
+    const sent = data(await preview().expect(200)) as {
+      deliveryStatus: string;
+      acceptedAt: string | null;
+    };
+    expect(sent.deliveryStatus).toBe("SMTP_ACCEPTED");
+    expect(sent.acceptedAt).not.toBeNull();
+    expect(messages(event.id)).toHaveLength(1);
+  });
+  it("verifies without consuming and enforces mismatch, unknown and reused QR cases", async () => {
+    const f = await fixture();
+    await pay(f);
+    const ticket = await generate(f);
+    const verify = (
+      ticketHash = ticket.ticketHash,
+      showtimeId = f.showtime.id,
+      auth = staffToken,
+    ) =>
+      request(server)
+        .post("/api/v1/staff/verify")
+        .auth(auth, { type: "bearer" })
+        .send({ ticketHash, showtimeId });
+    await verify().expect(200);
+    await verify(ticket.ticketHash, f.showtime.id.toUpperCase()).expect(200);
+    expect(
+      (await prisma.eTicket.findUniqueOrThrow({ where: { id: ticket.id } }))
+        .isCheckedIn,
+    ).toBe(false);
+    expect(
+      error(await verify(ticket.ticketHash, randomUUID()).expect(409)),
+    ).toBe("TICKET_SHOWTIME_MISMATCH");
+    expect(
+      error(await verify(randomBytes(32).toString("hex")).expect(404)),
+    ).toBe("TICKET_NOT_FOUND");
+    await verify(ticket.ticketHash, f.showtime.id, token).expect(403);
+    await request(server)
+      .post("/api/v1/staff/verify")
+      .send({ ticketHash: ticket.ticketHash, showtimeId: f.showtime.id })
+      .expect(401);
+    await request(server)
+      .post("/api/v1/staff/verify")
+      .auth(staffToken, { type: "bearer" })
+      .send({ ticketHash: ticket.ticketHash })
+      .expect(400);
+    expect(
+      error(
+        await request(server)
+          .post("/api/v1/staff/check-in")
+          .auth(staffToken, { type: "bearer" })
+          .send({ ticketHash: ticket.ticketHash, showtimeId: randomUUID() })
+          .expect(409),
+      ),
+    ).toBe("TICKET_SHOWTIME_MISMATCH");
+    expect(
+      (await prisma.eTicket.findUniqueOrThrow({ where: { id: ticket.id } }))
+        .isCheckedIn,
+    ).toBe(false);
+    await request(server)
+      .post("/api/v1/staff/check-in")
+      .auth(staffToken, { type: "bearer" })
+      .send({ ticketHash: ticket.ticketHash, showtimeId: f.showtime.id })
+      .expect(200);
+    const usedPreview = await verify().expect(409);
+    expect(error(usedPreview)).toBe("TICKET_ALREADY_USED");
+    expect(
+      (JSON.parse(usedPreview.text) as { details: { checkedInAt: string } })
+        .details.checkedInAt,
+    ).toBeTruthy();
   });
   it("documents owner ticket/calendar APIs and protected staff admission alongside Phase10 revenue reports", async () => {
     const spec = JSON.parse(

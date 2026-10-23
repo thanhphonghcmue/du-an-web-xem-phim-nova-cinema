@@ -1,6 +1,14 @@
+import { Type } from "class-transformer";
+import { MovieDto } from "../movies/movie.dto";
+import { CinemaDto } from "../cinemas/cinema.dto";
+import { RoomDto } from "../rooms/room.dto";
+import { ComboDto } from "../combos/combo.dto";
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 import {
   IsDateString,
+  IsInt,
+  Min,
+  Max,
   IsOptional,
   IsString,
   IsUUID,
@@ -89,4 +97,22 @@ export class ShowtimeDto {
   @ApiProperty({ type: String, example: "90000.00" }) baseTicketPrice!: string;
   @ApiProperty({ type: String, format: "date-time" }) createdAt!: Date;
   @ApiProperty({ type: String, format: "date-time" }) updatedAt!: Date;
+}
+
+export class ProgrammeQueryDto {
+  @ApiPropertyOptional({ default: 60, minimum: 1, maximum: 60 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  days: number = 60;
+}
+export class ProgrammeDto {
+  @ApiProperty({ type: [MovieDto] }) movies!: MovieDto[];
+  @ApiProperty({ type: [CinemaDto] }) cinemas!: CinemaDto[];
+  @ApiProperty({ type: [RoomDto] }) rooms!: RoomDto[];
+  @ApiProperty({ type: [ComboDto] }) combos!: ComboDto[];
+  @ApiProperty({ type: [ShowtimeDto] }) showtimes!: ShowtimeDto[];
+  @ApiProperty({ format: "date-time" }) asOf!: Date;
+  @ApiProperty({ format: "date-time" }) until!: Date;
 }

@@ -1,33 +1,26 @@
+// HopThoaiModal: mã nguồn chức năng, dùng chung cho mọi trang.
 /**
  * ==============================================================================
  * TỆP TIN: src/components/Modal.jsx
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Hộp Thoại Popup Đa Năng Chuẩn Trợ Năng (Accessible Reusable Modal Dialog).
- *   - Các tính năng tiêu chuẩn công nghiệp:
- *     1. BẪY TIÊU ĐIỂM (Focus Trap): Khi bấm phím Tab, tiêu điểm chỉ xoay vòng bên trong modal, không rò rỉ ra ngoài trang.
- *     2. PHÍM TẮT TIỆN LỢI: Bấm phím "Escape" lập tức đóng modal an toàn.
- *     3. KHÓA CUỘN NỀN: Tự động khóa cuộn trang (`body.overflow = hidden`) khi modal đang mở.
- *     4. KHÔI PHỤC TIÊU ĐIỂM: Tự động trả tiêu điểm về nút bấm trước đó khi modal đóng.
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Nhận props `title`, `onClose`, `children`, `wide`.
- *   2. Khóa màn hình nền, kích hoạt tiêu điểm vào hộp thoại.
- *   3. Khi người dùng click vào vùng tối mờ bên ngoài (backdrop) hoặc nút X: gọi `onClose()`.
- *
- * ĐỐI TƯỢNG SỬ DỤNG:
- *   - Dùng chung cho: Màn hình chọn ghế, Đăng nhập, Soát vé, Quản trị Admin, Trailer phim.
- *
- * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
- *   - Bổ sung hiệu ứng chuyển động trượt mượt mà (Slide-in and Fade-out với Framer Motion).
+ * CHÚ Ý: Tệp này đã được chuẩn hóa tên theo chức năng tiếng Việt:
+ *   👉 Vui lòng xem và chỉnh sửa tại: src/components/HopThoaiModal.jsx
  * ==============================================================================
  */
 
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
-export default function HopThoaiModal({ title, onClose, children, wide = false }) {
+export default function HopThoaiModal({
+  title,
+  onClose,
+  children,
+  wide = false,
+  embedded = false,
+  image = "/images/cinema-lobby.jpg",
+}) {
   const panel = useRef(null);
   useEffect(() => {
+    if (embedded) return;
     const previous = document.activeElement;
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -36,8 +29,9 @@ export default function HopThoaiModal({ title, onClose, children, wide = false }
       document.body.style.overflow = oldOverflow;
       previous?.focus();
     };
-  }, []);
+  }, [embedded]);
   useEffect(() => {
+    if (embedded) return;
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
       if (e.key === "Tab") {
@@ -69,28 +63,35 @@ export default function HopThoaiModal({ title, onClose, children, wide = false }
     return () => {
       document.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, [onClose, embedded]);
   return (
     <div
-      className="modal-backdrop"
+      className={embedded ? "embedded-dialog" : "modal-backdrop"}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <section
         ref={panel}
         tabIndex={-1}
         role="dialog"
-        aria-modal="true"
+        aria-modal={embedded ? undefined : true}
         aria-label={title}
         className={`modal-panel ${wide ? "modal-wide" : ""}`}
       >
-        <header className="modal-header">
+        <header
+          className="modal-header"
+          style={{
+            backgroundImage: `linear-gradient(90deg, rgba(10,12,18,.94), rgba(10,12,18,.45)), url("${image}")`,
+          }}
+        >
           <div>
             <span className="eyebrow">NOVA / INFINITY EXPERIENCE</span>
             <h2>{title}</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Đóng">
-            <X size={21} />
-          </button>
+          {!embedded && (
+            <button className="icon-button" onClick={onClose} aria-label="Đóng">
+              <X size={21} />
+            </button>
+          )}
         </header>
         {children}
       </section>

@@ -1,25 +1,9 @@
+// MenuDieuHuong: mã nguồn chức năng, dùng chung cho mọi trang.
 /**
  * ==============================================================================
  * TỆP TIN: src/components/GlassNavigation.jsx
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Thanh Menu Điều Hướng Chính Hiệu Ứng Kính Mờ (Glassmorphic Navigation Bar).
- *   - Điều hướng nhanh đến các khu vực trên trang chủ:
- *     + Lịch chiếu phim (`#movies`)
- *     + Cụm rạp điện ảnh (`#cinemas`)
- *     + Ưu đãi & Khuyến mãi bắp nước (`#offers`)
- *     + Đặc quyền hội viên C’MEMBER (`#membership`)
- *     + Sự kiện công chiếu (`#events`)
- *   - Hiệu ứng vệt sáng chuyển động (Shared Layout Animation `layoutId="nav-glow"`) lướt theo chuột.
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Lắng nghe `onMouseEnter` và `onFocus` của từng liên kết.
- *   2. Framer Motion di chuyển vệt sáng gradient mượt mà sang vị trí mục được chọn.
- *
- * ĐỐI TƯỢNG SỬ DỤNG:
- *   - Người dùng máy tính điều hướng trên thanh Header.
- *
- * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
- *   - Tự động highlight mục menu theo vị trí cuộn trang thực tế của người dùng (Intersection Observer).
+ * CHÚ Ý: Tệp này đã được chuẩn hóa tên theo chức năng tiếng Việt:
+ *   👉 Vui lòng xem và chỉnh sửa tại: src/components/MenuDieuHuong.jsx
  * ==============================================================================
  */
 
@@ -31,11 +15,11 @@ export default function MenuDieuHuong() {
   const [hovered, setHovered] = useState(null);
   const [active, setActive] = useState("#movies");
   const links = [
-    ["#movies", "Lịch chiếu"],
-    ["#cinemas", "Rạp Cinema"],
-    ["#offers", "Ưu đãi & Khuyến mãi"],
-    ["#membership", "C’MEMBER"],
-    ["#events", "Sự kiện"],
+    ["/phim", "Phim"],
+    ["/rap", "Rạp NOVA"],
+    ["/uu-dai", "Ưu đãi"],
+    ["/hoi-vien", "C’MEMBER"],
+    ["/bap-nuoc", "Bắp nước"],
   ];
   return (
     <nav

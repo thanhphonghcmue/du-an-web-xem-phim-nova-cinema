@@ -17,10 +17,17 @@ npm run dev
 
 Mở trình duyệt tại: **`http://localhost:3000`**
 
-Toàn bộ 100% chức năng rạp chiếu phim sẵn sàng hoạt động ngay lập tức (Mật khẩu chuẩn: `nova@12345`):
-- 👑 **Quản trị viên (Admin):** Đăng nhập `admin@nova.local` (Mật khẩu: `nova@12345`) $\rightarrow$ Xem báo cáo doanh thu tài chính, biểu đồ, danh sách thành viên.
-- 🎫 **Nhân viên soát vé (Staff):** Đăng nhập `staff@nova.local` (Mật khẩu: `nova@12345`) $\rightarrow$ Mở camera WebRTC quét mã QR hoặc chọn vé mẫu duyệt vào rạp.
-- 👤 **Khách hàng (Customer):** Đăng nhập `customer@nova.local` (Mật khẩu: `nova@12345`) hoặc đăng ký mới $\rightarrow$ Xem lịch chiếu, chọn sơ đồ ghế 96 chỗ, giữ ghế 5 phút, thanh toán Sandbox 1 chạm, nhận vé QR điện tử.
+Đây là **chế độ demo độc lập dùng bộ nhớ tạm**, không phải PostgreSQL/NestJS.
+Chỉ tự chọn trong development khi chưa cấu hình `BACKEND_API_URL`; có thể chọn rõ
+bằng `NOVA_STANDALONE=true`. Website có nhãn demo; khởi động lại có thể mất dữ liệu.
+Tài khoản mẫu demo dùng mật khẩu `nova@12345`, và đăng nhập vẫn kiểm tra mật khẩu.
+Các mở rộng email preview, soát vé hai bước và bảo đảm concurrency trong báo cáo dưới
+đây được kiểm chứng trên **backend NestJS thật**, chưa chứng nhận cho kho demo.
+
+Khi có `BACKEND_API_URL` hoặc chạy `dev:full`, mọi đơn/vé dùng backend đã cấu hình.
+Mất kết nối sẽ báo lỗi và cho thử lại, không tự chuyển sang kho demo. Production luôn
+sử dụng backend NestJS. Mật khẩu tài khoản PostgreSQL giữ theo `.env` riêng, không
+bị đổi theo mật khẩu demo. Không dùng mật khẩu demo cho dữ liệu triển khai thật.
 
 ---
 
@@ -50,7 +57,7 @@ Các trang `/gioi-thieu`, `/ho-tro`, `/huong-dan`, `/chinh-sach`, `/lien-he` và
 có thể đóng/ẩn trong ngày, sau đó là hero Inception với ảnh concept riêng.
 
 Seed bổ sung chuẩn bị **24 phim (16 đang chiếu/tuyển chọn, 8 sắp tái chiếu), 16 món/combo**,
-ít nhất **8 phòng mỗi rạp mẫu** và lịch **7 ngày theo giờ Việt Nam**. Lịch có buổi sáng,
+**24 phòng mỗi rạp mẫu**, lịch **hôm nay + 30 ngày tới theo giờ Việt Nam**. Lịch có buổi sáng,
 chiều, tối và suất muộn; có bộ lọc phòng/buổi và thanh chọn rạp → phim → ngày → giờ/phòng.
 Các ngày sắp chiếu là chương trình tái chiếu dự kiến tháng sau, không phải ngày phát hành chính thức.
 Với máy đã setup trước đó, chạy trong `backend/`:
@@ -62,7 +69,12 @@ npm run db:seed:programme
 
 Các lệnh chỉ thêm dữ liệu còn thiếu, không ghi đè nội dung admin hoặc dịch chuyển suất đã có.
 Lệnh programme bổ sung lịch cho các phòng riêng do nó tạo, tránh chồng lịch, và có thể
-chạy lại để bổ sung những ngày mới. Không chạy seed demo trong production.
+chạy lại để bổ sung những ngày mới. `dev:full` tự chuẩn bị lịch này khi khởi động
+(có thể tắt bằng `NOVA_REFRESH_PROGRAMME=false`). Không chạy seed demo trong production.
+Phim sắp chiếu có lịch thật được **đặt vé trước**, giữ ghế và thanh toán Sandbox như
+vé thường. Phim chưa mở bán vẫn có nhắc lịch. Lịch có bộ chọn ngày xa, nhóm bảy ngày
+và tên phòng thực; xem [mở rộng lịch & chữ dễ đọc](docs/design/advance-booking-readability.md).
+
 Bắp nước chọn ở cửa hàng được giữ trong phiên trình duyệt và chuyển vào bước chọn ghế;
 chỉ xác nhận đơn, giá và thời hạn qua backend. Xem [ghi chú Discovery](docs/design/discovery-upgrade.md)
 và [đợt nâng cấp trang mở màn & lịch chiếu](docs/design/premiere-upgrade.md).
@@ -102,6 +114,12 @@ tạo suất mới trong quản trị. Seed không di chuyển lịch đã tồn
 cũng có nút **Tiếp tục đơn**. Bấm **Hủy đơn & trả ghế** để hủy ngay. Hết hạn,
 thanh toán thất bại hoặc hủy thanh toán sẽ trả ghế. Hai máy dùng cùng server
 không thể giữ thành công cùng một ghế.
+
+Trong tài khoản, mỗi vé có nút **Xem email xác nhận** để đọc bản xem trước từ backend
+và trạng thái gửi thật của outbox. `.ics` có địa chỉ rạp và nhắc trước 30 phút.
+Quầy `/soat-ve` chọn ngày/suất, **Kiểm tra vé** trước rồi **Xác nhận soát vé**;
+quét/kiểm tra chưa làm mất hiệu lực vé. Camera cần trình duyệt hỗ trợ BarcodeDetector;
+nhập mã QR vẫn dùng được. Xem [báo cáo rà soát LAB04](docs/design/lab04-booking-audit.md).
 
 ADMIN có quản trị danh mục (phim/rạp/phòng/suất/combo), tạo sơ đồ cho phòng trống,
 doanh thu, người dùng và health/outbox. STAFF/ADMIN có màn hình **Soát vé** nhập

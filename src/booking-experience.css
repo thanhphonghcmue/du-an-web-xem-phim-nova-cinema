@@ -1,0 +1,307 @@
+/* Practical booking, owner email and staff admission states. */
+.orphan-warning-banner {
+  border: 1px solid #eba34f80;
+  background: #f1a14312;
+  color: #ffd59f;
+  line-height: 1.8;
+  border-radius: 9px;
+  padding: 15px 18px;
+  margin: 16px 0;
+  font-size: 12px;
+  align-items: flex-start;
+}
+.orphan-warning-banner svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.seat.orphan-seat {
+  outline: 2px solid #ffaf47;
+  outline-offset: 3px;
+  box-shadow: 0 0 18px #ffae4745;
+  animation: orphan-attention 1.5s ease-in-out infinite;
+}
+@keyframes orphan-attention {
+  50% {
+    outline-color: #ffe3b3;
+    box-shadow: 0 0 23px #ffc97770;
+  }
+}
+.group-picker {
+  flex-wrap: wrap;
+}
+.group-type-label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+  color: #b9bdc9;
+}
+.group-type-label select {
+  max-width: 210px;
+}
+.admission-intro {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 24px 0 18px;
+}
+.admission-intro > svg {
+  color: #e8bd7b;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.admission-intro h3 {
+  font-size: 23px;
+  line-height: 1.4;
+  margin: 8px 0;
+  letter-spacing: -0.6px;
+}
+.admission-intro p:last-child {
+  color: #929daf;
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0;
+}
+.admission-steps {
+  display: flex;
+  gap: 8px;
+  padding: 12px 0 22px;
+}
+.admission-steps span {
+  flex: 1;
+  font-size: 10px;
+  color: #8e97ab;
+  border-bottom: 2px solid #ffffff14;
+  padding: 10px 0;
+}
+.admission-steps .active {
+  color: #f3ce90;
+  border-color: #d5a967;
+}
+.admission-context {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 18px;
+  background: #ffffff04;
+  border: 1px solid #ffffff12;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+.admission-context label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: #bbb3a2;
+  min-width: 0;
+}
+.admission-context .admission-screening {
+  grid-column: 1/-1;
+}
+.admission-context select,
+.admission-context input {
+  width: 100%;
+  background: #0d111b;
+  border: 1px solid #343c4d;
+  color: #e4e7f0;
+  border-radius: 6px;
+  padding: 12px 10px;
+  font-size: 12px;
+  min-width: 0;
+  color-scheme: dark;
+}
+.admission-form {
+  margin: 18px 0;
+}
+.admission-form input {
+  font-family: monospace;
+  font-size: 12px;
+  min-width: 0;
+  width: 100%;
+}
+.admission-form .button {
+  gap: 8px;
+}
+.admission-result {
+  display: flex;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid;
+  border-radius: 10px;
+  margin: 20px 0;
+  align-items: flex-start;
+}
+.admission-result > svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.admission-result h3 {
+  font-size: 17px;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+.admission-result p {
+  font-size: 12px;
+  line-height: 1.9;
+  margin: 5px 0;
+}
+.admission-result .button {
+  margin-top: 14px;
+}
+.admission-result.valid {
+  background: #40cf9a0b;
+  border-color: #43cc9860;
+  color: #a1e5c9;
+}
+.admission-result.warning {
+  background: #f2b5560d;
+  border-color: #f2b55666;
+  color: #f4cc92;
+}
+.admission-result.invalid {
+  background: #f15b700c;
+  border-color: #f15b7066;
+  color: #ffafba;
+}
+.admission-checklist {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #ffffff12;
+}
+.admission-checklist > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+.admission-checklist span {
+  font-size: 10px;
+  padding: 12px;
+  background: #ffffff04;
+  color: #bfc5d1;
+  border-radius: 5px;
+}
+.admission-checklist > p:last-child {
+  font-size: 10px;
+  line-height: 1.9;
+  color: #7d899c;
+}
+.ticket-confirmation {
+  grid-column: 1/-1;
+  border-top: 1px dashed #ffffff25;
+  padding-top: 15px;
+  min-width: 0;
+}
+.confirmation-toggle {
+  color: #dfbd84;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.confirmation-panel {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #ffffff18;
+  border-radius: 9px;
+  background: #0c1018;
+}
+.confirmation-panel > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.confirmation-panel h3 {
+  font-size: 15px !important;
+  margin: 8px 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.confirmation-panel header p:last-child {
+  font-size: 11px;
+  color: #a6adbc;
+  overflow-wrap: anywhere;
+}
+.confirmation-delivery {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: #f0bf79;
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 16px 0 8px;
+}
+.confirmation-delivery.accepted {
+  color: #85d9b6;
+}
+.confirmation-delivery svg {
+  flex-shrink: 0;
+}
+.confirmation-note {
+  font-size: 10px !important;
+  line-height: 1.8 !important;
+  color: #8e99ab;
+  margin-bottom: 15px;
+}
+.confirmation-panel iframe {
+  display: block;
+  width: 100%;
+  height: 700px;
+  border: 0;
+  border-radius: 7px;
+  background: #0d1018;
+}
+@media (max-width: 600px) {
+  .admission-context {
+    padding: 12px;
+    gap: 10px;
+  }
+  .admission-context select,
+  .admission-context input {
+    font-size: 11px;
+    padding: 11px 7px;
+  }
+  .admission-steps {
+    gap: 10px;
+  }
+  .admission-steps span {
+    font-size: 8px;
+    line-height: 1.8;
+  }
+  .admission-intro h3 {
+    font-size: 20px;
+  }
+  .admission-result {
+    padding: 16px;
+    gap: 10px;
+  }
+  .admission-checklist > div {
+    grid-template-columns: 1fr;
+  }
+  .group-type-label {
+    flex-basis: 100%;
+  }
+  .confirmation-panel {
+    padding: 10px;
+  }
+  .confirmation-panel iframe {
+    height: 780px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seat.orphan-seat {
+    animation: none;
+  }
+}
+
+.standalone-mode-notice {
+  background: #382712;
+  color: #ffdc9c;
+  padding: 12px 22px;
+  font-size: 11px;
+  line-height: 1.8;
+  text-align: center;
+  border-bottom: 1px solid #a77e3d;
+}

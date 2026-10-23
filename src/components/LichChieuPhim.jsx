@@ -1,54 +1,85 @@
+// LichChieuPhim: mã nguồn chức năng, dùng chung cho mọi trang.
 /**
  * ==============================================================================
  * TỆP TIN: src/components/ShowtimeTimeline.jsx
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Lịch Chiếu Phim Trực Quan Theo Rạp & Suất Chiếu (Showtime Schedule Timeline).
- *   - Hiển thị danh sách rạp (Hà Nội, TP.HCM, Đà Nẵng) và lịch chiếu theo ngày (hôm nay, ngày mai...).
- *   - Tự động thăm dò (Polling) tình trạng ghế trống theo từng khung giờ (ví dụ: "Còn 142/160 ghế").
- *   - Phân biệt mức giá vé ngày thường và cuối tuần (Thứ 7, Chủ Nhật).
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Khách hàng bấm chọn Cụm Rạp -> Chọn Phim -> Chọn Ngày chiếu.
- *   2. Component hiển thị các thẻ khung giờ chiếu (10:00, 13:30, 16:45, 19:30, 22:30).
- *   3. Khách hàng click vào một khung giờ -> kích hoạt `onBook(...)` để chuyển sang màn hình chọn ghế.
- *
- * ĐỐI TƯỢNG SỬ DỤNG:
- *   - Khách hàng tra cứu lịch chiếu chi tiết của rạp yêu thích.
- *
- * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
- *   - Bổ sung bộ lọc xem nhanh "Chỉ hiện suất chiếu IMAX" hoặc "Suất sau 18:00".
- *   - Thêm nút "Nhận thông báo khi mở bán vé" cho các phim bom tấn sắp ra rạp.
+ * CHÚ Ý: Tệp này đã được chuẩn hóa tên theo chức năng tiếng Việt:
+ *   👉 Vui lòng xem và chỉnh sửa tại: src/components/LichChieuPhim.jsx
  * ==============================================================================
  */
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, MapPin, Ticket } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  MapPin,
+  Ticket,
+  Clock3,
+  SlidersHorizontal,
+} from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useCatalog } from "../catalog.js";
+import { money } from "../data.js";
 import { apiGetShowtimeSeats } from "../api/client.js";
 import { useI18n } from "../i18n.js";
 export default function LichChieuPhim({ onBook }) {
   const { language } = useI18n();
-  const { cinemas, movies, getDates, getShowtimes } = useCatalog();
+  const { cinemas, movies, rooms, getDates, getShowtimes } = useCatalog();
   const [capacities, setCapacities] = useState({});
+  const [period, setPeriod] = useState("all");
+  const [roomFilter, setRoomFilter] = useState("all");
   const reduced = useReducedMotion();
   const [cinemaId, setCinemaId] = useState(cinemas[0]?.id || "");
   const [dateId, setDateId] = useState(() => getDates()[0]?.id || "");
   const [filmId, setFilmId] = useState(movies[0]?.id || "");
-  const cinema = cinemas.find((c) => c.id === cinemaId);
+  const scheduledCinemas = cinemas.filter((cinema) => cinema.movies.length);
+  const cinema =
+    scheduledCinemas.find((c) => c.id === cinemaId) ||
+    scheduledCinemas[0] ||
+    cinemas[0];
+  const activeCinemaId = cinema?.id || "";
 
   const films = movies.filter((m) => cinema?.movies.includes(m.id));
   const film = films.find((m) => m.id === filmId) || films[0];
-  const dates = getDates(language, cinemaId, film?.id);
+  const dates = getDates(language, activeCinemaId, film?.id);
   const activeDate = dates.some((d) => d.id === dateId) ? dateId : dates[0]?.id;
   const activeDateObj = dates.find((d) => d.id === activeDate);
+  const [dateNotice, setDateNotice] = useState("");
+  const dateIndex = Math.max(
+    0,
+    dates.findIndex((date) => date.id === activeDate),
+  );
+  const weekIndex = Math.floor(dateIndex / 7);
+  const windowStart = Math.min(weekIndex * 7, Math.max(0, dates.length - 7));
+  const visibleDates = dates.slice(windowStart, windowStart + 7);
+  const dateEnd = dates.at(-1)?.id;
+
   const isWeekend =
     activeDateObj?.label?.includes("Thứ 7") ||
     activeDateObj?.label?.includes("Chủ nhật") ||
     activeDateObj?.label?.includes("CN") ||
     activeDateObj?.label?.includes("Sat") ||
     activeDateObj?.label?.includes("Sun");
-  const times = getShowtimes(cinemaId, film?.id, activeDate);
+  const cinemaRooms = rooms.filter((room) => room.cinemaId === activeCinemaId);
+  const activeRoom = cinemaRooms.some((room) => room.id === roomFilter)
+    ? roomFilter
+    : "all";
+  const allTimes = getShowtimes(activeCinemaId, film?.id, activeDate);
+  const showRooms = cinemaRooms.filter((room) =>
+    allTimes.some((time) => time.roomId === room.id),
+  );
+  const times = allTimes.filter((time) => {
+    const hour = Number(time.displayTime.slice(0, 2));
+    return (
+      (activeRoom === "all" || time.roomId === activeRoom) &&
+      (period === "all" ||
+        (period === "morning" && hour < 12) ||
+        (period === "afternoon" && hour >= 12 && hour < 17) ||
+        (period === "evening" && hour >= 17 && hour < 21) ||
+        (period === "late" && hour >= 21))
+    );
+  });
   const timeKey = times.map((t) => t.id).join(",");
   useEffect(() => {
     let active = true;
@@ -109,37 +140,103 @@ export default function LichChieuPhim({ onBook }) {
           <label>
             <MapPin size={16} />
             <select
-              value={cinemaId}
+              value={activeCinemaId}
               aria-label={
                 language === "en" ? "Timeline cinema" : "Rạp trong lịch chiếu"
               }
               onChange={(e) => {
                 setCinemaId(e.target.value);
+                setRoomFilter("all");
+                setPeriod("all");
                 setFilmId(
                   cinemas.find((c) => c.id === e.target.value).movies[0],
                 );
               }}
             >
-              {cinemas.map((c) => (
+              {scheduledCinemas.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
           </label>
-          <div className="timeline-dates">
-            {dates.map((d) => (
-              <button
-                key={d.id}
-                aria-pressed={d.id === activeDate}
-                className={d.id === activeDate ? "active" : ""}
-                onClick={() => setDateId(d.id)}
-              >
-                <strong>{d.id.slice(-2)}</strong>
-                <span>{d.label.split(",")[0]}</span>
-              </button>
-            ))}
+          <div className="schedule-calendar-header">
+            <div>
+              <p className="nova-kicker">CHỌN NGÀY HẸN CỦA BẠN</p>
+              <strong>
+                {dates.length} ngày có lịch ·{" "}
+                {film.status === "soon" ? "Đặt vé trước" : "Đang mở bán"}
+              </strong>
+            </div>
+            <label>
+              <CalendarDays size={17} />
+              <span>Đi đến ngày</span>
+              <input
+                type="date"
+                aria-label="Chọn ngày xa trong lịch chiếu"
+                min={dates[0]?.id}
+                max={dateEnd}
+                value={activeDate || ""}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (dates.some((date) => date.id === value)) {
+                    setDateId(value);
+                    setDateNotice("");
+                  } else
+                    setDateNotice(
+                      "Ngày này chưa có lịch cho phim đang chọn. Hãy chọn một ngày được mở bán bên dưới.",
+                    );
+                }}
+              />
+            </label>
           </div>
+          <div className="schedule-week-nav">
+            <button
+              className="schedule-week-arrow"
+              aria-label="7 ngày trước"
+              disabled={weekIndex === 0}
+              onClick={() =>
+                setDateId(dates[Math.max(0, (weekIndex - 1) * 7)].id)
+              }
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div className="timeline-dates">
+              {visibleDates.map((d) => (
+                <button
+                  key={d.id}
+                  data-date={d.id}
+                  aria-label={`Xem lịch ngày ${d.label}`}
+                  aria-pressed={d.id === activeDate}
+                  className={d.id === activeDate ? "active" : ""}
+                  onClick={() => setDateId(d.id)}
+                >
+                  <strong>
+                    {d.id.slice(-2)}
+                    <small>/{d.id.slice(5, 7)}</small>
+                  </strong>
+                  <span>{d.label.split(",")[0]}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              className="schedule-week-arrow"
+              aria-label="7 ngày tiếp theo"
+              disabled={(weekIndex + 1) * 7 >= dates.length}
+              onClick={() => setDateId(dates[(weekIndex + 1) * 7].id)}
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+          <p
+            className="schedule-date-range"
+            role={dateNotice ? "status" : undefined}
+          >
+            {dateNotice ||
+              (dateEnd
+                ? `Mở bán đến ${new Date(dateEnd + "T12:00:00+07:00").toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })} · Chọn ngày xa để đặt trước, mọi ghế và giá được xác nhận từ hệ thống.`
+                : "")}
+          </p>
         </div>
         <div className="timeline-body">
           <div
@@ -154,7 +251,12 @@ export default function LichChieuPhim({ onBook }) {
                 role="tab"
                 aria-selected={m.id === film.id}
                 className={m.id === film.id ? "active" : ""}
-                onClick={() => setFilmId(m.id)}
+                onClick={() => {
+                  setFilmId(m.id);
+                  setRoomFilter("all");
+                  setPeriod("all");
+                  setDateNotice("");
+                }}
                 key={m.id}
               >
                 <img
@@ -180,7 +282,79 @@ export default function LichChieuPhim({ onBook }) {
                 {film.format} · {cinema.name}
               </span>
             </div>
+            {film.status === "soon" && (
+              <div className="presale-notice">
+                <Ticket size={18} />
+                <p>
+                  <strong>Đặt trước cho buổi tái chiếu.</strong> Chọn giờ, phòng
+                  và ghế như vé thường. Ngày chiếu đã được mở bán trên hệ thống;
+                  đây là chương trình minh họa của NOVA.
+                </p>
+              </div>
+            )}
+            <div className="schedule-tools">
+              <div
+                className="schedule-periods"
+                role="group"
+                aria-label="Lọc buổi chiếu"
+              >
+                {[
+                  ["all", "Tất cả giờ"],
+                  ["morning", "Buổi sáng"],
+                  ["afternoon", "Buổi chiều"],
+                  ["evening", "Buổi tối"],
+                  ["late", "Suất muộn"],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    aria-pressed={period === key}
+                    className={period === key ? "active" : ""}
+                    onClick={() => setPeriod(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <label className="schedule-room-filter">
+                <SlidersHorizontal size={14} />
+                <select
+                  aria-label="Phòng chiếu trong lịch"
+                  value={activeRoom}
+                  onChange={(event) => setRoomFilter(event.target.value)}
+                >
+                  <option value="all">
+                    Tất cả phòng có chiếu ({showRooms.length})
+                  </option>
+                  {showRooms.map((room) => (
+                    <option value={room.id} key={room.id}>
+                      {room.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="schedule-count">
+              <Clock3 size={13} />
+              {times.length} suất phù hợp
+              {activeDateObj ? ` · ${activeDateObj.label}` : ""}
+              <span>Chọn một giờ để xem sơ đồ ghế</span>
+            </div>
             <div className="timeline-shows">
+              {times.length === 0 && (
+                <div className="schedule-empty">
+                  <Clock3 size={25} />
+                  <h4>Chưa có suất phù hợp bộ lọc</h4>
+                  <p>Chọn ngày khác hoặc mở lại tất cả giờ và phòng.</p>
+                  <button
+                    onClick={() => {
+                      setPeriod("all");
+                      setRoomFilter("all");
+                    }}
+                  >
+                    Xóa bộ lọc giờ & phòng
+                  </button>
+                </div>
+              )}
               {times.map((time) => {
                 const free = capacities[time.id]?.available ?? "—";
                 const total = capacities[time.id]?.total ?? "—";
@@ -207,11 +381,20 @@ export default function LichChieuPhim({ onBook }) {
                     }
                   >
                     <span className="timeline-show-format">
-                      {time.label.split(" · ")[1]}
-                      {isWeekend && <span className="weekend-mini-tag">Cuối tuần</span>}
+                      {{
+                        IMAX_70MM_LASER: "IMAX Laser",
+                        DOLBY_ATMOS: "Dolby Atmos",
+                        STANDARD_2D: "2D Laser",
+                      }[time.roomType] || "2D"}
+                      {isWeekend && (
+                        <span className="weekend-mini-tag">Cuối tuần</span>
+                      )}
                     </span>
                     <strong>{time.displayTime}</strong>
-                    <small>{time.room}</small>
+                    <small>{time.roomName}</small>
+                    <span className="show-price">
+                      Từ {money(time.baseTicketPrice)}
+                    </span>
                     <span className="seat-capacity-track">
                       <i
                         style={{
@@ -230,25 +413,11 @@ export default function LichChieuPhim({ onBook }) {
             </div>
             {times.length > 0 && (
               <div className="timeline-price-hint">
-                <span>💡 <b>Quy luật giá vé:</b> Ngày thường từ 90.000đ · Cuối tuần (T7, CN) phụ thu +15.000đ/vé · Ghế VIP +20%, Sweetbox đôi +50%. Giảm giá tự động theo hạng thành viên & mã Voucher.</span>
-              </div>
-            )}
-            {!times.length && (
-              <div className="timeline-empty">
-                <p>
-                  {language === "en"
-                    ? "The curtain has fallen for today."
-                    : "Hôm nay đã hạ màn."}
-                </p>
-                <button
-                  className="button button-glass"
-                  onClick={() => setDateId(dates[1].id)}
-                >
-                  {language === "en"
-                    ? "See tomorrow’s showtimes"
-                    : "Xem suất chiếu ngày mai"}
-                  <ArrowUpRight size={17} />
-                </button>
+                <span>
+                  Giá vé theo từng suất và phòng chiếu. Ghế VIP, Sweetbox, bắp
+                  nước và quyền lợi thành viên được tính vào tổng tiền khi giữ
+                  chỗ.
+                </span>
               </div>
             )}
           </div>

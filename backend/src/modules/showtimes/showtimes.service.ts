@@ -7,6 +7,7 @@ import { MoviesRepository } from "../movies/movies.repository";
 import { RoomsRepository } from "../rooms/rooms.repository";
 import {
   CreateShowtimeDto,
+  ProgrammeDto,
   ListShowtimesDto,
   ShowtimeDto,
   UpdateShowtimeDto,
@@ -56,6 +57,42 @@ export class ShowtimesService {
         total,
         query,
       );
+    }, Prisma.TransactionIsolationLevel.RepeatableRead);
+  }
+
+  programme(days: number): Promise<ProgrammeDto> {
+    return this.database.transaction(async (tx) => {
+      const [clock] = await tx.$queryRaw<
+        Array<{ now: Date }>
+      >`SELECT clock_timestamp() AS now`;
+      if (!clock) throw new Error("Database clock unavailable.");
+      const until = new Date(clock.now.getTime() + days * 86400000);
+      const [movies, cinemas, rooms, combos, showtimes] =
+        await this.showtimes.programme(clock.now, until, tx);
+      if (
+        movies.length > 1000 ||
+        cinemas.length > 1000 ||
+        rooms.length > 2000 ||
+        combos.length > 1000 ||
+        showtimes.length > 10000
+      )
+        throw new ApiException(
+          422,
+          "PROGRAMME_WINDOW_TOO_LARGE",
+          "Lịch vượt giới hạn tải. Hãy thu hẹp số ngày để tải đầy đủ dữ liệu.",
+        );
+      return {
+        movies,
+        cinemas,
+        rooms,
+        combos: combos.map((combo) => ({
+          ...combo,
+          price: combo.price.toFixed(2),
+        })),
+        showtimes: showtimes.map((show) => this.serialize(show)),
+        asOf: clock.now,
+        until,
+      };
     }, Prisma.TransactionIsolationLevel.RepeatableRead);
   }
 

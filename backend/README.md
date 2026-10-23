@@ -1,8 +1,20 @@
 # NOVA Cinema Backend — Phase 10
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–10 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR mỗi booking PAID, email SMTP có durable retry, owner ticket/calendar APIs, check-in STAFF/ADMIN nguyên tử và báo cáo doanh thu ADMIN. Frontend Next.js ở root vẫn là Sandbox độc lập.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–10 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR mỗi booking PAID, email SMTP có durable retry, owner ticket/calendar APIs, check-in STAFF/ADMIN nguyên tử và báo cáo doanh thu ADMIN. Frontend Next.js ở root đã nối qua BFF cùng origin, cookie HttpOnly và API thật.
 
 Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md) · [Phase 9](docs/validation-phase-9.md) · [Phase 10](docs/validation-phase-10.md).
+
+Bản rà soát LAB04 mới nhất: [giao diện, gợi ý ghế, email preview và soát vé](../docs/design/lab04-booking-audit.md).
+API bổ sung: `POST /api/v1/staff/verify` (STAFF/ADMIN, chỉ kiểm tra),
+`GET /api/v1/tickets/:id/confirmation` (chủ vé). Check-in nhận thêm `showtimeId`
+tùy chọn và kiểm tra lại trước khi ghi USED. Preview không gửi thư; trạng thái SMTP
+đọc từ outbox, không khẳng định email đã vào inbox. ICS nhắc lịch trước 30 phút.
+
+Lịch nhiều ngày dùng public `GET /api/v1/showtimes/programme?days=60`: snapshot
+catalogue + lịch tương lai, days 1–60, tối đa 10.000 suất; vượt ngưỡng trả 422, không
+cắt bớt âm thầm. Không tăng rate limit hoặc giới hạn pagination cũ. Seed local bổ sung
+30 ngày, phòng và vé đặt trước; lệnh `db:verify:programme` kiểm tra độ phủ/overlap,
+`test:programme` kiểm tra planner. Xem [evidence](../docs/design/advance-booking-readability.md).
 
 ## Requirements
 

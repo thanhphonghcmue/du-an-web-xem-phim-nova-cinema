@@ -1,306 +1,488 @@
-/**
- * ==============================================================================
- * TỆP TIN: src/components/StaffCheckIn.jsx
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Bàn Soát Vé & Quét Mã QR Của Nhân Viên Kiểm Soát Rạp (Staff Ticket Scanner & Check-in Station).
- *   - Dành riêng cho tài khoản có vai trò STAFF hoặc ADMIN.
- *   - Hai chế độ soát vé:
- *     1. QUÉT CAMERA WEBRTC: Sử dụng Camera điện thoại/laptop và `BarcodeDetector` API nhận diện mã QR tự động.
- *     2. NHẬP MÃ THỦ CÔNG: Nhập mã hash hoặc mã đơn khi camera không khả dụng hoặc vé mờ.
- *   - Cơ chế nghiệp vụ bảo mật:
- *     + Backend kiểm tra khung giờ chiếu (chỉ cho vào trước giờ chiếu 30 phút đến 15 phút sau khi phim bắt đầu).
- *     + Đảm bảo mỗi vé chỉ được soát đúng một lần duy nhất; ngăn chặn vé giả mạo hoặc dùng lại nhiều lần.
- *     + Cung cấp danh sách vé mẫu 1-chạm (Sample Tickets) để giảng viên/sinh viên kiểm thử nghiệm thu nhanh.
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Nhân viên mở modal "Soát vé" -> Bật Camera hoặc chọn vé mẫu.
- *   2. Khi phát hiện mã QR -> Gọi `readCommand("/staff/check-in", { ticketHash })`.
- *   3. Hiển thị bảng kết quả: Tên phim, phòng chiếu, danh sách số ghế, thời gian soát vé thành công.
- *
- * ĐỐI TƯỢNG SỬ DỤNG:
- *   - Nhân viên soát vé tại cửa phòng chiếu (STAFF / ADMIN).
- *
- * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
- *   - Bổ sung hiệu ứng âm thanh beep tiếng "bíp" thành công hoặc "ting ting" cảnh báo vé hết hạn.
- *   - Tích hợp chế độ soát vé ngoại tuyến (Offline Check-in) đồng bộ dữ liệu vào cơ sở dữ liệu khi có mạng lại.
- * ==============================================================================
- */
-
+// SoatVeNhanVien: mã nguồn chức năng, dùng chung cho mọi trang.
 import { useEffect, useRef, useState } from "react";
-import { Camera, CameraOff, Keyboard, QrCode, Sparkles, CheckCircle2 } from "lucide-react";
+import {
+  Camera,
+  CameraOff,
+  CheckCircle2,
+  ClipboardCheck,
+  Keyboard,
+  QrCode,
+  ShieldCheck,
+  AlertTriangle,
+} from "lucide-react";
 import Modal from "./Modal.jsx";
-import { readCommand, read } from "../api/client.js";
+import { apiGetShowtimes, readCommand } from "../api/client.js";
+import { useCatalog } from "../catalog.js";
 
-export default function SoatVeNhanVien({ onClose }) {
-  const [mode, setMode] = useState("camera"); // camera | manual
+const vietnamDate = (value = new Date()) =>
+  new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+const labels = {
+  TICKET_NOT_FOUND: "Không tìm thấy định danh vé trong hệ thống.",
+  TICKET_SHOWTIME_MISMATCH:
+    "Vé không khớp với suất chiếu đang kiểm tra. Hãy đối chiếu lại phòng và giờ trên vé.",
+  TICKET_ALREADY_USED:
+    "Vé này đã được sử dụng. Không thể xác nhận lần thứ hai.",
+  CHECK_IN_OUTSIDE_WINDOW:
+    "Chưa đến hoặc đã quá thời gian được phép vào rạp của vé này.",
+  TICKET_BOOKING_NOT_PAID:
+    "Đơn chưa đủ điều kiện vào rạp. Cần xác nhận thanh toán và trạng thái ghế.",
+};
+export default function SoatVeNhanVien({ onClose, embedded = false }) {
+  const { cinemas, rooms, movies, isLive } = useCatalog();
+  const [mode, setMode] = useState("manual");
+  const [cinemaId, setCinemaId] = useState("");
+  const [day, setDay] = useState(vietnamDate);
+  const [showtimeId, setShowtimeId] = useState("");
   const [hash, setHash] = useState("");
+  const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState("");
-  const [sampleTickets, setSampleTickets] = useState([]);
-
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const scanLoopRef = useRef(null);
-
-  // Load sample tickets for quick 1-click test scanning
+  const videoRef = useRef(null),
+    streamRef = useRef(null),
+    loopRef = useRef(null),
+    inFlight = useRef(false),
+    cameraEpoch = useRef(0);
+  const [schedule, setSchedule] = useState({
+    items: [],
+    day: "",
+    cinemaId: "",
+    error: "",
+  });
+  const scheduleReady =
+    schedule.day === day && schedule.cinemaId === cinemaId && !schedule.error;
+  const screenings = scheduleReady ? schedule.items : [];
   useEffect(() => {
-    read("/admin/reports/overview")
-      .then((data) => {
-        if (data?.recentBookings) {
-          const paid = data.recentBookings.filter((b) => b.status === "PAID");
-          setSampleTickets(paid.slice(0, 5));
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  async function performCheckIn(targetHash) {
-    if (!targetHash) return;
-    setBusy(true);
-    setError("");
+    let active = true;
+    async function load() {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return;
+      try {
+        // Explicit date includes already-started screenings, unlike the public upcoming catalog.
+        const items = await apiGetShowtimes({
+          date: day,
+          ...(cinemaId ? { cinemaId } : {}),
+        });
+        if (active) setSchedule({ items, day, cinemaId, error: "" });
+      } catch (err) {
+        if (active)
+          setSchedule({ items: [], day, cinemaId, error: err.message });
+      }
+    }
+    void Promise.resolve().then(load);
+    const timer = setInterval(load, 30000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [day, cinemaId]);
+  function clearResult() {
+    setPreview(null);
     setResult(null);
+    setError(null);
+  }
+  function stopCamera() {
+    cameraEpoch.current++;
+    cancelAnimationFrame(loopRef.current);
+    loopRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setCameraActive(false);
+  }
+  useEffect(
+    () => () => {
+      cameraEpoch.current++;
+      cancelAnimationFrame(loopRef.current);
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    },
+    [],
+  );
+  function report(err) {
+    setError({
+      code: err.code,
+      message: labels[err.code] || err.message,
+      at: err.details?.checkedInAt,
+    });
+  }
+  async function verify(targetHash) {
+    if (inFlight.current || !showtimeId || !scheduleReady) return;
+    inFlight.current = true;
+    setBusy(true);
+    clearResult();
+    stopCamera();
     try {
-      const res = await readCommand("/staff/check-in", { ticketHash: targetHash.trim() });
-      setResult(res);
-      stopCamera();
+      const normalized = targetHash.trim().toLowerCase();
+      const ticket = await readCommand("/staff/verify", {
+        ticketHash: normalized,
+        showtimeId,
+      });
+      setPreview({ ticket, hash: normalized, showtimeId });
     } catch (err) {
-      setError(err.message);
+      report(err);
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
-
-  async function submit(e) {
-    e.preventDefault();
-    await performCheckIn(hash);
+  async function admit() {
+    if (!preview || inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const ticket = await readCommand("/staff/check-in", {
+        ticketHash: preview.hash,
+        showtimeId: preview.showtimeId,
+      });
+      setResult(ticket);
+      setPreview(null);
+    } catch (err) {
+      setPreview(null);
+      report(err);
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
   }
-
   async function startCamera() {
     setCameraError("");
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("Trình duyệt không hỗ trợ WebRTC Camera.");
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setCameraActive(true);
-        startScanLoop();
-      }
-    } catch (err) {
-      setCameraError(err.message || "Không thể truy cập camera. Vui lòng cấp quyền hoặc dùng nhập tay.");
-      setCameraActive(false);
-    }
-  }
-
-  function stopCamera() {
-    if (scanLoopRef.current) {
-      cancelAnimationFrame(scanLoopRef.current);
-      scanLoopRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    setCameraActive(false);
-  }
-
-  function startScanLoop() {
-    if (!("BarcodeDetector" in window)) {
-      // Browser doesn't have native BarcodeDetector; guide user or allow simulated click
+    if (!showtimeId) {
+      setCameraError("Chọn suất chiếu trước khi bật camera.");
       return;
     }
+    if (!window.BarcodeDetector || !navigator.mediaDevices?.getUserMedia) {
+      setCameraError(
+        "Trình duyệt chưa hỗ trợ quét QR trực tiếp. Hãy dùng mục Nhập mã hoặc trình duyệt hỗ trợ BarcodeDetector.",
+      );
+      return;
+    }
+    stopCamera();
+    const epoch = cameraEpoch.current;
     try {
-      // @ts-ignore
       const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      if (epoch !== cameraEpoch.current || !videoRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      if (epoch !== cameraEpoch.current) return;
+      setCameraActive(true);
       async function detect() {
-        if (!videoRef.current || !streamRef.current) return;
+        if (
+          epoch !== cameraEpoch.current ||
+          !streamRef.current ||
+          !videoRef.current
+        )
+          return;
         try {
-          const barcodes = await detector.detect(videoRef.current);
-          if (barcodes.length > 0) {
-            const rawValue = barcodes[0].rawValue;
-            // Parse rawValue: can be direct 64-char hash or URL containing ticketHash
-            let extracted = rawValue;
-            if (rawValue.includes("hash=")) {
-              extracted = new URL(rawValue).searchParams.get("hash") || rawValue;
-            }
-            if (/^[a-f0-9]{64}$/i.test(extracted)) {
-              setHash(extracted);
-              stopCamera();
-              await performCheckIn(extracted);
-              return;
-            }
+          const codes = await detector.detect(videoRef.current);
+          if (epoch !== cameraEpoch.current) return;
+          const raw = codes[0]?.rawValue?.trim().toLowerCase();
+          if (raw && /^[a-f0-9]{64}$/.test(raw)) {
+            setHash(raw);
+            await verify(raw);
+            return;
           }
         } catch {
-          // ignore detection frame drops
+          /* A dropped camera frame is retried; no admission occurs here. */
         }
-        scanLoopRef.current = requestAnimationFrame(detect);
+        loopRef.current = requestAnimationFrame(detect);
       }
-      scanLoopRef.current = requestAnimationFrame(detect);
-    } catch {
-      // fallback
-    }
-  }
-
-  useEffect(() => {
-    return () => stopCamera();
-  }, []);
-
-  function switchMode(newMode) {
-    setMode(newMode);
-    if (newMode === "camera") {
-      void startCamera();
-    } else {
+      loopRef.current = requestAnimationFrame(detect);
+    } catch (err) {
       stopCamera();
+      setCameraError(
+        err.message || "Không mở được camera. Bạn có thể nhập mã QR.",
+      );
     }
   }
-
+  const ticket = result || preview?.ticket;
   return (
-    <Modal title="Soát vé tại rạp (Nhân viên)" onClose={onClose}>
-      <div className="staff-mode-switch">
-        <button
-          type="button"
-          className={`staff-mode-tab ${mode === "camera" ? "active" : ""}`}
-          onClick={() => switchMode("camera")}
-        >
-          <Camera size={16} /> Quét Camera QR
-        </button>
-        <button
-          type="button"
-          className={`staff-mode-tab ${mode === "manual" ? "active" : ""}`}
-          onClick={() => switchMode("manual")}
-        >
-          <Keyboard size={16} /> Nhập Mã Thủ Công
-        </button>
+    <Modal
+      title="Soát vé tại rạp (Nhân viên)"
+      onClose={onClose}
+      embedded={embedded}
+    >
+      <div className="admission-intro">
+        <ShieldCheck size={25} />
+        <div>
+          <p className="nova-kicker">NOVA ADMISSION DESK</p>
+          <h3>Đúng suất. Đúng vé. Một lần vào rạp.</h3>
+          <p>
+            Kiểm tra thông tin trước, xác nhận cho vào rạp sau. Mọi kết quả do
+            máy chủ đối chiếu.
+          </p>
+        </div>
       </div>
-
+      <div className="admission-steps">
+        <span className={!preview && !result ? "active" : ""}>
+          01 · Chọn suất
+        </span>
+        <span className={preview ? "active" : ""}>02 · Kiểm tra QR</span>
+        <span className={result ? "active" : ""}>03 · Xác nhận vào rạp</span>
+      </div>
+      <div className="admission-context">
+        <label>
+          Cụm rạp
+          <select
+            aria-label="Rạp đang soát"
+            disabled={busy}
+            value={cinemaId}
+            onChange={(event) => {
+              stopCamera();
+              setCinemaId(event.target.value);
+              setShowtimeId("");
+              clearResult();
+            }}
+          >
+            <option value="">Tất cả rạp NOVA</option>
+            {cinemas.map((cinema) => (
+              <option key={cinema.id} value={cinema.id}>
+                {cinema.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Ngày chiếu
+          <input
+            aria-label="Ngày đang soát"
+            type="date"
+            value={day}
+            disabled={busy}
+            onChange={(event) => {
+              stopCamera();
+              setDay(event.target.value);
+              setShowtimeId("");
+              clearResult();
+            }}
+          />
+        </label>
+        <label className="admission-screening">
+          Suất chiếu đang kiểm tra
+          <select
+            aria-label="Suất chiếu đang soát"
+            value={showtimeId}
+            disabled={busy || !isLive || !scheduleReady}
+            onChange={(event) => {
+              stopCamera();
+              setShowtimeId(event.target.value);
+              clearResult();
+            }}
+          >
+            <option value="">Chọn phim · giờ · phòng</option>
+            {screenings.map((show) => (
+              <option value={show.id} key={show.id}>
+                {new Date(show.startTime).toLocaleTimeString("vi-VN", {
+                  timeZone: "Asia/Ho_Chi_Minh",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                ·{" "}
+                {movies.find((movie) => movie.id === show.movieId)?.title ||
+                  "Phim đã kết thúc"}{" "}
+                · {rooms.find((room) => room.id === show.roomId)?.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {!isLive && (
+        <p role="alert" className="auth-notice">
+          Chưa kết nối được lịch chiếu. Hãy tải lại trước khi soát vé.
+        </p>
+      )}
+      {schedule.error &&
+        schedule.day === day &&
+        schedule.cinemaId === cinemaId && (
+          <p role="alert" className="auth-notice">
+            Không đọc được lịch ngày này: {schedule.error} Hệ thống sẽ thử lại;
+            bạn có thể đổi ngày để tải lại.
+          </p>
+        )}
+      {isLive && !scheduleReady && !schedule.error && (
+        <p role="status">Đang đọc lịch theo ngày từ máy chủ…</p>
+      )}
+      {isLive && scheduleReady && !screenings.length && (
+        <p role="status">
+          Ngày này chưa có lịch ở rạp đã chọn. Hãy đổi ngày hoặc rạp.
+        </p>
+      )}
+      <div className="staff-mode-switch">
+        {[
+          ["manual", Keyboard, "Nhập mã"],
+          ["camera", Camera, "Quét Camera QR"],
+        ].map(([key, Icon, title]) => (
+          <button
+            key={key}
+            type="button"
+            disabled={busy}
+            className={`staff-mode-tab ${mode === key ? "active" : ""}`}
+            onClick={() => {
+              stopCamera();
+              setMode(key);
+            }}
+          >
+            <Icon size={16} />
+            {title}
+          </button>
+        ))}
+      </div>
       {mode === "camera" && (
         <div className="camera-scanner-container">
           <div className="scanner-viewfinder">
-            <video ref={videoRef} playsInline muted className="camera-video-stream" />
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              className="camera-video-stream"
+            />
             <div className="scanner-reticle">
-              <div className="reticle-corner top-left" />
-              <div className="reticle-corner top-right" />
-              <div className="reticle-corner bottom-left" />
-              <div className="reticle-corner bottom-right" />
-              <div className="laser-scanner-line" />
+              <QrCode size={68} />
             </div>
             <div className="scanner-overlay-hint">
               {cameraActive
-                ? "Hướng camera về phía mã QR vé của khách"
-                : "Đang kích hoạt camera thiết bị…"}
+                ? "Hướng camera về mã QR. Quét chưa xác nhận vào rạp."
+                : "Chọn suất rồi bấm Bật camera."}
             </div>
           </div>
-
           {cameraError && (
-            <div className="scanner-error-message">
-              <span>⚠️ {cameraError}</span>
-              <button
-                type="button"
-                className="button button-outline button-small mt-2"
-                onClick={() => setMode("manual")}
-              >
-                Chuyển sang nhập mã thủ công
-              </button>
-            </div>
+            <p role="status" className="scanner-error-message">
+              {cameraError}
+            </p>
           )}
-
           <div className="camera-controls-row">
-            {cameraActive ? (
-              <button
-                type="button"
-                className="button button-glass button-small"
-                onClick={stopCamera}
-              >
-                <CameraOff size={14} /> Tắt camera
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="button button-primary button-small"
-                onClick={startCamera}
-              >
-                <Camera size={14} /> Bật camera
-              </button>
+            <button
+              type="button"
+              className="button button-glass"
+              disabled={busy || !showtimeId}
+              onClick={cameraActive ? stopCamera : startCamera}
+            >
+              {cameraActive ? <CameraOff size={15} /> : <Camera size={15} />}{" "}
+              {cameraActive ? "Tắt camera" : "Bật camera"}
+            </button>
+          </div>
+        </div>
+      )}
+      <form
+        className="auth-form admission-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void verify(hash);
+        }}
+      >
+        <label htmlFor="ticket-hash">Mã đọc từ QR</label>
+        <input
+          id="ticket-hash"
+          value={hash}
+          disabled={busy}
+          onChange={(event) => {
+            setHash(event.target.value);
+            clearResult();
+          }}
+          required
+          pattern="[a-fA-F0-9]{64}"
+          autoComplete="off"
+          placeholder="Dán chuỗi 64 ký tự từ QR vé"
+        />
+        <button
+          className="button button-primary"
+          disabled={busy || !showtimeId || !hash.trim() || !scheduleReady}
+        >
+          <ClipboardCheck size={16} />
+          {busy ? "Đang đối chiếu…" : "Kiểm tra vé"}
+        </button>
+      </form>
+      {error && (
+        <div
+          role="alert"
+          className={`admission-result ${error.code === "TICKET_SHOWTIME_MISMATCH" || error.code === "CHECK_IN_OUTSIDE_WINDOW" ? "warning" : "invalid"}`}
+        >
+          <AlertTriangle size={24} />
+          <div>
+            <h3>
+              {error.code === "TICKET_ALREADY_USED"
+                ? "Vé đã sử dụng"
+                : "Chưa thể cho vào rạp"}
+            </h3>
+            <p>{error.message}</p>
+            {error.at && (
+              <p>
+                Đã soát lúc{" "}
+                {new Date(error.at).toLocaleString("vi-VN", {
+                  timeZone: "Asia/Ho_Chi_Minh",
+                })}
+              </p>
             )}
           </div>
         </div>
       )}
-
-      {/* Manual Entry Form */}
-      <form className="auth-form mt-3" onSubmit={submit}>
-        <label htmlFor="ticket-hash">Mã đọc từ QR (SHA-256 Hash)</label>
-        <div className="hash-input-wrap">
-          <input
-            id="ticket-hash"
-            value={hash}
-            onChange={(e) => setHash(e.target.value)}
-            required
-            pattern="[a-f0-9]{64}"
-            autoComplete="off"
-            placeholder="Dán hoặc nhập chuỗi 64 ký tự hash vé..."
-          />
-        </div>
-        <button className="button button-primary" disabled={busy || !hash.trim()}>
-          {busy ? "Đang xác thực…" : "Xác nhận soát vé"}
-        </button>
-      </form>
-
-      {/* Sample Tickets for Instant Test Scanning */}
-      {sampleTickets.length > 0 && (
-        <div className="sample-tickets-helper">
-          <div className="sample-tickets-header">
-            <Sparkles size={14} />
-            <small>Vé thực tế trong hệ thống (Thử nghiệm nhanh không cần camera):</small>
+      {ticket && (
+        <div role="status" className="admission-result valid">
+          <CheckCircle2 size={30} />
+          <div>
+            <h3>
+              {result
+                ? "Soát vé thành công!"
+                : "Vé hợp lệ · Chưa xác nhận vào rạp"}
+            </h3>
+            <strong>{ticket.movie}</strong>
+            <p>
+              {ticket.cinema} · {ticket.room}
+            </p>
+            <p>
+              {new Date(ticket.startTime).toLocaleString("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+              })}
+            </p>
+            <p>
+              Ghế: <b>{ticket.seats.map((seat) => seat.label).join(", ")}</b> ·{" "}
+              {ticket.orderCode}
+            </p>
+            {result ? (
+              <p>
+                Đã soát:{" "}
+                {new Date(result.checkedInAt).toLocaleString("vi-VN", {
+                  timeZone: "Asia/Ho_Chi_Minh",
+                })}
+              </p>
+            ) : (
+              <>
+                <p>
+                  Đối chiếu khách và chỗ ngồi trước khi xác nhận. Máy chủ kiểm
+                  tra lại tại thời điểm bấm.
+                </p>
+                <button
+                  className="button button-primary"
+                  disabled={busy}
+                  onClick={admit}
+                >
+                  Xác nhận soát vé
+                </button>
+              </>
+            )}
           </div>
-          <div className="sample-tickets-list">
-            {sampleTickets.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className="sample-ticket-btn"
-                onClick={() => {
-                  setHash(t.id.replaceAll("-", "") + t.id.replaceAll("-", ""));
-                  setMode("manual");
-                }}
-                title={`Đơn: ${t.orderCode} · ${t.movie}`}
-              >
-                <b>{t.orderCode}</b> ({t.customer} - {t.movie})
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {error && <p role="alert" className="auth-notice mt-3">{error}</p>}
-
-      {result && (
-        <div role="status" className="ticket-success checkin-success mt-3">
-          <div className="success-icon-wrap">
-            <CheckCircle2 size={32} />
-          </div>
-          <h3>Soát vé thành công!</h3>
-          <p>
-            Phim: <b>{result.movie}</b>
-          </p>
-          <p>
-            Rạp: <b>{result.cinema}</b>
-          </p>
-          <p>
-            Vị trí ghế: <b>{result.seats.map((s) => s.label).join(", ")}</b>
-          </p>
-          <p className="small muted">
-            Thời gian soát: {new Date().toLocaleTimeString("vi-VN")}
-          </p>
         </div>
       )}
+      <div className="admission-checklist">
+        <p className="nova-kicker">ĐỐI CHIẾU TẠI CỬA PHÒNG</p>
+        <div>
+          <span>Vé hợp lệ → xác nhận</span>
+          <span>Không tìm thấy → từ chối</span>
+          <span>Sai suất → kiểm tra lại</span>
+          <span>Đã sử dụng → chặn vào lại</span>
+        </div>
+        <p>
+          Chỉ dùng mã QR thực từ vé đã thanh toán. Không có vé mẫu tự tạo hoặc
+          soát vé khi mất kết nối.
+        </p>
+      </div>
     </Modal>
   );
 }

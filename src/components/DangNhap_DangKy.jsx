@@ -1,28 +1,9 @@
+// DangNhap_DangKy: mã nguồn chức năng, dùng chung cho mọi trang.
 /**
  * ==============================================================================
  * TỆP TIN: src/components/AuthForm.jsx
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Mô-đun Xác Thực Tài Khoản Đăng Nhập & Đăng Ký (Authentication Modal: Login & Register).
- *   - Quản lý phiên khách hàng và thành viên C'MEMBER:
- *     1. TAB ĐĂNG NHẬP: Nhập email và mật khẩu; tùy chọn "Ghi nhớ phiên đăng nhập".
- *     2. TAB ĐĂNG KÝ: Tạo tài khoản mới, mật khẩu tiêu chuẩn bảo mật cao (12 - 128 ký tự).
- *     3. GỢI Ý ĐIỀN NHANH (QUICK DEMO ACCOUNTS): Giúp thầy cô/sinh viên kiểm thử nhanh tài khoản
- *        Admin, Staff và Customer mà không cần gõ phím nhiều.
- *     4. KIỂM THỰC DỮ LIỆU THỜI GIAN THỰC (Realtime Validation): Kiểm tra regex email, độ dài tên,
- *        độ mạnh mật khẩu và so khớp mật khẩu xác nhận.
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Người dùng bấm "Đăng nhập" hoặc "Gia nhập C'MEMBER" trên thanh điều hướng.
- *   2. Nhập thông tin -> Client kiểm tra form -> Gửi `apiLogin` hoặc `apiRegister`.
- *   3. Backend xác thực mật khẩu bcrypt và tạo JWT; Proxy Next.js ghi HttpOnly Cookie.
- *   4. Gọi `onSuccess()`: cập nhật thông tin người dùng lên toàn bộ hệ thống và đóng popup.
- *
- * ĐỐI TƯỢNG SỬ DỤNG:
- *   - Khách vãng lai muốn đăng nhập, người dùng mới đăng ký thành viên.
- *
- * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
- *   - Tích hợp Đăng nhập bằng Google (Google OAuth2) hoặc Apple ID 1-chạm.
- *   - Bổ sung xác thực 2 lớp (2FA OTP) qua ứng dụng Google Authenticator hoặc tin nhắn SMS.
+ * CHÚ Ý: Tệp này đã được chuẩn hóa tên theo chức năng tiếng Việt:
+ *   👉 Vui lòng xem và chỉnh sửa tại: src/components/DangNhap_DangKy.jsx
  * ==============================================================================
  */
 
@@ -112,7 +93,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
     }));
     setTouched((prev) => ({ ...prev, email: true, password: true }));
     setNoticeType("info");
-    setNotice(`Đã chọn tài khoản ${roleName}. Mật khẩu: nova@12345`);
+    setNotice(`Đã chọn ${roleName} (${email}) - Mật khẩu: nova@12345`);
   }
 
   async function submit(e) {
@@ -231,34 +212,43 @@ export default function DangNhap_DangKy({ onSuccess }) {
           <div className="auth-quick-accounts">
             <div className="auth-quick-header">
               <span>
-                <Sparkles size={14} style={{ display: "inline", marginRight: 5 }} />
-                Tài khoản kiểm thử (Mật khẩu: <code>nova@12345</code>):
+                <Sparkles
+                  size={14}
+                  style={{ display: "inline", marginRight: 5 }}
+                />
+                Tài khoản nghiệp vụ rạp chiếu phim (Mật khẩu: nova@12345):
               </span>
             </div>
             <div className="auth-quick-pills">
               <button
                 type="button"
                 className="auth-quick-pill admin"
-                onClick={() => handleQuickFill("admin@nova.local", "Quản trị viên")}
-                title="admin@nova.local · Mật khẩu: nova@12345"
+                onClick={() =>
+                  handleQuickFill("admin@nova.local", "Quản trị viên")
+                }
+                title="admin@nova.local"
               >
                 👑 Quản trị viên
               </button>
               <button
                 type="button"
                 className="auth-quick-pill staff"
-                onClick={() => handleQuickFill("staff@nova.local", "Nhân viên soát vé")}
-                title="staff@nova.local · Mật khẩu: nova@12345"
+                onClick={() =>
+                  handleQuickFill("staff@nova.local", "Nhân viên soát vé")
+                }
+                title="staff@nova.local"
               >
                 🎫 Nhân viên soát vé
               </button>
               <button
                 type="button"
                 className="auth-quick-pill customer"
-                onClick={() => handleQuickFill("customer@nova.local", "Khách hàng")}
-                title="customer@nova.local · Mật khẩu: nova@12345"
+                onClick={() =>
+                  handleQuickFill("customer@nova.local", "Người dùng")
+                }
+                title="customer@nova.local"
               >
-                👤 Khách hàng
+                👤 Người dùng
               </button>
             </div>
           </div>
@@ -324,7 +314,9 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     }
                     aria-invalid={Boolean(touched[id] && error[id]?.trim())}
                     aria-describedby={
-                      touched[id] && error[id]?.trim() ? `error-${id}` : undefined
+                      touched[id] && error[id]?.trim()
+                        ? `error-${id}`
+                        : undefined
                     }
                     className={`auth-text-input ${
                       touched[id] && error[id]?.trim() ? "is-invalid" : ""
@@ -343,7 +335,11 @@ export default function DangNhap_DangKy({ onSuccess }) {
                 </div>
 
                 {touched[id] && error[id]?.trim() && (
-                  <div id={`error-${id}`} className="auth-error-message" role="alert">
+                  <div
+                    id={`error-${id}`}
+                    className="auth-error-message"
+                    role="alert"
+                  >
                     <AlertCircle size={14} />
                     <span>{error[id]}</span>
                   </div>
@@ -362,11 +358,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
             </label>
           </div>
 
-          <button
-            className="auth-submit-btn"
-            type="submit"
-            disabled={loading}
-          >
+          <button className="auth-submit-btn" type="submit" disabled={loading}>
             <span>
               {loading
                 ? "Đang xác thực..."

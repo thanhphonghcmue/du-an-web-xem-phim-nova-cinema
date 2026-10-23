@@ -76,3 +76,7 @@ Kết quả trên môi trường hiện tại:
 Các ca trình duyệt đã điều chỉnh dữ liệu chọn ghế để tuân thủ orphan-seat, xác nhận
 độ tuổi trước thanh toán và kiểm tra trạng thái khám phá vẫn hoạt động khi API lỗi.
 Không bỏ hoặc skip ca kiểm thử để có kết quả PASS.
+
+Bản rà soát tiếp theo đã sửa fixture 27 ca HTTP cũ và bổ sung kiểm tra mới.
+Xem kết quả hiện tại trong [LAB04 booking audit](lab04-booking-audit.md); các bảng trên
+là bằng chứng lịch sử tại thời điểm từng đợt, không phải trạng thái kiểm thử mới nhất.

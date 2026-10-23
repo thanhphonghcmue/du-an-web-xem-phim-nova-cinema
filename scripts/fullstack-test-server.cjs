@@ -163,6 +163,15 @@ async function main() {
       priceModifier: "1.00",
     })),
   });
+  const admissionShowtime = await prisma.showtime.create({
+    data: {
+      movieId: movie.id,
+      roomId: programmeRoom.id,
+      startTime: new Date(Date.now() - 5 * 60000),
+      endTime: new Date(Date.now() + 130 * 60000),
+      baseTicketPrice: "90000.00",
+    },
+  });
   const localDate = new Date(Date.now() + 7 * 3600000 + 86400000)
     .toISOString()
     .slice(0, 10);
@@ -183,6 +192,65 @@ async function main() {
       }),
     );
   }
+  const advanceRooms = [];
+  for (let index = 0; index < 2; index++) {
+    const nextRoom = await prisma.room.create({
+      data: {
+        cinemaId: cinema.id,
+        name: `Advance Test ${index + 1}`,
+        roomType: "STANDARD_2D",
+        totalSeats: 20,
+      },
+    });
+    await prisma.seat.createMany({
+      data: Array.from({ length: 20 }, (_, i) => ({
+        roomId: nextRoom.id,
+        seatRow: "A",
+        seatColumn: i + 1,
+        seatType: "STANDARD",
+        priceModifier: "1.00",
+      })),
+    });
+    advanceRooms.push(nextRoom);
+  }
+  const advanceShows = [];
+  const baseDay = new Date(
+    `${new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10)}T00:00:00+07:00`,
+  ).getTime();
+  for (let day = 1; day <= 30; day++)
+    for (const [slot, hour] of [9, 13, 17, 21].entries()) {
+      const startTime = new Date(baseDay + day * 86400000 + hour * 3600000);
+      advanceShows.push(
+        await prisma.showtime.create({
+          data: {
+            movieId: movie.id,
+            roomId: advanceRooms[slot % 2].id,
+            startTime,
+            endTime: new Date(startTime.getTime() + 135 * 60000),
+            baseTicketPrice: "90000.00",
+          },
+        }),
+      );
+    }
+  const presaleMovie = await prisma.movie.create({
+    data: {
+      title: "Interstellar: Infinity Return",
+      description: prefix + " advance-sale film",
+      durationMinutes: 169,
+      ageRating: "T13",
+      status: "COMING_SOON",
+      releaseDate: new Date(baseDay + 30 * 86400000),
+    },
+  });
+  const presaleShow = await prisma.showtime.create({
+    data: {
+      movieId: presaleMovie.id,
+      roomId: advanceRooms[0].id,
+      startTime: new Date(baseDay + 31 * 86400000 + 19 * 3600000),
+      endTime: new Date(baseDay + 31 * 86400000 + (19 * 60 + 184) * 60000),
+      baseTicketPrice: "95000.00",
+    },
+  });
   const combo = await prisma.combo.create({
     data: {
       name: prefix + " Party Combo",
@@ -207,6 +275,11 @@ async function main() {
       showtime,
       programmeRoom,
       programmeShowtimes,
+      admissionShowtime,
+      advanceRooms,
+      advanceShows,
+      presaleMovie,
+      presaleShow,
       combo,
     }),
     { mode: 0o600 },

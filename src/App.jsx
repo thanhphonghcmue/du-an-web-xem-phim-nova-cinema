@@ -66,17 +66,7 @@ import {
   apiGetMyBookings,
   memberProfile,
 } from "./api/client.js";
-import TicketHistory from "./components/TicketHistory.jsx";
-import StaffCheckIn from "./components/StaffCheckIn.jsx";
-import Modal from "./components/Modal.jsx";
-import SeatBooking from "./components/SeatBooking.jsx";
 import CinematicBackdrop from "./components/CinematicBackdrop.jsx";
-import GlassNavigation from "./components/GlassNavigation.jsx";
-import ShowtimeTimeline from "./components/ShowtimeTimeline.jsx";
-import QuickBooking from "./components/QuickBooking.jsx";
-import AuthForm from "./components/AuthForm.jsx";
-import AdminDashboard from "./components/AdminDashboard.jsx";
-import HeaderSearch from "./components/HeaderSearch.jsx";
 import { useI18n } from "./i18n.js";
 import ChonGhe_Va_ThanhToan from "./components/ChonGhe_Va_ThanhToan.jsx";
 import DatVeNhanh from "./components/DatVeNhanh.jsx";
@@ -88,7 +78,6 @@ import LichChieuPhim from "./components/LichChieuPhim.jsx";
 import TimKiemPhim from "./components/TimKiemPhim.jsx";
 import MenuDieuHuong from "./components/MenuDieuHuong.jsx";
 import HopThoaiModal from "./components/HopThoaiModal.jsx";
-
 
 function Brand() {
   return (
@@ -156,6 +145,7 @@ export default function App() {
       });
       return (
         view === "home" &&
+        !new URLSearchParams(window.location.search).has("booking") &&
         !sessionStorage.getItem("nova-welcome-seen") &&
         localStorage.getItem("nova-welcome-hidden-day") !== today
       );
@@ -252,7 +242,10 @@ export default function App() {
   }, []);
   function bookMovie(movie, combo = false) {
     if (!movie) return;
-    if (movie.status === "soon") {
+    if (
+      movie.status === "soon" &&
+      !cinemas.some((c) => getDates("vi", c.id, movie.id).length)
+    ) {
       openMovie(movie);
       return;
     }
@@ -507,7 +500,7 @@ export default function App() {
               onMovie={openMovie}
               onWelcome={() => setWelcomeOpen(true)}
             />
-            <QuickBooking
+            <DatVeNhanh
               key={wizardVersion}
               cinemaId={resolvedCinemaId}
               movieId={movieId}
@@ -570,7 +563,7 @@ export default function App() {
               onMovie={openMovie}
               onBook={bookMovie}
             />
-            <ShowtimeTimeline
+            <LichChieuPhim
               onBook={(value) => {
                 if (!member) {
                   setModal("login");
@@ -823,7 +816,7 @@ export default function App() {
             onBook={bookMovie}
             onResume={setBooking}
             bookingWidget={
-              <QuickBooking
+              <DatVeNhanh
                 key={wizardVersion}
                 cinemaId={resolvedCinemaId}
                 movieId={movieId}
@@ -853,7 +846,7 @@ export default function App() {
               />
             }
             timeline={
-              <ShowtimeTimeline
+              <LichChieuPhim
                 onBook={(value) => {
                   if (!member) {
                     setModal("login");
@@ -1206,7 +1199,12 @@ export default function App() {
                 <div className="detail-actions">
                   <button
                     className="button button-primary"
-                    disabled={activeMovie.status === "soon"}
+                    disabled={
+                      activeMovie.status === "soon" &&
+                      !cinemas.some(
+                        (c) => getDates("vi", c.id, activeMovie.id).length,
+                      )
+                    }
                     onClick={() => bookMovie(activeMovie)}
                   >
                     <Ticket size={17} />
@@ -1244,7 +1242,12 @@ export default function App() {
               </a>
               <button
                 className="button button-primary"
-                disabled={activeMovie.status === "soon"}
+                disabled={
+                  activeMovie.status === "soon" &&
+                  !cinemas.some(
+                    (c) => getDates("vi", c.id, activeMovie.id).length,
+                  )
+                }
                 onClick={() => bookMovie(activeMovie)}
               >
                 {t("Đặt vé")} {t(activeMovie.title)}

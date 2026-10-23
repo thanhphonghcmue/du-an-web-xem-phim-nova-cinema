@@ -14,7 +14,7 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { UserProfileDto } from "../users/dto/user-profile.dto";
-import { CheckInDto, TicketDetailsDto } from "./ticket.dto";
+import { CheckInDto, TicketDetailsDto, VerifyTicketDto } from "./ticket.dto";
 import { TicketsService } from "./tickets.service";
 @ApiTags("Staff")
 @ApiBearerAuth()
@@ -27,6 +27,16 @@ import { TicketsService } from "./tickets.service";
 @Controller("staff")
 export class StaffController {
   constructor(private readonly service: TicketsService) {}
+  @Post("verify")
+  @HttpCode(200)
+  @ApiDataResponse(TicketDetailsDto)
+  @ApiOperation({
+    summary:
+      "Read-only STAFF/ADMIN admission preview; does not consume the QR.",
+  })
+  verify(@CurrentUser() user: UserProfileDto, @Body() dto: VerifyTicketDto) {
+    return this.service.verify(dto.ticketHash, dto.showtimeId, user.id);
+  }
   @Post("check-in")
   @HttpCode(200)
   @ApiDataResponse(TicketDetailsDto)
@@ -35,6 +45,6 @@ export class StaffController {
       "STAFF/ADMIN atomic single-use QR check-in within the configured DB-clock window",
   })
   checkIn(@CurrentUser() user: UserProfileDto, @Body() dto: CheckInDto) {
-    return this.service.checkIn(dto.ticketHash, user.id);
+    return this.service.checkIn(dto.ticketHash, user.id, dto.showtimeId);
   }
 }

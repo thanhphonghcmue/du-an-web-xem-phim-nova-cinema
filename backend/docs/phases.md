@@ -78,3 +78,22 @@ resolve cặp cùng hàng/cột lẻ-chẵn nguyên tử, giới hạn20 sau res
 nhận lịch mới hoặc hold mới. Không schema/migration mới. Bằng chứng và phần còn
 thiếu: [báo cáo full-stack](../../docs/fullstack-verification.md). Không tự đánh
 dấu hoàn thành các phase domain mở rộng trong master roadmap.
+
+## Bản rà soát giao diện & API LAB04 (23/10/2026)
+
+Theo yêu cầu chọn phần phù hợp trong prompt tham khảo và kiểm tra kết nối frontend:
+đã bổ sung preview email chỉ chủ vé, xác minh QR chỉ đọc theo suất và bước xác nhận
+check-in, lời nhắc `.ics`, sửa gợi ý nhóm để tuân thủ luật ghế lẻ. Bảo toàn schema,
+DB/Redis/outbox và giữ chỗ 300 giây; không đánh dấu Phase11–12 đã triển khai.
+Fixture cũ gây 27 lỗi HTTP đã sửa để tuân thủ luật ghế lẻ, không nới luật hoặc bỏ test.
+Kết quả: 75 unit, 197 HTTP/Socket.IO/SMTP, 22 DB và 24 Playwright PASS; lint/typecheck,
+build hai package và compiled production smoke PASS. Evidence và phạm vi còn lại:
+[LAB04 booking audit](../../docs/design/lab04-booking-audit.md).
+
+## Mở rộng lịch & độ dễ đọc (23/10/2026)
+
+Theo yêu cầu tiếp tục: thêm public programme snapshot giới hạn 60 ngày để tải lịch
+không chạm rate limit do nhiều trang; giữ pagination100, DB/RBAC/Decimal và booking
+state machine. Seed additive 30 ngày, phòng và suất COMING_SOON theo ngày dự kiến;
+frontend mở luồng đặt trước theo suất thực. Không đánh dấu Phase11–12 hoàn tất.
+Evidence: [advance booking/readability](../../docs/design/advance-booking-readability.md).

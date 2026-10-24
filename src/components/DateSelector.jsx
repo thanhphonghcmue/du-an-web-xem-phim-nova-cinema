@@ -82,6 +82,10 @@ export default function DateSelector({
               startMonth={calendarDate(first)}
               endMonth={calendarDate(last)}
               disabled={(date) => !available.has(calendarKey(date))}
+              modifiers={{
+                available: (date) => available.has(calendarKey(date)),
+              }}
+              modifiersClassNames={{ available: "calendar-available" }}
               onSelect={(date) => {
                 if (date) {
                   onChange(calendarKey(date));

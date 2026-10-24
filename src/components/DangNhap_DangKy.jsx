@@ -31,7 +31,10 @@ export default function DangNhap_DangKy({ onSuccess }) {
   const { runtimeMode } = useCatalog();
   const { language, t } = useI18n();
   const [tab, setTab] = useState("signin");
-  const [show, setShow] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState({
+    password: false,
+    confirm: false,
+  });
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState({
@@ -313,7 +316,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     name={id}
                     type={
                       id === "password" || id === "confirm"
-                        ? show
+                        ? visiblePasswords[id]
                           ? "text"
                           : "password"
                         : type
@@ -349,10 +352,21 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     <button
                       type="button"
                       className="auth-password-toggle"
-                      aria-label={show ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                      onClick={() => setShow(!show)}
+                      aria-label={`${visiblePasswords[id] ? "Ẩn" : "Hiện"} ${id === "confirm" ? "mật khẩu xác nhận" : "mật khẩu"}`}
+                      aria-controls={`field-${id}`}
+                      aria-pressed={visiblePasswords[id]}
+                      onClick={() =>
+                        setVisiblePasswords((current) => ({
+                          ...current,
+                          [id]: !current[id],
+                        }))
+                      }
                     >
-                      {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {visiblePasswords[id] ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   )}
                 </div>

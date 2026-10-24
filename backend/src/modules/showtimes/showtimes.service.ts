@@ -74,7 +74,7 @@ export class ShowtimesService {
         cinemas.length > 1000 ||
         rooms.length > 2000 ||
         combos.length > 1000 ||
-        showtimes.length > 10000
+        showtimes.length > 20000
       )
         throw new ApiException(
           422,

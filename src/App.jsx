@@ -27,7 +27,7 @@ import { useQuerySelection } from "./useQuerySelection.js";
  * ==============================================================================
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Discovery from "./components/Discovery.jsx";
@@ -137,7 +137,7 @@ export default function App() {
   const pathname = usePathname();
   const view = pathname.split("/")[1] || "home";
   const { language, setLanguage, t } = useI18n();
-  const { movies, cinemas, rooms, getDates, getShowtimes, contextFor } =
+  const { movies, cinemas, rooms, getDates, getShowtimes, contextFor, isLive } =
     useCatalog();
 
   const [slide, setSlide] = useState(0);
@@ -200,10 +200,16 @@ export default function App() {
     };
   }, []);
   const memberId = member?.id;
+  const restoredMember = useRef(null);
   useEffect(() => {
-    if (!memberId) return;
+    if (!memberId) {
+      restoredMember.current = null;
+      return;
+    }
+    if (!isLive) return;
     const id = new URLSearchParams(window.location.search).get("booking");
     if (view !== "home" && !id) return;
+    if (!id && restoredMember.current === memberId) return;
     let active = true;
     apiGetMyBookings()
       .then((orders) => {
@@ -212,9 +218,12 @@ export default function App() {
           : orders.find((o) => ["HOLDING", "PENDING"].includes(o.status));
         const context = order && contextFor(order.showtimeId);
         if (active && context) {
-          setBooking({ ...context, orderId: order.id });
+          restoredMember.current = memberId;
+          setBooking((current) =>
+            id || !current ? { ...context, orderId: order.id } : current,
+          );
           if (id) window.history.replaceState({}, "", "/");
-        }
+        } else if (active && !id) restoredMember.current = memberId;
       })
       .catch((err) => {
         if (active) setSessionError(err.message);
@@ -222,7 +231,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [memberId, contextFor, view]);
+  }, [memberId, contextFor, view, isLive]);
   const [city, setCity] = useState("Tất cả");
 
   const dates = getDates(language);

@@ -269,6 +269,11 @@ async function main() {
       price: "69000.00",
     },
   });
+  const extended =
+    await require("./extended-programme-fixture.cjs").extendedProgrammeFixture(
+      prisma,
+      prefix,
+    );
   app = await require("../backend/dist/bootstrap.js").createApplication({
     logger: false,
   });
@@ -292,6 +297,7 @@ async function main() {
       presaleMovie,
       presaleShow,
       combo,
+      extended,
     }),
     { mode: 0o600 },
   );

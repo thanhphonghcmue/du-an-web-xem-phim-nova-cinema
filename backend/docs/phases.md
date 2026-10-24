@@ -105,3 +105,15 @@ log transaction cùng CRUD phim, endpoint nhật ký chỉ ADMIN và giới hạ
 phòng dưới room lock. Frontend có preview sơ đồ, tìm kiếm/phân trang và mở đúng
 lịch rạp. Migration additive mới không thay booking/payment/QR. Không đánh dấu
 Phase11–12 hoàn tất; xem [bằng chứng và phạm vi](../../docs/design/catalog-operations-readability.md).
+
+## Mở lịch đủ phim và cả tháng sau (24/10/2026)
+
+Theo yêu cầu kiểm tra thực tế: bổ sung lịch cho cả 24 phim đang mở bán/chiếu sớm,
+40 phòng mỗi rạp mẫu, tối thiểu 4 giờ khác nhau/ngày trên 2 phòng, bao gồm tháng
+sau. Seed additive có room lock, giữ lịch/đơn và dữ liệu admin; không migration.
+Programme snapshot tối đa 60 ngày/20.000 suất, không cắt âm thầm. Các ca UI dùng
+PostgreSQL test riêng xác nhận chọn đủ phim, ngày xa, giữ ghế/giá/QR thật và D11
+bị bỏ lẻ. 75 unit + 207 HTTP/realtime/SMTP + 22 DB + 5 planner + 41 Playwright
+PASS (350 ca), typecheck/lint/build và compiled smoke PASS. Không đánh dấu
+Phase11–12 hoặc các nghiệp vụ LAB04 còn thiếu hoàn tất. Xem
+[bằng chứng lịch đầy đủ](../../docs/design/full-calendar-booking.md).

@@ -91,7 +91,7 @@ export class ShowtimesRepository {
           movie: { status: { not: "ENDED" } },
         },
         orderBy: [{ startTime: "asc" }, { id: "asc" }],
-        take: 10001,
+        take: 20001,
       }),
     ]);
   }

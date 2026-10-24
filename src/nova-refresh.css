@@ -1,4 +1,22 @@
 /* NOVA: Vietnamese-first typography and a consistent booking workspace. */
+.calendar-available .rdp-day_button::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: calc(50% - 2px);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f6cf87;
+}
+.calendar-available .rdp-day_button {
+  position: relative;
+}
+.auth-password-toggle {
+  color: #d4e1f3;
+  min-width: 40px;
+  min-height: 40px;
+}
 :root {
   --bg: #0b0f17;
   --surface: #151d2c;

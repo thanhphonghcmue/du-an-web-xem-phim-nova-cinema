@@ -24,6 +24,7 @@
  */
 
 import { createContext, useContext } from "react";
+import { vietnamDay } from "./bookingDates.js";
 
 // Ngữ cảnh danh mục rạp chiếu
 export const CatalogContext = createContext(null);
@@ -36,8 +37,7 @@ export const useCatalog = () => useContext(CatalogContext);
  * @param {string | number | Date} value - Mốc thời gian
  * @returns {string} Chuỗi ngày chuẩn (ví dụ "2026-10-24")
  */
-export const dayKey = (value) =>
-  new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+export const dayKey = vietnamDay;
 export const formatVietnamDateKey = dayKey;
 
 /**

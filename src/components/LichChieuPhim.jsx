@@ -299,7 +299,7 @@ export default function LichChieuPhim({
               <div className="presale-notice">
                 <Ticket size={18} />
                 <p>
-                  <strong>Đặt trước cho buổi tái chiếu.</strong> Chọn giờ, phòng
+                  <strong>Suất chiếu sớm & đặt trước.</strong> Chọn giờ, phòng
                   và ghế như vé thường. Ngày chiếu đã được mở bán trên hệ thống;
                   đây là chương trình minh họa của NOVA.
                 </p>

@@ -4,8 +4,11 @@ export const calendarDate = (key) => {
 };
 export const calendarKey = (date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const vietnamDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Ho_Chi_Minh",
+});
 export const vietnamDay = (value) =>
-  new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  vietnamDateFormatter.format(new Date(value));
 export const friendlyDay = (key) =>
   new Intl.DateTimeFormat("vi-VN", {
     weekday: "long",

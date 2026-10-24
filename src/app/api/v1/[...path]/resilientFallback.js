@@ -2,44 +2,13 @@
  * Data is in memory; unsupported features return an explicit error.
  */
 import { NextResponse } from "next/server";
+import { buildDemoProgramme } from "../../../../demoProgramme.js";
 import {
   movies as artwork,
   cinemas as defaultCinemas,
 } from "../../../../data.js";
 
-// Khởi tạo danh mục phòng chiếu dự phòng
-const fallbackRooms = defaultCinemas.flatMap((c) => [
-  {
-    id: `${c.id}-r1`,
-    cinemaId: c.id,
-    name: "Phòng Laser 01",
-    roomType: "STANDARD_2D",
-  },
-  {
-    id: `${c.id}-r2`,
-    cinemaId: c.id,
-    name: "Phòng IMAX Laser 02",
-    roomType: "IMAX_70MM_LASER",
-  },
-]);
-
-// Khởi tạo danh mục suất chiếu dự phòng
-const fallbackShowtimes = defaultCinemas.flatMap((c) =>
-  artwork.slice(0, 6).flatMap((m, mi) =>
-    [0, 1, 2, 3].map((dayOffset) => {
-      const date = new Date(Date.now() + dayOffset * 86400000);
-      date.setHours(10 + mi * 2, 30, 0, 0);
-      return {
-        id: `st-${c.id}-${m.id}-${dayOffset}`,
-        movieId: m.id,
-        roomId: `${c.id}-r1`,
-        startTime: date.toISOString(),
-        endTime: new Date(date.getTime() + 120 * 60000).toISOString(),
-        baseTicketPrice: "95000.00",
-      };
-    }),
-  ),
-);
+const { rooms: fallbackRooms, showtimes: fallbackShowtimes } = buildDemoProgramme(artwork, defaultCinemas);
 
 // Danh mục bắp nước dự phòng
 const defaultCombos = [

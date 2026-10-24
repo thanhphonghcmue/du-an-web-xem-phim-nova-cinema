@@ -269,7 +269,7 @@ function FilmCard({ movie, onMovie, onBook }) {
 
 function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
   const { movies, showtimes } = useCatalog();
-  const [tab, setTab] = useState(upcoming ? "soon" : "now");
+  const [tab, setTab] = useState(upcoming ? "soon" : "all");
   const [genre, setGenre] = useState("Tất cả");
   const [age, setAge] = useState("all");
   const [todayOnly, setTodayOnly] = useState(false);
@@ -295,7 +295,7 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
             vietnamDay(show.startTime) === vietnamDay(Date.now()),
         )),
   );
-  const visible = compact ? selected.slice(0, 6) : selected;
+  const visible = selected;
   return (
     <section id="movies" className="content-width discovery-section">
       <div className="discovery-heading">

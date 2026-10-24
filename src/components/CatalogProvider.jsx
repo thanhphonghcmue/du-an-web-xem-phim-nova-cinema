@@ -28,7 +28,8 @@
  * ==============================================================================
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createCatalogIndex } from "../catalogIndex.js";
 import { CatalogContext, dayKey, timeLabel } from "../catalog.js";
 import discovery from "../../content/cinema.json";
 import { movies as artwork, cinemas as defaultCinemas } from "../data.js";
@@ -68,104 +69,113 @@ function getInitialCatalog() {
 export default function CatalogProvider({ children }) {
   const [data, setData] = useState(getInitialCatalog);
   const [error, setError] = useState("");
-  const load = useCallback(async () => {
-    try {
-      const runtime = await read("/runtime");
-      const [films, locations, showtimes, rooms, combos] =
-        runtime.mode === "backend"
-          ? await read("/showtimes/programme").then((data) => [
-              data.movies,
-              data.cinemas,
-              data.showtimes,
-              data.rooms,
-              data.combos,
-            ])
-          : await Promise.all([
-              apiGetMovies(),
-              apiGetCinemas(),
-              apiGetShowtimes(),
-              apiList("/rooms"),
-              apiList("/combos"),
-            ]);
-      const normalize = (s) =>
-        s.toLocaleLowerCase("vi").replace(/[^\p{L}\p{N}]/gu, "");
-      const movies = films
-        .filter((m) => m.status !== "ENDED")
-        .map((m) => {
-          const art = artwork.find(
-            (a) =>
-              normalize(a.title) === normalize(m.title) ||
-              normalize(m.title).includes(normalize(a.short)),
-          );
-          return {
-            ...art,
-            ...m,
-            artId: art?.id,
-            id: m.id,
-            short: art?.short || m.title,
-            original: art?.original || m.title,
-            part: art?.part || "",
-            duration: m.durationMinutes,
-            age: m.ageRating,
-            poster: m.posterUrl || art?.poster,
-            status:
-              m.status === "COMING_SOON"
-                ? "soon"
-                : art?.status === "special"
-                  ? "special"
-                  : "now",
-            rating: art?.rating || "—",
-            format: art?.format || "2D",
-            trailer: m.trailerUrl
-              ? new URL(m.trailerUrl).searchParams.get("v") || art?.trailer
-              : art?.trailer,
-            year: new Date(m.releaseDate).getUTCFullYear(),
-          };
+  const index = useMemo(() => createCatalogIndex(data), [data]);
+  const inFlight = useRef(null);
+  const load = useCallback(() => {
+    if (inFlight.current) return inFlight.current;
+    inFlight.current = (async () => {
+      try {
+        const runtime = await read("/runtime");
+        const [films, locations, showtimes, rooms, combos] =
+          runtime.mode === "backend"
+            ? await read("/showtimes/programme").then((data) => [
+                data.movies,
+                data.cinemas,
+                data.showtimes,
+                data.rooms,
+                data.combos,
+              ])
+            : await Promise.all([
+                apiGetMovies(),
+                apiGetCinemas(),
+                apiGetShowtimes(),
+                apiList("/rooms"),
+                apiList("/combos"),
+              ]);
+        const normalize = (s) =>
+          s.toLocaleLowerCase("vi").replace(/[^\p{L}\p{N}]/gu, "");
+        const movies = films
+          .filter((m) => m.status !== "ENDED")
+          .map((m) => {
+            const art = artwork.find(
+              (a) =>
+                normalize(a.title) === normalize(m.title) ||
+                normalize(m.title).includes(normalize(a.short)),
+            );
+            return {
+              ...art,
+              ...m,
+              artId: art?.id,
+              id: m.id,
+              short: art?.short || m.title,
+              original: art?.original || m.title,
+              part: art?.part || "",
+              duration: m.durationMinutes,
+              age: m.ageRating,
+              poster: m.posterUrl || art?.poster,
+              status:
+                m.status === "COMING_SOON"
+                  ? "soon"
+                  : art?.status === "special"
+                    ? "special"
+                    : "now",
+              rating: art?.rating || "—",
+              format: art?.format || "2D",
+              trailer: m.trailerUrl
+                ? new URL(m.trailerUrl).searchParams.get("v") || art?.trailer
+                : art?.trailer,
+              year: new Date(m.releaseDate).getUTCFullYear(),
+            };
+          });
+        const cinemas = locations.map((c) => ({
+          ...c,
+          formats: [
+            ...new Set(
+              rooms.filter((r) => r.cinemaId === c.id).map((r) => r.roomType),
+            ),
+          ]
+            .map(
+              (type) =>
+                ({
+                  STANDARD_2D: "2D",
+                  IMAX_70MM_LASER: "IMAX Laser",
+                  DOLBY_ATMOS: "Dolby Atmos",
+                })[type] || type,
+            )
+            .join(" · "),
+          movies: [
+            ...new Set(
+              showtimes
+                .filter(
+                  (s) =>
+                    rooms.find((r) => r.id === s.roomId)?.cinemaId === c.id,
+                )
+                .map((s) => s.movieId),
+            ),
+          ],
+        }));
+        setData({
+          isLive: true,
+          runtimeMode: runtime.mode,
+          movies,
+          cinemas,
+          rooms,
+          showtimes,
+          combos: combos.filter((c) => c.isActive),
         });
-      const cinemas = locations.map((c) => ({
-        ...c,
-        formats: [
-          ...new Set(
-            rooms.filter((r) => r.cinemaId === c.id).map((r) => r.roomType),
-          ),
-        ]
-          .map(
-            (type) =>
-              ({
-                STANDARD_2D: "2D",
-                IMAX_70MM_LASER: "IMAX Laser",
-                DOLBY_ATMOS: "Dolby Atmos",
-              })[type] || type,
-          )
-          .join(" · "),
-        movies: [
-          ...new Set(
-            showtimes
-              .filter(
-                (s) => rooms.find((r) => r.id === s.roomId)?.cinemaId === c.id,
-              )
-              .map((s) => s.movieId),
-          ),
-        ],
-      }));
-      setData({
-        isLive: true,
-        runtimeMode: runtime.mode,
-        movies,
-        cinemas,
-        rooms,
-        showtimes,
-        combos: combos.filter((c) => c.isActive),
-      });
-      setError("");
-    } catch (cause) {
-      setData((prev) => ({
-        ...(prev || getInitialCatalog()),
-        isLive: false,
-        showtimes: [],
-      }));
-      setError(cause.message || "Đặt vé đang tạm gián đoạn.");
-    }
+        setError("");
+      } catch (cause) {
+        setData((prev) => ({
+          ...(prev || getInitialCatalog()),
+          isLive: false,
+          showtimes: [],
+        }));
+        setError(cause.message || "Đặt vé đang tạm gián đoạn.");
+      }
+    })().finally(() => {
+      inFlight.current = null;
+    });
+    return inFlight.current;
   }, []);
   useEffect(() => {
     void Promise.resolve().then(load);
@@ -195,16 +205,14 @@ export default function CatalogProvider({ children }) {
   const getDates = (_language, cinemaId, movieId) =>
     [
       ...new Set(
-        data.showtimes
+        index
+          .select(cinemaId, movieId)
           .filter(
             (s) =>
               new Date(s.startTime) > new Date() &&
-              (!movieId || s.movieId === movieId) &&
-              (!cinemaId ||
-                data.rooms.find((r) => r.id === s.roomId)?.cinemaId ===
-                  cinemaId),
+              (!movieId || s.movieId === movieId),
           )
-          .map((s) => dayKey(s.startTime)),
+          .map((s) => index.days.get(s.id)),
       ),
     ]
       .sort()
@@ -218,27 +226,28 @@ export default function CatalogProvider({ children }) {
         }),
       }));
   const getShowtimes = (cinemaId, movieId, date) =>
-    data.showtimes
+    index
+      .select(cinemaId, movieId)
       .filter(
         (s) =>
           s.movieId === movieId &&
-          data.rooms.find((r) => r.id === s.roomId)?.cinemaId === cinemaId &&
-          dayKey(s.startTime) === date &&
+          index.rooms.get(s.roomId)?.cinemaId === cinemaId &&
+          index.days.get(s.id) === date &&
           new Date(s.startTime) > new Date(),
       )
       .map((s) => ({
         ...s,
-        label: `${timeLabel(s.startTime)} · ${data.rooms.find((r) => r.id === s.roomId)?.name || ""}`,
+        label: `${timeLabel(s.startTime)} · ${index.rooms.get(s.roomId)?.name || ""}`,
         displayTime: timeLabel(s.startTime),
-        roomName: data.rooms.find((r) => r.id === s.roomId)?.name || "",
-        roomType: data.rooms.find((r) => r.id === s.roomId)?.roomType || "",
+        roomName: index.rooms.get(s.roomId)?.name || "",
+        roomType: index.rooms.get(s.roomId)?.roomType || "",
       }));
   const contextFor = (showtimeId) => {
-    const show = data.showtimes.find((s) => s.id === showtimeId);
+    const show = index.shows.get(showtimeId);
     if (!show) return null;
     const movie = data.movies.find((m) => m.id === show.movieId);
     const cinema = data.cinemas.find(
-      (c) => c.id === data.rooms.find((r) => r.id === show.roomId)?.cinemaId,
+      (c) => c.id === index.rooms.get(show.roomId)?.cinemaId,
     );
     if (!movie || !cinema) return null;
     const id = dayKey(show.startTime);

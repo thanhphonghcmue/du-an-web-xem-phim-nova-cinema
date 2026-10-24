@@ -141,7 +141,7 @@ export default function DatVeNhanh({
           />
           <small>
             {cinemaId && movieId && dates.length
-              ? `${dates.length} ngày có lịch phù hợp`
+              ? `Đặt vé trước · ${dates.length} ngày có lịch`
               : "Chọn ngày bạn muốn đi"}
           </small>
         </label>

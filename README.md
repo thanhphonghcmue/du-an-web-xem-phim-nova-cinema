@@ -183,3 +183,15 @@ Xem [phạm vi, nguồn mở và bằng chứng](docs/design/booking-refresh.md)
 Sau khi kéo nhánh `feat/nova-discovery-ui`, chạy `npm ci` ở thư mục gốc để cài các
 package mới. Nếu backend đã setup, chạy `npm --prefix backend run build` rồi
 `npm run dev:full`, mở `http://localhost:3000`. Backend và dữ liệu cũ được dùng tiếp.
+
+### Lịch đầy đủ 24 phim và cả tháng sau (24/10/2026)
+
+Trang chủ/danh mục và bộ chọn rạp mẫu nay có đủ 24 phim; không còn cắt 6 phim.
+Mỗi rạp mẫu có 40 phòng, mỗi phim ít nhất 4 giờ/ngày trên 2 phòng, mở đến ngày cuối
+tháng sau và tối thiểu 30 ngày tới. Phim COMING_SOON có suất chiếu sớm theo lịch
+thực, vẫn đặt ghế/thanh toán Sandbox/nhận QR qua backend. Lịch có chấm ngày mở bán.
+Chế độ demo cũng đã bỏ dữ liệu 6 phim/4 ngày nhưng vẫn mang nhãn demo riêng.
+
+Sau khi cập nhật, build backend rồi chạy `npm run dev:full` để bổ sung lịch còn thiếu.
+Nếu dùng PostgreSQL/Redis cài trực tiếp thì giữ cấu hình kết nối hiện tại, không cần
+chạy các lệnh Compose hoặc `setup:local`. Xem [kiểm chứng lịch đầy đủ](docs/design/full-calendar-booking.md).

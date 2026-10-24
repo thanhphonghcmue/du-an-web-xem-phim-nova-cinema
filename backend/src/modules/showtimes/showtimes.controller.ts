@@ -56,7 +56,7 @@ export class ShowtimesController {
   @Public()
   @ApiOperation({
     summary:
-      "Public catalogue snapshot plus future schedule, bounded to 60 days/10000 screenings; never silently truncated.",
+      "Public catalogue snapshot plus future schedule, bounded to 60 days/20000 screenings; never silently truncated.",
   })
   @ApiDataResponse(ProgrammeDto)
   programme(@Query() query: ProgrammeQueryDto) {

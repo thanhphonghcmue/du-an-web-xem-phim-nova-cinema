@@ -43,6 +43,15 @@ async function read(page, path) {
     return { status: r.status, body: await r.json() };
   }, path);
 }
+async function restoredSeatScreen(page) {
+  const dialog = page.getByRole("dialog", { name: "Chọn ghế & đặt vé" });
+  // A full navigation must finish loading the real programme and seat/order snapshot.
+  await expect(dialog).toBeVisible({ timeout: 15000 });
+  await expect(
+    dialog.getByText("Đang tải trạng thái ghế…", { exact: true }),
+  ).toHaveCount(0, { timeout: 15000 });
+  return dialog;
+}
 async function login(page, role = "customer") {
   await page.addInitScript(() =>
     sessionStorage.setItem("nova-welcome-seen", "1"),
@@ -494,9 +503,8 @@ for (const [button, state] of [
         .bookingStatus,
     ).toBe(state);
     await page.getByRole("link", { name: "Quay lại ứng dụng" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Chọn ghế & đặt vé" }),
-    ).toContainText(state);
+    const restored = await restoredSeatScreen(page);
+    await expect(restored).toContainText(state);
   });
 
 test("Sandbox success issues one real QR, ICS and atomic staff check-in", async ({
@@ -533,6 +541,7 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
     (await read(page, `/payments/${order.id}/status`)).body.data.bookingStatus,
   ).toBe("PAID");
   await page.getByRole("link", { name: "Quay lại ứng dụng" }).click();
+  await restoredSeatScreen(page);
   await expect(
     page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
   ).toBeVisible();

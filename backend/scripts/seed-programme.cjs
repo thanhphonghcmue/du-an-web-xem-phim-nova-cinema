@@ -206,7 +206,7 @@ async function seedProgramme() {
         legacyAdded: added,
         ...expanded,
         message:
-          "Today + 30 days; existing bookings, schedules and layouts preserved.",
+          "All active films through at least 30 days and the end of next month; existing bookings, schedules and layouts preserved.",
       }),
     );
   } finally {

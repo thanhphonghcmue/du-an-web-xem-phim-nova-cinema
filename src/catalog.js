@@ -8,7 +8,7 @@
  *   - Cung cấp các tiện ích định dạng ngày giờ theo múi giờ Việt Nam (`Asia/Ho_Chi_Minh` UTC+7).
  *
  * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. `CatalogProvider` nạp dữ liệu từ backend hoặc fallback và truyền vào Provider.
+ *   1. `CatalogProvider` nạp programme từ NestJS và truyền vào Provider; lỗi không tạo dữ liệu thay thế.
  *   2. Các trang/component con (HeaderSearch, QuickBooking, SeatBooking, ShowtimeTimeline)
  *      gọi `useCatalog()` để lấy dữ liệu hiển thị.
  *   3. `dayKey`: chuẩn hóa ngày chiếu thành chuỗi `YYYY-MM-DD` để lọc theo ngày.

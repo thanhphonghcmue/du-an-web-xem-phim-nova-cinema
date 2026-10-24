@@ -82,6 +82,40 @@ export default function QuanTriHeThong({
 
   // Users state
   const [users, setUsers] = useState([]);
+  const [userQuery, setUserQuery] = useState("");
+  const [usersUpdatedAt, setUsersUpdatedAt] = useState(null);
+  useEffect(() => {
+    if (activeTab !== "users") return;
+    let active = true;
+    let running = false;
+    async function syncUsers() {
+      if (running || document.hidden) return;
+      running = true;
+      try {
+        const current = await apiGetAdminUsers();
+        if (active) {
+          setUsers(current);
+          setUsersUpdatedAt(new Date());
+          setError("");
+        }
+      } catch (cause) {
+        if (active) {
+          setUsers([]);
+          setError(cause.message);
+        }
+      } finally {
+        running = false;
+      }
+    }
+    void syncUsers();
+    const timer = setInterval(syncUsers, 15000);
+    window.addEventListener("focus", syncUsers);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", syncUsers);
+    };
+  }, [activeTab]);
 
   // Health state
   const [health, setHealth] = useState(null);
@@ -630,6 +664,22 @@ export default function QuanTriHeThong({
           {/* TAB 2: KHÁCH HÀNG & THÀNH VIÊN */}
           {activeTab === "users" && (
             <div className="admin-tab-pane">
+              <div className="admin-users-toolbar">
+                <label>
+                  Tìm khách hàng
+                  <input
+                    aria-label="Tìm khách hàng"
+                    value={userQuery}
+                    onChange={(event) => setUserQuery(event.target.value)}
+                    placeholder="Email hoặc họ tên"
+                  />
+                </label>
+                <p role="status">
+                  {usersUpdatedAt
+                    ? `Cập nhật lúc ${usersUpdatedAt.toLocaleTimeString("vi-VN")}`
+                    : "Đang đồng bộ danh sách khách hàng…"}
+                </p>
+              </div>
               <div className="admin-table-container">
                 <table className="admin-table">
                   <thead>
@@ -643,41 +693,53 @@ export default function QuanTriHeThong({
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((u) => (
-                      <tr key={u.id}>
-                        <td>
-                          <strong>{u.email}</strong>
-                        </td>
-                        <td>{u.fullName || "Chưa cập nhật"}</td>
-                        <td>
-                          <span
-                            className={`role-badge ${u.role.toLowerCase()}`}
-                          >
-                            {u.role}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`tier-badge ${u.cMemberTier?.toLowerCase()}`}
-                          >
-                            {u.cMemberTier || "STANDARD"}
-                          </span>
-                        </td>
-                        <td>
-                          <strong>{u.cMemberPoints || 0} pts</strong>
-                        </td>
-                        <td>
-                          {new Date(u.createdAt).toLocaleDateString("vi-VN")}
-                        </td>
-                      </tr>
-                    ))}
-                    {users.length === 0 && (
+                    {users
+                      .filter((user) =>
+                        `${user.email} ${user.fullName || ""}`
+                          .toLocaleLowerCase("vi")
+                          .includes(userQuery.toLocaleLowerCase("vi")),
+                      )
+                      .map((u) => (
+                        <tr key={u.id}>
+                          <td>
+                            <strong>{u.email}</strong>
+                          </td>
+                          <td>{u.fullName || "Chưa cập nhật"}</td>
+                          <td>
+                            <span
+                              className={`role-badge ${u.role.toLowerCase()}`}
+                            >
+                              {u.role}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className={`tier-badge ${u.cMemberTier?.toLowerCase()}`}
+                            >
+                              {u.cMemberTier || "STANDARD"}
+                            </span>
+                          </td>
+                          <td>
+                            <strong>{u.cMemberPoints || 0} pts</strong>
+                          </td>
+                          <td>
+                            {new Date(u.createdAt).toLocaleDateString("vi-VN")}
+                          </td>
+                        </tr>
+                      ))}
+                    {users.filter((user) =>
+                      `${user.email} ${user.fullName || ""}`
+                        .toLocaleLowerCase("vi")
+                        .includes(userQuery.toLocaleLowerCase("vi")),
+                    ).length === 0 && (
                       <tr>
                         <td
                           colSpan={6}
                           style={{ textAlign: "center", padding: "20px" }}
                         >
-                          Đang tải hoặc chưa có khách hàng
+                          {error
+                            ? "Chưa tải được danh sách. Hãy làm mới để thử lại."
+                            : "Chưa có khách hàng phù hợp."}
                         </td>
                       </tr>
                     )}

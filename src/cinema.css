@@ -1016,13 +1016,13 @@ select:focus-visible {
 .discovery-empty p {
   margin-bottom: 20px;
 }
-.standalone-auth {
+.page-auth {
   margin-block: 55px 80px;
   border: 1px solid var(--nova-line);
   border-radius: 13px;
   overflow: hidden;
 }
-.standalone-auth .auth-layout {
+.page-auth .auth-layout {
   min-height: 580px;
 }
 .auth-reward {
@@ -1466,7 +1466,7 @@ select:focus-visible {
   font-size: 12px;
   line-height: 1.7;
 }
-.standalone-workspace {
+.page-workspace {
   padding: 45px 0 70px;
 }
 .embedded-dialog .modal-panel {
@@ -1884,7 +1884,7 @@ select:focus-visible {
     right: -80px;
     bottom: -15px;
   }
-  .standalone-auth {
+  .page-auth {
     margin-block: 30px 50px;
   }
   .venue-grid {
@@ -2043,7 +2043,7 @@ select:focus-visible {
   .admin-embedded .admin-error-banner {
     grid-column: 1;
   }
-  .standalone-workspace {
+  .page-workspace {
     padding-top: 25px;
   }
 }

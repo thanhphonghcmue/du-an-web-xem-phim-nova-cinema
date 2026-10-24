@@ -1314,24 +1314,6 @@
     padding: 18px 12px;
   }
 }
-.standalone-payment-preview {
-  display: grid;
-  place-items: center;
-  text-align: center;
-  gap: 16px;
-  padding: 27px;
-  background: #182338;
-  border: 1px solid #526888;
-  border-radius: 12px;
-}
-.standalone-payment-preview > svg {
-  color: #e8c588;
-}
-.standalone-payment-preview > p {
-  color: #d2dff1;
-  font-size: 14px;
-  line-height: 1.9;
-}
 /* Let the larger Vietnamese typography determine the card height. */
 .membership-card {
   height: auto;

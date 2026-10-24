@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCatalog } from "../catalog.js";
+import { useI18n } from "../i18n.js";
 
 export default function CinemaHero({
   movie,
@@ -23,6 +24,7 @@ export default function CinemaHero({
   onMovie,
   onWelcome,
 }) {
+  const { language, t } = useI18n();
   const invitations = {
     inception: ["Thực tại", "chỉ là", "khởi đầu."],
     kong: ["Màn ảnh lớn.", "Đại chiến", "bắt đầu."],
@@ -34,7 +36,24 @@ export default function CinemaHero({
     "Vạn điều",
     "đáng nhớ.",
   ];
-  const { rooms, cinemas, showtimes, isLive } = useCatalog();
+  const { rooms, cinemas, showtimes, isLive, error } = useCatalog();
+  if (!movie.id)
+    return (
+      <section
+        className="content-width catalog-pending"
+        aria-busy={!error && !isLive}
+      >
+        <p className="nova-kicker">NOVA CINEMA</p>
+        <h1>
+          {error
+            ? t("Chưa tải được phim và lịch chiếu")
+            : isLive
+              ? t("Chưa có phim mở bán")
+              : t("Đang tải phim và lịch chiếu…")}
+        </h1>
+        <p>{t("Thông tin đặt vé được xác nhận từ máy chủ.")}</p>
+      </section>
+    );
   return (
     <section
       className={`nova-premiere hero-${movie.artId || movie.id}`}
@@ -55,11 +74,13 @@ export default function CinemaHero({
             NOVA SELECTED <i /> CINEMA BEYOND THE ORDINARY
           </p>
           <p className="premiere-invitation">
-            Đừng chỉ xem.
+            {t("Đừng chỉ xem.")}
             <br />
-            <em>Bước vào điện ảnh.</em>
+            <em>{t("Bước vào điện ảnh.")}</em>
           </p>
-          <h1>{movie.short || movie.title}</h1>
+          <h1>
+            {language === "en" ? movie.original : movie.short || movie.title}
+          </h1>
           <p className="premiere-subtitle">{movie.part}</p>
           <div className="premiere-meta">
             <span className={`classification classification-${movie.age}`}>
@@ -77,7 +98,9 @@ export default function CinemaHero({
           </div>
           <p className="premiere-description">
             {movie.artId === "inception"
-              ? "Một ý tưởng có thể thay đổi cả thế giới. Cùng Dom Cobb bước qua những tầng giấc mơ, nơi thực tại không còn như bạn nghĩ."
+              ? t(
+                  "Một ý tưởng có thể thay đổi cả thế giới. Cùng Dom Cobb bước qua những tầng giấc mơ, nơi thực tại không còn như bạn nghĩ.",
+                )
               : movie.description}
           </p>
           <div className="premiere-actions">
@@ -87,23 +110,23 @@ export default function CinemaHero({
               disabled={!movie.id}
             >
               <Ticket size={18} />
-              Chọn suất & đặt vé <ArrowUpRight size={18} />
+              {t("Chọn suất & đặt vé")} <ArrowUpRight size={18} />
             </button>
             <button
               className="button premiere-trailer"
               onClick={() => onMovie(movie, "trailer")}
             >
               <Play size={17} />
-              Xem trailer
+              {t("Xem trailer")}
             </button>
           </div>
           <div className="premiere-discover">
             <Link href="/sap-chieu">
-              Hẹn bạn tháng sau <ArrowRight size={13} />
+              {t("Hẹn bạn tháng sau")} <ArrowRight size={13} />
             </Link>
             <button onClick={onWelcome}>
               <Popcorn size={14} />
-              Ưu đãi mở màn
+              {t("Ưu đãi mở màn")}
             </button>
           </div>
         </div>

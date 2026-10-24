@@ -51,15 +51,15 @@ test("dedicated discovery pages have real navigation, banners and accessible fil
   await page.getByRole("button", { name: "Xóa bộ lọc", exact: true }).click();
   await expect(page.locator(".discovery-film")).not.toHaveCount(0);
   await page
-    .locator(".nova-subnav")
-    .getByRole("link", { name: "Sắp chiếu tháng sau" })
+    .locator(".desktop-nav")
+    .getByRole("link", { name: "Sắp chiếu", exact: true })
     .click();
   await expect(page).toHaveURL(/\/sap-chieu$/);
   await expect(page.locator(".page-banner h1")).toContainText("Tháng mới");
   await expect(page.locator(".page-banner-image")).toBeVisible();
   await page
-    .locator(".nova-subnav")
-    .getByRole("link", { name: "Ưu đãi & sự kiện" })
+    .locator(".desktop-nav")
+    .getByRole("link", { name: "Ưu đãi", exact: true })
     .click();
   await expect(page.locator(".campaign-grid .campaign-card")).toHaveCount(6);
   await page

@@ -32,7 +32,7 @@ export default function LichChieuPhim({
   selection,
   onSelectionChange,
 }) {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const { cinemas, movies, rooms, getDates, getShowtimes } = useCatalog();
   const [capacities, setCapacities] = useState({});
   const [format, setFormat] = useState("all");
@@ -183,7 +183,7 @@ export default function LichChieuPhim({
           </label>
           <div className="schedule-calendar-header">
             <div>
-              <p className="nova-kicker">CHỌN NGÀY HẸN CỦA BẠN</p>
+              <p className="nova-kicker">{t("CHỌN NGÀY HẸN CỦA BẠN")}</p>
               <strong>
                 {dates.length} ngày có lịch ·{" "}
                 {film.status === "soon" ? "Đặt vé trước" : "Đang mở bán"}
@@ -191,7 +191,7 @@ export default function LichChieuPhim({
             </div>
             <label>
               <CalendarDays size={17} />
-              <span>Đi đến ngày</span>
+              <span>{t("Đi đến ngày")}</span>
               <DateSelector
                 label="Chọn ngày xa trong lịch chiếu"
                 dates={dates}
@@ -292,7 +292,7 @@ export default function LichChieuPhim({
             <div className="timeline-film-heading">
               <h3>{language === "en" ? film.original : film.title}</h3>
               <Link href={`/phim/${film.id}`}>
-                Thông tin phim <ArrowUpRight size={15} />
+                {t("Thông tin phim")} <ArrowUpRight size={15} />
               </Link>
             </div>
             {film.status === "soon" && (
@@ -324,7 +324,7 @@ export default function LichChieuPhim({
                     className={period === key ? "active" : ""}
                     onClick={() => setPeriod(key)}
                   >
-                    {label}
+                    {t(label)}
                   </button>
                 ))}
               </div>
@@ -350,7 +350,7 @@ export default function LichChieuPhim({
               <Clock3 size={13} />
               {times.length} suất phù hợp
               {activeDateObj ? ` · ${activeDateObj.label}` : ""}
-              <span>Chọn một giờ để xem sơ đồ ghế</span>
+              <span>{t("Chọn một giờ để xem sơ đồ ghế")}</span>
             </div>
             <div
               className="screening-format-tabs"
@@ -375,7 +375,7 @@ export default function LichChieuPhim({
                     aria-pressed={activeFormat === key}
                     onClick={() => setFormat(key)}
                   >
-                    {label}
+                    {t(label)}
                   </button>
                 ))}
             </div>

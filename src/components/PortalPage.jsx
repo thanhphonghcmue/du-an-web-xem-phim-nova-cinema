@@ -306,7 +306,7 @@ export default function PortalPage({
           description="Kiểm tra vé điện tử trước khi khách vào phòng chiếu."
           image="/images/cinema-lobby.jpg"
         />
-        <div className="content-width standalone-workspace">
+        <div className="content-width page-workspace">
           <StaffCheckIn embedded onClose={() => window.location.assign("/")} />
         </div>
       </>
@@ -344,7 +344,7 @@ export default function PortalPage({
           description="Đăng nhập để giữ ghế, nhận vé điện tử và tận hưởng những quyền lợi của riêng bạn."
           image="/images/cinema-lobby.jpg"
         />
-        <div className="content-width standalone-auth">
+        <div className="content-width page-auth">
           <AuthForm onSuccess={onMember} />
         </div>
       </>

@@ -117,3 +117,14 @@ bị bỏ lẻ. 75 unit + 207 HTTP/realtime/SMTP + 22 DB + 5 planner + 41 Playwr
 PASS (350 ca), typecheck/lint/build và compiled smoke PASS. Không đánh dấu
 Phase11–12 hoặc các nghiệp vụ LAB04 còn thiếu hoàn tất. Xem
 [bằng chứng lịch đầy đủ](../../docs/design/full-calendar-booking.md).
+
+## Bắt buộc backend thật và kiểm tra lưu dữ liệu (24/10/2026)
+
+Theo yêu cầu đồng bộ frontend/NestJS: xóa kho RAM/standalone phía Next.js, giữ
+PostgreSQL là nguồn tài khoản/đơn/ghế/QR; mất kết nối trả 503 rõ ràng. Không đổi
+schema hoặc business state machine. ADMIN đọc tài khoản mới qua API hiện có,
+frontend đồng bộ lại khi focus và theo chu kỳ. Compiled production smoke bổ sung
+đăng ký thật và hai lần khởi động lại backend, xác nhận tài khoản, đơn PAID,
+SOLD, cùng QR và trạng thái đã check-in vẫn tồn tại. Không dùng Docker, không
+reset DB/.env và không đánh dấu Phase 11–12 hoàn tất. Xem
+[bằng chứng server-only](../../docs/design/server-only-qa.md).

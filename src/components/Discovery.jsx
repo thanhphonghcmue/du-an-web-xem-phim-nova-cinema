@@ -24,6 +24,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
+import { useI18n } from "../i18n.js";
 import { vietnamDay } from "../bookingDates.js";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
@@ -268,6 +269,7 @@ function FilmCard({ movie, onMovie, onBook }) {
 }
 
 function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
+  const { t } = useI18n();
   const { movies, showtimes } = useCatalog();
   const [tab, setTab] = useState(upcoming ? "soon" : "all");
   const [genre, setGenre] = useState("Tất cả");
@@ -308,8 +310,8 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
               </>
             ) : (
               <>
-                Một màn ảnh.
-                <br className="mobile-only" /> <em>Vạn cảm xúc.</em>
+                {t("Một màn ảnh.")}
+                <br className="mobile-only" /> <em>{t("Vạn cảm xúc.")}</em>
               </>
             )}
           </h2>
@@ -321,7 +323,7 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
         </div>
         {compact && (
           <Link className="discovery-text-link" href="/phim">
-            Tất cả phim <ArrowUpRight size={18} />
+            {t("Tất cả phim")} <ArrowUpRight size={18} />
           </Link>
         )}
       </div>
@@ -343,7 +345,7 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
               aria-selected={tab === id}
               onClick={() => setTab(id)}
             >
-              {label}
+              {t(label)}
               <span>
                 {
                   movies.filter(

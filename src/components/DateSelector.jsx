@@ -1,7 +1,8 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { DayPicker, DayButton } from "react-day-picker";
-import { vi } from "react-day-picker/locale";
+import { vi, enGB } from "react-day-picker/locale";
+import { useI18n } from "../i18n.js";
 import { CalendarDays, X } from "lucide-react";
 import {
   calendarDate,
@@ -21,6 +22,7 @@ export default function DateSelector({
   label = "Chọn ngày chiếu",
   disabled = false,
 }) {
+  const { language, t } = useI18n();
   const [open, setOpen] = useState(false);
   const [today] = useState(() => vietnamDay(Date.now()));
   const available = new Set(dates.map((date) => date.id));
@@ -33,14 +35,16 @@ export default function DateSelector({
         <button
           type="button"
           className="choice-trigger date-choice-trigger"
-          aria-label={label}
+          aria-label={t(label)}
           data-value={selected}
           data-min={first}
           data-max={last}
           disabled={disabled || !dates.length}
         >
           <span>
-            {selected ? friendlyDay(selected) : "Chọn ngày bạn muốn đi"}
+            {selected
+              ? friendlyDay(selected, language)
+              : t("Chọn ngày bạn muốn đi")}
           </span>
           <CalendarDays size={19} />
         </button>
@@ -53,28 +57,29 @@ export default function DateSelector({
         >
           <div className="choice-heading">
             <div>
-              <p className="nova-kicker">CHỌN NGÀY HẸN</p>
-              <Dialog.Title>Lịch chiếu của bạn</Dialog.Title>
+              <p className="nova-kicker">{t("CHỌN NGÀY HẸN")}</p>
+              <Dialog.Title>{t("Lịch chiếu của bạn")}</Dialog.Title>
             </div>
             <Dialog.Close asChild>
               <button
                 type="button"
                 className="icon-button"
-                aria-label="Đóng lịch"
+                aria-label={t("Đóng lịch")}
               >
                 <X size={22} />
               </button>
             </Dialog.Close>
           </div>
           <Dialog.Description id="calendar-description">
-            Chọn ngày có lịch đang mở bán. Tất cả giờ chiếu tính theo giờ Việt
-            Nam.
+            {t(
+              "Chọn ngày có lịch đang mở bán. Tất cả giờ chiếu tính theo giờ Việt Nam.",
+            )}
           </Dialog.Description>
           {first && (
             <DayPicker
               mode="single"
               required
-              locale={vi}
+              locale={language === "en" ? enGB : vi}
               weekStartsOn={1}
               today={calendarDate(today)}
               selected={selected ? calendarDate(selected) : undefined}
@@ -96,16 +101,16 @@ export default function DateSelector({
               fixedWeeks
               components={{ DayButton: BookingDay }}
               labels={{
-                labelNext: () => "Tháng sau",
-                labelPrevious: () => "Tháng trước",
+                labelNext: () => t("Tháng sau"),
+                labelPrevious: () => t("Tháng trước"),
               }}
             />
           )}
           <div className="calendar-key">
             <span>
-              <i /> Có lịch mở bán
+              <i /> {t("Có lịch mở bán")}
             </span>
-            <span>Ngày mờ: chưa có suất phù hợp</span>
+            <span>{t("Ngày mờ: chưa có suất phù hợp")}</span>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

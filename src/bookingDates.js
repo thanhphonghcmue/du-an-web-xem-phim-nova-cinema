@@ -9,8 +9,8 @@ const vietnamDateFormatter = new Intl.DateTimeFormat("en-CA", {
 });
 export const vietnamDay = (value) =>
   vietnamDateFormatter.format(new Date(value));
-export const friendlyDay = (key) =>
-  new Intl.DateTimeFormat("vi-VN", {
+export const friendlyDay = (key, language = "vi") =>
+  new Intl.DateTimeFormat(language === "en" ? "en-GB" : "vi-VN", {
     weekday: "long",
     day: "2-digit",
     month: "2-digit",

@@ -11,14 +11,14 @@ tùy chọn và kiểm tra lại trước khi ghi USED. Preview không gửi th�
 đọc từ outbox, không khẳng định email đã vào inbox. ICS nhắc lịch trước 30 phút.
 
 Lịch nhiều ngày dùng public `GET /api/v1/showtimes/programme?days=60`: snapshot
-catalogue + lịch tương lai, days 1–60, tối đa 10.000 suất; vượt ngưỡng trả 422, không
+catalogue + lịch tương lai, days 1–60, tối đa 20.000 suất; vượt ngưỡng trả 422, không
 cắt bớt âm thầm. Không tăng rate limit hoặc giới hạn pagination cũ. Seed local bổ sung
 30 ngày, phòng và vé đặt trước; lệnh `db:verify:programme` kiểm tra độ phủ/overlap,
 `test:programme` kiểm tra planner. Xem [evidence](../docs/design/advance-booking-readability.md).
 
 ## Requirements
 
-Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập. SMTP local dùng Mailpit; SMTP ngoài cấu hình riêng qua biến môi trường.
+Node.js **24 LTS** theo `.nvmrc`, npm, PostgreSQL/Redis và SMTP đã cấu hình. Có thể chạy trực tiếp không dùng Docker; các lệnh Compose bên dưới là tùy chọn riêng. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Nếu chủ động dùng cấu hình Compose, Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập. SMTP local dùng Mailpit; SMTP ngoài cấu hình riêng qua biến môi trường.
 
 Nếu đã có PostgreSQL/Redis riêng, điền connection settings vào `.env` thay vì ghi đè cấu hình bằng các helper local.
 

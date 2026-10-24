@@ -23,12 +23,10 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
-import { useCatalog } from "../catalog.js";
 import { useI18n } from "../i18n.js";
 import { apiLogin, apiRegister } from "../api/client.js";
 
 export default function DangNhap_DangKy({ onSuccess }) {
-  const { runtimeMode } = useCatalog();
   const { language, t } = useI18n();
   const [tab, setTab] = useState("signin");
   const [visiblePasswords, setVisiblePasswords] = useState({
@@ -93,18 +91,6 @@ export default function DangNhap_DangKy({ onSuccess }) {
       return "Mật khẩu cần tối thiểu 12 ký tự.";
     }
     return raw;
-  }
-
-  function handleQuickFill(email, roleName) {
-    setTab("signin");
-    setFields((prev) => ({
-      ...prev,
-      email,
-      password: "nova@12345",
-    }));
-    setTouched((prev) => ({ ...prev, email: true, password: true }));
-    setNoticeType("info");
-    setNotice(`Đã chọn ${roleName} (${email}) - Mật khẩu: nova@12345`);
   }
 
   async function submit(e) {
@@ -223,53 +209,6 @@ export default function DangNhap_DangKy({ onSuccess }) {
             </button>
           ))}
         </div>
-
-        {/* Cinema Operational Accounts (in Sign-in tab) */}
-        {tab === "signin" && runtimeMode === "standalone" && (
-          <div className="auth-quick-accounts">
-            <div className="auth-quick-header">
-              <span>
-                <Sparkles
-                  size={14}
-                  style={{ display: "inline", marginRight: 5 }}
-                />
-                Tài khoản nghiệp vụ rạp chiếu phim (Mật khẩu: nova@12345):
-              </span>
-            </div>
-            <div className="auth-quick-pills">
-              <button
-                type="button"
-                className="auth-quick-pill admin"
-                onClick={() =>
-                  handleQuickFill("admin@nova.local", "Quản trị viên")
-                }
-                title="admin@nova.local"
-              >
-                👑 Quản trị viên
-              </button>
-              <button
-                type="button"
-                className="auth-quick-pill staff"
-                onClick={() =>
-                  handleQuickFill("staff@nova.local", "Nhân viên soát vé")
-                }
-                title="staff@nova.local"
-              >
-                🎫 Nhân viên soát vé
-              </button>
-              <button
-                type="button"
-                className="auth-quick-pill customer"
-                onClick={() =>
-                  handleQuickFill("customer@nova.local", "Người dùng")
-                }
-                title="customer@nova.local"
-              >
-                👤 Người dùng
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Main Authentication Form */}
         <form onSubmit={submit} noValidate className="auth-form">

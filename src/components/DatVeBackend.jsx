@@ -55,6 +55,7 @@ import {
 } from "lucide-react";
 import Modal from "./Modal.jsx";
 import { useCatalog } from "../catalog.js";
+import { useI18n } from "../i18n.js";
 import { money } from "../data.js";
 import { menuDetails } from "../commerce.js";
 import {
@@ -318,6 +319,7 @@ export default function DatVeBackend({
   onClose,
   onMemberUpdate,
 }) {
+  const { t, language } = useI18n();
   const { combos } = useCatalog();
   const showtimeId = booking.showtimeId || booking.time.id;
   const [snapshot, setSnapshot] = useState(null);
@@ -437,7 +439,9 @@ export default function DatVeBackend({
   // Derive from each fresh snapshot so another viewer's hold cannot leave a stale warning.
   const orphanSeat = !holding ? checkClientOrphanSeats(selected, seats) : null;
   const orphanWarning = orphanSeat
-    ? `Không để trống 1 ghế lẻ tại ${orphanSeat.row}${orphanSeat.column}. Hãy chọn ghế này hoặc đổi vị trí để chừa ít nhất 2 ghế liền nhau.`
+    ? language === "en"
+      ? `Do not leave a single empty seat at ${orphanSeat.row}${orphanSeat.column}. Select that seat or leave at least two adjacent seats free.`
+      : `Không để trống 1 ghế lẻ tại ${orphanSeat.row}${orphanSeat.column}. Hãy chọn ghế này hoặc đổi vị trí để chừa ít nhất 2 ghế liền nhau.`
     : null;
   const remaining = holding
     ? Math.max(
@@ -605,7 +609,7 @@ export default function DatVeBackend({
 
   return (
     <Modal
-      title="Chọn ghế & đặt vé"
+      title={t("Chọn ghế & đặt vé")}
       wide
       onClose={onClose}
       image={
@@ -628,7 +632,7 @@ export default function DatVeBackend({
               }
             >
               <span>{index + 1}</span>
-              {step}
+              {t(step)}
             </li>
           ),
         )}
@@ -701,7 +705,7 @@ export default function DatVeBackend({
             của bạn.
           </p>
           <button className="button button-primary" onClick={onClose}>
-            Xem vé trong tài khoản
+            {t("Xem vé trong tài khoản")}
           </button>
         </div>
       ) : (
@@ -741,7 +745,7 @@ export default function DatVeBackend({
                   disabled={busy || !initialized}
                   onClick={() => suggest(count)}
                 >
-                  Xếp ghế
+                  {t("Xếp ghế")}
                 </button>
                 <button
                   className="text-button"
@@ -757,7 +761,7 @@ export default function DatVeBackend({
               <div>
                 <button
                   type="button"
-                  aria-label="Thu nhỏ sơ đồ ghế"
+                  aria-label={t("Thu nhỏ sơ đồ ghế")}
                   disabled={zoom <= 70}
                   onClick={() => setZoom((value) => value - 10)}
                 >
@@ -766,7 +770,7 @@ export default function DatVeBackend({
                 <span aria-live="polite">{zoom}%</span>
                 <button
                   type="button"
-                  aria-label="Phóng to sơ đồ ghế"
+                  aria-label={t("Phóng to sơ đồ ghế")}
                   disabled={zoom >= 160}
                   onClick={() => setZoom((value) => value + 10)}
                 >
@@ -774,7 +778,7 @@ export default function DatVeBackend({
                 </button>
                 <button
                   type="button"
-                  aria-label="Toàn cảnh sơ đồ ghế"
+                  aria-label={t("Toàn cảnh sơ đồ ghế")}
                   onClick={() => setZoom(100)}
                 >
                   ↺
@@ -972,7 +976,9 @@ export default function DatVeBackend({
                     checked={ageConfirmed}
                     onChange={(e) => setAgeConfirmed(e.target.checked)}
                   />
-                  <span>Tôi xác nhận bản thân và người đi cùng đã đủ tuổi</span>
+                  <span>
+                    {t("Tôi xác nhận bản thân và người đi cùng đã đủ tuổi")}
+                  </span>
                 </label>
                 <button
                   type="button"
@@ -1029,7 +1035,7 @@ export default function DatVeBackend({
                     disabled={busy}
                     onClick={handlePaymentClick}
                   >
-                    Thanh toán Sandbox
+                    {t("Thanh toán Sandbox")}
                   </button>
                 </div>
                 <button
@@ -1037,7 +1043,7 @@ export default function DatVeBackend({
                   disabled={busy}
                   onClick={cancel}
                 >
-                  Hủy đơn & trả ghế
+                  {t("Hủy đơn & trả ghế")}
                 </button>
               </>
             ) : (

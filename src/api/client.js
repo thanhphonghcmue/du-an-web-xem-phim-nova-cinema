@@ -265,25 +265,6 @@ export const apiCheckout = (id) =>
 export const apiTaoDuongDanThanhToanSandbox = apiCheckout;
 
 /**
- * Thanh toán Sandbox tự động hoàn tất 1 chạm (Dành cho bản demo)
- */
-export async function apiInstantPay(orderId) {
-  const checkout = await apiCheckout(orderId);
-  const checkoutUrl = new URL(checkout.url);
-  const params = Object.fromEntries(checkoutUrl.searchParams.entries());
-  await fetch("/api/v1/payments/sandbox/complete", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      ...params,
-      result: "SUCCESS",
-    }),
-  });
-  return true;
-}
-export const apiThanhToanSandboxTuDong = apiInstantPay;
-
-/**
  * Gửi lệnh POST/PUT/PATCH tới Backend
  */
 export async function readCommand(

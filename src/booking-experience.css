@@ -295,13 +295,3 @@
     animation: none;
   }
 }
-
-.standalone-mode-notice {
-  background: #382712;
-  color: #ffdc9c;
-  padding: 12px 22px;
-  font-size: 11px;
-  line-height: 1.8;
-  text-align: center;
-  border-bottom: 1px solid #a77e3d;
-}

@@ -316,6 +316,8 @@ async function main() {
       env: {
         ...process.env,
         NODE_ENV: "development",
+        // An obsolete flag must never select a second data store.
+        NOVA_STANDALONE: "true",
         BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1`,
       },
       stdio: ["ignore", "ignore", "ignore"],

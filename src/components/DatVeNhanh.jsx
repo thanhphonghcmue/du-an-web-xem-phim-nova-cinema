@@ -35,7 +35,7 @@ export default function DatVeNhanh({
   withCombo,
   onRemoveCombo,
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { cinemas, movies, rooms, getDates, getShowtimes, isLive } =
     useCatalog();
   const [capacities, setCapacities] = useState({});
@@ -86,13 +86,13 @@ export default function DatVeNhanh({
           <Ticket size={24} />
           <div>
             <h2>{t("Đặt vé nhanh")}</h2>
-            <p>Chọn rạp. Chọn phim. Hẹn giờ.</p>
+            <p>{t("Chọn rạp. Chọn phim. Hẹn giờ.")}</p>
           </div>
         </div>
         <label className={cinemaId ? "express-selected" : ""}>
           <span>
             <MapPin size={13} />
-            01 · CỤM RẠP
+            {t("01 · CỤM RẠP")}
           </span>
           <CinemaPicker value={cinemaId} onChange={onCinema} />
           <small>
@@ -104,7 +104,7 @@ export default function DatVeNhanh({
         <label className={movieId ? "express-selected" : ""}>
           <span>
             <Film size={13} />
-            02 · BỘ PHIM
+            {t("02 · BỘ PHIM")}
           </span>
           <QuickChoice
             label="Chọn phim"
@@ -115,11 +115,13 @@ export default function DatVeNhanh({
             placeholder="Bạn muốn xem phim gì?"
             items={films.map((movie) => ({
               id: movie.id,
-              name: movie.title,
+              name: language === "en" ? movie.original : movie.title,
               image: movie.localPoster || movie.poster,
               description: `${movie.age} · ${movie.duration} phút`,
               detail:
-                movie.status === "soon" ? "Đã mở bán trước" : "Đang chiếu",
+                movie.status === "soon"
+                  ? t("Đã mở bán trước")
+                  : t("Đang chiếu"),
             }))}
           />
           <small>
@@ -131,7 +133,7 @@ export default function DatVeNhanh({
         <label className={dateId ? "express-selected" : ""}>
           <span>
             <CalendarDays size={13} />
-            03 · NGÀY CHIẾU
+            {t("03 · NGÀY CHIẾU")}
           </span>
           <DateSelector
             dates={dates}
@@ -141,14 +143,14 @@ export default function DatVeNhanh({
           />
           <small>
             {cinemaId && movieId && dates.length
-              ? `Đặt vé trước · ${dates.length} ngày có lịch`
+              ? `${language === "en" ? "Book ahead" : "Đặt vé trước"} · ${dates.length} ${t("ngày có lịch")}`
               : "Chọn ngày bạn muốn đi"}
           </small>
         </label>
         <label className={timeId ? "express-selected" : ""}>
           <span>
             <Clock3 size={13} />
-            04 · GIỜ & PHÒNG
+            {t("04 · GIỜ & PHÒNG")}
           </span>
           <QuickChoice
             label="Chọn suất chiếu"
@@ -176,7 +178,7 @@ export default function DatVeNhanh({
           className="button button-primary express-submit"
           disabled={!isLive || !cinemaId || !movieId || !dateId || !timeId}
         >
-          Đặt ngay <ArrowRight size={18} />
+          {t("Đặt ngay")} <ArrowRight size={18} />
         </button>
       </form>
       {(cinema || movie) && (
@@ -185,18 +187,18 @@ export default function DatVeNhanh({
           aria-label="Lựa chọn đặt vé của bạn"
         >
           <div>
-            <p className="nova-kicker">LỰA CHỌN CỦA BẠN</p>
+            <p className="nova-kicker">{t("LỰA CHỌN CỦA BẠN")}</p>
             <strong>{movie?.title || "Chọn bộ phim bạn muốn xem"}</strong>
             <p>
               {cinema?.name}
-              {dateId ? ` · ${friendlyDay(dateId)}` : ""}
+              {dateId ? ` · ${friendlyDay(dateId, language)}` : ""}
               {selectedTime
                 ? ` · ${selectedTime.displayTime} · ${selectedTime.roomName}`
                 : ""}
             </p>
           </div>
           <a href="#showtimes">
-            So sánh lịch chiếu <ArrowRight size={18} />
+            {t("So sánh lịch chiếu")} <ArrowRight size={18} />
           </a>
         </div>
       )}
@@ -208,17 +210,17 @@ export default function DatVeNhanh({
             onChange={(event) => onGroup(event.target.checked)}
           />
           <UsersRound size={14} />
-          Đi cùng nhóm · Gợi ý đến 20 ghế
+          {t("Đi cùng nhóm · Gợi ý đến 20 ghế")}
         </label>
         {withCombo && (
           <button onClick={onRemoveCombo} className="express-combo">
             <Popcorn size={13} />
-            Đã thêm Party Combo · Bỏ chọn
+            {t("Đã thêm Party Combo · Bỏ chọn")}
           </button>
         )}
         <span>
           <ShieldCheck size={13} />
-          Giá & ghế được xác nhận khi giữ chỗ
+          {t("Giá & ghế được xác nhận khi giữ chỗ")}
         </span>
       </div>
     </section>

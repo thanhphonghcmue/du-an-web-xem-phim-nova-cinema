@@ -1,6 +1,7 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, ChevronDown, Search, X } from "lucide-react";
+import { useI18n } from "../i18n.js";
 const normalize = (value) =>
   value
     .normalize("NFD")
@@ -17,6 +18,7 @@ export default function QuickChoice({
   disabled = false,
   searchable = true,
 }) {
+  const { language, t } = useI18n();
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState("");
   const selected = items.find((item) => item.id === value);
@@ -53,14 +55,14 @@ export default function QuickChoice({
         <button
           type="button"
           role="combobox"
-          aria-label={label}
+          aria-label={t(label)}
           aria-expanded={open}
           aria-haspopup="dialog"
           className={`choice-trigger ${selected ? "has-selection" : ""}`}
           data-value={selected?.id || ""}
           disabled={disabled}
         >
-          <span>{selected?.name || placeholder}</span>
+          <span>{selected?.name || t(placeholder)}</span>
           <ChevronDown size={18} />
         </button>
       </Dialog.Trigger>
@@ -72,14 +74,14 @@ export default function QuickChoice({
         >
           <div className="choice-heading">
             <div>
-              <p className="nova-kicker">HẸN NHAU Ở NOVA</p>
-              <Dialog.Title>{title || label}</Dialog.Title>
+              <p className="nova-kicker">{t("HẸN NHAU Ở NOVA")}</p>
+              <Dialog.Title>{t(title || label)}</Dialog.Title>
             </div>
             <Dialog.Close asChild>
               <button
                 type="button"
                 className="icon-button"
-                aria-label="Đóng lựa chọn"
+                aria-label={t("Đóng lựa chọn")}
               >
                 <X size={23} />
               </button>
@@ -89,8 +91,8 @@ export default function QuickChoice({
             <label className="choice-search">
               <Search size={20} />
               <input
-                aria-label={`Tìm trong ${label.toLowerCase()}`}
-                placeholder="Nhập tên hoặc địa điểm…"
+                aria-label={`${language === "en" ? "Search" : "Tìm trong"} ${t(label).toLowerCase()}`}
+                placeholder={t("Nhập tên hoặc địa điểm…")}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -99,7 +101,7 @@ export default function QuickChoice({
           <div
             className="choice-options"
             role="listbox"
-            aria-label={label}
+            aria-label={t(label)}
             onKeyDown={keyboard}
           >
             {visible.map((item) => (
@@ -132,11 +134,11 @@ export default function QuickChoice({
           </div>
           {!visible.length && (
             <p className="choice-empty">
-              Chưa có lựa chọn phù hợp. Thử tên khác hoặc xóa từ khóa.
+              {t("Chưa có lựa chọn phù hợp. Thử tên khác hoặc xóa từ khóa.")}
             </p>
           )}
           <p className="choice-footnote">
-            {visible.length} lựa chọn · Thông tin theo lịch đang mở bán
+            {visible.length} {t("lựa chọn · Thông tin theo lịch đang mở bán")}
           </p>
         </Dialog.Content>
       </Dialog.Portal>

@@ -58,7 +58,7 @@ Khi bạn bấm mở file **[`src/App.jsx`](file:///d:/study%20hcmue/Nh%E1%BA%AD
 
 ## ⚙️ 3. CÁC TỆP TIN XỬ LÝ DỮ LIỆU & GỌI API
 
-- **`src/bookingStore.js`**: mã demo cũ để tham khảo, không phải nguồn ghế/tiền/vé của luồng NestJS. Giao diện dùng `src/api/client.js`; backend xác nhận giữ ghế, giá và QR.
+- Kho RAM cũ đã bị loại bỏ. Giao diện dùng `src/api/client.js`; backend xác nhận giữ ghế, giá và QR và lưu trong PostgreSQL.
 
 - **[`src/api/client.js`](file:///d:/study%20hcmue/Nh%E1%BA%ADp%20m%C3%B4n%20c%C3%B4ng%20ngh%E1%BB%87%20ph%E1%BA%A7n%20m%C3%AAm%20f/src/api/client.js)**: Chứa tất cả các hàm gọi API được đặt tên tiếng Việt song song:
   - `apiDangNhap`: Đăng nhập tài khoản.

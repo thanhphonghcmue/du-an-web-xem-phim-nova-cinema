@@ -1,4 +1,5 @@
 import { useCatalog } from "../catalog.js";
+import { useI18n } from "../i18n.js";
 import QuickChoice from "./QuickChoice.jsx";
 export default function CinemaPicker({
   value,
@@ -6,9 +7,11 @@ export default function CinemaPicker({
   label = "Chọn cụm rạp",
   scheduledOnly = false,
 }) {
-  const { cinemas, rooms } = useCatalog();
+  const { t } = useI18n();
+  const { cinemas, rooms, isLive } = useCatalog();
   return (
     <QuickChoice
+      disabled={!isLive}
       label={label}
       title="Chọn rạp cho cuộc hẹn"
       value={value}
@@ -20,7 +23,7 @@ export default function CinemaPicker({
           id: cinema.id,
           name: cinema.name,
           description: `${cinema.city} · ${cinema.address}`,
-          detail: `${rooms.filter((room) => room.cinemaId === cinema.id).length} phòng chiếu · ${cinema.formats || "NOVA Cinema"}`,
+          detail: `${rooms.filter((room) => room.cinemaId === cinema.id).length} ${t("phòng chiếu")} · ${cinema.formats || "NOVA Cinema"}`,
         }))}
     />
   );

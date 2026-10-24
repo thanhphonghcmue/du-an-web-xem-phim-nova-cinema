@@ -180,8 +180,14 @@ test("catalog, quick booking and search use backend UUIDs without browser errors
       .locator(`[role="option"][data-value="${fixture().showtime.id}"]`),
   ).toBeEnabled();
   await page.keyboard.press("Escape");
-  await page.getByRole("textbox", { name: "Tìm phim, rạp..." }).fill("Dune");
-  await expect(page.locator(".search-dropdown")).toContainText("Dune");
+  await page
+    .getByRole("button", { name: "Tìm phim, rạp...", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("textbox", { name: "Tìm phim, rạp..." })
+    .fill("Dune");
+  await expect(page.locator(".search-modal")).toContainText("Dune");
   expect(errors).toEqual([]);
 });
 
@@ -736,7 +742,7 @@ test("customer cannot forge payment or gain ADMIN access and health errors show 
     page.getByText("Thanh toán đã được xác nhận", { exact: true }),
   ).toHaveCount(0);
   await login(page, "admin");
-  await page.getByRole("button", { name: "Quản Trị Rạp" }).click();
+  await page.getByRole("button", { name: "Quản trị", exact: true }).click();
   await page.route("**/api/v1/health", (route) =>
     route.fulfill({
       status: 503,
@@ -760,7 +766,7 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "VN / EN" }).click();
+  await page.getByRole("button", { name: "VI / EN" }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -777,11 +783,11 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
   await expect(
     page.locator(".catalog-connection-notice [role=alert]"),
   ).toContainText("Backend unavailable");
-  // A failed catalog request leaves discovery available without invented bookable slots.
-  await expect(page.locator(".discovery-film").first()).toBeVisible();
+  // Failed backend reads cannot manufacture bookable catalogue records.
+  await expect(page.locator(".discovery-film")).toHaveCount(0);
   await expect(page.locator(".timeline-show")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Thử kết nối lại" }),
+    page.getByRole("button", { name: "Retry connection" }),
   ).toBeVisible();
 });
 
@@ -817,7 +823,7 @@ test("ADMIN creates, edits and deletes a real movie using the operational form",
   page,
 }) => {
   await login(page, "admin");
-  await page.getByRole("button", { name: "Quản Trị Rạp" }).click();
+  await page.getByRole("button", { name: "Quản trị", exact: true }).click();
   await page.getByRole("button", { name: "Rạp, Phim & Suất Chiếu" }).click();
   const title = "Movie " + randomUUID().slice(0, 8);
   const form = page.locator(".live-admin-form").first();

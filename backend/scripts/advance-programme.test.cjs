@@ -85,34 +85,3 @@ test("every early-screening film has four distinct hours in two collision-free r
         );
     }
 });
-test("standalone also exposes 24 films and real room associations across both months", async () => {
-  const { buildDemoProgramme } = await import("../../src/demoProgramme.js");
-  const films = Array.from({ length: 24 }, (_, index) => ({
-    id: `film-${index}`,
-    duration: 201,
-  }));
-  const { rooms, showtimes } = buildDemoProgramme(
-    films,
-    [{ id: "cinema" }],
-    new Date("2026-10-24T01:00:00+07:00").getTime(),
-  );
-  assert.equal(rooms.length, 48);
-  assert.equal(showtimes.length, 24 * 4 * 38);
-  for (const movie of films)
-    for (const day of [
-      "2026-10-24",
-      "2026-10-28",
-      "2026-10-31",
-      "2026-11-01",
-      "2026-11-23",
-      "2026-11-30",
-    ]) {
-      const shows = showtimes.filter(
-        (show) => show.movieId === movie.id && dayKey(show.startTime) === day,
-      );
-      assert.equal(shows.length, 4);
-      assert.equal(new Set(shows.map((show) => show.roomId)).size, 2);
-      for (const show of shows)
-        assert.ok(rooms.some((room) => room.id === show.roomId));
-    }
-});

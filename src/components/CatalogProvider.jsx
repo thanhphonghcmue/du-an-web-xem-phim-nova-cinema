@@ -3,19 +3,14 @@
  * TỆP TIN: src/components/CatalogProvider.jsx
  * VAI TRÒ / NHIỆM VỤ CHÍNH:
  *   - Quản lý Dữ liệu Danh mục Điện ảnh Toàn cục (Global Cinema Catalog Provider).
- *   - Tải song song 5 tập dữ liệu từ Backend API:
- *     1. Danh sách phim (`/movies`)
- *     2. Danh sách cụm rạp (`/cinemas`)
- *     3. Lịch chiếu phim (`/showtimes`)
- *     4. Phòng chiếu (`/rooms`)
- *     5. Combo ẩm thực bắp nước (`/combos`)
+ *   - Tải programme snapshot từ `/showtimes/programme`: phim, rạp, lịch, phòng và combo.
  *   - Ghép nối dữ liệu Backend với Artwork hình ảnh độ phân giải cao (`src/data.js`).
- *   - Tự động fallback sang danh mục tĩnh nếu backend chưa sẵn sàng, đảm bảo UI luôn hiển thị đẹp.
+ *   - Lỗi kết nối xóa danh mục khả dụng và báo lỗi rõ ràng; không sinh dữ liệu thay thế.
  *   - Cung cấp các hàm tìm kiếm tiện ích: `getDates`, `getShowtimes`, `contextFor`, `reload`.
  *
  * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Khởi tạo với danh mục ban đầu (`getInitialCatalog`).
- *   2. Gọi `load()` thông qua `apiGetMovies()`, `apiGetCinemas()`, ...
+ *   1. Khởi tạo danh mục rỗng (`getInitialCatalog`).
+ *   2. Gọi `load()` qua BFF cùng origin; singleflight tránh tải trùng.
  *   3. Chuẩn hóa tiêu đề và kết nối poster/trailer cục bộ.
  *   4. Phân phối dữ liệu vào `CatalogContext.Provider` cho toàn bộ ứng dụng.
  *
@@ -29,44 +24,25 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "../i18n.js";
 import { createCatalogIndex } from "../catalogIndex.js";
 import { CatalogContext, dayKey, timeLabel } from "../catalog.js";
-import discovery from "../../content/cinema.json";
-import { movies as artwork, cinemas as defaultCinemas } from "../data.js";
-import {
-  read,
-  apiGetMovies,
-  apiGetCinemas,
-  apiGetShowtimes,
-  apiList,
-} from "../api/client.js";
+import { movies as artwork } from "../data.js";
+import { read } from "../api/client.js";
 
 function getInitialCatalog() {
   return {
-    movies: artwork.map((m) => ({
-      ...m,
-      artId: m.id,
-      status: m.status || "now",
-      durationMinutes: m.duration,
-      ageRating: m.age,
-    })),
-    cinemas: defaultCinemas.map((c) => ({
-      ...c,
-      formats: c.formats || "IMAX Laser · 2D Laser",
-      movies: artwork.map((m) => m.id),
-    })),
+    movies: [],
+    cinemas: [],
     rooms: [],
     showtimes: [],
-    combos: discovery.menu.map((item) => ({
-      ...item,
-      id: item.key,
-      isActive: true,
-    })),
+    combos: [],
     isLive: false,
   };
 }
 
 export default function CatalogProvider({ children }) {
+  const { t } = useI18n();
   const [data, setData] = useState(getInitialCatalog);
   const [error, setError] = useState("");
   const index = useMemo(() => createCatalogIndex(data), [data]);
@@ -75,23 +51,13 @@ export default function CatalogProvider({ children }) {
     if (inFlight.current) return inFlight.current;
     inFlight.current = (async () => {
       try {
-        const runtime = await read("/runtime");
-        const [films, locations, showtimes, rooms, combos] =
-          runtime.mode === "backend"
-            ? await read("/showtimes/programme").then((data) => [
-                data.movies,
-                data.cinemas,
-                data.showtimes,
-                data.rooms,
-                data.combos,
-              ])
-            : await Promise.all([
-                apiGetMovies(),
-                apiGetCinemas(),
-                apiGetShowtimes(),
-                apiList("/rooms"),
-                apiList("/combos"),
-              ]);
+        const {
+          movies: films,
+          cinemas: locations,
+          showtimes,
+          rooms,
+          combos,
+        } = await read("/showtimes/programme");
         const normalize = (s) =>
           s.toLocaleLowerCase("vi").replace(/[^\p{L}\p{N}]/gu, "");
         const movies = films
@@ -156,7 +122,6 @@ export default function CatalogProvider({ children }) {
         }));
         setData({
           isLive: true,
-          runtimeMode: runtime.mode,
           movies,
           cinemas,
           rooms,
@@ -165,11 +130,7 @@ export default function CatalogProvider({ children }) {
         });
         setError("");
       } catch (cause) {
-        setData((prev) => ({
-          ...(prev || getInitialCatalog()),
-          isLive: false,
-          showtimes: [],
-        }));
+        setData(getInitialCatalog());
         setError(cause.message || "Đặt vé đang tạm gián đoạn.");
       }
     })().finally(() => {
@@ -180,28 +141,6 @@ export default function CatalogProvider({ children }) {
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
-  if (!data)
-    return (
-      <main className="initial-screen">
-        <div>
-          <h1>NOVA CINEMA</h1>
-          <p role={error ? "alert" : "status"}>
-            {error || "Đang tải phim và lịch chiếu…"}
-          </p>
-          {data.runtimeMode === "standalone" && (
-            <div className="standalone-mode-notice" role="status">
-              DEMO ĐỘC LẬP · Dữ liệu mẫu trong bộ nhớ tạm, không phải đơn/vé từ
-              máy chủ NestJS. Khởi động lại có thể mất dữ liệu.
-            </div>
-          )}
-          {error && (
-            <button className="button button-primary" onClick={load}>
-              Thử kết nối lại
-            </button>
-          )}
-        </div>
-      </main>
-    );
   const getDates = (_language, cinemaId, movieId) =>
     [
       ...new Set(
@@ -218,12 +157,15 @@ export default function CatalogProvider({ children }) {
       .sort()
       .map((id) => ({
         id,
-        label: new Date(id + "T12:00:00+07:00").toLocaleDateString("vi-VN", {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit",
-          timeZone: "Asia/Ho_Chi_Minh",
-        }),
+        label: new Date(id + "T12:00:00+07:00").toLocaleDateString(
+          _language === "en" ? "en-GB" : "vi-VN",
+          {
+            weekday: "short",
+            day: "2-digit",
+            month: "2-digit",
+            timeZone: "Asia/Ho_Chi_Minh",
+          },
+        ),
       }));
   const getShowtimes = (cinemaId, movieId, date) =>
     index
@@ -270,19 +212,13 @@ export default function CatalogProvider({ children }) {
         reload: load,
       }}
     >
-      {data.runtimeMode === "standalone" && (
-        <div className="standalone-mode-notice" role="status">
-          DEMO ĐỘC LẬP · Dữ liệu mẫu trong bộ nhớ tạm, không phải đơn/vé từ máy
-          chủ NestJS. Khởi động lại có thể mất dữ liệu.
-        </div>
-      )}
       {error && (
         <div className="catalog-connection-notice">
           <p role="alert">
-            Đặt vé đang tạm gián đoạn. Bạn vẫn có thể khám phá phim và thực đơn.{" "}
+            {t("Không thể kết nối đến máy chủ Backend. Hãy thử kết nối lại.")}{" "}
             <span>{error}</span>
           </p>
-          <button onClick={load}>Thử kết nối lại</button>
+          <button onClick={load}>{t("Thử kết nối lại")}</button>
         </div>
       )}
       {children}

@@ -27,7 +27,7 @@ async function main() {
     process.env.NOVA_REFRESH_PROGRAMME !== "false"
   ) {
     for (const script of ["seed-discovery.cjs", "seed-programme.cjs"]) {
-      console.log("Preparing additive NOVA demo schedule:", script);
+      console.log("Preparing persisted NOVA schedule:", script);
       const code = await new Promise((resolveCode, reject) => {
         const seed = spawn(process.execPath, ["scripts/" + script], {
           cwd: resolve(root, "backend"),
@@ -54,10 +54,10 @@ async function main() {
   let ready = false;
   for (let attempt = 0; attempt < 60 && !stopping; attempt++) {
     try {
-      const r = await fetch(`http://127.0.0.1:${apiPort}/api/v1/health/live`, {
+      const r = await fetch(`http://127.0.0.1:${apiPort}/api/v1/health`, {
         signal: AbortSignal.timeout(2000),
       });
-      if (r.ok || r.status === 503) {
+      if (r.ok) {
         ready = true;
         break;
       }
@@ -68,7 +68,7 @@ async function main() {
   }
   if (!ready) {
     console.error(
-      "Backend readiness failed. Run npm run setup:local and check PostgreSQL/Redis.",
+      "Backend readiness failed. Check the configured PostgreSQL/Redis connection and backend/.env.",
     );
     stop(1);
     return;
@@ -86,7 +86,6 @@ async function main() {
     root,
     {
       ...process.env,
-      NOVA_STANDALONE: "false",
       BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1`,
     },
   );

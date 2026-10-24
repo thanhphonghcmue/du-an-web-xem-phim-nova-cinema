@@ -78,6 +78,7 @@ import LichSuVeKhachHang from "./components/LichSuVeKhachHang.jsx";
 import DangNhap_DangKy from "./components/DangNhap_DangKy.jsx";
 import LichChieuPhim from "./components/LichChieuPhim.jsx";
 import TimKiemPhim from "./components/TimKiemPhim.jsx";
+import { mainNavigation } from "./navigation.js";
 import MenuDieuHuong from "./components/MenuDieuHuong.jsx";
 import HopThoaiModal from "./components/HopThoaiModal.jsx";
 
@@ -348,22 +349,6 @@ export default function App() {
         {language === "en" ? "Skip to content" : "Đến nội dung chính"}
       </a>
       <CinematicBackdrop />
-      <div className="nova-utility">
-        <div className="content-width">
-          <span>ĐIỆN ẢNH KHÔNG GIỚI HẠN.</span>
-          <div>
-            <Link href="/rap">
-              <MapPin size={12} />
-              Tìm rạp NOVA
-            </Link>
-            <Link href="/tai-khoan">
-              <Ticket size={12} />
-              Vé của tôi
-            </Link>
-            <span>VI / EN</span>
-          </div>
-        </div>
-      </div>
       <header className="site-header">
         <div className="nav-inner">
           <Brand />
@@ -393,12 +378,20 @@ export default function App() {
             <button
               className="language-toggle"
               onClick={() => setLanguage(language === "vi" ? "en" : "vi")}
-              aria-label="VN / EN"
+              aria-label="VI / EN"
             >
-              <span className={language === "vi" ? "active" : ""}>VN</span>
+              <span className={language === "vi" ? "active" : ""}>VI</span>
               <i />
               <span className={language === "en" ? "active" : ""}>EN</span>
             </button>
+            <Link
+              href="/tai-khoan"
+              className="header-ticket-link"
+              aria-label={t("Vé của tôi")}
+              title={t("Vé của tôi")}
+            >
+              <Ticket size={20} />
+            </Link>
             <span className="nav-divider" />
             {member?.role === "ADMIN" && (
               <button
@@ -407,7 +400,7 @@ export default function App() {
                 title="Mở Bảng Quản Trị Admin & Doanh Thu"
               >
                 <Crown size={15} />
-                Quản Trị Rạp
+                {t("Quản trị")}
               </button>
             )}
             {["ADMIN", "STAFF"].includes(member?.role) && (
@@ -415,7 +408,7 @@ export default function App() {
                 className="text-button"
                 onClick={() => window.location.assign("/soat-ve")}
               >
-                Soát vé
+                {t("Soát vé")}
               </button>
             )}
             <button
@@ -435,10 +428,6 @@ export default function App() {
               <Ticket size={15} />
               {t("Đặt vé ngay")}{" "}
             </Link>
-            <Link href="/bap-nuoc" className="button header-food">
-              <Popcorn size={15} />
-              Đặt bắp nước
-            </Link>
             <button
               className="icon-button mobile-toggle"
               aria-label={menu ? t("Đóng menu") : t("Mở menu")}
@@ -451,20 +440,14 @@ export default function App() {
         </div>
         {menu && (
           <nav className="mobile-nav" aria-label="Điều hướng di động">
-            {[
-              ["/phim", t("Phim đang chiếu")],
-              ["/sap-chieu", t("Sắp chiếu tháng sau")],
-              ["/dat-ve", t("Lịch chiếu & đặt vé")],
-              ["/rap", t("Rạp Cinema")],
-              ["/uu-dai", t("Ưu đãi & sự kiện")],
-              ["/bap-nuoc", t("Bắp nước & đồ ăn")],
-              ["/hoi-vien", "C’MEMBER"],
-            ].map(([href, label]) => (
-              <a key={href} href={href} onClick={() => setMenu(false)}>
-                {t(label)}
-                <ArrowUpRight size={16} />
-              </a>
-            ))}
+            {[...mainNavigation, ["/tai-khoan", "Vé của tôi"]].map(
+              ([href, label]) => (
+                <Link key={href} href={href} onClick={() => setMenu(false)}>
+                  {t(label)}
+                  <ArrowUpRight size={16} />
+                </Link>
+              ),
+            )}
             {member?.role === "ADMIN" && (
               <Link href="/quan-tri">
                 Quản trị rạp <Crown size={16} />
@@ -489,27 +472,6 @@ export default function App() {
           </nav>
         )}
       </header>
-      <nav className="nova-subnav" aria-label="Khám phá NOVA">
-        <div className="content-width">
-          {[
-            ["/phim", "Phim đang chiếu"],
-            ["/sap-chieu", "Sắp chiếu tháng sau"],
-            ["/dat-ve", "Lịch chiếu & đặt vé"],
-            ["/bap-nuoc", "Bắp nước & đồ ăn"],
-            ["/uu-dai", "Ưu đãi & sự kiện"],
-            ["/rap", "Rạp & trải nghiệm"],
-            ["/hoi-vien", "C’MEMBER"],
-          ].map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={pathname === href ? "page" : undefined}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-      </nav>
       <main id="main-content" tabIndex={-1}>
         {view === "home" ? (
           <>
@@ -968,6 +930,7 @@ export default function App() {
                 <Search size={20} />
                 <input
                   autoFocus
+                  aria-label={t("Tìm phim, rạp...")}
                   placeholder={t("Tên phim, đạo diễn…")}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}

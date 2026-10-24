@@ -6,49 +6,49 @@ backend, giữ ghế đúng 5 phút và thanh toán **Sandbox, không thu tiền
 
 > 🤝 **Dành cho thành viên nhóm / Cộng tác viên:** Xem ngay [Tài liệu hướng dẫn cộng tác & luồng phát triển dự án](COLLABORATION_GUIDE.md) và [Bản đồ chức năng, tiến trình & giải thích code toàn diện](docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md) để nắm rõ vai trò từng file, tiến trình từng trang, luồng đặt vé và các gợi ý mở rộng tính năng mới.
 
-## ⚡ Chạy Nhanh Nhất Để Chấm Bài (KHÔNG CẦN DOCKER)
+## Chạy frontend và backend thật
 
-Hệ thống được tích hợp sẵn **Chế độ độc lập thông minh (Standalone Mode)**. Thầy cô và bạn bè chỉ cần tải code về và chạy đúng 1 lệnh duy nhất:
+NOVA chỉ dùng NestJS và PostgreSQL để lưu tài khoản, đơn, ghế và QR. Không còn
+chế độ demo/RAM hoặc tự chuyển nguồn dữ liệu khi API lỗi. `npm run dev` chỉ chạy
+frontend; nếu backend chưa chạy, giao diện báo lỗi kết nối và không tạo dữ liệu giả.
 
-```bash
-npm install
-npm run dev
-```
-
-Mở trình duyệt tại: **`http://localhost:3000`**
-
-Đây là **chế độ demo độc lập dùng bộ nhớ tạm**, không phải PostgreSQL/NestJS.
-Chỉ tự chọn trong development khi chưa cấu hình `BACKEND_API_URL`; có thể chọn rõ
-bằng `NOVA_STANDALONE=true`. Website có nhãn demo; khởi động lại có thể mất dữ liệu.
-Tài khoản mẫu demo dùng mật khẩu `nova@12345`, và đăng nhập vẫn kiểm tra mật khẩu.
-Các mở rộng email preview, soát vé hai bước và bảo đảm concurrency trong báo cáo dưới
-đây được kiểm chứng trên **backend NestJS thật**, chưa chứng nhận cho kho demo.
-
-Khi có `BACKEND_API_URL` hoặc chạy `dev:full`, mọi đơn/vé dùng backend đã cấu hình.
-Mất kết nối sẽ báo lỗi và cho thử lại, không tự chuyển sang kho demo. Production luôn
-sử dụng backend NestJS. Mật khẩu tài khoản PostgreSQL giữ theo `.env` riêng, không
-bị đổi theo mật khẩu demo. Không dùng mật khẩu demo cho dữ liệu triển khai thật.
-
----
-
-## 🐳 Tùy chọn chạy kèm Docker & Backend NestJS (Môi trường Production)
-
-Nếu muốn khởi động toàn bộ hạ tầng cơ sở dữ liệu vật lý (PostgreSQL 17, Redis 7.4, Mailpit):
-Mở Docker Desktop trước. Trong terminal tại thư mục repository:
+Máy đã có PostgreSQL, Redis và cấu hình riêng `backend/.env`:
 
 ```bash
 npm ci
-npm run setup:local
+npm --prefix backend ci
+npm --prefix backend run build
 npm run dev:full
 ```
 
-`setup:local` cài backend, tạo cấu hình riêng, khởi động PostgreSQL/Redis/Mailpit,
-chạy migrations, seed dữ liệu và build API. Cache Prisma được đặt trong `.runtime/cache`
-(nếu bạn chưa cấu hình `XDG_CACHE_HOME`) để tránh phụ thuộc quyền ghi thư mục home. Lần đầu cần mạng để tải packages/images.
-`dev:full` đợi health check API thành công rồi chạy frontend. Mở địa chỉ do Next.js
-in trong terminal, mặc định cổng **3000**; backend cổng **4000**. Nhấn Ctrl+C để dừng
-hai ứng dụng. Docker giữ dữ liệu cho lần chạy tiếp theo. Dừng container bằng các
-lệnh `infra:down` / `mail:down` trong `backend/` khi cần; không xóa volumes.
+Mở `http://localhost:3000`; backend cổng 4000. `dev:full` đợi readiness của NestJS,
+PostgreSQL/Redis và worker trước khi chạy frontend. Ctrl+C dừng hai ứng dụng;
+dữ liệu vẫn nằm trong PostgreSQL. Nếu backend ở địa chỉ khác, cấu hình
+`BACKEND_API_URL` phía server Next.js. Mặc định là `http://127.0.0.1:4000/api/v1`.
+Các biến cũ từng bật kho RAM không còn tác dụng.
+
+Lần đầu cài trực tiếp, cần **Node.js 24, PostgreSQL 17, Redis 7 và SMTP** đang hoạt
+động. Tạo `backend/.env` theo `backend/.env.example`, điền kết nối dev/test riêng,
+mật khẩu tài khoản khởi tạo và SMTP của bạn, rồi chạy từ thư mục dự án:
+
+```bash
+npm ci
+npm --prefix backend ci
+npm --prefix backend run auth:configure
+npm --prefix backend run payment:configure
+npm --prefix backend run prisma:generate
+npm --prefix backend run db:migrate
+npm --prefix backend run db:seed
+npm --prefix backend run build
+npm run dev:full
+```
+
+Không chạy helper hạ tầng Compose khi dùng PostgreSQL/Redis cài trực tiếp.
+`setup:local` là lựa chọn riêng cho Compose, không phải bước bắt buộc. Không gửi
+hoặc commit `.env`; không xóa cấu hình/DB để cập nhật giao diện. Seed bổ sung chỉ
+thêm bản ghi còn thiếu, giữ mật khẩu, đơn và lịch đã có.
+
+Xem [kiểm chứng server-only và đồng bộ dữ liệu](docs/design/server-only-qa.md).
 
 Giao diện Discovery có các trang riêng `/phim`, `/sap-chieu`, `/uu-dai`, `/bap-nuoc`,
 `/rap`, `/hoi-vien`, `/dang-nhap`, `/tai-khoan`, `/dat-ve`, `/quan-tri` và `/soat-ve`.
@@ -57,7 +57,7 @@ Các trang `/gioi-thieu`, `/ho-tro`, `/huong-dan`, `/chinh-sach`, `/lien-he` và
 có thể đóng/ẩn trong ngày, sau đó là hero Inception với ảnh concept riêng.
 
 Seed bổ sung chuẩn bị **24 phim (16 đang chiếu/tuyển chọn, 8 sắp tái chiếu), 16 món/combo**,
-**24 phòng mỗi rạp mẫu**, lịch **hôm nay + 30 ngày tới theo giờ Việt Nam**. Lịch có buổi sáng,
+**40 phòng mỗi rạp mẫu**, lịch **ít nhất 30 ngày tới, phủ hết tháng sau theo giờ Việt Nam**. Lịch có buổi sáng,
 chiều, tối và suất muộn; có bộ lọc phòng/buổi và thanh chọn rạp → phim → ngày → giờ/phòng.
 Các ngày sắp chiếu là chương trình tái chiếu dự kiến tháng sau, không phải ngày phát hành chính thức.
 Với máy đã setup trước đó, chạy trong `backend/`:
@@ -89,10 +89,6 @@ Seed bảo toàn mật khẩu tài khoản đã tồn tại.
 Nếu chỉ chạy lại sau khi đã setup:
 
 ```bash
-cd backend
-npm run infra:up:test
-npm run mail:up
-cd ..
 npm run dev:full
 ```
 
@@ -138,6 +134,7 @@ không đặt wildcard cho return URL. Reverse proxy cần tắt buffering cho
 ```bash
 npm run lint
 npm run build
+node scripts/check-backend-only.cjs
 # Backend build + dedicated test PostgreSQL/Redis phải sẵn sàng trước npm test.
 npm test
 cd backend
@@ -190,7 +187,7 @@ Trang chủ/danh mục và bộ chọn rạp mẫu nay có đủ 24 phim; không
 Mỗi rạp mẫu có 40 phòng, mỗi phim ít nhất 4 giờ/ngày trên 2 phòng, mở đến ngày cuối
 tháng sau và tối thiểu 30 ngày tới. Phim COMING_SOON có suất chiếu sớm theo lịch
 thực, vẫn đặt ghế/thanh toán Sandbox/nhận QR qua backend. Lịch có chấm ngày mở bán.
-Chế độ demo cũng đã bỏ dữ liệu 6 phim/4 ngày nhưng vẫn mang nhãn demo riêng.
+Kho demo trước đây đã được loại bỏ; chỉ còn lịch và giao dịch từ NestJS/PostgreSQL.
 
 Sau khi cập nhật, build backend rồi chạy `npm run dev:full` để bổ sung lịch còn thiếu.
 Nếu dùng PostgreSQL/Redis cài trực tiếp thì giữ cấu hình kết nối hiện tại, không cần

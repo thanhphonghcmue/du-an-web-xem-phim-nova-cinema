@@ -11,6 +11,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Length,
   Max,
   Min,
   ValidateIf,
@@ -73,11 +74,17 @@ export class HoldSeatsDto {
   comboItems?: ComboItemDto[];
 
   @ApiPropertyOptional({
-    description: "Mã giảm giá / khuyến mãi (ví dụ: NOVA20, CINEMA10, U22, CHAOBANMOI, VIP50)",
+    description:
+      "Mã giảm giá / khuyến mãi (ví dụ: NOVA20, CINEMA10, U22, CHAOBANMOI, VIP50)",
     example: "NOVA20",
+    maxLength: 32,
   })
-  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === "string" ? value.trim().toUpperCase() : value,
+  )
+  @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
   @IsString()
+  @Length(1, 32)
   couponCode?: string;
 }
 export class ListBookingsDto extends PaginationDto {

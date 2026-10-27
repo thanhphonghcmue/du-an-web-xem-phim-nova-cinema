@@ -3,6 +3,91 @@
   top: 0;
   padding: 0;
 }
+
+/* Payment cards size themselves inside the booking sidebar, not the viewport. */
+.payment-sandbox-card,
+.payment-action {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+.payment-sandbox-card {
+  container-type: inline-size;
+}
+.payment-provider-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+}
+.payment-provider-tabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 12px 6px;
+  border: 1px solid #657086;
+  border-radius: 10px;
+  background: #121a29;
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.payment-provider-tabs button span,
+.payment-provider-tabs button small {
+  white-space: nowrap;
+}
+.payment-provider-tabs button small {
+  font-size: 10px;
+  color: #c5cfdd;
+}
+.payment-provider-tabs button[aria-pressed="true"] {
+  border-color: #fb4264;
+  background: #6e1831;
+}
+.payment-sandbox-card .payment-action > .button {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-inline: 12px;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  border-radius: 10px;
+}
+@container (min-width: 380px) {
+  .payment-provider-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.ticket-stub .ticket-qr-svg {
+  display: block;
+  width: min(192px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  margin-inline: auto;
+}
+.ticket-qr-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  max-width: 240px;
+  border: 1px dashed #657086;
+  border-radius: 12px;
+  color: #f8fafc;
+  padding: 16px;
+  text-align: center;
+}
 .admin-users-toolbar {
   display: flex;
   align-items: end;

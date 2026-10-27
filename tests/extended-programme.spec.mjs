@@ -279,8 +279,12 @@ test("movie 20 can be booked 15 days ahead: D10/D12 warns about D11, then valid 
   await page
     .getByRole("button", { name: "Xem vé trong tài khoản", exact: true })
     .click();
-  await page.locator(".login-trigger").click();
-  await expect(page.getByAltText(`QR vé ${order.orderCode}`)).toBeVisible();
+  await expect(page).toHaveURL(
+    new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
+  );
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
   const tickets = (
     await (await page.request.get("/api/v1/tickets/me?limit=100")).json()
   ).data.items.filter((ticket) => ticket.bookingId === order.id);

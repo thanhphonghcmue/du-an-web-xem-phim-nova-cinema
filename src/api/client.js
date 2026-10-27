@@ -28,6 +28,7 @@
 
 // Địa chỉ cổng API Gateway nội bộ trên Next.js
 export const API_BASE = "/api/v1";
+import { apiErrorMessage } from "./errorMessage.js";
 let refreshing;
 
 /**
@@ -95,14 +96,11 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
       return apiRequest(endpoint, options, false);
     }
 
-    const rawMsg = Array.isArray(payload.message)
-      ? payload.message.join(", ")
-      : payload.message;
-    const msg =
-      rawMsg === "Rate limiting is temporarily unavailable." ||
-      payload.error === "RATE_LIMIT_UNAVAILABLE"
-        ? "Hệ thống đang bận. Vui lòng thử lại sau giây lát."
-        : rawMsg || "Yêu cầu không thành công.";
+    const msg = apiErrorMessage(
+      payload,
+      response.status,
+      typeof document !== "undefined" ? document.documentElement.lang : "vi",
+    );
     const error = new Error(msg);
     error.status = response.status;
     error.details = payload.details;

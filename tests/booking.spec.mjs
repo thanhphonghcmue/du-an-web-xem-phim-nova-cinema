@@ -552,8 +552,34 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
     page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Xem vé trong tài khoản" }).click();
-  await page.locator(".login-trigger").click();
-  await expect(page.getByAltText(`QR vé ${order.orderCode}`)).toBeVisible();
+  await expect(page).toHaveURL(
+    new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
+  );
+  await expect(page.locator(".account-page")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  // A failure of the separate order list must not hide a successfully loaded ticket.
+  await page.route("**/api/v1/bookings/me?*", (route) => route.abort());
+  await page.reload();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".history-list [role=alert]")).toContainText(
+    "Kết nối bị gián đoạn",
+  );
+  await page.unroute("**/api/v1/bookings/me?*");
+  await page.getByRole("button", { name: "Làm mới vé", exact: true }).click();
+  await expect(page.locator(".history-list [role=alert]")).toHaveCount(0);
   const tickets = (
     await read(page, "/tickets/me?limit=100")
   ).body.data.items.filter((t) => t.bookingId === order.id);
@@ -776,7 +802,11 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
     route.fulfill({
       status: 503,
       contentType: "application/json",
-      body: JSON.stringify({ message: "Backend unavailable" }),
+      body: JSON.stringify({
+        success: false,
+        code: "BACKEND_UNAVAILABLE",
+        message: "Backend unavailable",
+      }),
     }),
   );
   await page.reload();

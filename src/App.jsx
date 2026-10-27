@@ -385,7 +385,7 @@ export default function App() {
               <span className={language === "en" ? "active" : ""}>EN</span>
             </button>
             <Link
-              href="/tai-khoan"
+              href="/tai-khoan#ve-cua-toi"
               className="header-ticket-link"
               aria-label={t("Vé của tôi")}
               title={t("Vé của tôi")}
@@ -440,7 +440,7 @@ export default function App() {
         </div>
         {menu && (
           <nav className="mobile-nav" aria-label="Điều hướng di động">
-            {[...mainNavigation, ["/tai-khoan", "Vé của tôi"]].map(
+            {[...mainNavigation, ["/tai-khoan#ve-cua-toi", "Vé của tôi"]].map(
               ([href, label]) => (
                 <Link key={href} href={href} onClick={() => setMenu(false)}>
                   {t(label)}
@@ -892,6 +892,13 @@ export default function App() {
           member={member}
           onMemberUpdate={setMember}
           onClose={() => setBooking(null)}
+          onViewTickets={(orderId) => {
+            setBooking(null);
+            setModal(null);
+            window.location.assign(
+              `/tai-khoan?ve=${encodeURIComponent(orderId)}#ve-cua-toi`,
+            );
+          }}
         />
       )}
       {modal && !["admin", "staff"].includes(modal) && (

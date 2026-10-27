@@ -53,7 +53,17 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   });
   const scheduleReady =
     schedule.day === day && schedule.cinemaId === cinemaId && !schedule.error;
-  const screenings = scheduleReady ? schedule.items : [];
+  // Pagination or a stale upstream can repeat a UUID. Keep one real screening
+  // per ID; an index suffix would conceal duplicates while leaving bad choices.
+  const screenings = scheduleReady
+    ? [
+        ...new Map(
+          schedule.items
+            .filter((show) => typeof show?.id === "string" && show.id.trim())
+            .map((show) => [show.id, show]),
+        ).values(),
+      ]
+    : [];
   useEffect(() => {
     let active = true;
     async function load() {

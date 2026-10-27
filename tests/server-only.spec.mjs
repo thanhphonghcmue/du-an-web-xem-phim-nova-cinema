@@ -196,7 +196,7 @@ test("VI EN translates the header, booking controls, calendar and sign-in, and p
     .locator(".site-header")
     .getByRole("link", { name: "My tickets", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/tai-khoan$/);
+  await expect(page).toHaveURL(/\/tai-khoan#ve-cua-toi$/);
   await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
@@ -237,7 +237,7 @@ test("one compact header keeps cinema and My tickets navigation functional on de
       ),
     ).toBe(true);
     await header.getByRole("link", { name: "Vé của tôi", exact: true }).click();
-    await expect(page).toHaveURL(/\/tai-khoan$/);
+    await expect(page).toHaveURL(/\/tai-khoan#ve-cua-toi$/);
     await expect(page.locator(".auth-form")).toBeVisible();
     await expect(
       page.getByText("Mật khẩu: nova@12345", { exact: false }),

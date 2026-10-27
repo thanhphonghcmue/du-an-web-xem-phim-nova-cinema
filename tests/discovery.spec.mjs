@@ -389,8 +389,12 @@ test("a coming-soon film with a real schedule can be prebooked, paid and issued 
   await expect(page.getByRole("dialog", { name: /Mở màn rực rỡ/ })).toHaveCount(
     0,
   );
-  await page.locator(".login-trigger").click();
-  await expect(page.getByAltText(`QR vé ${order.orderCode}`)).toBeVisible();
+  await expect(page).toHaveURL(
+    new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
+  );
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
   const result = await page.request.get("/api/v1/tickets/me?limit=100");
   const tickets = (await result.json()).data.items.filter(
     (ticket) => ticket.bookingId === order.id,

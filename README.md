@@ -50,6 +50,11 @@ thêm bản ghi còn thiếu, giữ mật khẩu, đơn và lịch đã có.
 
 Xem [kiểm chứng server-only và đồng bộ dữ liệu](docs/design/server-only-qa.md).
 
+Đợt sửa lỗi 27/10: **Vé của tôi** mở thẳng ví vé; QR SVG đọc mã vé thật từ
+backend, có trạng thái chờ phát hành. Màn soát vé lọc ID suất trùng; card thanh
+toán thích ứng điện thoại. Báo cáo CSV dùng đúng tổng tiền/khung ngày; voucher
+không đủ điều kiện báo lỗi trước khi tạo đơn. Xem [kiểm chứng luồng nghiệp vụ](docs/design/business-flow-audit.md).
+
 Giao diện Discovery có các trang riêng `/phim`, `/sap-chieu`, `/uu-dai`, `/bap-nuoc`,
 `/rap`, `/hoi-vien`, `/dang-nhap`, `/tai-khoan`, `/dat-ve`, `/quan-tri` và `/soat-ve`.
 Các trang `/gioi-thieu`, `/ho-tro`, `/huong-dan`, `/chinh-sach`, `/lien-he` và
@@ -135,6 +140,8 @@ không đặt wildcard cho return URL. Reverse proxy cần tắt buffering cho
 npm run lint
 npm run build
 node scripts/check-backend-only.cjs
+node scripts/check-fullstack-startup.cjs
+node --test scripts/ticket-qr.test.mjs
 # Backend build + dedicated test PostgreSQL/Redis phải sẵn sàng trước npm test.
 npm test
 cd backend

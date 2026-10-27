@@ -24,43 +24,99 @@
  * ==============================================================================
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { apiGetMyBookings, apiGetMyTickets } from "../api/client.js";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
 import TicketConfirmation from "./TicketConfirmation.jsx";
-import { CalendarDays, Download, Ticket } from "lucide-react";
+import ETicketQr from "./ETicketQr.jsx";
+import { ticketPng } from "../ticketQr.js";
+import { CalendarDays, Download, Ticket, RefreshCw } from "lucide-react";
 export default function LichSuVeKhachHang({ member, onResume }) {
   const { contextFor, movies } = useCatalog();
   const [filter, setFilter] = useState("all");
+  const memberId = member?.id;
+  const generation = useRef(0);
+  const inFlight = useRef(null);
+  const firstQr = useRef(null);
+  const wallet = useRef(null);
+  const didScrollToQr = useRef(false);
+  const invalidate = useCallback(() => {
+    generation.current++;
+    inFlight.current = null;
+  }, []);
   const [tickets, setTickets] = useState([]),
     [orders, setOrders] = useState([]),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
-  const load = useCallback(async () => {
-    if (!member) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const [t, o] = await Promise.all([apiGetMyTickets(), apiGetMyBookings()]);
-      setTickets(Array.isArray(t) ? t : []);
-      setOrders(Array.isArray(o) ? o : []);
-      setError("");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [member]);
+  const load = useCallback(() => {
+    if (!memberId) return;
+    if (inFlight.current) return inFlight.current;
+    const version = generation.current;
+    const task = (async () => {
+      setLoading(true);
+      try {
+        const [t, o] = await Promise.allSettled([
+          apiGetMyTickets(),
+          apiGetMyBookings(),
+        ]);
+        if (version !== generation.current) return;
+        if (t.status === "fulfilled") setTickets(t.value);
+        if (o.status === "fulfilled") setOrders(o.value);
+        setError(
+          [t, o]
+            .filter((result) => result.status === "rejected")
+            .map((result) => result.reason.message)
+            .join(" · "),
+        );
+      } finally {
+        if (version === generation.current) setLoading(false);
+      }
+    })();
+    inFlight.current = task;
+    void task.finally(() => {
+      if (inFlight.current === task) inFlight.current = null;
+    });
+    return task;
+  }, [memberId]);
   useEffect(() => {
-    void Promise.resolve().then(load);
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (!active) return;
+      setTickets([]);
+      setOrders([]);
+      setError("");
+      didScrollToQr.current = false;
+      return load();
+    });
     const poll = setInterval(load, 5000);
-    return () => clearInterval(poll);
-  }, [load]);
+    return () => {
+      active = false;
+      invalidate();
+      clearInterval(poll);
+    };
+  }, [load, invalidate]);
+  useEffect(() => {
+    if (didScrollToQr.current || window.location.hash !== "#ve-cua-toi") return;
+    const requestedBooking = new URLSearchParams(window.location.search).get(
+      "ve",
+    );
+    const target = requestedBooking
+      ? [...(wallet.current?.querySelectorAll(".cinema-ticket") || [])].find(
+          (card) => card.dataset.bookingId === requestedBooking,
+        )
+      : firstQr.current;
+    const qr = target?.querySelector(".ticket-qr-svg");
+    if (!qr) return;
+    const frame = requestAnimationFrame(() => {
+      qr.scrollIntoView({ block: "center", behavior: "instant" });
+      didScrollToQr.current = true;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [tickets]);
   if (!member) return <p>Vui lòng đăng nhập để tra cứu vé của bạn.</p>;
   return (
-    <div className="history-list">
+    <div className="history-list" ref={wallet}>
       <div className="history-tabs" role="group" aria-label="Lọc lịch sử vé">
         {[
           ["all", "Tất cả vé"],
@@ -77,6 +133,9 @@ export default function LichSuVeKhachHang({ member, onResume }) {
             {label}
           </button>
         ))}
+        <button type="button" onClick={load} disabled={loading}>
+          <RefreshCw size={15} /> Làm mới vé
+        </button>
       </div>
       {loading && <p role="status">Đang tải vé…</p>}
       {error && <p role="alert">{error}</p>}
@@ -114,9 +173,10 @@ export default function LichSuVeKhachHang({ member, onResume }) {
             o.status === "PAID" && !tickets.some((t) => t.bookingId === o.id),
         )
         .map((o) => (
-          <p role="status" key={o.id}>
-            Đơn {o.orderCode}: Đã thanh toán · đang phát hành vé QR.
-          </p>
+          <div role="status" key={o.id}>
+            <p>Đơn {o.orderCode}: Đã thanh toán · đang phát hành vé QR.</p>
+            <ETicketQr loading />
+          </div>
         ))}
       {tickets
         .filter(
@@ -128,8 +188,12 @@ export default function LichSuVeKhachHang({ member, onResume }) {
                 ? !ticket.isCheckedIn
                 : false),
         )
-        .map((ticket) => (
-          <article className="cinema-ticket" key={ticket.id}>
+        .map((ticket, index) => (
+          <article
+            className="cinema-ticket"
+            key={ticket.id}
+            data-booking-id={ticket.bookingId}
+          >
             <img
               className="ticket-movie-poster"
               src={
@@ -163,20 +227,22 @@ export default function LichSuVeKhachHang({ member, onResume }) {
               </small>
               <p className="ticket-order-code">Mã đơn: {ticket.orderCode}</p>
             </div>
-            <div className="ticket-stub">
-              <img
-                src={ticket.qrCodeBase64}
-                alt={`QR vé ${ticket.orderCode}`}
-              />
+            <div
+              className="ticket-stub"
+              ref={index === 0 ? firstQr : undefined}
+            >
+              <ETicketQr ticket={ticket} />
               <p>
-                <a
-                  className="text-button"
-                  href={ticket.qrCodeBase64}
-                  download={`${ticket.orderCode}.png`}
-                >
-                  <Download size={12} />
-                  Tải QR
-                </a>{" "}
+                {ticketPng(ticket) && (
+                  <a
+                    className="text-button"
+                    href={ticketPng(ticket)}
+                    download={`${ticket.orderCode}.png`}
+                  >
+                    <Download size={12} />
+                    Tải QR
+                  </a>
+                )}{" "}
                 ·{" "}
                 <a
                   className="text-button"

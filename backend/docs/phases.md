@@ -128,3 +128,14 @@ frontend đồng bộ lại khi focus và theo chu kỳ. Compiled production smo
 SOLD, cùng QR và trạng thái đã check-in vẫn tồn tại. Không dùng Docker, không
 reset DB/.env và không đánh dấu Phase 11–12 hoàn tất. Xem
 [bằng chứng server-only](../../docs/design/server-only-qa.md).
+
+## Rà soát vé, quản trị và launcher (27/10/2026)
+
+Theo yêu cầu sửa lỗi QR/soát vé và kiểm tra nghiệp vụ: đã tích hợp commit remote
+`2abf704`, gỡ đường tự chuyển sang kho RAM theo cổng DB cố định. NestJS dùng
+DATABASE_URL cấu hình và dừng khi hạ tầng không sẵn sàng. Voucher không hợp lệ
+hoặc dưới ngưỡng trả 400, giao dịch không tạo booking/ghế; DTO chuẩn hóa và giới
+hạn độ dài mã. Không đổi schema, Decimal pricing/state machine, HMAC, ownership
+hoặc RBAC. Frontend mở ví vé thật, render SVG từ hash do backend cấp, dedup suất
+và xuất đúng aggregate doanh thu. Không đánh dấu Phase 11–12 hoàn tất. Bằng
+chứng: [rà soát nghiệp vụ](../../docs/design/business-flow-audit.md).

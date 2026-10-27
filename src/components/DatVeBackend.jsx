@@ -56,6 +56,7 @@ import {
 import Modal from "./Modal.jsx";
 import { useCatalog } from "../catalog.js";
 import { useI18n } from "../i18n.js";
+import { createRequestKey } from "../api/requestKey.js";
 import { money } from "../data.js";
 import { menuDetails } from "../commerce.js";
 import {
@@ -220,7 +221,12 @@ function AgeRatingModal({ ageInfo, movieTitle, onConfirm, onCancel }) {
 
 const PROMO_COUPONS = [
   { code: "NOVA20", desc: "Giảm 20.000đ mọi đơn", value: 20000, type: "fixed" },
-  { code: "CINEMA10", desc: "Giảm 10% tổng vé", value: 10, type: "percent" },
+  {
+    code: "CINEMA10",
+    desc: "Giảm 10% tổng đơn sau ưu đãi hội viên",
+    value: 10,
+    type: "percent",
+  },
   {
     code: "U22",
     desc: "Giảm 25.000đ cho HSSV",
@@ -242,6 +248,12 @@ const PROMO_COUPONS = [
     type: "fixed",
     min: 150000,
   },
+];
+const paymentGateways = [
+  { id: "vietqr", title: "VietQR", detail: "(Napas)" },
+  { id: "momo", title: "MoMo", detail: "Ví điện tử" },
+  { id: "vnpay", title: "VNPAY", detail: "Cổng thanh toán" },
+  { id: "sandbox", title: "Sandbox", detail: "Môi trường thử" },
 ];
 
 function checkClientOrphanSeats(selectedIds, allSeats) {
@@ -317,6 +329,7 @@ export default function DatVeBackend({
   booking,
   member,
   onClose,
+  onViewTickets,
   onMemberUpdate,
 }) {
   const { t, language } = useI18n();
@@ -332,6 +345,7 @@ export default function DatVeBackend({
   const [groupType, setGroupType] = useState("");
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [gateway, setGateway] = useState("sandbox");
   const [comboItems, setComboItems] = useState(() => {
     const combo = booking.combo && combos.find((c) => c.price === "69000.00");
     let cart = {};
@@ -461,7 +475,7 @@ export default function DatVeBackend({
     }
     setAppliedCoupon(found);
     setNotice(
-      `Đã chọn áp dụng mã ${found.code}: ${found.desc}! Giá ưu đãi sẽ được cập nhật khi giữ ghế.`,
+      `Đã chọn mã ${found.code}. Máy chủ kiểm tra điều kiện trên tổng đơn sau ưu đãi hội viên khi giữ ghế.`,
     );
   }
 
@@ -533,20 +547,16 @@ export default function DatVeBackend({
       ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
     };
     const canonical = JSON.stringify(payload);
-    if (requestKey.current?.body !== canonical)
-      requestKey.current = { body: canonical, key: crypto.randomUUID() };
     try {
+      if (requestKey.current?.body !== canonical)
+        requestKey.current = { body: canonical, key: createRequestKey() };
       const result = await apiHoldSeats(payload, requestKey.current.key);
       activeOrderId.current = result.id;
       setOrder(result);
       setSelected(result.seats.map((s) => s.seatId));
       await refresh();
     } catch (err) {
-      setNotice(
-        err.status === 409
-          ? "Ghế vừa được người khác giữ hoặc suất đã đóng. Vui lòng chọn lại."
-          : err.message,
-      );
+      setNotice(err.message);
       await refresh().catch(() => {});
     } finally {
       setBusy(false);
@@ -598,6 +608,28 @@ export default function DatVeBackend({
       return;
     }
     void checkout();
+  }
+
+  // The signed Sandbox form performs payment on NestJS. This handler only
+  // accepts its persisted result; it cannot invent PAID or create a local ticket.
+  async function handleMockPaymentSuccess() {
+    setBusy(true);
+    setNotice("");
+    try {
+      const confirmed = await apiGetBooking(order.id);
+      setOrder(confirmed);
+      if (confirmed.status !== "PAID") {
+        setNotice(
+          "Máy chủ chưa xác nhận thanh toán thành công. Hãy kiểm tra lại đơn.",
+        );
+        return;
+      }
+      onViewTickets(confirmed.id);
+    } catch (error) {
+      setNotice(error.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   useEffect(() => {
@@ -701,10 +733,14 @@ export default function DatVeBackend({
             Mã đơn hàng: <b>{order.orderCode}</b>
           </p>
           <p>
-            Vé điện tử e-Ticket kèm QR Code bảo mật đã sẵn sàng trong tài khoản
-            của bạn.
+            Mở ví vé để xem mã QR. Nếu hệ thống đang phát hành vé, trạng thái sẽ
+            tự cập nhật tại đó.
           </p>
-          <button className="button button-primary" onClick={onClose}>
+          <button
+            className="button button-primary"
+            disabled={busy}
+            onClick={handleMockPaymentSuccess}
+          >
             {t("Xem vé trong tài khoản")}
           </button>
         </div>
@@ -1016,6 +1052,36 @@ export default function DatVeBackend({
                     <ShieldCheck size={26} />
                   </div>
                   <h4>Một bước nữa tới màn ảnh lớn.</h4>
+                  <div
+                    className="payment-provider-tabs grid grid-cols-2 sm:grid-cols-4 gap-2"
+                    role="group"
+                    aria-label="Chọn cổng thanh toán mô phỏng"
+                  >
+                    {paymentGateways.map((method) => (
+                      <button
+                        key={method.id}
+                        type="button"
+                        aria-pressed={gateway === method.id}
+                        disabled={busy}
+                        onClick={() => setGateway(method.id)}
+                      >
+                        <span className="whitespace-nowrap">
+                          {method.title}
+                        </span>
+                        <small className="whitespace-nowrap">
+                          {method.detail}
+                        </small>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="payment-provider-notice" role="status">
+                    {
+                      paymentGateways.find((method) => method.id === gateway)
+                        .title
+                    }{" "}
+                    · Mô phỏng qua Sandbox. Không kết nối ngân hàng hoặc ví
+                    thật.
+                  </p>
                   <p>
                     Đơn hàng và giá đã được xác nhận. Tiếp tục sang Sandbox để
                     chọn kết quả thanh toán mô phỏng.
@@ -1030,13 +1096,15 @@ export default function DatVeBackend({
                       Giữ nguyên hạn giữ ghế
                     </span>
                   </div>
-                  <button
-                    className="button button-primary"
-                    disabled={busy}
-                    onClick={handlePaymentClick}
-                  >
-                    {t("Thanh toán Sandbox")}
-                  </button>
+                  <div className="payment-action w-full max-w-full">
+                    <button
+                      className="button button-primary"
+                      disabled={busy}
+                      onClick={handlePaymentClick}
+                    >
+                      {t("Thanh toán Sandbox")}
+                    </button>
+                  </div>
                 </div>
                 <button
                   className="text-button"

@@ -311,6 +311,61 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     await redis.quit();
   });
 
+  it.each([
+    ["UNKNOWN", "COUPON_INVALID"],
+    ["CHAOBANMOI", "COUPON_MINIMUM_NOT_MET"],
+  ])(
+    "rejects %s without a booking or held seat, then accepts a valid coupon with the same request key",
+    async (couponCode, expectedCode) => {
+      const f = await fixture();
+      const key = randomUUID();
+      const submit = (coupon: string) =>
+        request(server)
+          .post("/api/v1/bookings/hold")
+          .auth(customerA, { type: "bearer" })
+          .set("Idempotency-Key", key)
+          .send({ ...input(f), couponCode: coupon });
+      expect(code(await submit(couponCode).expect(400))).toBe(expectedCode);
+      expect(
+        await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+      ).toBe(0);
+      expect(
+        await prisma.bookingSeat.count({
+          where: { showtimeId: f.showtime.id },
+        }),
+      ).toBe(0);
+      const created = booking(await submit(" nova20 ").expect(201));
+      expect(created).toMatchObject({
+        totalTicketAmount: "90000.00",
+        discountAmount: "24500.00",
+        finalAmount: "65500.00",
+      });
+      const replay = booking(await submit("NOVA20").expect(201));
+      expect(replay.id).toBe(created.id);
+      expect(replay.expiredAt).toBe(created.expiredAt);
+      expect(code(await submit("CINEMA10").expect(409))).toBe(
+        "IDEMPOTENCY_CONFLICT",
+      );
+      await cancel(created.id).expect(200);
+    },
+  );
+
+  it.each([null, "", " ", "X".repeat(33)])(
+    "rejects malformed coupon input %p before writing a booking",
+    async (couponCode) => {
+      const f = await fixture();
+      const result = await request(server)
+        .post("/api/v1/bookings/hold")
+        .auth(customerA, { type: "bearer" })
+        .send({ ...input(f), couponCode })
+        .expect(400);
+      expect(code(result)).toBe("VALIDATION_ERROR");
+      expect(
+        await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+      ).toBe(0);
+    },
+  );
+
   it("requires authentication and exposes only the current user's bookings", async () => {
     const f = await fixture();
     const created = booking(await hold(f).expect(201));

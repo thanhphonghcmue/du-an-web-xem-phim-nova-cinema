@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { ApiException } from "../../common/exceptions/api.exception";
 
 export interface CouponDef {
   code: string;
@@ -20,7 +21,7 @@ export const VALID_COUPONS: Record<string, CouponDef> = {
   CINEMA10: {
     code: "CINEMA10",
     name: "Ưu đãi Mê Phim",
-    description: "Giảm 10% tổng tiền vé",
+    description: "Giảm 10% tổng đơn sau ưu đãi hội viên",
     discountType: "PERCENT",
     discountValue: 10,
   },
@@ -60,10 +61,14 @@ export function calculateCouponDiscount(
   const normalized = couponCode.trim().toUpperCase();
   const coupon = VALID_COUPONS[normalized];
   if (!coupon) {
-    return { discountAmount: new Prisma.Decimal("0") };
+    throw new ApiException(400, "COUPON_INVALID", "Mã giảm giá không hợp lệ.");
   }
   if (coupon.minSubtotal && subtotal.lt(coupon.minSubtotal)) {
-    return { discountAmount: new Prisma.Decimal("0") };
+    throw new ApiException(
+      400,
+      "COUPON_MINIMUM_NOT_MET",
+      `Mã ${coupon.code} yêu cầu tổng đơn sau ưu đãi hội viên tối thiểu ${coupon.minSubtotal.toLocaleString("vi-VN")}đ. Hãy thêm vé/bắp nước hoặc gỡ mã để tiếp tục.`,
+    );
   }
 
   let discount: Prisma.Decimal;

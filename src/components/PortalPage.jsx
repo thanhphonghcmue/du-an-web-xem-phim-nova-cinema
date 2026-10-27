@@ -405,7 +405,7 @@ export default function PortalPage({
         <div className="discovery-heading">
           <div>
             <p className="nova-kicker">YOUR MOVIE MEMORIES</p>
-            <h2>
+            <h2 id="ve-cua-toi" style={{ scrollMarginTop: "110px" }}>
               Vé & đơn đặt <em>của bạn.</em>
             </h2>
           </div>

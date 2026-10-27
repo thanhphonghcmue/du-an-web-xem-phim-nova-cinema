@@ -269,6 +269,21 @@ async function main() {
       price: "69000.00",
     },
   });
+  const menuCatalog = require("../content/cinema.json").menu;
+  const menuCombos = [];
+  for (const item of menuCatalog)
+    menuCombos.push(
+      (await prisma.combo.findFirst({
+        where: { name: item.name, isActive: true },
+      })) ||
+        (await prisma.combo.create({
+          data: {
+            name: item.name,
+            description: `${prefix} menu · ${item.description}`,
+            price: String(item.price),
+          },
+        })),
+    );
   const extended =
     await require("./extended-programme-fixture.cjs").extendedProgrammeFixture(
       prisma,
@@ -297,6 +312,7 @@ async function main() {
       presaleMovie,
       presaleShow,
       combo,
+      menuCombos,
       extended,
     }),
     { mode: 0o600 },

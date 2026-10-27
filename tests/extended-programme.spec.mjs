@@ -138,6 +138,24 @@ test("Vietnam calendar enables every actual screening day through the following 
   await page.goto(
     `/dat-ve?cinema=${extended.cinemas[0].id}&movie=${extended.movies[23].id}`,
   );
+  // Today can have no remaining starts when this suite runs late in Vietnam.
+  // The public API, rather than the fixture's original date range, owns availability.
+  const snapshot = await programme(page);
+  const roomIds = new Set(
+    snapshot.rooms
+      .filter((room) => room.cinemaId === extended.cinemas[0].id)
+      .map((room) => room.id),
+  );
+  const bookableDays = new Set(
+    snapshot.showtimes
+      .filter(
+        (show) =>
+          show.movieId === extended.movies[23].id &&
+          roomIds.has(show.roomId) &&
+          new Date(show.startTime).getTime() > Date.now(),
+      )
+      .map((show) => calendar.dayKey(show.startTime)),
+  );
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     await page
@@ -150,15 +168,25 @@ test("Vietnam calendar enables every actual screening day through the following 
       for (let day = 0; day <= extended.window.daysAhead; day++) {
         const key = calendar.dayKey(extended.window.today + day * calendar.DAY);
         if (!key.startsWith(shownMonth)) continue;
-        await expect(
-          dialog.locator(`[data-calendar-date="${key}"]`),
-        ).toBeEnabled();
+        if (bookableDays.has(key))
+          await expect(
+            dialog.locator(`[data-calendar-date="${key}"]`),
+          ).toBeEnabled();
+        else
+          await expect(
+            dialog.locator(`[data-calendar-date="${key}"]`),
+          ).toBeDisabled();
         await expect(
           dialog.locator(`[data-calendar-date="${key}"]`),
         ).toHaveClass(/rdp-day_button/);
-        await expect(
-          dialog.locator(`[data-calendar-date="${key}"]`).locator(".."),
-        ).toHaveClass(/calendar-available/);
+        if (bookableDays.has(key))
+          await expect(
+            dialog.locator(`[data-calendar-date="${key}"]`).locator(".."),
+          ).toHaveClass(/calendar-available/);
+        else
+          await expect(
+            dialog.locator(`[data-calendar-date="${key}"]`).locator(".."),
+          ).not.toHaveClass(/calendar-available/);
       }
       if (month === 0) {
         const next = new Date(

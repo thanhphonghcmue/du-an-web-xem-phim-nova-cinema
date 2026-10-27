@@ -1,16 +1,25 @@
 # NOVA Cinema — Beyond the Frame
 
 Next.js 16 / React 19 / Tailwind 3 frontend, NestJS 11 API, PostgreSQL 17,
-Prisma 6, Redis / BullMQ, Socket.IO và email SMTP. Luồng đặt vé dùng dữ liệu
-backend, giữ ghế đúng 5 phút và thanh toán **Sandbox, không thu tiền thật**.
+Prisma 6, Redis / BullMQ, Socket.IO và email SMTP. Luồng đặt vé NestJS dùng dữ liệu
+PostgreSQL, giữ ghế đúng 5 phút và thanh toán **Sandbox, không thu tiền thật**.
 
 > 🤝 **Dành cho thành viên nhóm / Cộng tác viên:** Xem ngay [Tài liệu hướng dẫn cộng tác & luồng phát triển dự án](COLLABORATION_GUIDE.md) và [Bản đồ chức năng, tiến trình & giải thích code toàn diện](docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md) để nắm rõ vai trò từng file, tiến trình từng trang, luồng đặt vé và các gợi ý mở rộng tính năng mới.
 
-## Chạy frontend và backend thật
+## Chạy frontend và backend
 
-NOVA chỉ dùng NestJS và PostgreSQL để lưu tài khoản, đơn, ghế và QR. Không còn
-chế độ demo/RAM hoặc tự chuyển nguồn dữ liệu khi API lỗi. `npm run dev` chỉ chạy
-frontend; nếu backend chưa chạy, giao diện báo lỗi kết nối và không tạo dữ liệu giả.
+Theo lựa chọn của bạn, `npm run dev:full` giữ chế độ **tự chuyển sang backend RAM**
+của commit `b3cf11a`. Lúc khởi động, launcher kiểm tra cổng local 55432: có dịch vụ thì chuẩn bị
+lịch và chạy NestJS; không có dịch vụ hoặc bước chuẩn bị dữ liệu lỗi thì chạy
+`backend/standalone-server.cjs`, sau đó mở frontend. Tài khoản/đơn/vé trong RAM
+mất khi dừng tiến trình. Ở nhánh NestJS, dữ liệu được lưu trong PostgreSQL.
+`npm run dev` chỉ chạy frontend và gọi backend đã cấu hình; trình duyệt không
+tự tạo kho đơn khác khi API lỗi.
+
+Kiểm thử nghiệp vụ thanh toán/QR của đợt giao diện này chạy trên NestJS/PostgreSQL.
+Chế độ tự chuyển RAM được kiểm tra khởi động, danh mục 24 món và giỏ món qua BFF;
+không dùng kết quả RAM để khẳng định đơn/QR đã được lưu bền vững.
+Danh mục RAM cũng đọc cùng 24 món thay cho ba combo cố định trước đây.
 
 Máy đã có PostgreSQL, Redis và cấu hình riêng `backend/.env`:
 
@@ -21,9 +30,9 @@ npm --prefix backend run build
 npm run dev:full
 ```
 
-Mở `http://localhost:3000`; backend cổng 4000. `dev:full` đợi readiness của NestJS,
-PostgreSQL/Redis và worker trước khi chạy frontend. Ctrl+C dừng hai ứng dụng;
-dữ liệu vẫn nằm trong PostgreSQL. Nếu backend ở địa chỉ khác, cấu hình
+Mở `http://localhost:3000`; backend cổng 4000. `dev:full` đợi HTTP health của backend
+trước khi chạy frontend. Trong chế độ NestJS, health kiểm tra PostgreSQL/Redis và worker.
+Ctrl+C dừng hai ứng dụng; dữ liệu NestJS vẫn nằm trong PostgreSQL. Nếu backend ở địa chỉ khác, cấu hình
 `BACKEND_API_URL` phía server Next.js. Mặc định là `http://127.0.0.1:4000/api/v1`.
 Các biến cũ từng bật kho RAM không còn tác dụng.
 
@@ -68,7 +77,7 @@ Các trang `/gioi-thieu`, `/ho-tro`, `/huong-dan`, `/chinh-sach`, `/lien-he` và
 `/thanh-toan` nối đầy đủ các liên kết cuối trang. Trang chủ mở bằng ưu đãi NOVA
 có thể đóng/ẩn trong ngày, sau đó là hero Inception với ảnh concept riêng.
 
-Seed bổ sung chuẩn bị **24 phim (16 đang chiếu/tuyển chọn, 8 sắp tái chiếu), 16 món/combo**,
+Seed bổ sung chuẩn bị **24 phim (16 đang chiếu/tuyển chọn, 8 sắp tái chiếu), 24 món/combo**,
 **40 phòng mỗi rạp mẫu**, lịch **ít nhất 30 ngày tới, phủ hết tháng sau theo giờ Việt Nam**. Lịch có buổi sáng,
 chiều, tối và suất muộn; có bộ lọc phòng/buổi và thanh chọn rạp → phim → ngày → giờ/phòng.
 Các ngày sắp chiếu là chương trình tái chiếu dự kiến tháng sau, không phải ngày phát hành chính thức.
@@ -90,6 +99,10 @@ và tên phòng thực; xem [mở rộng lịch & chữ dễ đọc](docs/design
 Bắp nước chọn ở cửa hàng được giữ trong phiên trình duyệt và chuyển vào bước chọn ghế;
 chỉ xác nhận đơn, giá và thời hạn qua backend. Xem [ghi chú Discovery](docs/design/discovery-upgrade.md)
 và [đợt nâng cấp trang mở màn & lịch chiếu](docs/design/premiere-upgrade.md).
+
+Trang bắp nước mới có **24 món với ảnh riêng**, xem chi tiết, tìm không dấu, lọc
+khẩu vị và giỏ món trên điện thoại. Ảnh được dùng chung ở ưu đãi, trang chủ và
+bước chọn combo. Xem [NOVA Food Studio và ảnh desktop/mobile](docs/design/food-studio.md).
 
 Bạn có thể **đăng ký tài khoản mới ngay trên giao diện**, mật khẩu 12–128 ký tự.
 Tài khoản mới có vai trò CUSTOMER, hạng SILVER, 0 điểm. Không có mật khẩu mẫu
@@ -149,6 +162,7 @@ npm run build
 node scripts/check-backend-only.cjs
 node scripts/check-fullstack-startup.cjs
 node --test scripts/ticket-qr.test.mjs scripts/unique-records.test.mjs
+node --test scripts/food-cart.test.mjs
 # Backend build + dedicated test PostgreSQL/Redis phải sẵn sàng trước npm test.
 npm test
 cd backend

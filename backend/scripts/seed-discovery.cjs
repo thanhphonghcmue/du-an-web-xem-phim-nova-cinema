@@ -127,7 +127,7 @@ async function main() {
       { timeout: 60000 },
     );
     console.log(
-      "Discovery catalog prepared: 24 films including 8 upcoming, 16 menu items; existing data preserved.",
+      `Discovery catalog prepared: ${catalog.movies.length} films, ${catalog.menu.length} menu items; existing data preserved.`,
     );
   } finally {
     await db.$disconnect();

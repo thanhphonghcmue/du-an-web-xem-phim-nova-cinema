@@ -43,6 +43,13 @@ async function cleanupRows(prisma, prefix) {
   await prisma.movie.deleteMany({
     where: { description: { startsWith: prefix } },
   });
-  await prisma.combo.deleteMany({ where: { name: { startsWith: prefix } } });
+  await prisma.combo.deleteMany({
+    where: {
+      OR: [
+        { name: { startsWith: prefix } },
+        { description: { startsWith: prefix + " menu · " } },
+      ],
+    },
+  });
 }
 module.exports = { cleanupRows };

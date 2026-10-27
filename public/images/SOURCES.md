@@ -35,6 +35,18 @@ are a proposed demo re-screening program, not official film release announcement
 All 16 illustrations in `menu/` are original SVG drawings made for NOVA: popcorn boxes, drinks,
 hotdog, fries and nachos. They use NOVA branding and are not Cinestar promotional material.
 
+## NOVA Food Studio — 27 October 2026
+
+- `menu/nova-menu-studio.webp`: original AI-generated 4 × 6 sheet with 24 distinct
+  food packshots, created for NOVA. `MenuImage.jsx` displays one dedicated cell per
+  product, with its own alt text; the browser reuses one cached image. The old SVGs
+  remain fallbacks. The artwork is illustrative, not a photograph of supplied food.
+- `menu/nova-sharing-hero.webp`: original AI-generated high-resolution campaign
+  packshot of two popcorn buckets, four drinks and two hotdogs, created for NOVA.
+  It uses a supernova star motif. It is not a Cinestar or Meta advertisement.
+- Both assets were encoded as WebP for the website; source generations remain in
+  the workspace generation directory. No third-party food photographs were copied.
+
 ## NOVA premiere campaign
 
 - `campaigns/nova-dream-city.png`: original AI-generated concept illustration created for NOVA,

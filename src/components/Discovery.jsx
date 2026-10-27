@@ -11,12 +11,8 @@ import {
   Crown,
   Film,
   Gift,
-  Minus,
   Play,
-  Plus,
-  Popcorn,
   Search,
-  ShoppingBag,
   SlidersHorizontal,
   Sparkles,
   Star,
@@ -27,14 +23,14 @@ import {
 import { useI18n } from "../i18n.js";
 import { vietnamDay } from "../bookingDates.js";
 import { useCatalog } from "../catalog.js";
-import { money } from "../data.js";
 import {
-  menuDetails,
-  menuCategories,
+  menuArtwork,
   nextScreeningDate,
   downloadReminder,
 } from "../commerce.js";
 import PageBanner from "./PageBanner.jsx";
+import FoodStore, { FoodHero } from "./FoodStore.jsx";
+import MenuImage from "./MenuImage.jsx";
 
 const campaigns = [
   {
@@ -150,7 +146,10 @@ function CampaignCard({ campaign, onOpen, large = false }) {
           Khám phá ngay <ArrowUpRight size={16} />
         </button>
       </div>
-      <img src={campaign.image} alt={campaign.tag} loading="lazy" />
+      <MenuImage
+        item={menuArtwork.find((item) => item.image === campaign.image)}
+        className="campaign-food-visual"
+      />
       <span className="campaign-price">
         {campaign.price}
         <small>{campaign.unit}</small>
@@ -582,7 +581,11 @@ function Offers({ compact = false }) {
       )}
       {selected && (
         <div className="offer-detail" role="status">
-          <img src={selected.image} alt="" />
+          <MenuImage
+            item={menuArtwork.find((item) => item.image === selected.image)}
+            className="offer-food-visual"
+            decorative
+          />
           <div>
             <p className="nova-kicker">{selected.tag}</p>
             <h3>{selected.title.replace("\n", " ")}</h3>
@@ -606,165 +609,6 @@ function Offers({ compact = false }) {
           được xác nhận trong đơn đặt vé; không thu tiền thật.
         </p>
       )}
-    </section>
-  );
-}
-
-function FoodStore({ compact = false, onBooking }) {
-  const { combos, isLive } = useCatalog();
-  const [category, setCategory] = useState("all");
-  const [cart, setCart] = useState(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("nova-food-cart") || "{}");
-    } catch {
-      return {};
-    }
-  });
-  const order = { combo: 0, limited: 1, popcorn: 2, drinks: 3, snacks: 4 };
-  const products = combos
-    .map((combo) => ({ ...menuDetails(combo), ...combo }))
-    .sort((a, b) => (order[a.category] ?? 5) - (order[b.category] ?? 5));
-  const filtered = products.filter(
-    (item) => category === "all" || item.category === category,
-  );
-  const visible = compact ? filtered.slice(0, 4) : filtered;
-  const selected = products.filter((item) => cart[item.id] > 0);
-  const quantity = selected.reduce((sum, item) => sum + cart[item.id], 0);
-  const total = selected.reduce(
-    (sum, item) => sum + Number(item.price) * cart[item.id],
-    0,
-  );
-  function update(id, delta) {
-    setCart((previous) => {
-      const next = {
-        ...previous,
-        [id]: Math.min(20, Math.max(0, (previous[id] || 0) + delta)),
-      };
-      sessionStorage.setItem("nova-food-cart", JSON.stringify(next));
-      return next;
-    });
-  }
-  return (
-    <section
-      id="food"
-      className="content-width discovery-section food-discovery"
-    >
-      <div className="discovery-heading">
-        <div>
-          <p className="nova-kicker">FRESH POPCORN. COLD DRINKS. GOOD TIMES.</p>
-          <h2>
-            Đủ vị ngon.
-            <br className="mobile-only" /> <em>Đầy cảm xúc.</em>
-          </h2>
-          <p>Bắp giòn, nước mát và những món ngon cho buổi xem phim của bạn.</p>
-        </div>
-        {compact && (
-          <Link className="discovery-text-link" href="/bap-nuoc">
-            Xem thực đơn <ArrowUpRight size={18} />
-          </Link>
-        )}
-      </div>
-      {!compact && (
-        <div
-          className="discovery-tabs food-tabs"
-          role="tablist"
-          aria-label="Danh mục bắp nước"
-        >
-          {menuCategories.map(([id, label]) => (
-            <button
-              role="tab"
-              aria-selected={category === id}
-              onClick={() => setCategory(id)}
-              key={id}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="food-grid">
-        {visible.map((item) => (
-          <article className="food-product" key={item.id}>
-            <div className="food-image">
-              <img src={item.image} alt={item.name} loading="lazy" />
-              <span>{item.badge}</span>
-            </div>
-            <div className="food-product-body">
-              <h3>{item.name}</h3>
-              <p>{item.description}</p>
-              <div className="food-product-bottom">
-                <strong>{money(item.price)}</strong>
-                <div className="quantity-control">
-                  <button
-                    aria-label={`Bớt ${item.name}`}
-                    disabled={!cart[item.id]}
-                    onClick={() => update(item.id, -1)}
-                  >
-                    <Minus size={15} />
-                  </button>
-                  <output aria-live="polite">{cart[item.id] || 0}</output>
-                  <button
-                    aria-label={`Thêm ${item.name}`}
-                    disabled={!isLive || (cart[item.id] || 0) >= 20}
-                    onClick={() => update(item.id, 1)}
-                  >
-                    <Plus size={15} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-      {visible.length === 0 && (
-        <div className="discovery-empty">
-          <Popcorn size={32} />
-          <h3>Thực đơn đang được cập nhật</h3>
-          <p>Hẹn bạn quay lại với những món ngon mới.</p>
-        </div>
-      )}
-      {!isLive && (
-        <p role="status" className="discovery-footnote">
-          Bạn có thể xem thực đơn. Đặt món sẽ mở khi kết nối đặt vé sẵn sàng.
-        </p>
-      )}
-      {quantity > 0 && (
-        <aside className="food-cart">
-          <div className="cart-icon">
-            <ShoppingBag size={23} />
-            <span>{quantity}</span>
-          </div>
-          <div>
-            <strong>Bắp nước cho buổi hẹn của bạn</strong>
-            <p>
-              {selected.map((i) => `${cart[i.id]} × ${i.name}`).join(" · ")}
-            </p>
-          </div>
-          <b>{money(total)}</b>
-          <button
-            className="button button-primary"
-            onClick={() =>
-              onBooking ? onBooking() : window.location.assign("/dat-ve")
-            }
-          >
-            Chọn suất & thêm vào vé <ArrowRight size={17} />
-          </button>
-          <button
-            className="icon-button"
-            aria-label="Xóa giỏ bắp nước"
-            onClick={() => {
-              setCart({});
-              sessionStorage.removeItem("nova-food-cart");
-            }}
-          >
-            <X size={17} />
-          </button>
-        </aside>
-      )}
-      <p className="discovery-footnote">
-        Bắp nước mua kèm vé. Số lượng được chuyển sang bước chọn ghế; giá cuối
-        cùng xác nhận khi giữ chỗ.
-      </p>
     </section>
   );
 }
@@ -847,24 +691,7 @@ export default function Discovery({ view, onMovie, onBook, onBooking }) {
   if (view === "bap-nuoc")
     return (
       <>
-        <PageBanner
-          label="NOVA FOOD & DRINKS"
-          title={
-            <>
-              Phim chưa bắt đầu.
-              <br />
-              Vị ngon đã sẵn sàng.
-            </>
-          }
-          description="Từ Party Combo 69K đến bắp đa vị và đồ ăn nóng. Chọn món yêu thích, mang theo vào buổi hẹn điện ảnh."
-          image="/images/cinema-lobby.jpg"
-        >
-          <img
-            className="food-banner-art"
-            src="/images/menu/family.svg"
-            alt="Family Movie Box NOVA"
-          />
-        </PageBanner>
+        <FoodHero />
         <FoodStore onBooking={onBooking} />
       </>
     );

@@ -6,6 +6,8 @@ import CinematicScreen3D from "./CinematicScreen3D.jsx";
 import BookingPreview from "./BookingPreview.jsx";
 import BookingTicket from "./BookingTicket.jsx";
 import NovaLogo from "./NovaLogo.jsx";
+import MenuImage from "./MenuImage.jsx";
+import { readFoodCart } from "../foodCart.js";
 import { uniqueRecords } from "../uniqueRecords.js";
 import {
   Clock3,
@@ -319,12 +321,7 @@ function LiveBookingConsole({
   const [gateway, setGateway] = useState("sandbox");
   const [comboItems, setComboItems] = useState(() => {
     const combo = booking.combo && combos.find((c) => c.price === "69000.00");
-    let cart = {};
-    try {
-      cart = JSON.parse(sessionStorage.getItem("nova-food-cart") || "{}");
-    } catch {
-      /* Ignore an invalid local draft. */
-    }
+    const cart = readFoodCart();
     const valid = Object.fromEntries(
       combos
         .filter((item) => cart[item.id] > 0)
@@ -914,7 +911,10 @@ function LiveBookingConsole({
               <div className="live-combos">
                 {combos.map((combo) => (
                   <label key={combo.id}>
-                    <img src={menuDetails(combo).image} alt="" />
+                    <MenuImage
+                      item={{ ...menuDetails(combo), ...combo }}
+                      decorative
+                    />
                     <span>
                       {combo.name}
                       <small>{money(combo.price)}</small>

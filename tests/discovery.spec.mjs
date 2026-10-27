@@ -132,6 +132,10 @@ test("mobile page navigation and food categories remain within the viewport", as
   }
   await page.goto("/bap-nuoc");
   await page.getByRole("tab", { name: "Đồ ăn nóng", exact: true }).click();
+  await expect(page.locator(".food-product")).toHaveCount(4);
+  await page
+    .getByRole("searchbox", { name: "Tìm món hoặc khẩu vị" })
+    .fill("khongcophimnay");
   await expect(page.locator(".food-product")).toHaveCount(0);
   await expect(
     page.getByText("Thực đơn đang được cập nhật", { exact: true }),

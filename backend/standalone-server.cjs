@@ -245,29 +245,15 @@ for (const cinema of cinemas) {
 }
 
 // 4. Combos
-const defaultCombos = [
-  {
-    id: "combo-1",
-    name: "Solo Combo 69K",
-    description: "1 bắp ngọt lớn + 1 Coca-Cola tươi",
-    price: "69000.00",
-    isActive: true,
-  },
-  {
-    id: "combo-2",
-    name: "Duo Combo 99K",
-    description: "1 bắp phô mai lớn + 2 Coca-Cola tươi",
-    price: "99000.00",
-    isActive: true,
-  },
-  {
-    id: "combo-3",
-    name: "Party Combo 199K",
-    description: "2 bắp khổng lồ mix vị + 4 nước ngọt + 1 snack khoai tây",
-    price: "199000.00",
-    isActive: true,
-  },
-];
+// Share the menu and stable UUIDs with the additive PostgreSQL seed.
+// This server remains a disposable in-memory demo; response fields stay unchanged.
+const defaultCombos = discovery.menu.map((item) => ({
+  id: id(`combo:${item.key}`),
+  name: item.name,
+  description: item.description,
+  price: Number(item.price).toFixed(2),
+  isActive: true,
+}));
 
 // In-Memory Data Stores
 const usersStore = new Map([
@@ -860,6 +846,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`[NOVA Backend] Standalone persistent server listening at http://127.0.0.1:${port}`);
+  console.log(`[NOVA Backend] Standalone RAM demo server listening at http://127.0.0.1:${port}`);
   console.log(`[NOVA Backend] Loaded ${catalogMovies.length} movies, ${cinemas.length} cinemas, ${rooms.length} rooms, ${showtimes.length} showtimes.`);
 });

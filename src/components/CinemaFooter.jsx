@@ -1,9 +1,9 @@
+import NovaLogo from "./NovaLogo.jsx";
 import Link from "next/link";
 import {
   ArrowUpRight,
   Crown,
   HelpCircle,
-  Infinity as InfinityIcon,
   MapPin,
   ShieldCheck,
   Ticket,
@@ -32,10 +32,7 @@ export default function CinemaFooter() {
         <div className="footer-main">
           <div className="footer-brand">
             <Link className="brand" href="/">
-              <InfinityIcon className="brand-symbol" />
-              <span>
-                NOVA<span className="brand-subtitle">CINEMA</span>
-              </span>
+              <NovaLogo />
             </Link>
             <p>
               Không giới hạn cảm xúc.
@@ -131,7 +128,7 @@ export default function CinemaFooter() {
         </div>
         <div className="footer-bottom">
           <Link href="/gioi-thieu">
-            © {new Date().getFullYear()} NOVA Cinema · Infinity Experience
+            © {new Date().getFullYear()} NOVA Cinema · Beyond the Frame
           </Link>
           <Link href="/chinh-sach">
             Dữ liệu minh họa cho đồ án · Thông tin & quyền riêng tư

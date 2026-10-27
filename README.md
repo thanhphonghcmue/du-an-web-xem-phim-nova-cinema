@@ -1,4 +1,4 @@
-# NOVA Cinema — Infinity Experience
+# NOVA Cinema — Beyond the Frame
 
 Next.js 16 / React 19 / Tailwind 3 frontend, NestJS 11 API, PostgreSQL 17,
 Prisma 6, Redis / BullMQ, Socket.IO và email SMTP. Luồng đặt vé dùng dữ liệu
@@ -54,6 +54,13 @@ Xem [kiểm chứng server-only và đồng bộ dữ liệu](docs/design/server
 backend, có trạng thái chờ phát hành. Màn soát vé lọc ID suất trùng; card thanh
 toán thích ứng điện thoại. Báo cáo CSV dùng đúng tổng tiền/khung ngày; voucher
 không đủ điều kiện báo lỗi trước khi tạo đơn. Xem [kiểm chứng luồng nghiệp vụ](docs/design/business-flow-audit.md).
+
+Nâng cấp Creative Cinema: logo SVG sao Nova/thấu kính nguyên bản, màn hình cong
+Three.js với ánh sáng GSAP, hỗ trợ giảm chuyển động và thông báo kết nối dễ hiểu.
+`BookingConsole.jsx` dùng toàn bộ luồng đặt vé thật; `DatVeBackend.jsx` giữ entrypoint
+cũ để các trang hiện có tiếp tục hoạt động. `/xem-truoc` là trang minh họa độc lập,
+chỉ đọc, dùng được khi chưa bật backend; không cấp vé, giữ ghế hoặc mô phỏng đơn
+thành công. Xem [mã nguồn, ảnh và kiểm chứng Creative Cinema](docs/design/creative-booking-console.md).
 
 Giao diện Discovery có các trang riêng `/phim`, `/sap-chieu`, `/uu-dai`, `/bap-nuoc`,
 `/rap`, `/hoi-vien`, `/dang-nhap`, `/tai-khoan`, `/dat-ve`, `/quan-tri` và `/soat-ve`.
@@ -141,7 +148,7 @@ npm run lint
 npm run build
 node scripts/check-backend-only.cjs
 node scripts/check-fullstack-startup.cjs
-node --test scripts/ticket-qr.test.mjs
+node --test scripts/ticket-qr.test.mjs scripts/unique-records.test.mjs
 # Backend build + dedicated test PostgreSQL/Redis phải sẵn sàng trước npm test.
 npm test
 cd backend

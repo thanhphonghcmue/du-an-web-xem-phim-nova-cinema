@@ -24,7 +24,8 @@
  * ==============================================================================
  */
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
+import { uniqueRecords } from "../uniqueRecords.js";
 import { apiGetMyBookings, apiGetMyTickets } from "../api/client.js";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
@@ -45,10 +46,12 @@ export default function LichSuVeKhachHang({ member, onResume }) {
     generation.current++;
     inFlight.current = null;
   }, []);
-  const [tickets, setTickets] = useState([]),
-    [orders, setOrders] = useState([]),
+  const [ticketRows, setTickets] = useState([]),
+    [orderRows, setOrders] = useState([]),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
+  const tickets = useMemo(() => uniqueRecords(ticketRows), [ticketRows]);
+  const orders = useMemo(() => uniqueRecords(orderRows), [orderRows]);
   const load = useCallback(() => {
     if (!memberId) return;
     if (inFlight.current) return inFlight.current;
@@ -191,7 +194,7 @@ export default function LichSuVeKhachHang({ member, onResume }) {
         .map((ticket, index) => (
           <article
             className="cinema-ticket"
-            key={ticket.id}
+            key={`${ticket.id}-${index}`}
             data-booking-id={ticket.bookingId}
           >
             <img

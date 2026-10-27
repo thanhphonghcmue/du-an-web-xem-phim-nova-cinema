@@ -17,6 +17,7 @@ export default function HopThoaiModal({
   wide = false,
   embedded = false,
   image = "/images/cinema-lobby.jpg",
+  className = "",
 }) {
   const panel = useRef(null);
   useEffect(() => {
@@ -75,7 +76,7 @@ export default function HopThoaiModal({
         role="dialog"
         aria-modal={embedded ? undefined : true}
         aria-label={title}
-        className={`modal-panel ${wide ? "modal-wide" : ""}`}
+        className={`modal-panel ${wide ? "modal-wide" : ""} ${className}`}
       >
         <header
           className="modal-header"
@@ -84,7 +85,7 @@ export default function HopThoaiModal({
           }}
         >
           <div>
-            <span className="eyebrow">NOVA / INFINITY EXPERIENCE</span>
+            <span className="eyebrow">NOVA / BEYOND THE FRAME</span>
             <h2>{title}</h2>
           </div>
           {!embedded && (

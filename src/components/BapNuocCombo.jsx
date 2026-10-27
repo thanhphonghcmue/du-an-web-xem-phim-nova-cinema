@@ -20,7 +20,7 @@
  * ==============================================================================
  */
 
-import { Infinity as InfinityIcon } from "lucide-react";
+import NovaLogo from "./NovaLogo.jsx";
 // Hình bắp nước dựng bằng CSS để bước combo luôn hiển thị khi mạng ảnh bị chặn.
 export default function BapNuocCombo() {
   return (
@@ -31,7 +31,7 @@ export default function BapNuocCombo() {
       <div className="drink drink-one">
         <div className="drink-straw" />
         <div className="drink-lid" />
-        <InfinityIcon size={24} />
+        <NovaLogo showText={false} size={24} />
         <b>NOVA</b>
         <small>CINEMA</small>
       </div>
@@ -49,7 +49,7 @@ export default function BapNuocCombo() {
           ))}
         </div>
         <div className="bucket-body">
-          <InfinityIcon size={39} />
+          <NovaLogo showText={false} size={39} />
           <strong>NOVA</strong>
           <small>CINEMA</small>
         </div>

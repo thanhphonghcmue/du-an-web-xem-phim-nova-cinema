@@ -30,6 +30,7 @@ import "../experience-details.css";
 import "react-day-picker/style.css";
 import "../nova-refresh.css";
 import "../server-experience.css";
+import "../cyber-cinema.css";
 import "@fontsource/be-vietnam-pro/latin-400.css";
 import "@fontsource/be-vietnam-pro/latin-500.css";
 import "@fontsource/be-vietnam-pro/latin-600.css";
@@ -49,12 +50,12 @@ export const metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   ),
-  title: "NOVA Cinema — Infinity Experience",
+  title: "NOVA Cinema — Beyond the Frame",
   description:
     "Điện ảnh không giới hạn. Khám phá phim, chọn suất IMAX, đặt ghế liền nhau và trải nghiệm Party Combo 69K tại NOVA Cinema.",
   icons: { icon: "/favicon.svg" },
   openGraph: {
-    title: "NOVA Cinema — Infinity Experience",
+    title: "NOVA Cinema — Beyond the Frame",
     description: "Một bộ phim hay. Một vị trí dành riêng cho bạn.",
     images: [
       {

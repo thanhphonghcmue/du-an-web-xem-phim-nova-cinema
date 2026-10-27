@@ -265,7 +265,7 @@ export default function InfoPage({ view }) {
               Thành một trải nghiệm.
             </>
           }
-          description="NOVA Cinema — Infinity Experience. Một cuộc hẹn giữa màn ảnh lớn, những câu chuyện hay và vị trí dành riêng cho bạn."
+          description="NOVA Cinema — Beyond the Frame. Một cuộc hẹn giữa màn ảnh lớn, những câu chuyện hay và vị trí dành riêng cho bạn."
           image="/images/campaigns/nova-dream-city.png"
         />
         <section className="content-width discovery-section">

@@ -29,6 +29,8 @@ import { createCatalogIndex } from "../catalogIndex.js";
 import { CatalogContext, dayKey, timeLabel } from "../catalog.js";
 import { movies as artwork } from "../data.js";
 import { read } from "../api/client.js";
+import { uniqueRecords } from "../uniqueRecords.js";
+import Link from "next/link";
 
 function getInitialCatalog() {
   return {
@@ -57,7 +59,17 @@ export default function CatalogProvider({ children }) {
           showtimes,
           rooms,
           combos,
-        } = await read("/showtimes/programme");
+        } = await read("/showtimes/programme").then((snapshot) =>
+          Object.fromEntries(
+            ["movies", "cinemas", "showtimes", "rooms", "combos"].map((key) => {
+              if (!Array.isArray(snapshot?.[key]))
+                throw new Error(
+                  "Danh mục máy chủ chưa đầy đủ. Vui lòng thử lại.",
+                );
+              return [key, uniqueRecords(snapshot[key])];
+            }),
+          ),
+        );
         const normalize = (s) =>
           s.toLocaleLowerCase("vi").replace(/[^\p{L}\p{N}]/gu, "");
         const movies = films
@@ -219,6 +231,7 @@ export default function CatalogProvider({ children }) {
             <span>{error}</span>
           </p>
           <button onClick={load}>{t("Thử kết nối lại")}</button>
+          <Link href="/xem-truoc">Xem trước giao diện (chỉ đọc)</Link>
         </div>
       )}
       {children}

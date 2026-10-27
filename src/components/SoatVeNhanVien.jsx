@@ -1,5 +1,6 @@
 // SoatVeNhanVien: mã nguồn chức năng, dùng chung cho mọi trang.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { uniqueRecords } from "../uniqueRecords.js";
 import {
   Camera,
   CameraOff,
@@ -54,16 +55,11 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   const scheduleReady =
     schedule.day === day && schedule.cinemaId === cinemaId && !schedule.error;
   // Pagination or a stale upstream can repeat a UUID. Keep one real screening
-  // per ID; an index suffix would conceal duplicates while leaving bad choices.
-  const screenings = scheduleReady
-    ? [
-        ...new Map(
-          schedule.items
-            .filter((show) => typeof show?.id === "string" && show.id.trim())
-            .map((show) => [show.id, show]),
-        ).values(),
-      ]
-    : [];
+  // per ID before assigning React keys; API values remain the original UUIDs.
+  const screenings = useMemo(
+    () => (scheduleReady ? uniqueRecords(schedule.items) : []),
+    [scheduleReady, schedule.items],
+  );
   useEffect(() => {
     let active = true;
     async function load() {
@@ -287,8 +283,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
             }}
           >
             <option value="">Chọn phim · giờ · phòng</option>
-            {screenings.map((show) => (
-              <option value={show.id} key={show.id}>
+            {screenings.map((show, index) => (
+              <option value={show.id} key={`${show.id}-${index}`}>
                 {new Date(show.startTime).toLocaleTimeString("vi-VN", {
                   timeZone: "Asia/Ho_Chi_Minh",
                   hour: "2-digit",

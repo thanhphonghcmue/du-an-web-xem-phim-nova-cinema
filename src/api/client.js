@@ -29,6 +29,8 @@
 // Địa chỉ cổng API Gateway nội bộ trên Next.js
 export const API_BASE = "/api/v1";
 import { apiErrorMessage } from "./errorMessage.js";
+import { notifyApiError } from "./notice.js";
+import { uniqueRecords } from "../uniqueRecords.js";
 let refreshing;
 
 /**
@@ -52,7 +54,12 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
       signal: options.signal || AbortSignal.timeout(20000),
     });
   } catch (cause) {
-    throw new Error("Kết nối bị gián đoạn. Vui lòng thử lại.", { cause });
+    const message =
+      cause.name === "TimeoutError"
+        ? "Máy chủ phản hồi quá lâu. Vui lòng thử lại."
+        : "Kết nối bị gián đoạn. Vui lòng thử lại.";
+    if (!options.signal?.aborted) notifyApiError(message);
+    throw new Error(message, { cause });
   }
 
   // Xử lý khi Token hết hạn (HTTP 401)
@@ -105,6 +112,7 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
     error.status = response.status;
     error.details = payload.details;
     error.code = payload.error || payload.errorCode || payload.code;
+    if (response.status >= 500) notifyApiError(msg);
     throw error;
   }
   return payload;
@@ -134,7 +142,7 @@ export async function apiList(path, params = {}) {
     );
     for (const result of results) items.push(...result.items);
   }
-  return items;
+  return uniqueRecords(items);
 }
 
 // ==========================================

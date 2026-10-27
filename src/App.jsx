@@ -30,6 +30,7 @@ import { useQuerySelection } from "./useQuerySelection.js";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import NovaLogo from "./components/NovaLogo.jsx";
 import Discovery from "./components/Discovery.jsx";
 import PortalPage from "./components/PortalPage.jsx";
 import CinemaHero from "./components/CinemaHero.jsx";
@@ -45,7 +46,6 @@ import {
   Clock3,
   Crown,
   Film,
-  Infinity as InfinityIcon,
   MapPin,
   Menu,
   Play,
@@ -85,21 +85,7 @@ import HopThoaiModal from "./components/HopThoaiModal.jsx";
 function Brand() {
   return (
     <a className="brand" href="/" aria-label="NOVA Cinema trang chủ">
-      <InfinityIcon
-        className="brand-symbol"
-        strokeWidth={1.8}
-        stroke="url(#nova-brand-glow)"
-      >
-        <defs>
-          <linearGradient id="nova-brand-glow">
-            <stop stopColor="#E50914" />
-            <stop offset="1" stopColor="#F59E0B" />
-          </linearGradient>
-        </defs>
-      </InfinityIcon>
-      <span>
-        NOVA<span className="brand-subtitle">CINEMA</span>
-      </span>
+      <NovaLogo />
     </a>
   );
 }
@@ -514,7 +500,7 @@ export default function App() {
             />
             <div className="experience-strip content-width">
               <span>
-                <InfinityIcon size={23} />
+                <NovaLogo showText={false} size={23} />
                 <b>
                   {t("Không chỉ xem phim.")} <br />
                   <em>{t("Sống trong từng khung hình.")} </em>
@@ -621,7 +607,7 @@ export default function App() {
               <div className="membership-card">
                 <div className="card-metal-line" />
                 <div className="member-card-top">
-                  <InfinityIcon size={31} />
+                  <NovaLogo showText={false} size={31} />
                   <span>C’MEMBER</span>
                 </div>
                 <p>
@@ -793,7 +779,7 @@ export default function App() {
             <section className="app-banner content-width">
               <div className="app-symbol">
                 <Smartphone size={29} />
-                <InfinityIcon size={18} />
+                <NovaLogo showText={false} size={18} />
               </div>
               <div>
                 <h3>{t("Cả rạp phim, trong tầm tay.")} </h3>

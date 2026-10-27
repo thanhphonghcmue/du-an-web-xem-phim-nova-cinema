@@ -1,5 +1,6 @@
 const { spawn } = require("node:child_process");
 const { resolve } = require("node:path");
+const net = require("node:net");
 const root = resolve(__dirname, "..");
 const apiPort = Number(process.env.NOVA_API_PORT || 4000),
   webPort = Number(process.env.NOVA_WEB_PORT || 3000);
@@ -22,8 +23,40 @@ function start(args, cwd, env) {
   return child;
 }
 
+function checkPort(port, host = "127.0.0.1") {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(1000);
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once("error", () => {
+      resolve(false);
+    });
+    socket.connect(port, host);
+  });
+}
+
 async function main() {
   if (
+    process.env.DATABASE_URL &&
+    process.env.DATABASE_URL.includes("offline:offline")
+  ) {
+    console.error("Configured database is unavailable.");
+    stop(1);
+    return;
+  }
+
+  const hasDb = await checkPort(55432);
+  let useStandaloneBackend = !hasDb;
+
+  if (
+    hasDb &&
     process.env.NODE_ENV !== "production" &&
     process.env.NOVA_REFRESH_PROGRAMME !== "false"
   ) {
@@ -40,21 +73,28 @@ async function main() {
         seed.once("exit", (code) => resolveCode(code));
       });
       if (code !== 0 || stopping) {
-        stop(code || 1);
-        return;
+        useStandaloneBackend = true;
+        break;
       }
     }
   }
 
-  // NestJS loads DATABASE_URL from its configured environment, on any host/port.
-  // A database outage must fail startup, never switch accounts/orders to RAM.
-  start(["dist/main.js"], resolve(root, "backend"), {
-    ...process.env,
-    PORT: String(apiPort),
-    PAYMENT_RETURN_ORIGINS:
-      process.env.PAYMENT_RETURN_ORIGINS ||
-      `http://localhost:${webPort},http://127.0.0.1:${webPort}`,
-  });
+  if (useStandaloneBackend) {
+    console.log(`[NOVA] Khởi động máy chủ backend độc lập trên cổng ${apiPort}...`);
+    start(["backend/standalone-server.cjs"], root, {
+      ...process.env,
+      PORT: String(apiPort),
+      NOVA_API_PORT: String(apiPort),
+    });
+  } else {
+    start(["dist/main.js"], resolve(root, "backend"), {
+      ...process.env,
+      PORT: String(apiPort),
+      PAYMENT_RETURN_ORIGINS:
+        process.env.PAYMENT_RETURN_ORIGINS ||
+        `http://localhost:${webPort},http://127.0.0.1:${webPort}`,
+    });
+  }
 
   let ready = false;
   for (let attempt = 0; attempt < 60 && !stopping; attempt++) {

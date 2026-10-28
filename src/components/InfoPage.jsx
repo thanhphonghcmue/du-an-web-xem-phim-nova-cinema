@@ -189,7 +189,7 @@ export default function InfoPage({ view }) {
             </>
           }
           description="Hiểu đúng luồng thanh toán, kiểm tra đơn đang giữ và quay lại nhận vé điện tử."
-          image="/images/campaigns/nova-movie-night.png"
+          image="/images/cinema-lobby.jpg"
         />
         <section className="content-width discovery-section">
           <div className="payment-guide-grid">
@@ -266,7 +266,7 @@ export default function InfoPage({ view }) {
             </>
           }
           description="NOVA Cinema — Beyond the Frame. Một cuộc hẹn giữa màn ảnh lớn, những câu chuyện hay và vị trí dành riêng cho bạn."
-          image="/images/campaigns/nova-dream-city.png"
+          image="/images/cinema-auditorium.jpg"
         />
         <section className="content-width discovery-section">
           <div className="info-intro">

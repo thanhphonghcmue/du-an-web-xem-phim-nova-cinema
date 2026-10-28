@@ -44,7 +44,7 @@ export default function NovaJourney() {
             "01",
             "Tìm phim thật hay",
             "Chuyện mới, cảm xúc mới. Khám phá những bộ phim đang chờ bạn.",
-            "/images/campaigns/nova-dream-city.png",
+            "/images/cinema-auditorium.jpg",
           ],
           [
             "/bap-nuoc",
@@ -52,7 +52,7 @@ export default function NovaJourney() {
             "02",
             "Thêm vị cho cuộc vui",
             "Bắp thơm, nước mát và combo cho cả nhóm. Chọn món trước khi đến rạp.",
-            "/images/campaigns/nova-movie-night.png",
+            "/images/food-photography/popcorn-sharing.webp",
           ],
           [
             "/rap",

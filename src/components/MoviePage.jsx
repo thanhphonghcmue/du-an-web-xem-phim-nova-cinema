@@ -51,7 +51,7 @@ export default function MoviePage({ id, onMovie, onBook }) {
           src={
             movie.localBackdrop ||
             movie.backdrop ||
-            "/images/campaigns/nova-dream-city.png"
+            "/images/cinema-auditorium.jpg"
           }
           alt=""
         />

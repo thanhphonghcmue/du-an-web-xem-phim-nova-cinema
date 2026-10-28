@@ -6,6 +6,8 @@ PostgreSQL, giữ ghế đúng 5 phút và thanh toán **Sandbox, không thu ti�
 
 > 🤝 **Dành cho thành viên nhóm / Cộng tác viên:** Xem ngay [Tài liệu hướng dẫn cộng tác & luồng phát triển dự án](COLLABORATION_GUIDE.md) và [Bản đồ chức năng, tiến trình & giải thích code toàn diện](docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md) để nắm rõ vai trò từng file, tiến trình từng trang, luồng đặt vé và các gợi ý mở rộng tính năng mới.
 
+Bản cập nhật ảnh và thực đơn: [ảnh tham khảo, giao diện điện thoại và bằng chứng kiểm tra](docs/design/photography-refresh.md).
+
 ## Chạy frontend và backend
 
 Theo lựa chọn của bạn, `npm run dev:full` giữ chế độ **tự chuyển sang backend RAM**
@@ -169,7 +171,7 @@ npm run build
 node scripts/check-backend-only.cjs
 node scripts/check-fullstack-startup.cjs
 node --test scripts/ticket-qr.test.mjs scripts/unique-records.test.mjs
-node --test scripts/food-cart.test.mjs scripts/memory-contract.test.cjs scripts/request-budget.test.mjs scripts/catalog-index.test.mjs
+node --test scripts/food-cart.test.mjs scripts/memory-contract.test.cjs scripts/request-budget.test.mjs scripts/catalog-index.test.mjs scripts/menu-photography.test.mjs
 npm --prefix backend run test:programme
 # Backend build + dedicated test PostgreSQL/Redis phải sẵn sàng trước npm test.
 npm test

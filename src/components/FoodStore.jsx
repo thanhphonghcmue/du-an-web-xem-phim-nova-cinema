@@ -14,7 +14,6 @@ import {
   Popcorn,
   Search,
   ShoppingBag,
-  Sparkles,
   Ticket,
   Trash2,
   X,
@@ -24,6 +23,7 @@ import { menuCategories, menuDetails } from "../commerce.js";
 import { money } from "../data.js";
 import { matchesFood, readFoodCart, saveFoodCart } from "../foodCart.js";
 import MenuImage from "./MenuImage.jsx";
+import { foodHeroPhoto } from "../menuPhotography.js";
 import Modal from "./Modal.jsx";
 
 const flavors = [
@@ -53,16 +53,16 @@ export function FoodHero() {
             <span>Bắp & nước</span>
           </nav>
           <p className="nova-kicker">
-            <Sparkles size={15} /> THE TASTE OF A GOOD NIGHT
+            <Popcorn size={15} /> BẮP, NƯỚC & COMBO
           </p>
           <h1>
-            Phim có gu.
+            Bắp nóng.
             <br />
-            <em>Ăn cũng phải mê.</em>
+            <em>Phim hay.</em>
           </h1>
           <p className="food-hero-description">
-            Bắp giòn đa vị, đồ uống mát lành, những combo dành riêng cho cuộc
-            hẹn của bạn. Chọn một chút ngon. Thêm nhiều cảm xúc.
+            Chọn bắp bạn thích, thêm nước mát và đồ ăn kèm. Có combo cho một
+            người, hai người và cả nhóm — thêm vào vé chỉ trong vài bước.
           </p>
           <div className="food-hero-actions">
             <a className="button button-primary" href="#food">
@@ -81,18 +81,12 @@ export function FoodHero() {
           </div>
         </div>
         <div className="food-hero-art">
-          <span className="food-orbit" aria-hidden="true" />
-          <span className="food-hero-stamp">
-            GOOD FILMS
-            <br />
-            <b>GREAT BITES.</b>
-          </span>
           <img
             className="food-hero-photo"
-            src="/images/menu/nova-sharing-hero.webp"
+            src={foodHeroPhoto}
             width="1536"
             height="1024"
-            alt="Family Movie Box NOVA với hai bắp, bốn nước và hai hotdog · hình minh họa"
+            alt="Ảnh chụp cận cảnh bắp rang bơ"
             fetchPriority="high"
             decoding="async"
           />
@@ -256,7 +250,7 @@ export default function FoodStore({ compact = false, onBooking }) {
       <div className="food-basket-heading">
         <ShoppingBag size={21} />
         <div>
-          <small>MOVIE NIGHT, YOUR WAY</small>
+          <small>GIỎ BẮP NƯỚC</small>
           <h3>Món ngon của bạn</h3>
         </div>
         <span className="food-basket-count">{quantity}</span>
@@ -338,10 +332,10 @@ export default function FoodStore({ compact = false, onBooking }) {
     >
       <div className="discovery-heading">
         <div>
-          <p className="nova-kicker">THE CONCESSION COLLECTION</p>
+          <p className="nova-kicker">THỰC ĐƠN TẠI QUẦY</p>
           <h2>
-            Một chút ngon.
-            <br className="mobile-only" /> <em>Thêm nhiều vui.</em>
+            Chọn món bạn thích.
+            <br className="mobile-only" /> <em>Thêm vào buổi phim.</em>
           </h2>
           <p>Khẩu vị nào cũng có một lựa chọn dành cho bạn.</p>
         </div>
@@ -523,7 +517,7 @@ export default function FoodStore({ compact = false, onBooking }) {
       )}
       {!compact && (
         <div className="food-night-guide">
-          <span className="nova-kicker">YOUR MOVIE NIGHT, SORTED</span>
+          <span className="nova-kicker">CHỌN MÓN XONG, CHỌN PHIM THÔI</span>
           <h3>Vị ngon đi cùng một bộ phim hay.</h3>
           <p>
             Đã chọn xong món? Tìm phim, chọn giờ và mang theo combo bạn thích.
@@ -534,8 +528,8 @@ export default function FoodStore({ compact = false, onBooking }) {
         </div>
       )}
       <p className="discovery-footnote">
-        Bắp nước mua kèm vé. Hình ảnh minh họa NOVA; món đã chọn và giá được xác
-        nhận trong đơn giữ ghế.
+        Ảnh món tham khảo; thành phần và số lượng ghi trong mô tả. Bắp nước mua
+        kèm vé, giá cuối cùng được xác nhận trong đơn giữ ghế.
       </p>
       {!compact && quantity > 0 && (
         <div className="food-mobile-bar">

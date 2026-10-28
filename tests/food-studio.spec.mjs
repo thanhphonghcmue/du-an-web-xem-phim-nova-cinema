@@ -54,23 +54,44 @@ async function expectLoadedMenu(page) {
   expect(ids).toEqual(data.combos.map((item) => item.id).sort());
 }
 
-test("real menu displays 24 distinct packshots, live prices and product details", async ({
+test("all 24 built-in menu items use local photographs while administrator items retain their API identities", async ({
   page,
 }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/bap-nuoc");
   await expectLoadedMenu(page);
-  const indices = await page
-    .locator('.food-product .menu-image:not([data-art-index="custom"])')
-    .evaluateAll((nodes) => nodes.map((n) => n.dataset.artIndex));
-  expect(new Set(indices).size).toBe(24);
+  await expect
+    .poll(() =>
+      page
+        .locator(".food-hero-photo")
+        .evaluate((n) => n.complete && n.naturalWidth > 0),
+    )
+    .toBe(true);
+  await screenshot(page, "hero-desktop");
+  await page
+    .getByRole("link", { name: "Khám phá thực đơn", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/bap-nuoc#food$/);
+  const keys = await page
+    .locator('.food-product .menu-image:not([data-photo-key="custom"])')
+    .evaluateAll((nodes) => nodes.map((n) => n.dataset.photoKey));
+  expect(new Set(keys).size).toBe(24);
+  const photos = page.locator(
+    '.food-product .menu-image:not([data-photo-key="custom"]) img',
+  );
+  for (const img of await photos.all()) {
+    await img.scrollIntoViewIfNeeded();
+    await expect
+      .poll(() => img.evaluate((n) => n.complete && n.naturalWidth > 0))
+      .toBe(true);
+    await expect(img).toHaveAttribute("src", /^\/images\/food-photography\//);
+  }
   const ids = await page
     .locator(".food-product")
     .evaluateAll((nodes) => nodes.map((n) => n.dataset.comboId));
   for (const item of fixture().menuCombos) expect(ids).toContain(item.id);
   await expect(page.locator(".food-hero-photo")).toBeVisible();
-  await screenshot(page, "hero-desktop");
   await page
     .getByRole("button", { name: "Xem chi tiết Bắp Phô Mai Cay", exact: true })
     .click();
@@ -80,10 +101,13 @@ test("real menu displays 24 distinct packshots, live prices and product details"
   });
   await expect(modal).toContainText("Cay nhẹ");
   await expect(modal.locator(".food-detail-price")).toHaveText(/49[.,]000/);
-  await expect(modal.locator(".menu-image img")).toHaveJSProperty(
-    "naturalWidth",
-    1024,
-  );
+  await expect
+    .poll(() =>
+      modal
+        .locator(".menu-image img")
+        .evaluate((n) => n.complete && n.naturalWidth > 0),
+    )
+    .toBe(true);
   await modal
     .getByRole("button", { name: "Thêm Bắp Phô Mai Cay", exact: true })
     .click();
@@ -298,7 +322,7 @@ test("food cards, basket and detail stay inside 320/390/768px viewports", async 
     expect(await modal.evaluate((n) => n.scrollWidth <= n.clientWidth)).toBe(
       true,
     );
-    await page.keyboard.press("Escape");
+    await modal.getByRole("button", { name: "Đóng", exact: true }).click();
     await expect(
       page.getByRole("button", {
         name: "Xem chi tiết Party Combo 69K",
@@ -323,10 +347,10 @@ test("a broken administrator image falls back without breaking product selection
     has: page.getByRole("heading", { name: "Party Combo 69K", exact: true }),
   });
   await card.scrollIntoViewIfNeeded();
-  await expect(card.locator(".menu-image img")).toHaveAttribute(
-    "src",
-    "/images/menu/party69.svg",
+  await expect(card.locator(".menu-photo-unavailable")).toContainText(
+    "Ảnh đang cập nhật",
   );
+  await expect(card.locator(".menu-image img")).toHaveCount(0);
   await card
     .getByRole("button", { name: "Thêm Party Combo 69K", exact: true })
     .click();

@@ -1,47 +1,62 @@
 "use client";
-// Each artIndex selects a different original packshot from the local 4 × 6 sheet.
-// A single cached WebP serves the catalogue, product detail and booking summary.
 import { useState } from "react";
+import { ImageOff } from "lucide-react";
+import { menuPhotographs } from "../menuPhotography.js";
+function Photograph({ photo, priority }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className={`menu-photo menu-photo--${photo.fit}`}>
+      {failed ? (
+        <span className="menu-photo-unavailable" role="status">
+          <ImageOff size={25} />
+          <span>Ảnh đang cập nhật</span>
+        </span>
+      ) : (
+        <img
+          src={photo.src}
+          alt=""
+          width="640"
+          height="480"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined}
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      )}
+      {photo.quantity > 1 && (
+        <span className="menu-photo-quantity">×{photo.quantity}</span>
+      )}
+    </span>
+  );
+}
 export default function MenuImage({
   item,
   className = "",
   priority = false,
   decorative = false,
 }) {
-  const index = item?.artIndex;
-  const hasPackshot =
-    !item?.imageUrl && Number.isInteger(index) && index >= 0 && index < 24;
-  const source = hasPackshot
-    ? "/images/menu/nova-menu-studio.webp"
-    : item?.imageUrl || item?.image || "/images/menu/party69.svg";
-  const [failedSource, setFailedSource] = useState("");
-  const failed = failedSource === source;
-  const sprite = hasPackshot && !failed;
+  const photos = menuPhotographs(item);
   return (
     <span
-      className={`menu-image ${sprite ? "" : "menu-image--fallback"} ${className}`}
-      data-art-index={sprite ? index : "custom"}
+      className={`menu-image ${photos.length > 1 ? "menu-image--combo" : ""} ${className}`}
+      data-photo-key={item?.key || "custom"}
+      data-media-kind="photography"
+      role={decorative ? undefined : "img"}
+      aria-label={
+        decorative ? undefined : `Ảnh tham khảo ${item?.name || "bắp nước"}`
+      }
+      aria-hidden={decorative || undefined}
     >
-      <img
-        src={failed ? "/images/menu/party69.svg" : source}
-        onError={() => setFailedSource(source)}
-        alt={
-          decorative ? "" : `${item?.name || "Bắp nước NOVA"} · hình minh họa`
-        }
-        width={sprite ? 1024 : 480}
-        height={sprite ? 1536 : 320}
-        loading={priority ? "eager" : "lazy"}
-        fetchPriority={priority ? "high" : undefined}
-        decoding="async"
-        style={
-          sprite
-            ? {
-                left: `${-(index % 4) * 100}%`,
-                top: `${-Math.floor(index / 4) * 100}%`,
-              }
-            : undefined
-        }
-      />
+      {photos.length ? (
+        photos.map((photo) => (
+          <Photograph key={photo.src} photo={photo} priority={priority} />
+        ))
+      ) : (
+        <span className="menu-photo-unavailable">
+          <ImageOff size={25} />
+          <span>Ảnh món đang cập nhật</span>
+        </span>
+      )}
     </span>
   );
 }

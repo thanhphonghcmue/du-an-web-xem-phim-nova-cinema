@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export default function HopThoaiModal({
@@ -65,7 +66,7 @@ export default function HopThoaiModal({
       document.removeEventListener("keydown", onKey);
     };
   }, [onClose, embedded]);
-  return (
+  const content = (
     <div
       className={embedded ? "embedded-dialog" : "modal-backdrop"}
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -98,4 +99,10 @@ export default function HopThoaiModal({
       </section>
     </div>
   );
+  // A transformed page section must not place the dialog below the sticky header.
+  return embedded
+    ? content
+    : typeof document === "undefined"
+      ? null
+      : createPortal(content, document.body);
 }

@@ -289,7 +289,16 @@ for (const width of [1440, 390])
     test.setTimeout(180000);
     await page.setViewportSize({ width, height: 1000 });
     const errors = [],
-      failures = [];
+      failures = [],
+      generatedAssets = [];
+    page.on("request", (r) => {
+      if (
+        /nova-(menu-studio|sharing-hero|dream-city|movie-night)\.(webp|png)/.test(
+          r.url(),
+        )
+      )
+        generatedAssets.push(new URL(r.url()).pathname);
+    });
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("response", (r) => {
       if (
@@ -335,6 +344,7 @@ for (const width of [1440, 390])
     }
     expect(errors).toEqual([]);
     expect(failures).toEqual([]);
+    expect(generatedAssets).toEqual([]);
   });
 
 test("staff dropdown deduplicates repeated real screening IDs and keeps Vietnam time without React key warnings", async ({

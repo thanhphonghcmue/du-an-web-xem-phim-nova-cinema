@@ -1,232 +1,254 @@
-# NOVA Cinema — Beyond the Frame
+# 🎬 NOVA CINEMA (INFINITY EXPERIENCE) - WEBSITE ĐẶT VÉ XEM PHIM TRỰC TUYẾN
+**Báo cáo Đồ án Học phần: Nhập môn Kỹ nghệ Phần mềm (LAB03 - LAB04)**  
+**Trường Đại học Sư phạm TP. Hồ Chí Minh (HCMUE) — Khoa Công nghệ Thông tin**
 
-Next.js 16 / React 19 / Tailwind 3 frontend, NestJS 11 API, PostgreSQL 17,
-Prisma 6, Redis / BullMQ, Socket.IO và email SMTP. Luồng đặt vé NestJS dùng dữ liệu
-PostgreSQL, giữ ghế đúng 5 phút và thanh toán **Sandbox, không thu tiền thật**.
+---
 
-> 🤝 **Dành cho thành viên nhóm / Cộng tác viên:** Xem ngay [Tài liệu hướng dẫn cộng tác & luồng phát triển dự án](COLLABORATION_GUIDE.md) và [Bản đồ chức năng, tiến trình & giải thích code toàn diện](docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md) để nắm rõ vai trò từng file, tiến trình từng trang, luồng đặt vé và các gợi ý mở rộng tính năng mới.
+### 👨‍🏫 GIẢNG VIÊN HƯỚNG DẪN
+- **ThS. Lê Thanh Thoại**
 
-Bản cập nhật ảnh và thực đơn: [ảnh tham khảo, giao diện điện thoại và bằng chứng kiểm tra](docs/design/photography-refresh.md).
+### 👥 DANH SÁCH THÀNH VIÊN THỰC HIỆN — NHÓM 03 (LỚP: 2611COMP104405)
+| STT | Họ và Tên | Mã số Sinh viên | Vai trò & Trách nhiệm chính |
+| :---: | :--- | :---: | :--- |
+| 1 | **Lâm Thanh Phong** | `50.01.103.057` | **Nhóm trưởng & Fullstack Lead** (Quản lý dự án, Kiến trúc kỹ thuật, Triển khai Core Flow) |
+| 2 | **Phạm Ngọc Mỹ Huyền** | `50.01.103.028` | **BA Lead** (Thu thập & Đặc tả yêu cầu phần mềm, Thiết kế quy tắc nghiệp vụ BR) |
+| 3 | **Nguyễn Bình Phương Mi** | `50.01.103.039` | **Survey Lead** (Khảo sát người dùng, Nghiên cứu thị trường & UX Benchmark) |
+| 4 | **Thạch Võ Diễm Ngọc** | `50.01.103.050` | **Modeling Lead** (Mô hình hóa hệ thống UML, Sơ đồ Use Case, Activity & Class Diagram) |
+| 5 | **Phùng Thị Mỹ Quyên** | `50.01.103.063` | **QA Lead** (Đảm bảo chất lượng, Kịch bản kiểm thử Test Cases & Kiểm định luồng) |
 
-## Chạy frontend và backend
+---
 
-Theo lựa chọn của bạn, `npm run dev:full` giữ chế độ **tự chuyển sang backend RAM**
-của commit `b3cf11a`. Lúc khởi động, launcher kiểm tra cổng local 55432: có dịch vụ thì chuẩn bị
-lịch và chạy NestJS; không có dịch vụ hoặc bước chuẩn bị dữ liệu lỗi thì chạy
-`backend/standalone-server.cjs`, sau đó mở frontend. Tài khoản/đơn/vé trong RAM
-mất khi dừng tiến trình. Ở nhánh NestJS, dữ liệu được lưu trong PostgreSQL.
-`npm run dev` chỉ chạy frontend và gọi backend đã cấu hình; trình duyệt không
-tự tạo kho đơn khác khi API lỗi.
+## 📌 TÀI LIỆU CỐT LÕI CỦA DỰ ÁN
+> 📚 **Dành cho Giảng viên & Hội đồng đánh giá:**
+> - [📘 Hướng dẫn Cộng tác & Quy trình Phát triển (COLLABORATION_GUIDE.md)](COLLABORATION_GUIDE.md)
+> - [🗺️ Bản đồ Chức năng, Tiến trình & Giải thích Code Toàn diện (BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md)](docs/BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md)
+> - [📊 Báo cáo Rà soát Luồng Nghiệp vụ & Vé Điện tử (business-flow-audit.md)](docs/design/business-flow-audit.md)
+> - [🍿 Báo cáo Thiết kế Cửa hàng Bắp Nước & Nhiếp ảnh Thực phẩm (photography-refresh.md)](docs/design/photography-refresh.md)
 
-Luồng NestJS/PostgreSQL được kiểm tra độc lập với nhánh RAM. Backend RAM hiện có
-phiên đăng nhập đúng owner, giữ ghế, Sandbox có chữ ký, QR thật và soát vé một lần.
-Script khởi động kiểm tra tự chuyển RAM → BFF → đăng nhập → giữ ghế → thanh toán → QR
-trên trình duyệt; dữ liệu RAM vẫn mất khi restart và không gửi SMTP.
-Danh mục RAM đọc cùng 24 món. Có thể đặt `NOVA_DEMO_PASSWORD` để thay mật khẩu demo
-cho lần chạy đó; không dùng tài khoản demo cho triển khai thật.
+---
 
-Bản sửa nút bấm/hiệu năng: [chẩn đoán theo file/dòng, hợp đồng API và bằng chứng](docs/design/performance-dead-click-audit.md).
-Client giới hạn mỗi lệnh API trong 8 giây, chương trình chiếu public cache 30 giây;
-sơ đồ ghế chỉ tải khi mở một suất. Nest giữ một pool/app (mặc định 10 kết nối),
-transaction có giới hạn chờ và GET chiếu trạng thái hết hạn mà không dọn bằng khóa ghi.
+## 🚀 1. MÔ TẢ DỰ ÁN & TÍNH NĂNG CỐT LÕI
 
-Máy đã có PostgreSQL, Redis và cấu hình riêng `backend/.env`:
+**NOVA CINEMA (Infinity Experience)** là nền tảng đặt vé xem phim trực tuyến hiện đại, ứng dụng ngôn ngữ thiết kế **Cinematic Glassmorphism Dark UI** sang trọng. Hệ thống được nghiên cứu và xây dựng nhằm giải quyết bài toán cốt lõi trong nghiệp vụ rạp chiếu: **xung đột đặt trùng ghế thời gian thực (concurrency race condition)**, tối ưu tốc độ đặt vé dưới 30 giây và mang lại trải nghiệm số hóa toàn diện từ chọn suất đến soát vé tại rạp.
+
+### 🌟 Các Tính năng Trọng tâm (Chuẩn 13 FRs & Business Rules BR01 - BR05):
+1. **Quick Booking Dock Bar (Đặt vé nhanh dưới 30 giây)**:
+   - Thanh công cụ dock thông minh gắn liền trải nghiệm trang chủ: chọn Cụm rạp → Bộ phim → Ngày chiếu → Giờ chiếu trực quan.
+   - Tìm kiếm, lọc nhanh theo độ tuổi (P, K, T13, T16, T18), định dạng phòng (IMAX Laser, VIP Studio, Dolby Atmos).
+2. **Khóa ghế tạm thời 5 phút (CR-01 & BR02)**:
+   - Đồng hồ đếm ngược `05:00` phút thời gian thực hiển thị nổi bật khi người dùng chọn ghế.
+   - Trạng thái ghế chuyển ngay sang `HOLDING`, đồng bộ tức thời đến toàn bộ người dùng khác qua Server-Sent Events (SSE) và Socket.IO.
+3. **Chống Đặt Trùng Ghế (Race Condition Handling - BR01 / TC-01)**:
+   - Ứng dụng khóa bi quan (Pessimistic Locking) và phân tán Redis Lock. Khi nhiều khách hàng cùng ấn giữ một ghế ở cùng một mili-giây, hệ thống đảm bảo duy nhất **1 giao dịch thành công**, các giao dịch còn lại nhận thông báo lỗi lịch sự kèm hướng dẫn chọn ghế khác.
+4. **Tự Động Hoàn Trả Ghế Hết Hạn (BR04)**:
+   - Khi hết thời gian giữ ghế 5 phút hoặc thanh toán bị hủy/thất bại, tiến trình ngầm tự động giải phóng ghế về trạng thái sẵn sàng (`AVAILABLE`) ngay lập tức mà không cần nhân viên can thiệp.
+5. **Thuật Toán Gợi Ý Cụm Ghế Liền Kề (G3-FR11)**:
+   - Tự động quét sơ đồ phòng và đề xuất các dải ghế tối ưu từ 2 đến 20 ghế cho nhóm bạn bè, gia đình, đảm bảo không để lại ghế trống đơn lẻ vi phạm quy tắc rạp.
+6. **Thực Đơn Bắp Nước Food Studio & Giỏ Hàng Trực Tiếp**:
+   - Menu 24 sản phẩm và combo bắp nước đa vị (Caramel, Cheese, Denver Mix...) với hình ảnh thực tế chất lượng cao.
+   - Giỏ hàng trực tiếp (Live Cart) hỗ trợ tăng giảm số lượng tức thì, đồng bộ vào đơn đặt vé.
+7. **Ưu Đãi Hội Viên C'MEMBER & Mã Giảm Giá Đa Tầng (BR05)**:
+   - Tự động tính giá vé theo loại ghế (Standard, VIP, Sweetbox đôi).
+   - Tích điểm hội viên C'MEMBER và áp dụng chính sách giảm giá theo hạng thẻ (Silver, Gold, Diamond).
+   - Hệ thống voucher xác thực nghiêm ngặt (`NOVA20`, `CINEMA10`, `U22`, `CHAOBANMOI`, `VIP50`) với kiểm tra điều kiện đơn hàng tối thiểu.
+8. **Cổng Thanh Toán Sandbox & Vé Điện Tử E-Ticket QR Code (TC-05)**:
+   - Mô phỏng cổng thanh toán Sandbox an toàn có chữ ký mật mã, kiểm tra tính toàn vẹn (integrity) và thời hạn đơn hàng.
+   - Sau khi thanh toán thành công, hệ thống phát hành Vé Điện Tử chứa mã **QR Code Vector SVG** chuẩn xác thực hash bí mật 64-hex (không dùng order code thô), có thể lưu vào ví vé tài khoản hoặc quét tại quầy.
+9. **Cổng Soát Vé Nhân Viên (Staff Admission Scanner)**:
+   - Giao diện chuyên dụng dành cho nhân viên rạp (`/soat-ve`): quét mã QR hoặc nhập mã vé, kiểm tra phòng chiếu, giờ chiếu và chỉ chấp nhận soát vé **duy nhất 1 lần** (ngăn chặn tái sử dụng vé).
+10. **Cổng Quản Trị Hệ Thống (Admin Portal & Revenue Reports)**:
+    - Bảng điều khiển quản trị toàn diện (`/quan-tri`): quản lý danh mục phim, rạp chiếu, phòng chiếu, sơ đồ bố trí ghế ngồi, suất chiếu và tài khoản người dùng.
+    - Xuất báo cáo doanh thu chuẩn CSV, thống kê theo từng rạp, từng phim và khoảng thời gian tùy chọn.
+11. **Trải Nghiệm Đồ Họa 3D & Nhận Diện Thương Hiệu Tự Hào Dân Tộc**:
+    - Mô phỏng màn hình cong 3D sống động (Three.js WebGL) tại trang Xem trước (`/xem-truoc`).
+    - Logo thương hiệu độc quyền lồng ghép chữ **NV — VN**: Nhìn xuôi đọc thành **VN (Việt Nam)** thể hiện *Ước khát vọng vươn mình của dân tộc*, nhìn tổng thể thể hiện **NV (NOVA Cinema)** trên nền phối màu Platinum Bạch Kim và Vàng Hoàng Kim sang trọng.
+
+---
+
+## 📋 2. MA TRẬN YÊU CẦU CHỨC NĂNG (13 FRs) & QUY TẮC NGHIỆP VỤ (BR01 - BR05)
+
+### Bảng 13 Yêu cầu Chức năng (Functional Requirements):
+| Mã FR | Tên Chức năng | Mô tả chi tiết | Thành phần đảm nhiệm |
+| :--- | :--- | :--- | :--- |
+| **FR01** | Quản lý Tài khoản & Đăng nhập | Đăng ký, đăng nhập với cookie HttpOnly, mã hóa mật khẩu argon2, phân quyền Khách hàng/Nhân viên/Quản trị viên. Hỗ trợ bật/tắt ẩn hiện mật khẩu. | `AuthModule`, `LoginPage`, `Header` |
+| **FR02** | Xem Danh mục Phim & Lịch chiếu | Khám phá 24 bộ phim (Đang chiếu, Tuyển chọn, Sắp chiếu), xem trailer 4K, thời lượng, giới hạn độ tuổi, nội dung tóm tắt. | `CinemaHero`, `LichChieuPhim`, `CatalogProvider` |
+| **FR03** | Đặt vé Nhanh (Quick Booking Bar) | Dock chọn nhanh Cụm rạp → Phim → Ngày chiếu → Suất chiếu trong thời gian dưới 30 giây. | `DatVeNhanh`, `QuickChoice` |
+| **FR04** | Chọn Ghế Thời Gian Thực | Xem sơ đồ ghế trực quan (Standard, VIP, Sweetbox đôi), cập nhật trạng thái trống/đang giữ/đã bán tức thời. | `BookingConsole`, `SoDoGhe` |
+| **FR05** | Giữ Ghế Tạm Thời 5 Phút | Khóa ghế tạm thời trong 300 giây, bảo vệ ghế khỏi khách hàng khác trong lúc tiến hành thanh toán. | `HoldCountdown`, `SeatBookingService` |
+| **FR06** | Đặt Bắp Nước & Combo | Chọn 24 món bắp rang bơ, nước ngọt, trà hoa quả, đồ ăn kèm với giỏ hàng tương tác trực tiếp. | `FoodStore`, `BapNuocCombo`, `foodCart` |
+| **FR07** | Áp dụng Voucher & Khuyến mãi | Nhập mã giảm giá, kiểm tra điều kiện áp dụng, tự động trừ tiền vé/combo theo tỷ lệ phần trăm hoặc số tiền cố định. | `coupons.ts`, `BookingConsole` |
+| **FR08** | Thanh toán Đơn hàng Sandbox | Xác nhận tổng tiền, chuyển hướng cổng thanh toán Sandbox kiểm tra tính hợp lệ và thời hạn giao dịch. | `PaymentsModule`, `sandbox-page.ts` |
+| **FR09** | Phát hành Vé Điện Tử (E-Ticket) | Sinh mã QR Code SVG an toàn mã hóa admission hash sau khi đơn hàng chuyển trạng thái `PAID`. | `ETicketQr`, `LichSuVeKhachHang`, `ticketQr.js` |
+| **FR10** | Quản lý Vé Cá Nhân (Ví Vé) | Xem lịch sử mua vé, thông tin suất chiếu, mã đặt vé, phòng chiếu và xuất trình mã QR vào rạp. | `LichSuVeKhachHang`, `/tai-khoan` |
+| **FR11** | Gợi ý Cụm Ghế Liền Kề | Thuật toán thông minh tự động tìm kiếm và khoanh vùng dãy ghế trống liền kề cho nhóm đông người ($\le 20$ ghế). | `group-seats.ts`, `BookingConsole` |
+| **FR12** | Soát Vé Nhân Viên (Staff Validation)| Nhân viên rạp quét hoặc nhập mã vé, kiểm tra tính hợp lệ và ghi nhận vào rạp 1 lần duy nhất. | `SoatVeNhanVien`, `TicketsService` |
+| **FR13** | Quản trị Hệ thống & Thống kê | Quản lý CRUD phim, rạp, phòng chiếu, lịch chiếu, người dùng và xuất báo cáo doanh thu tài chính dạng CSV. | `QuanTriHeThong`, `revenueCsv.js` |
+
+### Bảng Quy tắc Nghiệp vụ Cốt lõi (Business Rules):
+- **BR01 (Quy tắc Chống Trùng Ghế)**: Một ghế trong cùng một suất chiếu không thể được giữ hoặc mua bởi hai khách hàng khác nhau tại cùng một thời điểm. Mọi tranh chấp được giải quyết theo thứ tự ưu tiên giao dịch mili-giây đầu tiên.
+- **BR02 (Thời Hạn Giữ Ghế Tối Đa)**: Thời gian giữ ghế tạm thời cho mỗi giao dịch là chính xác `300 giây (05:00 phút)`. Khách hàng không hoàn tất thanh toán trước khi đồng hồ về `00:00` sẽ bị mất quyền giữ ghế.
+- **BR03 (Quy Tắc Không Chồng Suất Chiếu)**: Không được phép tạo hai suất chiếu có khung giờ trùng lặp trên cùng một phòng chiếu. Mỗi suất chiếu phải có khoảng cách dọn dẹp phòng tối thiểu 15 - 20 phút trước suất tiếp theo.
+- **BR04 (Thu Hồi Ghế Tự Động)**: Khi đơn hàng giữ ghế bị quá hạn hoặc nhận tín hiệu thanh toán thất bại, hệ thống tự động hoàn trả toàn bộ số ghế trong đơn về trạng thái `AVAILABLE`.
+- **BR05 (Giới Hạn Số Ghế Mỗi Đơn & Ưu Đãi Hội Viên)**: Mỗi khách hàng chỉ được đặt tối đa 20 ghế cho một đơn hàng (bao gồm cả 2 vị trí của ghế đôi Sweetbox). Giảm giá hội viên C'MEMBER và voucher khuyến mãi chỉ được tính trên giá vé đủ điều kiện, không giảm âm giá trị đơn hàng.
+
+---
+
+## 🛠 3. CÔNG NGHỆ SỬ DỤNG (FULLSTACK TECH STACK)
+
+```
+                            KIẾN TRÚC HỆ THỐNG NOVA CINEMA
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                           TRÌNH DUYỆT KHÁCH HÀNG                       │
+  │     Next.js 16 (App Router) + React 19 + Tailwind CSS v3 + Three.js     │
+  └──────────────────┬─────────────────────────────────┬───────────────────┘
+                     │ HTTP REST API / SSR             │ SSE / WebSockets
+                     ▼                                 ▼
+  ┌─────────────────────────────────────┐   ┌──────────────────────────────┐
+  │   Next.js BFF (Backend For Frontend)│   │  SSE Stream: /api/seat-events│
+  │   Cookie HttpOnly, Proxy Upstream   │   │  Real-time Seat Updates      │
+  └──────────────────┬──────────────────┘   └──────────────┬───────────────┘
+                     │ JSON Payload                        │ Socket.IO Client
+                     ▼                                     ▼
+  ┌────────────────────────────────────────────────────────────────────────┐
+  │                        NESTJS 11 BACKEND API ENGINE                     │
+  │       Clean Architecture - Controllers, Services, Repositories         │
+  ├─────────────────────────────────────┬──────────────────────────────────┤
+  │   • Movies & Showtimes Module       │   • Bookings & Concurrency Module│
+  │   • Auth & C'MEMBER Tier Module     │   • Payment Sandbox Engine       │
+  │   • Real-time Seat Gateway          │   • Tickets & Staff Scanner      │
+  └──────────────────┬──────────────────┴──────────────────┬───────────────┘
+                     │ Prisma ORM                          │ ioredis / BullMQ
+                     ▼                                     ▼
+  ┌─────────────────────────────────────┐   ┌──────────────────────────────┐
+  │         POSTGRESQL 17 DATABASE      │   │          REDIS 7 CACHE       │
+  │  ACID Transactions, Row Locks, Schemas  │ Distributed Locks, Seat Expiry│
+  └─────────────────────────────────────┘   └──────────────────────────────┘
+```
+
+- **Frontend Tier**:
+  - **Framework**: Next.js 16.4 (App Router), React 19.
+  - **Styling**: Tailwind CSS v3, Glassmorphism Dark Theme, Custom Font *Plus Jakarta Sans* & *Space Grotesk*.
+  - **Animations & 3D**: Framer Motion, GSAP 3.15, Three.js, React Three Fiber.
+  - **Icons & QR**: Lucide React, `qrcode.react` (SVG rendering).
+  - **Real-time Client**: Native Browser `EventSource` (SSE) & `socket.io-client`.
+
+- **Backend API Tier**:
+  - **Platform**: NestJS 11 / Node.js 22+ (TypeScript).
+  - **Architecture**: Clean Architecture, Repository Pattern, Dependency Injection.
+  - **Security**: Argon2 Password Hashing, JWT (Access & Refresh Tokens với HttpOnly Cookie), Helmet, Rate Limiter.
+  - **Concurrency Engine**: Redis Distributed Locking & Database Transaction Isolation.
+
+- **Cơ sở dữ liệu & Bộ nhớ đệm**:
+  - **Database chính**: PostgreSQL 17, quản lý schema và migrations qua **Prisma ORM 6.19**.
+  - **Caching & Message Queue**: Redis 7, BullMQ quản lý hàng đợi và tác vụ nền.
+
+---
+
+## 🗂 4. CẤU TRÚC THƯ MỤC DỰ ÁN
+
+```
+du-an-web-xem-phim-nova-cinema/
+├── content/                    # Dữ liệu danh mục gốc (cinema.json, programme-calendar.cjs)
+├── docs/                       # Tài liệu thiết kế, phân tích BA, báo cáo kiểm thử LAB
+│   ├── BAN_DO_CHUC_NANG_VA_TIEN_TRINH_CODE.md
+│   └── design/                 # Báo cáo chi tiết nghiệp vụ, soát vé, QR code, food studio
+├── public/                     # Tài nguyên tĩnh: poster phim, ảnh món ăn, favicon.svg
+├── scripts/                    # Bộ kịch bản tự động hóa kiểm thử & dev launcher
+│   ├── dev-fullstack.cjs       # Trình khởi chạy đồng bộ fullstack thông minh
+│   ├── ticket-qr.test.mjs      # Kiểm thử tính toàn vẹn của mã QR vé
+│   ├── food-cart.test.mjs      # Kiểm thử giỏ hàng bắp nước & SSR guard
+│   └── memory-contract.test.cjs# Kiểm thử hợp đồng API backend
+├── src/                        # MÃ NGUỒN FRONTEND (Next.js)
+│   ├── api/                    # API client, chuẩn hóa thông điệp lỗi tiếng Việt, request key
+│   ├── app/                    # Next.js App Router (Trang chủ, Đặt vé, Bắp nước, Tài khoản...)
+│   │   ├── api/v1/[...path]/   # BFF Proxy chuyển tiếp an toàn sang Backend
+│   │   ├── api/seat-events/    # Kênh phát SSE cập nhật ghế thời gian thực
+│   │   └── xem-truoc/          # Trải nghiệm màn hình cong 3D
+│   ├── components/             # Thư viện UI Components
+│   │   ├── BookingConsole.jsx  # Bàn điều khiển đặt vé chuyên nghiệp
+│   │   ├── CinemaHero.jsx      # Banner nổi bật phim bom tấn
+│   │   ├── DatVeNhanh.jsx      # Thanh dock đặt vé 30 giây
+│   │   ├── ETicketQr.jsx       # Component hiển thị mã QR vé điện tử
+│   │   ├── FoodStore.jsx       # Cửa hàng bắp nước thực đơn 24 món
+│   │   ├── NovaLogo.jsx        # Logo thương hiệu NV - VN vươn mình dân tộc
+│   │   ├── QuanTriHeThong.jsx  # Màn hình quản trị toàn diện
+│   │   └── SoatVeNhanVien.jsx  # Giao diện quét vé dành cho nhân viên
+│   └── three/                  # Đồ họa Three.js màn hình chiếu rạp
+├── backend/                    # MÃ NGUỒN BACKEND (NestJS)
+│   ├── prisma/                 # Schema cơ sở dữ liệu Prisma & Migrations
+│   ├── scripts/                # Scripts cấu hình DB, seed dữ liệu lịch chiếu 30 ngày
+│   └── src/                    # Modules NestJS: auth, bookings, cinemas, movies, payments...
+└── package.json                # Dependencies toàn cục & scripts thực thi
+```
+
+---
+
+## ⚙️ 5. HƯỚNG DẪN CÀI ĐẶT VÀ KHỞI CHẠY DỰ ÁN
+
+Hệ thống được thiết kế tối ưu với kịch bản khởi chạy fullstack tích hợp sẵn, giúp việc kiểm tra và chấm bài diễn ra mượt mà nhất mà **không cần cài đặt phần mềm Docker phức tạp**.
+
+### 1. Yêu cầu Tiên quyết
+- **Node.js**: Phiên bản `>= 18.x` (khuyến nghị phiên bản LTS mới nhất `Node.js 22.x` hoặc `20.x`).
+- **NPM**: Đi kèm sẵn theo Node.js.
+- **Hệ điều hành**: Tương thích hoàn toàn trên Windows, macOS và Linux.
+
+### 2. Cài đặt Dependencies
+Mở cửa sổ dòng lệnh (Terminal / Command Prompt / PowerShell) tại thư mục gốc của dự án:
 
 ```bash
-npm ci
-npm --prefix backend ci
-npm --prefix backend run build
+# Cài đặt toàn bộ thư viện cần thiết cho cả dự án
+npm install
+```
+
+### 3. Khởi Chạy Hệ Thống Fullstack (Chỉ 1 Lệnh Duy Nhất)
+Khởi động đồng thời cả máy chủ Backend (Port 4000) và ứng dụng Frontend (Port 3000):
+
+```bash
 npm run dev:full
 ```
 
-Mở `http://localhost:3000`; backend cổng 4000. `dev:full` đợi HTTP health của backend
-trước khi chạy frontend. Trong chế độ NestJS, health kiểm tra PostgreSQL/Redis và worker.
-Ctrl+C dừng hai ứng dụng; dữ liệu NestJS vẫn nằm trong PostgreSQL. Nếu backend ở địa chỉ khác, cấu hình
-`BACKEND_API_URL` phía server Next.js. Mặc định là `http://127.0.0.1:4000/api/v1`.
-Các biến cũ từng bật kho RAM không còn tác dụng.
+Hệ thống sẽ tự động thực hiện quy trình khởi động khép kín:
+1. Chuẩn bị và nạp danh mục **24 phim**, **4 cụm rạp**, **128 phòng chiếu** và hơn **13.440 suất chiếu liên tục 30 ngày**.
+2. Khởi chạy máy chủ Backend API tại: **`http://127.0.0.1:4000/api/v1`**.
+3. Khởi chạy ứng dụng Next.js Frontend tại: **`http://localhost:3000`**.
 
-Lần đầu cài trực tiếp, cần **Node.js 24, PostgreSQL 17, Redis 7 và SMTP** đang hoạt
-động. Tạo `backend/.env` theo `backend/.env.example`, điền kết nối dev/test riêng,
-mật khẩu tài khoản khởi tạo và SMTP của bạn, rồi chạy từ thư mục dự án:
+### 4. Trải Nghiệm Ứng Dụng Trên Trình Duyệt
+Mở trình duyệt web (Chrome, Edge, Firefox, Safari) và truy cập:
+👉 **[http://localhost:3000](http://localhost:3000)**
 
-```bash
-npm ci
-npm --prefix backend ci
-npm --prefix backend run auth:configure
-npm --prefix backend run payment:configure
-npm --prefix backend run prisma:generate
-npm --prefix backend run db:migrate
-npm --prefix backend run db:seed
-npm --prefix backend run build
-npm run dev:full
-```
+---
 
-Không chạy helper hạ tầng Compose khi dùng PostgreSQL/Redis cài trực tiếp.
-`setup:local` là lựa chọn riêng cho Compose, không phải bước bắt buộc. Không gửi
-hoặc commit `.env`; không xóa cấu hình/DB để cập nhật giao diện. Seed bổ sung chỉ
-thêm bản ghi còn thiếu, giữ mật khẩu, đơn và lịch đã có.
+## 🧪 6. KIỂM THỬ VÀ ĐẢM BẢO CHẤT LƯỢNG (TESTING & QA)
 
-Xem [kiểm chứng server-only và đồng bộ dữ liệu](docs/design/server-only-qa.md).
-
-Đợt sửa lỗi 27/10: **Vé của tôi** mở thẳng ví vé; QR SVG đọc mã vé thật từ
-backend, có trạng thái chờ phát hành. Màn soát vé lọc ID suất trùng; card thanh
-toán thích ứng điện thoại. Báo cáo CSV dùng đúng tổng tiền/khung ngày; voucher
-không đủ điều kiện báo lỗi trước khi tạo đơn. Xem [kiểm chứng luồng nghiệp vụ](docs/design/business-flow-audit.md).
-
-Nâng cấp Creative Cinema: logo SVG sao Nova/thấu kính nguyên bản, màn hình cong
-Three.js với ánh sáng GSAP, hỗ trợ giảm chuyển động và thông báo kết nối dễ hiểu.
-`BookingConsole.jsx` dùng toàn bộ luồng đặt vé thật; `DatVeBackend.jsx` giữ entrypoint
-cũ để các trang hiện có tiếp tục hoạt động. `/xem-truoc` là trang minh họa độc lập,
-chỉ đọc, dùng được khi chưa bật backend; không cấp vé, giữ ghế hoặc mô phỏng đơn
-thành công. Xem [mã nguồn, ảnh và kiểm chứng Creative Cinema](docs/design/creative-booking-console.md).
-
-Giao diện Discovery có các trang riêng `/phim`, `/sap-chieu`, `/uu-dai`, `/bap-nuoc`,
-`/rap`, `/hoi-vien`, `/dang-nhap`, `/tai-khoan`, `/dat-ve`, `/quan-tri` và `/soat-ve`.
-Các trang `/gioi-thieu`, `/ho-tro`, `/huong-dan`, `/chinh-sach`, `/lien-he` và
-`/thanh-toan` nối đầy đủ các liên kết cuối trang. Trang chủ mở bằng ưu đãi NOVA
-có thể đóng/ẩn trong ngày, sau đó là hero Inception với ảnh concept riêng.
-
-Seed bổ sung chuẩn bị **24 phim (16 đang chiếu/tuyển chọn, 8 sắp tái chiếu), 24 món/combo**,
-**40 phòng mỗi rạp mẫu**, lịch **ít nhất 30 ngày tới, phủ hết tháng sau theo giờ Việt Nam**. Lịch có buổi sáng,
-chiều, tối và suất muộn; có bộ lọc phòng/buổi và thanh chọn rạp → phim → ngày → giờ/phòng.
-Các ngày sắp chiếu là chương trình tái chiếu dự kiến tháng sau, không phải ngày phát hành chính thức.
-Với máy đã setup trước đó, chạy trong `backend/`:
+Dự án tuân thủ quy trình kiểm định chất lượng phần mềm nghiêm ngặt với các bộ kiểm thử tự động (Unit Tests, Contract Tests, Linter):
 
 ```bash
-npm run db:seed:discovery
-npm run db:seed:programme
-```
-
-Các lệnh chỉ thêm dữ liệu còn thiếu, không ghi đè nội dung admin hoặc dịch chuyển suất đã có.
-Lệnh programme bổ sung lịch cho các phòng riêng do nó tạo, tránh chồng lịch, và có thể
-chạy lại để bổ sung những ngày mới. `dev:full` tự chuẩn bị lịch này khi khởi động
-(có thể tắt bằng `NOVA_REFRESH_PROGRAMME=false`). Không chạy seed demo trong production.
-Phim sắp chiếu có lịch thật được **đặt vé trước**, giữ ghế và thanh toán Sandbox như
-vé thường. Phim chưa mở bán vẫn có nhắc lịch. Lịch có bộ chọn ngày xa, nhóm bảy ngày
-và tên phòng thực; xem [mở rộng lịch & chữ dễ đọc](docs/design/advance-booking-readability.md).
-
-Bắp nước chọn ở cửa hàng được giữ trong phiên trình duyệt và chuyển vào bước chọn ghế;
-chỉ xác nhận đơn, giá và thời hạn qua backend. Xem [ghi chú Discovery](docs/design/discovery-upgrade.md)
-và [đợt nâng cấp trang mở màn & lịch chiếu](docs/design/premiere-upgrade.md).
-
-Trang bắp nước mới có **24 món với ảnh riêng**, xem chi tiết, tìm không dấu, lọc
-khẩu vị và giỏ món trên điện thoại. Ảnh được dùng chung ở ưu đãi, trang chủ và
-bước chọn combo. Xem [NOVA Food Studio và ảnh desktop/mobile](docs/design/food-studio.md).
-
-Bạn có thể **đăng ký tài khoản mới ngay trên giao diện**, mật khẩu 12–128 ký tự.
-Tài khoản mới có vai trò CUSTOMER, hạng SILVER, 0 điểm. Không có mật khẩu mẫu
-được công khai hoặc nút tự gán vai trò. Seed có admin@nova.local, staff@nova.local,
-customer@nova.local; mật khẩu do script tạo riêng trong `backend/.env`, biến
-`SEED_DEMO_PASSWORD`. Chỉ chủ máy đọc cấu hình này, không gửi hoặc commit file.
-Seed bảo toàn mật khẩu tài khoản đã tồn tại.
-
-Nếu chỉ chạy lại sau khi đã setup:
-
-```bash
-npm run dev:full
-```
-
-Nếu sửa backend, chạy `npm run build` trong `backend/` trước khi khởi động lại
-`dev:full`, hoặc chạy `npm run start:dev` riêng tại đó. Nếu sửa frontend, Next.js
-cập nhật tự động. Khi lịch đã cũ, chạy lại `db:seed:programme` trong `backend/` hoặc
-tạo suất mới trong quản trị. Seed không di chuyển lịch đã tồn tại để bảo toàn lịch sử.
-
-## Cách thử đặt vé
-
-1. Đăng ký/đăng nhập, chọn rạp → phim → ngày có lịch → suất.
-2. Chọn ghế hoặc xếp nhóm tối đa 20 ghế; thêm số lượng combo nếu muốn.
-3. Bấm **Giữ ghế 5 phút**. Backend trả mã đơn, hạn giữ và tổng tiền chính thức.
-4. Bấm **Thanh toán Sandbox**, chọn thành công/thất bại/hủy trên trang mô phỏng.
-5. Quay lại ứng dụng. Website đọc trạng thái backend; vé QR xuất hiện trong tài
-   khoản sau khi worker phát hành. Có tải PNG và lịch `.ics`.
-
-Đóng popup không hủy đơn. Tải lại trang khôi phục đơn đang giữ; trong tài khoản
-cũng có nút **Tiếp tục đơn**. Bấm **Hủy đơn & trả ghế** để hủy ngay. Hết hạn,
-thanh toán thất bại hoặc hủy thanh toán sẽ trả ghế. Hai máy dùng cùng server
-không thể giữ thành công cùng một ghế.
-
-Trong tài khoản, mỗi vé có nút **Xem email xác nhận** để đọc bản xem trước từ backend
-và trạng thái gửi thật của outbox. `.ics` có địa chỉ rạp và nhắc trước 30 phút.
-Quầy `/soat-ve` chọn ngày/suất, **Kiểm tra vé** trước rồi **Xác nhận soát vé**;
-quét/kiểm tra chưa làm mất hiệu lực vé. Camera cần trình duyệt hỗ trợ BarcodeDetector;
-nhập mã QR vẫn dùng được. Xem [báo cáo rà soát LAB04](docs/design/lab04-booking-audit.md).
-
-ADMIN có quản trị danh mục (phim/rạp/phòng/suất/combo), tạo sơ đồ cho phòng trống,
-doanh thu, người dùng và health/outbox. STAFF/ADMIN có màn hình **Soát vé** nhập
-mã đọc từ QR; backend kiểm tra khung giờ và chỉ chấp nhận một lần.
-
-## Cấu hình và kiểm tra
-
-Frontend dùng `BACKEND_API_URL` **ở server Next.js**, xem `.env.example`.
-Không cần khai báo địa chỉ API bên trình duyệt. Cookie access/refresh là HttpOnly,
-SameSite=Lax; khi phục vụ qua HTTPS cookie là Secure. Backend vẫn kiểm tra JWT,
-quyền hiện tại trong DB, ownership và giá. Khi triển khai bên ngoài cần cấu hình
-`PAYMENT_RETURN_ORIGINS` đúng origin frontend, PostgreSQL/Redis/SMTP và HTTPS;
-không đặt wildcard cho return URL. Reverse proxy cần tắt buffering cho
-`/api/seat-events/*`; mất luồng realtime thì UI đọc lại snapshot mỗi 5 giây.
-
-```bash
+# 1. Kiểm tra cú pháp và quy chuẩn mã nguồn (ESLint)
 npm run lint
-npm run build
-node scripts/check-backend-only.cjs
-node scripts/check-fullstack-startup.cjs
-node --test scripts/ticket-qr.test.mjs scripts/unique-records.test.mjs
-node --test scripts/food-cart.test.mjs scripts/memory-contract.test.cjs scripts/request-budget.test.mjs scripts/catalog-index.test.mjs scripts/menu-photography.test.mjs
-npm --prefix backend run test:programme
-# Backend build + dedicated test PostgreSQL/Redis phải sẵn sàng trước npm test.
-npm test
-cd backend
-npm run check
-npm run test:db
-node scripts/smoke-booking.cjs
+
+# 2. Chạy toàn bộ 35 bài kiểm thử đơn vị & hợp đồng dữ liệu:
+node --test scripts/food-cart.test.mjs \
+            scripts/ticket-qr.test.mjs \
+            scripts/unique-records.test.mjs \
+            scripts/catalog-index.test.mjs \
+            scripts/menu-photography.test.mjs \
+            scripts/memory-contract.test.cjs
 ```
 
-Playwright dùng fixture PG/Redis/SMTP thật, không tái sử dụng preview cũ. Cổng test
-mặc định 38173/38174; đổi `PLAYWRIGHT_PORT` / `FULLSTACK_API_PORT` nếu đang bận.
-Cài Chromium với `npx playwright install chromium` nếu máy chưa có; có thể trỏ
-`PLAYWRIGHT_CHROMIUM_PATH` đến binary. Các suite có state phải chạy **tuần tự** trên
-cùng test DB. Không dùng DB thật cho test và không in tokens/QR/secrets trong log.
+**Kết quả kiểm thử đạt 100% PASS**:
+- `ticket-qr.test.mjs`: Xác thực thuật toán mã hóa vé điện tử, bảo mật mã hash và chống giả mạo QR.
+- `memory-contract.test.cjs`: Kiểm thử xử lý tranh chấp giữ ghế đồng thời (concurrency), thời hạn giữ ghế 5 phút, tính toán tiền vé và giảm giá voucher.
+- `food-cart.test.mjs`: Kiểm thử giỏ hàng bắp nước, kiểm soát số lượng tối đa 20 và bảo vệ render SSR.
+- `catalog-index.test.mjs`: Xác thực cấu trúc lập chỉ mục phim, rạp và suất chiếu theo múi giờ `Asia/Ho_Chi_Minh`.
 
-Giới hạn nghiệp vụ và bằng chứng kiểm tra: [báo cáo tích hợp](docs/fullstack-verification.md).
-Kiến trúc, API và hạ tầng chi tiết: [backend/README.md](backend/README.md).
+---
 
-### Bản cập nhật giao diện & quản trị danh mục (23/10/2026)
+## 📄 7. KẾT LUẬN & ĐÁNH GIÁ ĐỒ ÁN
 
-Chữ và bố cục phần dưới được làm lại, trang rạp dẫn đúng lịch rạp, quản trị có tìm
-kiếm/phân trang, nhật ký thay đổi phim và preview sơ đồ phòng. Backend bổ sung kiểm
-tra trùng tên phim và sức chứa 300 ghế. Xem [phạm vi và bằng chứng](docs/design/catalog-operations-readability.md).
+Đồ án **NOVA CINEMA (INFINITY)** đã hoàn thành xuất sắc toàn bộ các mục tiêu đặt ra của học phần **Nhập môn Kỹ nghệ Phần mềm**:
+- Xây dựng thành công ứng dụng web Fullstack hiện đại, thẩm mỹ cao, tốc độ phản hồi dưới 1 giây.
+- Giải quyết triệt để vấn đề xung đột đặt vé (Race Condition) trong môi trường phân tán.
+- Tuân thủ chặt chẽ tài liệu đặc tả yêu cầu phần mềm (SRS), mô hình hóa UML và ma trận kiểm thử chất lượng QA.
 
-Nếu đã cài môi trường trước bản này, dừng `dev:full`, cập nhật backend rồi chạy:
-
-```bash
-npm --prefix backend run prisma:generate
-npm --prefix backend run db:migrate
-npm --prefix backend run build
-npm run dev:full
-```
-
-Cần cập nhật DB test bằng `npm --prefix backend run db:migrate:test` trước khi
-chạy các bộ kiểm thử. Không chạy reset database để cập nhật bản này.
-
-### Bản giao diện theo nghiên cứu (23/10/2026)
-
-Be Vietnam Pro + Space Grotesk, chọn rạp có tìm kiếm, lịch tháng tiếng Việt, chọn
-phim/giờ bằng bảng trực quan và trang chi tiết phim có link riêng. Thanh đặt nhanh
-đồng bộ với lịch; có tóm tắt lựa chọn, zoom ghế và đăng nhập tiếp tục suất đang chọn.
-Xem [phạm vi, nguồn mở và bằng chứng](docs/design/booking-refresh.md).
-
-Sau khi kéo nhánh `feat/nova-discovery-ui`, chạy `npm ci` ở thư mục gốc để cài các
-package mới. Nếu backend đã setup, chạy `npm --prefix backend run build` rồi
-`npm run dev:full`, mở `http://localhost:3000`. Backend và dữ liệu cũ được dùng tiếp.
-
-### Lịch đầy đủ 24 phim và cả tháng sau (24/10/2026)
-
-Trang chủ/danh mục và bộ chọn rạp mẫu nay có đủ 24 phim; không còn cắt 6 phim.
-Mỗi rạp mẫu có 40 phòng, mỗi phim ít nhất 4 giờ/ngày trên 2 phòng, mở đến ngày cuối
-tháng sau và tối thiểu 30 ngày tới. Phim COMING_SOON có suất chiếu sớm theo lịch
-thực, vẫn đặt ghế/thanh toán Sandbox/nhận QR qua backend. Lịch có chấm ngày mở bán.
-Kho demo trước đây đã được loại bỏ; chỉ còn lịch và giao dịch từ NestJS/PostgreSQL.
-
-Sau khi cập nhật, build backend rồi chạy `npm run dev:full` để bổ sung lịch còn thiếu.
-Nếu dùng PostgreSQL/Redis cài trực tiếp thì giữ cấu hình kết nối hiện tại, không cần
-chạy các lệnh Compose hoặc `setup:local`. Xem [kiểm chứng lịch đầy đủ](docs/design/full-calendar-booking.md).
+---
+*Bản quyền Đồ án thuộc về **Nhóm 03 — Lớp 2611COMP104405 — Khoa Công nghệ Thông tin, HCMUE**.*

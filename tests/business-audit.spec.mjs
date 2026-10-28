@@ -366,7 +366,9 @@ test("staff dropdown deduplicates repeated real screening IDs and keeps Vietnam 
     await route.fulfill({ response, json: body });
   });
   await page.goto("/soat-ve");
-  const show = fixture().admissionShowtime;
+  // Tomorrow has four screenings by fixture contract; the admission day can
+  // have only one close to Vietnam midnight. Keep the multi-option assertion.
+  const show = fixture().programmeShowtimes[0];
   await page.getByLabel("Ngày đang soát", { exact: true }).fill(
     new Date(show.startTime).toLocaleDateString("en-CA", {
       timeZone: "Asia/Ho_Chi_Minh",
@@ -607,5 +609,163 @@ test("ADMIN operates a real cinema/room/screening, buys a ticket, opens own QR a
   } finally {
     await other.close();
   }
+  expect(errors).toEqual([]);
+});
+
+test("ADMIN locks/reactivates a real customer through the renamed frontend workspace", async ({
+  page,
+  browser,
+}) => {
+  const data = fixture();
+  const email = `${data.prefix}-status-${Date.now()}@example.test`;
+  await page.request
+    .post("/api/v1/auth/register", {
+      data: {
+        email,
+        password: data.password,
+        fullName: "Account status browser audit",
+      },
+    })
+    .then((r) => expect(r.status()).toBe(201));
+  const customer = await browser.newContext();
+  try {
+    expect(
+      (
+        await customer.request.post("/api/v1/auth/login", {
+          data: { email, password: data.password },
+        })
+      ).status(),
+    ).toBe(200);
+    await login(page, "admin");
+    await page.goto("/quan-tri");
+    await page.getByRole("button", { name: /Khách Hàng & Thành Viên/ }).click();
+    await page
+      .getByRole("textbox", { name: "Tìm khách hàng", exact: true })
+      .fill(email);
+    const select = page.getByRole("combobox", {
+      name: `Trạng thái ${email}`,
+      exact: true,
+    });
+    await expect(select).toHaveValue("ACTIVE");
+    const locked = page.waitForResponse(
+      (r) =>
+        r.request().method() === "PATCH" &&
+        new URL(r.url()).pathname.endsWith("/status"),
+    );
+    await select.selectOption("LOCKED");
+    expect((await locked).status()).toBe(200);
+    await expect(select).toHaveValue("LOCKED");
+    expect((await customer.request.get("/api/v1/users/me")).status()).toBe(403);
+    const activated = page.waitForResponse(
+      (r) =>
+        r.request().method() === "PATCH" &&
+        new URL(r.url()).pathname.endsWith("/status"),
+    );
+    await select.selectOption("ACTIVE");
+    expect((await activated).status()).toBe(200);
+    await expect(select).toHaveValue("ACTIVE");
+    expect(
+      (
+        await customer.request.post("/api/v1/auth/login", {
+          data: { email, password: data.password },
+        })
+      ).status(),
+    ).toBe(200);
+  } finally {
+    await customer.close();
+  }
+});
+
+test("ADMIN reconciliation renders real pending payment, safe failures and responsive results", async ({
+  page,
+}) => {
+  const data = fixture();
+  await login(page);
+  const show = data.programmeShowtimes[3];
+  const seats = await page.request
+    .get(`/api/v1/showtimes/${show.id}/seats`)
+    .then((r) => r.json());
+  const seat = seats.data.seats.find((s) => s.row === "A" && s.column === 1);
+  const held = await page.request.post("/api/v1/bookings/hold", {
+    data: { showtimeId: show.id, seatIds: [seat.seatId] },
+  });
+  expect(held.status()).toBe(201);
+  const order = (await held.json()).data;
+  await page.request
+    .post("/api/v1/payments/create-sandbox-url", {
+      data: { bookingId: order.id, returnUrl: new URL("/", page.url()).href },
+    })
+    .then((r) => expect(r.status()).toBe(201));
+  const errors = [];
+  page.on("pageerror", () => errors.push("runtime"));
+  await login(page, "admin");
+  await page.goto("/quan-tri");
+  await page
+    .getByRole("button", { name: "Đối soát thanh toán", exact: true })
+    .click();
+  const input = page.getByRole("textbox", {
+    name: "Mã đơn hoặc mã giao dịch",
+    exact: true,
+  });
+  await input.fill(order.orderCode);
+  await page
+    .getByRole("button", { name: "Tra cứu giao dịch", exact: true })
+    .click();
+  const panel = page.getByRole("region", {
+    name: "Đối soát thanh toán",
+    exact: true,
+  });
+  await expect(panel.getByText(order.orderCode, { exact: true })).toBeVisible();
+  await expect(panel.getByText("Đang giữ ghế", { exact: true })).toBeVisible();
+  if (process.env.NOVA_CAPTURE_DIR) {
+    mkdirSync(process.env.NOVA_CAPTURE_DIR, { recursive: true });
+    await page.screenshot({
+      path: resolve(
+        process.env.NOVA_CAPTURE_DIR,
+        "admin-reconciliation-desktop.jpg",
+      ),
+      type: "jpeg",
+      quality: 80,
+    });
+  }
+  await expect(
+    panel.getByRole("button", { name: "Khôi phục phát hành vé" }),
+  ).toHaveCount(0);
+  await page.setViewportSize({ width: 360, height: 900 });
+  const panelWidth = await panel.evaluate(
+    (el) => el.getBoundingClientRect().width,
+  );
+  expect(
+    await input.evaluate((el) => el.getBoundingClientRect().width),
+  ).toBeGreaterThan(panelWidth - 65);
+  expect(
+    await page
+      .locator(".admin-tabs")
+      .evaluate((el) => el.getBoundingClientRect().height),
+  ).toBeLessThan(110);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(
+    await panel.evaluate(
+      (el) => el.getBoundingClientRect().right <= innerWidth,
+    ),
+  ).toBe(true);
+  if (process.env.NOVA_CAPTURE_DIR)
+    await panel.screenshot({
+      path: resolve(
+        process.env.NOVA_CAPTURE_DIR,
+        "admin-reconciliation-mobile.jpg",
+      ),
+      type: "jpeg",
+      quality: 80,
+    });
+  await input.fill(`NOVA-${"0".repeat(32)}`);
+  await page
+    .getByRole("button", { name: "Tra cứu giao dịch", exact: true })
+    .click();
+  await expect(panel.getByRole("alert")).toContainText("Không tìm thấy mã đơn");
   expect(errors).toEqual([]);
 });

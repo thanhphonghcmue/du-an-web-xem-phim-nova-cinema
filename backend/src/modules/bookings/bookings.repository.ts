@@ -128,13 +128,13 @@ export class BookingsRepository {
     seatIds: string[],
     tx: Prisma.TransactionClient,
   ) {
-    return await tx.bookingSeat.findFirst({
+    return await tx.bookingSeat.findMany({
       where: {
         showtimeId,
         seatId: { in: seatIds },
         status: { in: ["HOLDING", "SOLD"] },
       },
-      select: { id: true },
+      select: { seatId: true },
     });
   }
   create(

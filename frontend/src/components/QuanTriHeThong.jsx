@@ -7,7 +7,7 @@
  * ==============================================================================
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { revenueCsv } from "@/api/revenueCsv.js";
 import {
   TrendingUp,
@@ -43,6 +43,8 @@ function revenueShare(value, ticketAmount, comboAmount) {
     : "0%";
 }
 import AdminAudit from "./AdminAudit.jsx";
+import AdminReconciliation from "./AdminReconciliation.jsx";
+import { uniqueRecords } from "@/uniqueRecords.js";
 import OperationalCatalog from "./OperationalCatalog.jsx";
 import {
   apiGetAdminOverview,
@@ -50,6 +52,7 @@ import {
   apiGetAdminUsers,
   apiPurgeOutbox,
   apiGetHealth,
+  readCommand,
 } from "@/api/client.js";
 
 function getVietnamDate(offsetDays = 0) {
@@ -91,6 +94,39 @@ export default function QuanTriHeThong({
   // Users state
   const [users, setUsers] = useState([]);
   const [userQuery, setUserQuery] = useState("");
+  const [changingUser, setChangingUser] = useState("");
+  const [userNotice, setUserNotice] = useState("");
+  const displayedUsers = useMemo(
+    () =>
+      uniqueRecords(users).filter((user) =>
+        `${user.email} ${user.fullName || ""}`
+          .toLocaleLowerCase("vi")
+          .includes(userQuery.toLocaleLowerCase("vi")),
+      ),
+    [users, userQuery],
+  );
+  async function changeAccountStatus(id, status) {
+    setChangingUser(id);
+    setUserNotice("");
+    try {
+      const result = await readCommand(
+        `/users/${id}/status`,
+        { status },
+        {},
+        "PATCH",
+      );
+      setUsers((current) =>
+        current.map((user) =>
+          user.id === result.id ? { ...user, status: result.status } : user,
+        ),
+      );
+      setUserNotice("Đã cập nhật trạng thái tài khoản.");
+    } catch (cause) {
+      setError(cause.message);
+    } finally {
+      setChangingUser("");
+    }
+  }
   const [usersUpdatedAt, setUsersUpdatedAt] = useState(null);
   useEffect(() => {
     if (activeTab !== "users") return;
@@ -298,6 +334,13 @@ export default function QuanTriHeThong({
         {/* Navigation Tabs */}
         <div className="admin-tabs">
           <button
+            className={`admin-tab ${activeTab === "reconciliation" ? "active" : ""}`}
+            onClick={() => setActiveTab("reconciliation")}
+          >
+            <Ticket size={16} />
+            Đối soát thanh toán
+          </button>
+          <button
             className={`admin-tab ${activeTab === "revenue" ? "active" : ""}`}
             onClick={() => setActiveTab("revenue")}
           >
@@ -343,6 +386,7 @@ export default function QuanTriHeThong({
         {/* Content Body */}
         <div className="admin-content-body">
           {activeTab === "audit" && <AdminAudit />}
+          {activeTab === "reconciliation" && <AdminReconciliation />}
           {/* TAB 1: DOANH THU & BÁO CÁO */}
           {activeTab === "revenue" && (
             <div className="admin-tab-pane">
@@ -651,6 +695,7 @@ export default function QuanTriHeThong({
           {/* TAB 2: KHÁCH HÀNG & THÀNH VIÊN */}
           {activeTab === "users" && (
             <div className="admin-tab-pane">
+              {userNotice && <p role="status">{userNotice}</p>}
               <div className="admin-users-toolbar">
                 <label>
                   Tìm khách hàng
@@ -677,51 +722,58 @@ export default function QuanTriHeThong({
                       <th>Hạng Thành Viên</th>
                       <th>Điểm Tích Lũy</th>
                       <th>Ngày Đăng Ký</th>
+                      <th>Trạng thái tài khoản</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users
-                      .filter((user) =>
-                        `${user.email} ${user.fullName || ""}`
-                          .toLocaleLowerCase("vi")
-                          .includes(userQuery.toLocaleLowerCase("vi")),
-                      )
-                      .map((u) => (
-                        <tr key={u.id}>
-                          <td>
-                            <strong>{u.email}</strong>
-                          </td>
-                          <td>{u.fullName || "Chưa cập nhật"}</td>
-                          <td>
-                            <span
-                              className={`role-badge ${u.role.toLowerCase()}`}
-                            >
-                              {u.role}
-                            </span>
-                          </td>
-                          <td>
-                            <span
-                              className={`tier-badge ${u.cMemberTier?.toLowerCase()}`}
-                            >
-                              {u.cMemberTier || "STANDARD"}
-                            </span>
-                          </td>
-                          <td>
-                            <strong>{u.cMemberPoints || 0} pts</strong>
-                          </td>
-                          <td>
-                            {new Date(u.createdAt).toLocaleDateString("vi-VN")}
-                          </td>
-                        </tr>
-                      ))}
-                    {users.filter((user) =>
-                      `${user.email} ${user.fullName || ""}`
-                        .toLocaleLowerCase("vi")
-                        .includes(userQuery.toLocaleLowerCase("vi")),
-                    ).length === 0 && (
+                    {displayedUsers.map((u) => (
+                      <tr key={u.id}>
+                        <td>
+                          <strong>{u.email}</strong>
+                        </td>
+                        <td>{u.fullName || "Chưa cập nhật"}</td>
+                        <td>
+                          <span
+                            className={`role-badge ${u.role.toLowerCase()}`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`tier-badge ${u.cMemberTier?.toLowerCase()}`}
+                          >
+                            {u.cMemberTier || "STANDARD"}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{u.cMemberPoints || 0} pts</strong>
+                        </td>
+                        <td>
+                          {new Date(u.createdAt).toLocaleDateString("vi-VN")}
+                        </td>
+                        <td>
+                          <select
+                            aria-label={`Trạng thái ${u.email}`}
+                            value={u.status || "ACTIVE"}
+                            disabled={
+                              Boolean(changingUser) || u.role === "ADMIN"
+                            }
+                            onChange={(event) =>
+                              void changeAccountStatus(u.id, event.target.value)
+                            }
+                          >
+                            <option value="ACTIVE">Hoạt động</option>
+                            <option value="LOCKED">Đã khóa</option>
+                            <option value="INACTIVE">Ngừng hoạt động</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                    {displayedUsers.length === 0 && (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={7}
                           style={{ textAlign: "center", padding: "20px" }}
                         >
                           {error

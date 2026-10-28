@@ -278,6 +278,7 @@ Web: **http://localhost:3000** · API: **http://127.0.0.1:4000/api/v1**.
 
 - Mã giao diện chạy tại **`frontend/src/`**, ảnh tại `frontend/public/`; backend tại `backend/`; tài liệu tại `docs/`. Các lệnh gốc đã trỏ vào đúng workspace mới. Source gốc được giữ tương thích, không dùng làm bản chạy thứ hai.
 - Fresh clone chưa cấu hình PostgreSQL dùng backend RAM native theo lựa chọn của nhóm: có luồng giữ ghế/thanh toán Sandbox/QR thật trong process, dữ liệu reset khi khởi động lại. Không cần Docker. Nếu dùng `.env` cũ, có thể đặt `NOVA_BACKEND_MODE=memory` để chủ động chọn chế độ này.
+- Cấu hình frontend mới tại `frontend/.env.local` theo `frontend/.env.example`; cấu hình upstream/origin cũ ở root vẫn được đọc làm fallback, ưu tiên biến frontend/shell.
 - Muốn lưu bền vững: cài PostgreSQL/Redis native, cấu hình `backend/.env` với database UTF8/Unicode, URL/Redis và SEED_DEMO_PASSWORD riêng; chạy `npm run setup:local`. Không có bước tự khởi chạy container.
 - Seed additive giữ dữ liệu đã chỉnh; có4 tài khoản customer/cmember/staff/admin tại `@nova.vn`, hội viên mới có50.000 điểm; giữ các tài khoản `.local` đã có. C’MEMBER hiện có chiết khấu theo hạng và tích điểm; API đổi điểm thành tiền chưa triển khai.
 
@@ -292,6 +293,7 @@ Chi tiết Windows, cấu hình native, RTM20 ca kiểm thử và giới hạn n
 ```bash
 npm run test:unit
 npm run test:backend
+npm run test:business
 npm run test:db
 npm run lint
 npm run build
@@ -299,6 +301,8 @@ npm test
 ```
 
 HTTP/DB/browser tests cần PostgreSQL/Redis test riêng và migration; không chạy ghi dữ liệu vào database người dùng. Production browser: build trước, đặt `NOVA_QA_PRODUCTION=1` rồi `npm test` (PowerShell: `$env:NOVA_QA_PRODUCTION="1"`).
+
+Kiểm toán bổ sung và hướng dẫn TC-01…TC-05/ma trận UC14: [Fullstack LAB04](docs/qa/fullstack-lab04-audit.md). PostgreSQL hiện hữu cần `npm run setup:local` sau pull để apply migration trạng thái tài khoản và build dist mới.
 
 Báo cáo kiểm chứng mới gồm [STLC/RTM backend native](docs/qa/backend-native-audit.md), [frontend/network audit](docs/qa/frontend-performance-audit.md), số đo trong `docs/qa/measurements/` và ảnh trong `docs/qa/screenshots/`. Kết quả lịch sử trong các báo cáo khác giữ nguyên thời điểm của từng lượt; không gộp thành cam kết100% cho mọi tình huống.
 

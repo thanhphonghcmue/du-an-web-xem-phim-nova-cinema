@@ -140,8 +140,13 @@ export class SeatBookingService {
             await this.bookings.lockBooking(row.id, tx);
             await this.expireLocked(row.id, tx);
           }
-          if (await this.bookings.activeSeat(showtime.id, seatIds, tx))
-            throw unavailable();
+          const conflicts = await this.bookings.activeSeat(
+            showtime.id,
+            seatIds,
+            tx,
+          );
+          if (conflicts.length)
+            throw unavailable(conflicts.map((s) => s.seatId));
 
           // Validate Orphan Seat Rule: ensure no new single-seat gap is created
           const affectedRows = [...new Set(seats.map((s) => s.seatRow))];
@@ -413,10 +418,11 @@ export class SeatBookingService {
       await this.autoReleaseExpiredHold(row.id);
   }
 }
-function unavailable(): ApiException {
+function unavailable(seatIds?: string[]): ApiException {
   return new ApiException(
     409,
     "SEAT_UNAVAILABLE",
-    "One or more seats were just held or sold. Choose again.",
+    "Một hoặc nhiều ghế vừa được giữ hoặc bán. Vui lòng chọn lại.",
+    seatIds ? { seatIds } : undefined,
   );
 }

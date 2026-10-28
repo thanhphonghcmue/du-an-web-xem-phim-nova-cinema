@@ -192,6 +192,7 @@ exports.createAdmin = (c) => {
         return json(
           [...users.values()].map((u) => ({
             ...publicUser(u),
+            status: u.status,
             bookingCount: [...orders.values()].filter((o) => o.userId === u.id)
               .length,
           })),

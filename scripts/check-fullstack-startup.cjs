@@ -39,6 +39,7 @@ async function main() {
     "package.json",
     "jsconfig.json",
     "next.config.mjs",
+    "legacy-env.mjs",
     "postcss.config.js",
     "tailwind.config.js",
   ])

@@ -1,0 +1,49 @@
+{
+  "auditDate": "2026-10-28",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "baselineCommit": "7b459a9",
+  "branch": "feat/nova-discovery-ui",
+  "uniquePassedCases": {
+    "backendUnit": 89,
+    "backendHttpSocketPostgres": 232,
+    "databaseSchema": 23,
+    "nodeRamPlannerConfig": 60,
+    "browserProduction": 84,
+    "total": 488
+  },
+  "initialBrowserFullRun": {
+    "passed": 81,
+    "failed": 3,
+    "failures": "Test assumptions around Vietnam midnight and an out-of-range fixture index; corrected without weakening business assertions."
+  },
+  "browserRegressionRuns": {
+    "threeCorrectedCases": 3,
+    "adminStaffTimelineAfterNavigationCss": 5,
+    "adminAfterMobileSearchCss": 3,
+    "includedAgainInTotal": false
+  },
+  "checks": {
+    "backendTypecheck": true,
+    "backendTypedLint": true,
+    "frontendLint": true,
+    "backendBuild": true,
+    "frontendProductionBuild": true,
+    "nativeRamSignedPaymentQrSmoke": true,
+    "backendUnavailableAndTimeoutSmoke": true,
+    "stalledUpstreamReleaseMs": 7812
+  },
+  "infrastructure": {
+    "postgresql": "17.10 native",
+    "redis": "7.4.2 native",
+    "smtp": "owned loopback fixture",
+    "dockerUsed": false,
+    "databaseWriteSuites": "sequential"
+  },
+  "notImplemented": [
+    "points-to-cash redemption: no approved conversion/API",
+    "finite concession stock accounting",
+    "real-money bank integration",
+    "persistent RAM state"
+  ],
+  "performanceMeasurementsRepeated": false
+}

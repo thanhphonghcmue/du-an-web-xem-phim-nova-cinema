@@ -608,6 +608,13 @@ function LiveBookingConsole({
       });
     } catch (err) {
       setNotice(err.message);
+      if (
+        err.code === "SEAT_UNAVAILABLE" &&
+        Array.isArray(err.details?.seatIds)
+      ) {
+        const blocked = new Set(err.details.seatIds);
+        setSelected((current) => current.filter((id) => !blocked.has(id)));
+      }
       void refresh().catch(() => {});
     } finally {
       setBusy(false);

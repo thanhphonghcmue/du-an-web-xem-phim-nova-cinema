@@ -147,3 +147,7 @@ Bổ sung API public đọc số ghế theo lô tối đa50 UUID, truy vấn set
 Kiểm chứng lượt này:89 unit +222 HTTP/Socket.IO +22 PostgreSQL; typecheck/typed lint/build đạt. Frontend production82 bài và Node/RAM/planner53 bài, tổng468. Chi tiết timing, phương pháp và giới hạn ở [báo cáo kiểm toán](../../docs/qa/frontend-performance-audit.md).
 
 Lượt native cùng ngày bổ sung các biên299/300/301s,14/15/16phút,4 tài khoản .vn (hội viên50000 điểm) và4 rạp. Seed không reset điểm đã chỉnh; sửa presale ID trùng trong RAM và đường dẫn monorepo/Prisma hoisted. Native PG17.10/Redis7.4.2, không dùng Docker; ma trận STLC/RTM và những mục tiêu hiệu năng chưa đạt tại [báo cáo native](../../docs/qa/backend-native-audit.md).
+
+## Kiểm toán Fullstack bổ sung — 28/10/2026
+
+Không đánh dấu hoàn thành Phase11–12. Bổ sung UC02 ACTIVE/LOCKED/INACTIVE (migration additive), Admin payment reconciliation/durable ticket recovery, exact conflict IDs, env compatibility sau chuyển frontend/ và responsive Admin. Kiểm chứng488 ca độc lập:89 backend unit,232 HTTP/Socket.IO,23 DB schema,60 Node/RAM/config/planner,84 browser production; các lần chạy lại không cộng trùng. Typecheck/lint/build đạt, native RAM/503-timeout smoke đạt. [Audit/RTM/TC-01…05 và giới hạn](../../docs/qa/fullstack-lab04-audit.md).

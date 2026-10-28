@@ -1,6 +1,6 @@
 # NOVA backend workflow
 
-This subtree is a standalone NestJS/TypeScript package. Install and run its commands from `backend/`; the root package is the separate Next.js frontend. Use Node.js from `.nvmrc` and `npm ci` with the committed backend lockfile. In the cloud, pass `--cache /workspace/.npm-cache` to npm installation commands.
+This subtree is a standalone NestJS/TypeScript package. Install and run its commands from `backend/`; the Next.js frontend lives in `frontend/`, and the root package orchestrates both npm workspaces. Use Node.js from `.nvmrc` and `npm install` at the repository root with the committed workspace lockfile (or `npm ci` for a clean reproducible root install). In the cloud, pass `--cache /workspace/.npm-cache` to npm installation commands.
 
 Read `README.md`, `docs/architecture.md` and `docs/phases.md` before implementation. Implement only the phase explicitly requested by the user. Their master prompt states: after each phase, stop and wait for `TIẾP TỤC PHASE X`, unless the user explicitly requests continuous implementation. Do not advance phases merely because dependencies are installed. Update phase status and evidence after checks pass.
 

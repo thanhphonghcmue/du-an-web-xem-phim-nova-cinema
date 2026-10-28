@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { ApiException } from "../../common/exceptions/api.exception";
 import { UsersRepository } from "../users/users.repository";
 import { UserProfileDto } from "../users/dto/user-profile.dto";
+import { requireActiveAccount } from "../users/users.service";
 import { AuthRepository } from "./auth.repository";
 import { PasswordService } from "./password.service";
 import { TokenService, tokenHash } from "./token.service";
@@ -63,16 +64,20 @@ export class AuthService {
         "INVALID_CREDENTIALS",
         "Email or password is incorrect.",
       );
-    const user = await this.users.findProfile(account.id);
-    if (!user || user.role === "GUEST")
-      throw new ApiException(
-        401,
-        "INVALID_CREDENTIALS",
-        "Email or password is incorrect.",
-      );
-    const session = await this.tokens.issue(user.id);
-    await this.sessions.transaction((tx) =>
-      this.sessions.createToken(
+    requireActiveAccount(account.status);
+    return this.sessions.transaction(async (tx) => {
+      await this.users.lockAccount(account.id, tx);
+      const current = await this.users.findAccount(account.id, tx);
+      if (!current || current.role === "GUEST")
+        throw new ApiException(
+          401,
+          "INVALID_CREDENTIALS",
+          "Email or password is incorrect.",
+        );
+      const { status, ...user } = current;
+      requireActiveAccount(status);
+      const session = await this.tokens.issue(user.id);
+      await this.sessions.createToken(
         {
           id: session.id,
           userId: user.id,
@@ -80,15 +85,17 @@ export class AuthService {
           expiresAt: session.expiresAt,
         },
         tx,
-      ),
-    );
-    return Object.assign(new AuthSessionDto(), session.tokens, { user });
+      );
+      return Object.assign(new AuthSessionDto(), session.tokens, { user });
+    });
   }
+
   async refresh(rawToken: string): Promise<AuthSessionDto> {
     const claims = await this.tokens.verify(rawToken, "refresh").catch(() => {
       throw invalidRefresh();
     });
     return this.sessions.transaction(async (tx) => {
+      await this.users.lockAccount(claims.sub, tx);
       if (
         !(await this.sessions.consumeToken(
           claims.jti,
@@ -98,8 +105,10 @@ export class AuthService {
         ))
       )
         throw invalidRefresh();
-      const user = await this.users.findProfile(claims.sub, tx);
-      if (!user || user.role === "GUEST") throw invalidRefresh();
+      const account = await this.users.findAccount(claims.sub, tx);
+      if (!account || account.role === "GUEST") throw invalidRefresh();
+      const { status, ...user } = account;
+      requireActiveAccount(status);
       const session = await this.tokens.issue(user.id);
       await this.sessions.createToken(
         {

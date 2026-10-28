@@ -608,6 +608,57 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     ).toEqual([]);
   });
 
+  it("UC04 returns exact conflicting seat IDs and rolls back the whole mixed selection", async () => {
+    const f = await fixture();
+    await hold(f, customerA, [seat(f), seat(f, 1)]).expect(201);
+    const denied = await hold(f, customerB, [
+      seat(f),
+      seat(f, 1),
+      seat(f, 2),
+    ]).expect(409);
+    expect(
+      (
+        JSON.parse(denied.text) as { details: { seatIds: string[] } }
+      ).details.seatIds.sort(),
+    ).toEqual([seat(f), seat(f, 1)].sort());
+    expect(denied.text).not.toMatch(/userId|bookingId|lockedBy/);
+    expect(
+      await prisma.bookingSeat.count({
+        where: {
+          showtimeId: f.showtime.id,
+          seatId: seat(f, 2),
+          status: "HOLDING",
+        },
+      }),
+    ).toBe(0);
+  });
+
+  it("UC04 Redis contention returns only the contested IDs without taking another seat's mutex", async () => {
+    const f = await fixture();
+    const key = `${namespace()}:seat-lock:{${f.showtime.id}}:${seat(f)}`;
+    await redis.set(key, "other-reservation", "PX", 10000);
+    try {
+      const denied = await hold(f, customerA, [seat(f), seat(f, 1)]).expect(
+        409,
+      );
+      expect(
+        (JSON.parse(denied.text) as { details: { seatIds: string[] } }).details
+          .seatIds,
+      ).toEqual([seat(f)]);
+      expect(await redis.get(key)).toBe("other-reservation");
+      expect(
+        await redis.exists(
+          `${namespace()}:seat-lock:{${f.showtime.id}}:${seat(f, 1)}`,
+        ),
+      ).toBe(0);
+      expect(
+        await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+      ).toBe(0);
+    } finally {
+      await redis.del(key);
+    }
+  });
+
   it("allows disjoint seats concurrently and up to 20 seats in one booking", async () => {
     const f = await fixture();
     const results = await Promise.all([

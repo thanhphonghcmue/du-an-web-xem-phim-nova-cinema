@@ -81,6 +81,7 @@ export class ReportsRepository {
         email: true,
         fullName: true,
         role: true,
+        status: true,
         cMemberTier: true,
         cMemberPoints: true,
         createdAt: true,

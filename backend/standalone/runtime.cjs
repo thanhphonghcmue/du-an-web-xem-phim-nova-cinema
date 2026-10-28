@@ -39,7 +39,7 @@ const money = (value) => {
 };
 const fixed = (n) => `${n / 100n}.${String(n % 100n).padStart(2, "0")}`;
 const iso = (n) => new Date(n).toISOString();
-const publicUser = ({ password, passwordHash, ...user }) => user;
+const publicUser = ({ password, passwordHash, status, ...user }) => user;
 const esc = (value) =>
   String(value).replace(
     /[&<>"']/g,
@@ -99,6 +99,7 @@ function createMemoryServer(input) {
       const hash = await derive(entry.password, salt, 32);
       const user = {
         ...entry,
+        status: entry.status || "ACTIVE",
         id: stableId(`memory:user:${entry.email}`),
         passwordHash: `${salt}:${hash.toString("hex")}`,
         cMemberTier:
@@ -124,6 +125,7 @@ function createMemoryServer(input) {
         ? users.get(session.userId)
         : null;
     if (!user) fail(401, "UNAUTHORIZED", "Vui lòng đăng nhập lại.");
+    activeAccount(user);
     if (roles && !roles.includes(user.role))
       fail(
         403,
@@ -132,7 +134,16 @@ function createMemoryServer(input) {
       );
     return user;
   }
+  function activeAccount(user) {
+    if (!user || user.status !== "ACTIVE")
+      fail(
+        403,
+        "ACCOUNT_DISABLED",
+        "Tài khoản đã bị khóa hoặc ngừng hoạt động. Vui lòng liên hệ hỗ trợ.",
+      );
+  }
   function session(user) {
+    activeAccount(user);
     const accessToken = randomBytes(32).toString("hex"),
       refreshToken = randomBytes(48).toString("hex");
     sessions.set(accessToken, {
@@ -422,12 +433,15 @@ function createMemoryServer(input) {
       }
     }
     assert(ids.size <= 20, "SEAT_LIMIT_EXCEEDED", "Mỗi đơn tối đa 20 ghế.");
-    for (const id of ids)
-      assert(
-        byId.get(id)?.status === "AVAILABLE",
+    const conflictingIds = [...ids].filter(
+      (id) => byId.get(id)?.status !== "AVAILABLE",
+    );
+    if (conflictingIds.length)
+      fail(
+        409,
         "SEAT_UNAVAILABLE",
         "Ghế vừa được người khác giữ. Hãy chọn lại.",
-        409,
+        { seatIds: conflictingIds },
       );
     const bad = orphan(map, [...ids]);
     if (bad)
@@ -606,6 +620,7 @@ function createMemoryServer(input) {
       ticketHash: randomBytes(32).toString("hex"),
       qrCodeBase64: "",
       isCheckedIn: false,
+      createdAt: iso(now()),
       checkedInAt: null,
     };
     tickets.set(ticket.id, ticket);
@@ -854,7 +869,10 @@ function createMemoryServer(input) {
     if (path === "/runtime") return json({ mode: "backend" });
     if (path === "/auth/register" && method === "POST") {
       assert(
-        typeof body.email === "string" &&
+        Object.keys(body).every((key) =>
+          ["email", "password", "fullName", "phone"].includes(key),
+        ) &&
+          typeof body.email === "string" &&
           /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email) &&
           typeof body.password === "string" &&
           body.password.length >= 12 &&
@@ -885,6 +903,7 @@ function createMemoryServer(input) {
         fullName: body.fullName.trim(),
         phone: body.phone || null,
         role: "CUSTOMER",
+        status: "ACTIVE",
         cMemberTier: "SILVER",
         cMemberPoints: 0,
         createdAt: iso(now()),
@@ -936,6 +955,107 @@ function createMemoryServer(input) {
       sessions.delete(access);
       if (body.refreshToken) sessions.delete(body.refreshToken);
       return json(null);
+    }
+    const accountMatch = path.match(/^\/users\/([a-f0-9-]{36})\/status$/);
+    if (accountMatch && method === "PATCH") {
+      const actor = auth(request, ["ADMIN"]),
+        target = users.get(accountMatch[1]);
+      assert(
+        Object.keys(body).length === 1 &&
+          ["ACTIVE", "LOCKED", "INACTIVE"].includes(body.status),
+      );
+      if (!target) fail(404, "USER_NOT_FOUND", "Không tìm thấy tài khoản.");
+      if (target.id === actor.id || target.role === "ADMIN")
+        fail(
+          409,
+          "ADMIN_ACCOUNT_PROTECTED",
+          "Không thể khóa tài khoản quản trị tại đây.",
+        );
+      target.status = body.status;
+      if (target.status !== "ACTIVE")
+        for (const [key, entry] of sessions) {
+          if (entry.userId === target.id && entry.kind === "refresh")
+            sessions.delete(key);
+        }
+      return json({ id: target.id, status: target.status });
+    }
+    if (path === "/admin/payments/reconciliation" && method === "GET") {
+      auth(request, ["ADMIN"]);
+      const reference = query.get("reference") || "";
+      assert(
+        /^(NOVA-[a-f0-9]{32}|NOVA-SB-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/.test(
+          reference,
+        ),
+      );
+      const order = [...orders.values()].find(
+        (o) =>
+          o.orderCode === reference ||
+          payments.get(o.id)?.transactionCode === reference,
+      );
+      if (!order)
+        fail(
+          404,
+          "PAYMENT_REFERENCE_NOT_FOUND",
+          "Không tìm thấy mã đơn hoặc mã giao dịch.",
+        );
+      const payment = payments.get(order.id),
+        ticket = [...tickets.values()].find((t) => t.bookingId === order.id);
+      return json({
+        bookingId: order.id,
+        orderCode: order.orderCode,
+        bookingStatus: status(order),
+        amount: order.finalAmount,
+        expiredAt: order.expiredAt,
+        payments: payment
+          ? [
+              {
+                transactionCode: payment.transactionCode,
+                status: payment.status,
+                amount: order.finalAmount,
+                updatedAt: order.updatedAt || order.createdAt,
+              },
+            ]
+          : [],
+        ticket: ticket
+          ? {
+              id: ticket.id,
+              isCheckedIn: ticket.isCheckedIn,
+              createdAt: ticket.createdAt,
+            }
+          : null,
+        delivery: [],
+        canRecoverTicket:
+          order.status === "PAID" && payment?.status === "SUCCESS" && !ticket,
+      });
+    }
+    const recoveryMatch = path.match(
+      /^\/admin\/payments\/([a-f0-9-]{36})\/recover-ticket$/,
+    );
+    if (recoveryMatch && method === "POST") {
+      auth(request, ["ADMIN"]);
+      const order = orders.get(recoveryMatch[1]);
+      if (!order) fail(404, "BOOKING_NOT_FOUND", "Không tìm thấy đơn đặt vé.");
+      assert(
+        order.status === "PAID" &&
+          payments.get(order.id)?.status === "SUCCESS" &&
+          order.seats.length &&
+          order.seats.every((s) => s.status === "SOLD"),
+        "PAYMENT_NOT_CONFIRMED",
+        "Chỉ khôi phục vé khi thanh toán đã xác nhận thành công và ghế đã bán.",
+        409,
+      );
+      const existing = [...tickets.values()].find(
+        (t) => t.bookingId === order.id,
+      );
+      if (!existing) issue(order);
+      return json(
+        {
+          bookingId: order.id,
+          queued: !existing,
+          ticketId: existing?.id || null,
+        },
+        202,
+      );
     }
     if (path === "/users/me") {
       const user = auth(request);

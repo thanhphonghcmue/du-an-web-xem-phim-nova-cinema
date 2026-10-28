@@ -265,10 +265,20 @@ test("timeline uses one bounded capacity batch, renders backend counts, and neve
   expect(
     requests.filter((p) => p.endsWith("/capacities")).length,
   ).toBeLessThanOrEqual(3);
+  // The future fixture starts in 30 minutes, which can be tomorrow in Vietnam.
+  // A correct timeline must not invent a "today" screening near midnight.
+  const vietnamDay = (value) =>
+    new Date(value).toLocaleDateString("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+  const expected =
+    vietnamDay(fixture().showtime.startTime) === vietnamDay(Date.now())
+      ? "Hôm nay"
+      : "Ngày mai";
   await expect(
     page
       .locator(".timeline-dates .date-relative")
-      .filter({ hasText: "Hôm nay" }),
+      .filter({ hasText: expected }),
   ).toBeVisible();
 });
 

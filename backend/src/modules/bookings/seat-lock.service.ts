@@ -7,9 +7,11 @@ import { ApiException } from "../../common/exceptions/api.exception";
 import { withTimeout } from "../../common/utils/with-timeout";
 
 const ACQUIRE = `
-for _, key in ipairs(KEYS) do
-  if redis.call('EXISTS', key) == 1 then return 0 end
+local conflicts = {}
+for index, key in ipairs(KEYS) do
+  if redis.call('EXISTS', key) == 1 then table.insert(conflicts, index) end
 end
+if #conflicts > 0 then return conflicts end
 for _, key in ipairs(KEYS) do redis.call('SET', key, ARGV[1], 'PX', ARGV[2], 'NX') end
 return 1`;
 const RELEASE = `
@@ -32,11 +34,12 @@ export class SeatLockService {
     this.prefix = config.getOrThrow<RedisSettings>("redis").prefix;
   }
   async acquire(showtimeId: string, seatIds: string[]): Promise<SeatLockLease> {
+    const ordered = [...seatIds].sort();
     const lease = {
       owner: randomUUID(),
-      keys: [...seatIds]
-        .sort()
-        .map((id) => `${this.prefix}:seat-lock:{${showtimeId}}:${id}`),
+      keys: ordered.map(
+        (id) => `${this.prefix}:seat-lock:{${showtimeId}}:${id}`,
+      ),
     };
     try {
       const result = await withTimeout(
@@ -47,7 +50,19 @@ export class SeatLockService {
         throw new ApiException(
           409,
           "SEAT_UNAVAILABLE",
-          "One or more seats are being reserved. Choose again.",
+          "Một hoặc nhiều ghế đang được giữ. Vui lòng chọn lại.",
+          {
+            seatIds: Array.isArray(result)
+              ? result
+                  .filter(
+                    (i: unknown): i is number =>
+                      Number.isInteger(i) &&
+                      Number(i) > 0 &&
+                      Number(i) <= ordered.length,
+                  )
+                  .map((i: number) => ordered[i - 1])
+              : [],
+          },
         );
       return lease;
     } catch (error) {

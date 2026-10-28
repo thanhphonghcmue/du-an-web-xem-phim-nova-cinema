@@ -258,3 +258,47 @@
     font-size: 21px;
   }
 }
+
+/* Keep long Vietnamese admin labels inside the sidebar; mobile navigation must
+   leave room for the operation being performed rather than six wrapped rows. */
+.admin-embedded .admin-tabs {
+  min-width: 0;
+}
+.admin-embedded .admin-tab {
+  white-space: normal;
+  text-align: left;
+}
+.admin-embedded .admin-tab svg {
+  flex: 0 0 auto;
+}
+@media (max-width: 700px) {
+  .admin-embedded .admin-tabs {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+  .admin-embedded .admin-tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-height: 44px;
+  }
+}
+.admin-reconciliation-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+@media (max-width: 700px) {
+  .admin-reconciliation-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-reconciliation-search > .button {
+    width: 100%;
+    max-width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+}

@@ -636,3 +636,143 @@ for (const seconds of [299, 300, 301]) {
     );
   });
 }
+
+test("RAM UC02 blocks locked/inactive accounts and revokes refresh sessions across reactivation", async (t) => {
+  const f = await fixture(t),
+    admin = await f.login("admin"),
+    staff = await f.login("staff");
+  const userId = f.customer.user.id;
+  assert.equal(
+    (
+      await f.call(
+        `/users/${userId}/status`,
+        { status: "LOCKED" },
+        staff.accessToken,
+        "PATCH",
+      )
+    ).status,
+    403,
+  );
+  for (const status of ["LOCKED", "INACTIVE"]) {
+    const active = await f.login("customer");
+    assert.equal(
+      (
+        await f.call(
+          `/users/${userId}/status`,
+          { status },
+          admin.accessToken,
+          "PATCH",
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await f.call("/users/me", undefined, active.accessToken)).status,
+      403,
+    );
+    assert.equal(
+      (
+        await f.call("/auth/login", {
+          email: f.data.accounts[2].email,
+          password: f.data.accounts[2].password,
+        })
+      ).body.error,
+      "ACCOUNT_DISABLED",
+    );
+    assert.equal(
+      (
+        await f.call(
+          `/users/${userId}/status`,
+          { status: "ACTIVE" },
+          admin.accessToken,
+          "PATCH",
+        )
+      ).status,
+      200,
+    );
+    assert.equal(
+      (await f.call("/auth/refresh", { refreshToken: active.refreshToken }))
+        .status,
+      401,
+    );
+  }
+  assert.equal(
+    (
+      await f.call(
+        `/users/${admin.user.id}/status`,
+        { status: "LOCKED" },
+        admin.accessToken,
+        "PATCH",
+      )
+    ).status,
+    409,
+  );
+});
+
+test("RAM returns exactly the conflicting IDs and never partially holds a mixed request", async (t) => {
+  const f = await fixture(t);
+  assert.equal(
+    (
+      await f.call(
+        "/bookings/hold",
+        { showtimeId: f.showtimeId, seatIds: [f.seat("A1")] },
+        f.customer.accessToken,
+      )
+    ).status,
+    201,
+  );
+  const conflict = await f.call(
+    "/bookings/hold",
+    { showtimeId: f.showtimeId, seatIds: [f.seat("A1"), f.seat("A2")] },
+    f.other.accessToken,
+  );
+  assert.equal(conflict.status, 409);
+  assert.deepEqual(conflict.body.details.seatIds, [f.seat("A1")]);
+  const map = (await f.call(`/showtimes/${f.showtimeId}/seats`)).data;
+  assert.equal(
+    map.seats.find((s) => s.seatId === f.seat("A2")).status,
+    "AVAILABLE",
+  );
+});
+
+test("RAM ADMIN reconciliation is exact, private and cannot turn an unpaid order into a ticket", async (t) => {
+  const f = await paidFixture(t),
+    admin = await f.login("admin");
+  const path = `/admin/payments/reconciliation?reference=${f.order.orderCode}`;
+  assert.equal(
+    (await f.call(path, undefined, f.customer.accessToken)).status,
+    403,
+  );
+  const before = await f.call(path, undefined, admin.accessToken);
+  assert.equal(before.data.bookingStatus, "HOLDING");
+  assert.equal(before.data.canRecoverTicket, false);
+  assert.equal(
+    (
+      await f.call(
+        `/admin/payments/${f.order.id}/recover-ticket`,
+        {},
+        admin.accessToken,
+      )
+    ).status,
+    409,
+  );
+  await f.call("/payments/sandbox/complete", {
+    ...f.fields,
+    result: "SUCCESS",
+  });
+  const after = await f.call(path, undefined, admin.accessToken);
+  assert.equal(after.data.bookingStatus, "PAID");
+  assert.ok(after.data.ticket.id);
+  assert.doesNotMatch(
+    JSON.stringify(after.data),
+    /signature|ticketHash|qrCodeBase64|requestPayload/,
+  );
+  const retry = await f.call(
+    `/admin/payments/${f.order.id}/recover-ticket`,
+    {},
+    admin.accessToken,
+  );
+  assert.equal(retry.status, 202);
+  assert.equal(retry.data.queued, false);
+  assert.equal(retry.data.ticketId, after.data.ticket.id);
+});

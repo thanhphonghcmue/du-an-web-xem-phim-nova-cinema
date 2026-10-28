@@ -1,3 +1,14 @@
+import { fileURLToPath } from "node:url";
+import { legacyFrontendEnv } from "./legacy-env.mjs";
+Object.assign(
+  process.env,
+  legacyFrontendEnv(
+    fileURLToPath(new URL("../", import.meta.url)),
+    process.env,
+    process.env.NODE_ENV || "production",
+  ),
+);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

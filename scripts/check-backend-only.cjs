@@ -37,6 +37,7 @@ async function main() {
     "package.json",
     "jsconfig.json",
     "next.config.mjs",
+    "legacy-env.mjs",
     "postcss.config.js",
     "tailwind.config.js",
   ])
@@ -51,7 +52,9 @@ async function main() {
   child = spawn(
     process.execPath,
     [
-      join(root, "node_modules/next/dist/bin/next"),
+      require.resolve("next/dist/bin/next", {
+        paths: [join(root, "frontend")],
+      }),
       "dev",
       "--webpack",
       "--hostname",

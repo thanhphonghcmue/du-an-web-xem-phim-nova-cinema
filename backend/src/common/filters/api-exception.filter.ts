@@ -8,6 +8,7 @@ import {
 import { Prisma } from "@prisma/client";
 import { Response } from "express";
 import { ApiException } from "../exceptions/api.exception";
+import { publicErrorMessages } from "./public-error-messages";
 import { RequestContext } from "../utils/request-context";
 interface ErrorPayload {
   error?: unknown;
@@ -57,7 +58,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
         statusCode === 409 &&
         ["TICKET_ALREADY_USED", "TICKET_SHOWTIME_MISMATCH"].includes(error);
       details =
-        safeServiceFailure || safeAdmission ? payload.details : undefined;
+        safeServiceFailure ||
+        safeAdmission ||
+        (exception instanceof ApiException &&
+          statusCode === 409 &&
+          error === "SEAT_UNAVAILABLE")
+          ? payload.details
+          : undefined;
       if (statusCode === 400 && isParserError(exception)) {
         error = "INVALID_JSON";
         message = "Request body must contain valid JSON.";
@@ -93,6 +100,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
         message = "The operation conflicts with a database constraint.";
       }
     }
+    if (statusCode < 500 && publicErrorMessages[error])
+      message = publicErrorMessages[error];
     if (statusCode >= 500)
       this.logger.error(
         `request=${request.correlationId || "unknown"} error=${error}`,

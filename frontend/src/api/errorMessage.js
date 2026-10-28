@@ -1,4 +1,10 @@
 const vietnamese = {
+  ACCOUNT_DISABLED:
+    "Tài khoản đã bị khóa hoặc ngừng hoạt động. Vui lòng liên hệ hỗ trợ.",
+  ADMIN_ACCOUNT_PROTECTED: "Không thể khóa tài khoản quản trị tại đây.",
+  PAYMENT_REFERENCE_NOT_FOUND: "Không tìm thấy mã đơn hoặc mã giao dịch.",
+  PAYMENT_NOT_CONFIRMED:
+    "Thanh toán chưa được xác nhận thành công. Hãy kiểm tra giao dịch trước khi khôi phục vé.",
   INVALID_CREDENTIALS: "Email hoặc mật khẩu không đúng.",
   EMAIL_ALREADY_EXISTS:
     "Email này đã đăng ký. Hãy đăng nhập bằng tài khoản đó.",

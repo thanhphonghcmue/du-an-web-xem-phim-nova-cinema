@@ -23,11 +23,13 @@
     "skipLibCheck": true,
     "baseUrl": "./",
     "paths": {
-      "@modules/*": ["src/modules/*"],
-      "@common/*": ["src/common/*"],
-      "@config/*": ["src/config/*"],
-      "@database/*": ["src/database/*"],
-      "@realtime/*": ["src/realtime/*"]
+      "@/*": ["./src/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@gateways/*": ["./src/gateways/*", "./src/realtime/*"],
+      "@common/*": ["./src/common/*"],
+      "@config/*": ["./src/config/*"],
+      "@database/*": ["./src/database/*"],
+      "@realtime/*": ["./src/realtime/*"]
     },
     "types": ["node", "jest"]
   },

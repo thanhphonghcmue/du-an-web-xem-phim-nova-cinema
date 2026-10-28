@@ -1,0 +1,146 @@
+[
+  {
+    "file": "popcorn-plain.webp",
+    "source": "https://github.com/tomiabe/wpp/blob/c2cb8fe339557c1f73675e4313a5dbb98e8cd124/assets/img/flavors/plain.webp",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "2fe071ef14175ddf2f0b375fcf16a844b52b170440a785def8f969ec0f75e3db",
+    "width": 800,
+    "height": 600
+  },
+  {
+    "file": "popcorn-cheese.webp",
+    "source": "https://github.com/tomiabe/wpp/blob/c2cb8fe339557c1f73675e4313a5dbb98e8cd124/assets/img/flavors/cheese.webp",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "4e93dca9ce76dcebadfb2a7c23e242077d8dcdeaf215e4c826939cb8e2cea983",
+    "width": 800,
+    "height": 600
+  },
+  {
+    "file": "popcorn-caramel.webp",
+    "source": "https://github.com/tomiabe/wpp/blob/c2cb8fe339557c1f73675e4313a5dbb98e8cd124/assets/img/flavors/caramel.webp",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "5b54a9a07ea903a628638caf7088eb1dd85424335517dc6bb876886df47dd5fa",
+    "width": 1104,
+    "height": 1404
+  },
+  {
+    "file": "popcorn-denver-mix.webp",
+    "source": "https://github.com/tomiabe/wpp/blob/c2cb8fe339557c1f73675e4313a5dbb98e8cd124/assets/img/flavors/denver-mix.webp",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "304c39a0bea288c4fc19e14ac3bccb5d4dcbd9cac628685f6d0b8fe8b62b516e",
+    "width": 800,
+    "height": 600
+  },
+  {
+    "file": "popcorn-spicy-hot-cheese.webp",
+    "source": "https://github.com/tomiabe/wpp/blob/c2cb8fe339557c1f73675e4313a5dbb98e8cd124/assets/img/flavors/spicy-hot-cheese.webp",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "6ad224e343c973df360ed9a388dc43e1bb0229771ecd5a266b0032bec0077ffc",
+    "width": 550,
+    "height": 733
+  },
+  {
+    "file": "popcorn-white-cheddar.webp",
+    "source": "https://github.com/tomiabe/wpp/blob/c2cb8fe339557c1f73675e4313a5dbb98e8cd124/assets/img/flavors/white-cheddar.webp",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "ea7f1db5d8a889e741d08fe92e88df999d2eeb83a3510ec0b7cfc63792273b2f",
+    "width": 800,
+    "height": 600
+  },
+  {
+    "file": "popcorn-dark-chocolate.webp",
+    "source": "https://github.com/tomiabe/wpp/blob/c2cb8fe339557c1f73675e4313a5dbb98e8cd124/assets/img/flavors/dark-chocolate.webp",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "9678b4d366d5a91711e7d9e67a0122aa33191c1a77d5ccf6d78bad45ffe277fc",
+    "width": 800,
+    "height": 600
+  },
+  {
+    "file": "popcorn-sharing.webp",
+    "source": "https://github.com/tomiabe/wpp/blob/c2cb8fe339557c1f73675e4313a5dbb98e8cd124/assets/img/hero-slide01.webp",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "749e2043d1d2b655d28cb8e27f4defadb3db6b42fbeec66aa07fe6d5307e0e12",
+    "width": 1400,
+    "height": 900
+  },
+  {
+    "file": "popcorn-bucket.png",
+    "source": "https://github.com/JohnatanAccourt/Popcorn_Ecommerce/blob/140863aa12edfb4194ec7d423d040263161d9100/src/assets/toppng.com-popcorn-1536x1221.png",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "c88cc14b9dee39ffc13803b31acadc9d4db3b6756031cc6e352f5e4a4abe0b8f",
+    "width": 1191,
+    "height": 915
+  },
+  {
+    "file": "coca.png",
+    "source": "https://github.com/KhoaNguyen22/cinestar-at-home/blob/370290b7c4709e5b8de3cb7d679fa60c126c3099/frontend/src/assets/images/snack-and-drink/coca.png",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "520e355deed42e7d56a43e4599081283f0b2d840e3f22418afc50654981d747a",
+    "width": 200,
+    "height": 200
+  },
+  {
+    "file": "dasani.png",
+    "source": "https://github.com/KhoaNguyen22/cinestar-at-home/blob/370290b7c4709e5b8de3cb7d679fa60c126c3099/frontend/src/assets/images/snack-and-drink/dasani.png",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "17ada3eef80586fa59de60172fcbf775cb0bd99b0993ed31bc3c6e8325e0bf7e",
+    "width": 200,
+    "height": 200
+  },
+  {
+    "file": "citrus-tea.png",
+    "source": "https://github.com/ProgrammingHero1/tea-house-resources/blob/ca8c53e5ca7098ee906038b9cbecf3e208f6d737/images/news-2.png",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "e6e505ebd777d29fcaf437d21998bbd03844f9bae1bcee4e9da250ea50c5af79",
+    "width": 320,
+    "height": 191
+  },
+  {
+    "file": "fruit-tea.png",
+    "source": "https://github.com/ProgrammingHero1/tea-house-resources/blob/ca8c53e5ca7098ee906038b9cbecf3e208f6d737/images/news-3.png",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "2fd323d4b2b8333fb868a6ba84116cf09180f2c077b5c774e65cd6ed402fb4b9",
+    "width": 320,
+    "height": 191
+  },
+  {
+    "file": "hotdog.png",
+    "source": "https://github.com/ju5tyn/hotdog-shop/blob/8aae6fcc01f40a2b3f1e3ed1efaedf8973edeb52/shop/static/img/dogs/gourmet_dog.png",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "957d5ec94fc040a62c0de2730bfc4fa78f55cc55f00d7316078a66885d6d0b91",
+    "width": 800,
+    "height": 800
+  },
+  {
+    "file": "nachos.jpg",
+    "source": "https://github.com/Ikuewumi/nachos/blob/5d6e24949b5ed478431b6542d95fb27a617cb6a1/img/c1.jpg",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "6416061784445af9f5e97e3ea0bb671d979cf7d20c81377917ffd4b5e63eac38",
+    "width": 200,
+    "height": 133
+  },
+  {
+    "file": "berry-drink.png",
+    "source": "https://github.com/ProgrammingHero1/tea-house-resources/blob/ca8c53e5ca7098ee906038b9cbecf3e208f6d737/images/tea-2.png",
+    "note": "Reference product photograph; third-party photography and packaging rights remain with their owners.",
+    "sha256": "1ef23aed2ad055d4f83e9ba19e8988f90c78bd51565d2d033fbaf789f3dc4857",
+    "width": 145,
+    "height": 213
+  },
+  {
+    "file": "fries.jpeg",
+    "source": "https://github.com/terryhycheng/mcdonalds-menu-web/blob/29e0cf2d3d0a3b13d9f49ebd503b54d0f861b4ff/public/food/mcdonalds-Fries-Medium-2_product-header-desktop.jpeg",
+    "note": "Existing product photograph, displayed as a reference; chicken photo uses a CSS crop of the original menu photograph. No generative edits.",
+    "sha256": "03af8556595a71f5d40823a4019bb4229dc5f4f4e1e44e63a034d39b3bec486a",
+    "width": 829,
+    "height": 455
+  },
+  {
+    "file": "nuggets-reference.png",
+    "source": "https://github.com/Dayveed14/McDonalds-Clone/blob/70cc234182fc1574812814756312fac2755c5ba2/images/3000.png",
+    "note": "Existing product photograph, displayed as a reference; chicken photo uses a CSS crop of the original menu photograph. No generative edits.",
+    "sha256": "4428644a5894cb62ef5f20c9dcaf593673b491aae19ab365980cab2371da8e7d",
+    "width": 574,
+    "height": 384
+  }
+]

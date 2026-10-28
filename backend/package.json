@@ -43,7 +43,8 @@
     "db:seed:discovery": "node scripts/seed-discovery.cjs",
     "db:seed:programme": "node scripts/seed-programme.cjs",
     "test:programme": "node --test scripts/advance-programme.test.cjs",
-    "db:verify:programme": "node scripts/verify-programme.cjs"
+    "db:verify:programme": "node scripts/verify-programme.cjs",
+    "dev": "nest start --watch"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.0",

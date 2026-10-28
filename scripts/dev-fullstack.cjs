@@ -124,6 +124,9 @@ async function main() {
     `[NOVA] Khởi động Next.js Frontend tại http://localhost:${webPort}...`,
   );
 
+  const frontendDir = resolve(root, "frontend");
+  const feCwd = require("node:fs").existsSync(frontendDir) ? frontendDir : root;
+
   start(
     [
       resolve(root, "node_modules/next/dist/bin/next"),
@@ -134,7 +137,7 @@ async function main() {
       "--port",
       String(webPort),
     ],
-    root,
+    feCwd,
     {
       ...process.env,
       BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1`,

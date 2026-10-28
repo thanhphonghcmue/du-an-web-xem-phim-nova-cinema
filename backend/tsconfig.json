@@ -21,6 +21,14 @@
     "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
+    "baseUrl": "./",
+    "paths": {
+      "@modules/*": ["src/modules/*"],
+      "@common/*": ["src/common/*"],
+      "@config/*": ["src/config/*"],
+      "@database/*": ["src/database/*"],
+      "@realtime/*": ["src/realtime/*"]
+    },
     "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "prisma/**/*.ts"],

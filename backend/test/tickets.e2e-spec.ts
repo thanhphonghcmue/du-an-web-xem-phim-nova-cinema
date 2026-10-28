@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { INestApplication } from "@nestjs/common";
 import { getQueueToken } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
@@ -547,6 +549,150 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     ) as { items: Ticket[] };
     expect(page.items.every((ticket) => ticket.isCheckedIn)).toBe(true);
   });
+  it("ADMIN reconciliation finds order/transaction without disclosing payment signatures or QR capabilities", async () => {
+    const f = await fixture();
+    const paid = await pay(f);
+    const lookup = (reference: string, auth = adminToken) =>
+      request(server)
+        .get("/api/v1/admin/payments/reconciliation")
+        .query({ reference })
+        .auth(auth, { type: "bearer" });
+    for (const reference of [f.booking.orderCode, paid.transactionCode]) {
+      const response = await lookup(reference).expect(200);
+      expect(data(response)).toMatchObject({
+        bookingId: f.booking.id,
+        bookingStatus: "PAID",
+        amount: f.booking.finalAmount,
+        canRecoverTicket: true,
+      });
+      expect(response.headers["cache-control"]).toBe("no-store");
+      expect(response.text).not.toMatch(
+        /signature|ticketHash|qrCodeBase64|requestPayload|responsePayload|password/,
+      );
+    }
+    await lookup(f.booking.orderCode, token).expect(403);
+    await lookup(f.booking.orderCode, staffToken).expect(403);
+    await lookup("NOVA-" + "0".repeat(32)).expect(404);
+    await lookup("invalid").expect(400);
+  });
+
+  it("ADMIN recovery retries deferred durable issuance concurrently and converges to one QR", async () => {
+    const f = await fixture();
+    await pay(f);
+    await prisma.outboxEvent.updateMany({
+      where: { aggregateId: f.booking.id, eventType: TICKET_REQUESTED },
+      data: {
+        availableAt: new Date(Date.now() + 60000),
+        lastError: "TICKET_ISSUANCE_FAILED",
+      },
+    });
+    const recover = () =>
+      request(server)
+        .post(`/api/v1/admin/payments/${f.booking.id}/recover-ticket`)
+        .auth(adminToken, { type: "bearer" })
+        .expect(202);
+    await Promise.all([recover(), recover()]);
+    expect(
+      await prisma.outboxEvent.count({
+        where: { aggregateId: f.booking.id, eventType: TICKET_REQUESTED },
+      }),
+    ).toBe(1);
+    await app.get(FulfillmentRelay).flush();
+    const ticket = await generate(f);
+    expect(
+      await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(1);
+    expect(data(await recover())).toEqual({
+      bookingId: f.booking.id,
+      queued: false,
+      ticketId: ticket.id,
+    });
+  });
+
+  it("ADMIN recovery refuses unpaid orders and never steals an active delivery lease", async () => {
+    const f = await fixture();
+    const endpoint = `/api/v1/admin/payments/${f.booking.id}/recover-ticket`;
+    await request(server)
+      .post(endpoint)
+      .auth(adminToken, { type: "bearer" })
+      .expect(409);
+    expect(
+      (await prisma.booking.findUniqueOrThrow({ where: { id: f.booking.id } }))
+        .status,
+    ).toBe("HOLDING");
+    expect(
+      await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(0);
+    await pay(f);
+    await prisma.outboxEvent.updateMany({
+      where: { aggregateId: f.booking.id, eventType: TICKET_REQUESTED },
+      data: { lockedAt: new Date(), lockedBy: "owned-active-worker" },
+    });
+    await request(server)
+      .post(endpoint)
+      .auth(adminToken, { type: "bearer" })
+      .expect(202);
+    const event = await prisma.outboxEvent.findFirstOrThrow({
+      where: { aggregateId: f.booking.id, eventType: TICKET_REQUESTED },
+    });
+    expect(event.lockedBy).toBe("owned-active-worker");
+    await prisma.outboxEvent.update({
+      where: { id: event.id },
+      data: { lockedAt: null, lockedBy: null },
+    });
+    await generate(f);
+  });
+
+  it("ADMIN reconciliation projects a timed-out hold as EXPIRED without write-on-GET", async () => {
+    const f = await fixture();
+    await prisma.booking.update({
+      where: { id: f.booking.id },
+      data: {
+        createdAt: new Date(Date.now() - 300001),
+        expiredAt: new Date(Date.now() - 1),
+      },
+    });
+    const response = await request(server)
+      .get("/api/v1/admin/payments/reconciliation")
+      .query({ reference: f.booking.orderCode })
+      .auth(adminToken, { type: "bearer" })
+      .expect(200);
+    expect(data(response)).toMatchObject({
+      bookingStatus: "EXPIRED",
+      canRecoverTicket: false,
+    });
+    expect(
+      (await prisma.booking.findUniqueOrThrow({ where: { id: f.booking.id } }))
+        .status,
+    ).toBe("HOLDING");
+  });
+
+  it("ADMIN recovery recreates a missing ticket-request event once after confirmed payment", async () => {
+    const f = await fixture();
+    await pay(f);
+    await prisma.outboxEvent.deleteMany({
+      where: { aggregateId: f.booking.id, eventType: TICKET_REQUESTED },
+    });
+    await Promise.all(
+      [1, 2].map(() =>
+        request(server)
+          .post(`/api/v1/admin/payments/${f.booking.id}/recover-ticket`)
+          .auth(adminToken, { type: "bearer" })
+          .expect(202),
+      ),
+    );
+    expect(
+      await prisma.outboxEvent.count({
+        where: { aggregateId: f.booking.id, eventType: TICKET_REQUESTED },
+      }),
+    ).toBe(1);
+    await app.get(FulfillmentRelay).flush();
+    await generate(f);
+    expect(
+      await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(1);
+  });
+
   it("TC-05 records a staff check-in once with exact booking detail and rejects reuse", async () => {
     const f = await fixture();
     await pay(f);
@@ -730,8 +876,11 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
   });
   it("retains PAID and its QR on a real SMTP451, then retries the same email event successfully", async () => {
     const f = await fixture();
+    const started = performance.now();
     await pay(f);
+    const paymentCompletedMs = performance.now() - started;
     const ticket = await generate(f);
+    const qrServiceReadyMs = performance.now() - started;
     const event = await emailEvent(f.booking.id);
     smtp.state.rejectNext = 1;
     await app.get(FulfillmentRelay).flush();
@@ -747,6 +896,29 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
       where: { id: event.id },
     });
     expect(failed.processedAt).toBeNull();
+    if (process.env.NOVA_QA_SMTP_METRICS_FILE) {
+      mkdirSync(dirname(process.env.NOVA_QA_SMTP_METRICS_FILE), {
+        recursive: true,
+      });
+      writeFileSync(
+        process.env.NOVA_QA_SMTP_METRICS_FILE,
+        JSON.stringify(
+          {
+            measuredAt: new Date().toISOString(),
+            samples: 1,
+            paymentCompletedMs,
+            qrServiceReadyMs,
+            smtpFault: "451 confirmed; durable retry retained",
+            layer:
+              "native HTTP checkout+webhook then direct post-commit TicketsService; excludes browser rendering and relay polling",
+            budgets: { servicePathUnder50ms: qrServiceReadyMs < 50 },
+          },
+          null,
+          2,
+        ) + "\n",
+        { mode: 0o600 },
+      );
+    }
     const retryPreview = data(
       await request(server)
         .get(`/api/v1/tickets/${ticket.id}/confirmation`)

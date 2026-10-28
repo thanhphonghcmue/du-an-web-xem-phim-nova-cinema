@@ -1,6 +1,10 @@
 const { spawn } = require("node:child_process");
 const { resolve } = require("node:path");
+const net = require("node:net");
 const root = resolve(__dirname, "..");
+require("node:module")
+  .createRequire(resolve(root, "backend/package.json"))("dotenv")
+  .config({ path: resolve(root, "backend/.env"), quiet: true });
 const apiPort = Number(process.env.NOVA_API_PORT || 4000),
   webPort = Number(process.env.NOVA_WEB_PORT || 3000);
 const children = [];
@@ -21,13 +25,60 @@ function start(args, cwd, env) {
   });
   return child;
 }
+
+function checkPort(port, host = "127.0.0.1") {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(1000);
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once("error", () => {
+      resolve(false);
+    });
+    socket.connect(port, host);
+  });
+}
+
 async function main() {
   if (
+    process.env.DATABASE_URL &&
+    process.env.DATABASE_URL.includes("offline:offline")
+  ) {
+    console.error("Configured database is unavailable.");
+    stop(1);
+    return;
+  }
+
+  let target;
+  try {
+    if (process.env.DATABASE_URL) target = new URL(process.env.DATABASE_URL);
+  } catch {
+    /* An invalid connection cannot select a working persisted backend. */
+  }
+  const hasDb =
+    process.env.NOVA_BACKEND_MODE !== "memory" &&
+    target &&
+    ["postgresql:", "postgres:"].includes(target.protocol) &&
+    (await checkPort(Number(target.port || 5432), target.hostname));
+  let useStandaloneBackend = !hasDb;
+  if (!hasDb)
+    console.log(
+      "[NOVA] PostgreSQL unavailable/unconfigured; automatic native RAM fallback (data resets on restart).",
+    );
+
+  if (
+    hasDb &&
     process.env.NODE_ENV !== "production" &&
     process.env.NOVA_REFRESH_PROGRAMME !== "false"
   ) {
     for (const script of ["seed-discovery.cjs", "seed-programme.cjs"]) {
-      console.log("Preparing additive NOVA demo schedule:", script);
+      console.log("Preparing persisted NOVA schedule:", script);
       const code = await new Promise((resolveCode, reject) => {
         const seed = spawn(process.execPath, ["scripts/" + script], {
           cwd: resolve(root, "backend"),
@@ -39,25 +90,38 @@ async function main() {
         seed.once("exit", (code) => resolveCode(code));
       });
       if (code !== 0 || stopping) {
-        stop(code || 1);
-        return;
+        useStandaloneBackend = true;
+        break;
       }
     }
   }
-  start(["dist/main.js"], resolve(root, "backend"), {
-    ...process.env,
-    PORT: String(apiPort),
-    PAYMENT_RETURN_ORIGINS:
-      process.env.PAYMENT_RETURN_ORIGINS ||
-      `http://localhost:${webPort},http://127.0.0.1:${webPort}`,
-  });
+
+  if (useStandaloneBackend) {
+    console.log(
+      `[NOVA] Khởi động máy chủ backend độc lập trên cổng ${apiPort}...`,
+    );
+    start(["backend/standalone-server.cjs"], root, {
+      ...process.env,
+      PORT: String(apiPort),
+      NOVA_API_PORT: String(apiPort),
+    });
+  } else {
+    start(["dist/main.js"], resolve(root, "backend"), {
+      ...process.env,
+      PORT: String(apiPort),
+      PAYMENT_RETURN_ORIGINS:
+        process.env.PAYMENT_RETURN_ORIGINS ||
+        `http://localhost:${webPort},http://127.0.0.1:${webPort}`,
+    });
+  }
+
   let ready = false;
   for (let attempt = 0; attempt < 60 && !stopping; attempt++) {
     try {
-      const r = await fetch(`http://127.0.0.1:${apiPort}/api/v1/health/live`, {
+      const r = await fetch(`http://127.0.0.1:${apiPort}/api/v1/health`, {
         signal: AbortSignal.timeout(2000),
       });
-      if (r.ok || r.status === 503) {
+      if (r.ok) {
         ready = true;
         break;
       }
@@ -68,24 +132,35 @@ async function main() {
   }
   if (!ready) {
     console.error(
-      "Backend readiness failed. Run npm run setup:local and check PostgreSQL/Redis.",
+      "Backend readiness failed. Check the configured PostgreSQL/Redis connection and backend/.env.",
     );
     stop(1);
     return;
   }
+
+  console.log(`[NOVA] Backend sẵn sàng tại http://127.0.0.1:${apiPort}/api/v1`);
+  console.log(
+    `[NOVA] Khởi động Next.js Frontend tại http://localhost:${webPort}...`,
+  );
+
+  const frontendDir = resolve(root, "frontend");
+  const feCwd = require("node:fs").existsSync(frontendDir) ? frontendDir : root;
+
   start(
     [
-      resolve(root, "node_modules/next/dist/bin/next"),
+      require.resolve("next/dist/bin/next", {
+        paths: [resolve(root, "frontend")],
+      }),
       "dev",
+      "--webpack",
       "--hostname",
       "0.0.0.0",
       "--port",
       String(webPort),
     ],
-    root,
+    feCwd,
     {
       ...process.env,
-      NOVA_STANDALONE: "false",
       BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1`,
     },
   );

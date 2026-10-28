@@ -15,6 +15,8 @@ import {
   ApiNotFoundResponse,
   ApiTags,
 } from "@nestjs/swagger";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { UserProfileDto } from "../users/dto/user-profile.dto";
 import { Public } from "../../common/decorators/public.decorator";
 import {
   CatalogWrite,
@@ -51,20 +53,27 @@ export class MoviesController {
   @Post()
   @CatalogWrite()
   @ApiDataResponse(MovieDto, 201)
-  create(@Body() dto: CreateMovieDto) {
-    return this.service.create(dto);
+  create(@Body() dto: CreateMovieDto, @CurrentUser() actor: UserProfileDto) {
+    return this.service.create(dto, actor.id);
   }
   @Patch(":id")
   @CatalogWrite()
   @ApiDataResponse(MovieDto)
-  update(@Param("id", ParseUUIDPipe) id: string, @Body() dto: UpdateMovieDto) {
-    return this.service.update(id, dto);
+  update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateMovieDto,
+    @CurrentUser() actor: UserProfileDto,
+  ) {
+    return this.service.update(id, dto, actor.id);
   }
   @Delete(":id")
   @HttpCode(200)
   @CatalogWrite()
   @ApiDataResponse(DeletedDto)
-  delete(@Param("id", ParseUUIDPipe) id: string) {
-    return this.service.delete(id);
+  delete(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() actor: UserProfileDto,
+  ) {
+    return this.service.delete(id, actor.id);
   }
 }

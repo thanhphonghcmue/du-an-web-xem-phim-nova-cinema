@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import MenuImage from "./MenuImage.jsx";
 import { ArrowRight, ArrowUpRight, Popcorn, Sparkles, X } from "lucide-react";
 
 export default function WelcomeOffer({ onClose }) {
@@ -60,13 +61,13 @@ export default function WelcomeOffer({ onClose }) {
         ref={panel}
         onKeyDown={keyboard}
       >
-        <img
-          className="welcome-art"
-          src="/images/campaigns/nova-movie-night.png"
-          alt="Bắp rang, nước mát và hộp sưu tầm NOVA trong không gian điện ảnh"
-          fetchPriority="high"
-        />
-        <div className="welcome-shade" />
+        <div className="welcome-art welcome-product-photo">
+          <MenuImage
+            item={{ key: "party69", name: "Party Combo 69K" }}
+            priority
+          />
+          <span>1 BẮP LỚN + 2 NƯỚC NGỌT</span>
+        </div>
         <button
           className="welcome-close"
           onClick={close}
@@ -76,11 +77,11 @@ export default function WelcomeOffer({ onClose }) {
         </button>
         <div className="welcome-copy">
           <p className="welcome-brand">
-            NOVA <span>CINEMA / INFINITY</span>
+            NOVA <span>CINEMA</span>
           </p>
           <span className="welcome-tag">
             <Sparkles size={13} />
-            NOVA MOVIE NIGHTS
+            COMBO CHO BUỔI PHIM
           </span>
           <h2 id="welcome-title">
             Mở màn rực rỡ.

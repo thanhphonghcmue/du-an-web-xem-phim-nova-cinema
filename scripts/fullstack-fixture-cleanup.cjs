@@ -24,6 +24,7 @@ async function cleanupRows(prisma, prefix) {
   await prisma.refreshToken.deleteMany({
     where: { userId: { in: userIds } },
   });
+  await prisma.auditLog.deleteMany({ where: { actorId: { in: userIds } } });
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
   const cinemas = await prisma.cinema.findMany({
     where: { name: { startsWith: prefix } },
@@ -42,6 +43,13 @@ async function cleanupRows(prisma, prefix) {
   await prisma.movie.deleteMany({
     where: { description: { startsWith: prefix } },
   });
-  await prisma.combo.deleteMany({ where: { name: { startsWith: prefix } } });
+  await prisma.combo.deleteMany({
+    where: {
+      OR: [
+        { name: { startsWith: prefix } },
+        { description: { startsWith: prefix + " menu · " } },
+      ],
+    },
+  });
 }
 module.exports = { cleanupRows };

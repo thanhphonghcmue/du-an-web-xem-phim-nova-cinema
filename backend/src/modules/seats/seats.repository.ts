@@ -24,6 +24,12 @@ export class SeatsRepository {
       tx.seat.count({ where }),
     ]);
   }
+  positions(roomId: string, tx: Prisma.TransactionClient) {
+    return tx.seat.findMany({
+      where: { roomId },
+      select: { id: true, seatRow: true, seatColumn: true },
+    });
+  }
   create(data: Prisma.SeatUncheckedCreateInput, tx: Prisma.TransactionClient) {
     return tx.seat.create({ data });
   }

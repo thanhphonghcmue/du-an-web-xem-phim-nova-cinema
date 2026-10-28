@@ -18,6 +18,7 @@ import {
   EyeOff,
   Lock,
   Mail,
+  Phone,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -28,11 +29,15 @@ import { apiLogin, apiRegister } from "../api/client.js";
 export default function DangNhap_DangKy({ onSuccess }) {
   const { language, t } = useI18n();
   const [tab, setTab] = useState("signin");
-  const [show, setShow] = useState(false);
+  const [visiblePasswords, setVisiblePasswords] = useState({
+    password: false,
+    confirm: false,
+  });
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
   const [fields, setFields] = useState({
     name: "",
+    phone: "",
     email: "",
     password: "",
     confirm: "",
@@ -42,6 +47,10 @@ export default function DangNhap_DangKy({ onSuccess }) {
   const [noticeType, setNoticeType] = useState("error"); // "error" | "info"
 
   const error = {
+    phone:
+      fields.phone && !/^0[0-9]{9}$/.test(fields.phone)
+        ? "Số điện thoại cần 10 chữ số, bắt đầu bằng 0."
+        : "",
     name:
       fields.name.trim().length < 2
         ? language === "en"
@@ -84,27 +93,21 @@ export default function DangNhap_DangKy({ onSuccess }) {
     return raw;
   }
 
-  function handleQuickFill(email, roleName) {
-    setTab("signin");
-    setFields((prev) => ({
-      ...prev,
-      email,
-      password: "nova@12345",
-    }));
-    setTouched((prev) => ({ ...prev, email: true, password: true }));
-    setNoticeType("info");
-    setNotice(`Đã chọn ${roleName} (${email}) - Mật khẩu: nova@12345`);
-  }
-
   async function submit(e) {
     e.preventDefault();
-    setTouched({ name: true, email: true, password: true, confirm: true });
+    setTouched({
+      phone: true,
+      name: true,
+      email: true,
+      password: true,
+      confirm: true,
+    });
     setNotice("");
 
     if (
       error.email ||
       error.password ||
-      (tab === "signup" && (error.name || error.confirm.trim()))
+      (tab === "signup" && (error.name || error.phone || error.confirm.trim()))
     )
       return;
 
@@ -127,7 +130,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
           fields.email,
           fields.password,
           fields.name.trim(),
-          undefined,
+          fields.phone || undefined,
           remember,
         );
         const user = data.user;
@@ -207,58 +210,17 @@ export default function DangNhap_DangKy({ onSuccess }) {
           ))}
         </div>
 
-        {/* Cinema Operational Accounts (in Sign-in tab) */}
-        {tab === "signin" && (
-          <div className="auth-quick-accounts">
-            <div className="auth-quick-header">
-              <span>
-                <Sparkles
-                  size={14}
-                  style={{ display: "inline", marginRight: 5 }}
-                />
-                Tài khoản nghiệp vụ rạp chiếu phim (Mật khẩu: nova@12345):
-              </span>
-            </div>
-            <div className="auth-quick-pills">
-              <button
-                type="button"
-                className="auth-quick-pill admin"
-                onClick={() =>
-                  handleQuickFill("admin@nova.local", "Quản trị viên")
-                }
-                title="admin@nova.local"
-              >
-                👑 Quản trị viên
-              </button>
-              <button
-                type="button"
-                className="auth-quick-pill staff"
-                onClick={() =>
-                  handleQuickFill("staff@nova.local", "Nhân viên soát vé")
-                }
-                title="staff@nova.local"
-              >
-                🎫 Nhân viên soát vé
-              </button>
-              <button
-                type="button"
-                className="auth-quick-pill customer"
-                onClick={() =>
-                  handleQuickFill("customer@nova.local", "Người dùng")
-                }
-                title="customer@nova.local"
-              >
-                👤 Người dùng
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Main Authentication Form */}
         <form onSubmit={submit} noValidate className="auth-form">
           {[
             tab === "signup" && ["name", "Họ và tên", "text", "Nguyễn Văn A"],
             ["email", "Email", "email", "example@nova.local"],
+            tab === "signup" && [
+              "phone",
+              "Số điện thoại (không bắt buộc)",
+              "tel",
+              "0901234567",
+            ],
             ["password", "Mật khẩu", "password", "••••••••"],
             tab === "signup" && [
               "confirm",
@@ -283,6 +245,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                   <span className="auth-input-icon">
                     {id === "name" && <UserRound size={17} />}
                     {id === "email" && <Mail size={17} />}
+                    {id === "phone" && <Phone size={17} />}
                     {(id === "password" || id === "confirm") && (
                       <Lock size={17} />
                     )}
@@ -292,7 +255,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     name={id}
                     type={
                       id === "password" || id === "confirm"
-                        ? show
+                        ? visiblePasswords[id]
                           ? "text"
                           : "password"
                         : type
@@ -306,11 +269,13 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     autoComplete={
                       id === "name"
                         ? "name"
-                        : id === "email"
-                          ? "email"
-                          : tab === "signup"
-                            ? "new-password"
-                            : "current-password"
+                        : id === "phone"
+                          ? "tel"
+                          : id === "email"
+                            ? "email"
+                            : tab === "signup"
+                              ? "new-password"
+                              : "current-password"
                     }
                     aria-invalid={Boolean(touched[id] && error[id]?.trim())}
                     aria-describedby={
@@ -326,10 +291,21 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     <button
                       type="button"
                       className="auth-password-toggle"
-                      aria-label={show ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                      onClick={() => setShow(!show)}
+                      aria-label={`${visiblePasswords[id] ? "Ẩn" : "Hiện"} ${id === "confirm" ? "mật khẩu xác nhận" : "mật khẩu"}`}
+                      aria-controls={`field-${id}`}
+                      aria-pressed={visiblePasswords[id]}
+                      onClick={() =>
+                        setVisiblePasswords((current) => ({
+                          ...current,
+                          [id]: !current[id],
+                        }))
+                      }
                     >
-                      {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {visiblePasswords[id] ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   )}
                 </div>

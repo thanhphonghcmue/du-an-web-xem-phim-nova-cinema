@@ -311,6 +311,61 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     await redis.quit();
   });
 
+  it.each([
+    ["UNKNOWN", "COUPON_INVALID"],
+    ["CHAOBANMOI", "COUPON_MINIMUM_NOT_MET"],
+  ])(
+    "rejects %s without a booking or held seat, then accepts a valid coupon with the same request key",
+    async (couponCode, expectedCode) => {
+      const f = await fixture();
+      const key = randomUUID();
+      const submit = (coupon: string) =>
+        request(server)
+          .post("/api/v1/bookings/hold")
+          .auth(customerA, { type: "bearer" })
+          .set("Idempotency-Key", key)
+          .send({ ...input(f), couponCode: coupon });
+      expect(code(await submit(couponCode).expect(400))).toBe(expectedCode);
+      expect(
+        await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+      ).toBe(0);
+      expect(
+        await prisma.bookingSeat.count({
+          where: { showtimeId: f.showtime.id },
+        }),
+      ).toBe(0);
+      const created = booking(await submit(" nova20 ").expect(201));
+      expect(created).toMatchObject({
+        totalTicketAmount: "90000.00",
+        discountAmount: "24500.00",
+        finalAmount: "65500.00",
+      });
+      const replay = booking(await submit("NOVA20").expect(201));
+      expect(replay.id).toBe(created.id);
+      expect(replay.expiredAt).toBe(created.expiredAt);
+      expect(code(await submit("CINEMA10").expect(409))).toBe(
+        "IDEMPOTENCY_CONFLICT",
+      );
+      await cancel(created.id).expect(200);
+    },
+  );
+
+  it.each([null, "", " ", "X".repeat(33)])(
+    "rejects malformed coupon input %p before writing a booking",
+    async (couponCode) => {
+      const f = await fixture();
+      const result = await request(server)
+        .post("/api/v1/bookings/hold")
+        .auth(customerA, { type: "bearer" })
+        .send({ ...input(f), couponCode })
+        .expect(400);
+      expect(code(result)).toBe("VALIDATION_ERROR");
+      expect(
+        await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+      ).toBe(0);
+    },
+  );
+
   it("requires authentication and exposes only the current user's bookings", async () => {
     const f = await fixture();
     const created = booking(await hold(f).expect(201));
@@ -426,7 +481,13 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
       await prisma.bookingSeat.count({
         where: { showtimeId: f.showtime.id, status: "HOLDING" },
       }),
-    ).toBe(0);
+    ).toBe(2);
+    // Reads only project expiry; the next atomic writer releases the old pair.
+    await hold(f, customerB, [seat(f, 2)]).expect(201);
+    expect(
+      (await prisma.booking.findUniqueOrThrow({ where: { id: next.id } }))
+        .status,
+    ).toBe("EXPIRED");
   });
 
   it("rejects an orphan Sweetbox and more than20 resolved seats atomically", async () => {
@@ -530,11 +591,86 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     ).toBe(1);
   });
 
+  it("CONC-01: twenty users on two native API instances compete for one VIP seat with one201 and nineteen409", async () => {
+    const f = await fixture();
+    const targetSeat = seat(f);
+    await prisma.seat.update({
+      where: { id: targetSeat },
+      data: { seatType: "VIP", priceModifier: "1.20" },
+    });
+    const tokens: string[] = [];
+    for (let index = 0; index < 20; index++) {
+      const user = await prisma.user.create({
+        data: {
+          email: `${prefix}-burst-${String(index)}@example.test`,
+          passwordHash: randomBytes(32).toString("hex"),
+          fullName: "Owned concurrency fixture",
+          role: "CUSTOMER",
+        },
+      });
+      tokens.push(
+        (await app.get(TokenService).issue(user.id)).tokens.accessToken,
+      );
+    }
+    const start = gate();
+    const requests = tokens.map(async (token, index) => {
+      await start.promise;
+      return hold(f, token, [targetSeat], index % 2 ? otherServer : server);
+    });
+    start.release();
+    const responses = await Promise.all(requests);
+    expect(responses.filter((r) => r.status === 201)).toHaveLength(1);
+    expect(responses.filter((r) => r.status === 409)).toHaveLength(19);
+    for (const response of responses.filter((r) => r.status === 409)) {
+      expect(code(response)).toBe("SEAT_UNAVAILABLE");
+      expect(
+        (JSON.parse(response.text) as { details: { seatIds: string[] } })
+          .details.seatIds,
+      ).toContain(targetSeat);
+    }
+    const winner = booking(successful(responses));
+    expect(winner.finalAmount).toBe("102600.00");
+    expect(
+      await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+    ).toBe(1);
+    expect(
+      await prisma.bookingSeat.count({
+        where: { showtimeId: f.showtime.id, status: "HOLDING" },
+      }),
+    ).toBe(1);
+    expect(
+      await redis.keys(`${namespace()}:seat-lock:{${f.showtime.id}}:*`),
+    ).toEqual([]);
+  });
+
+  it.each([{ totalAmount: 1000 }, { price: 0 }, { discount: 9999999 }])(
+    "SEC-01 rejects price tampering %j without creating a booking or claims",
+    async (extra) => {
+      const f = await fixture();
+      await request(server)
+        .post("/api/v1/bookings/hold")
+        .auth(customerA, { type: "bearer" })
+        .send({ ...input(f), ...extra })
+        .expect(400);
+      expect(
+        await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+      ).toBe(0);
+      expect(
+        await prisma.bookingSeat.count({
+          where: { showtimeId: f.showtime.id },
+        }),
+      ).toBe(0);
+      expect(booking(await hold(f).expect(201)).finalAmount).toBe("85500.00");
+    },
+  );
+
   it("rejects an overlapping multi-seat request atomically without reserving its other seats", async () => {
     const f = await fixture();
     const responses = await Promise.all([
       hold(f, customerA, [seat(f), seat(f, 1)]),
-      hold(f, customerB, [seat(f, 1), seat(f, 2)], otherServer),
+      // Both competing inputs must be valid on an empty row. Omitting A1 here
+      // makes the second request an orphan-seat violation before any conflict.
+      hold(f, customerB, [seat(f), seat(f, 1), seat(f, 2)], otherServer),
     ]);
     expect(responses.map((row) => row.status).sort()).toEqual([201, 409]);
     expect(
@@ -543,6 +679,57 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     expect(
       await redis.keys(`${namespace()}:seat-lock:{${f.showtime.id}}:*`),
     ).toEqual([]);
+  });
+
+  it("UC04 returns exact conflicting seat IDs and rolls back the whole mixed selection", async () => {
+    const f = await fixture();
+    await hold(f, customerA, [seat(f), seat(f, 1)]).expect(201);
+    const denied = await hold(f, customerB, [
+      seat(f),
+      seat(f, 1),
+      seat(f, 2),
+    ]).expect(409);
+    expect(
+      (
+        JSON.parse(denied.text) as { details: { seatIds: string[] } }
+      ).details.seatIds.sort(),
+    ).toEqual([seat(f), seat(f, 1)].sort());
+    expect(denied.text).not.toMatch(/userId|bookingId|lockedBy/);
+    expect(
+      await prisma.bookingSeat.count({
+        where: {
+          showtimeId: f.showtime.id,
+          seatId: seat(f, 2),
+          status: "HOLDING",
+        },
+      }),
+    ).toBe(0);
+  });
+
+  it("UC04 Redis contention returns only the contested IDs without taking another seat's mutex", async () => {
+    const f = await fixture();
+    const key = `${namespace()}:seat-lock:{${f.showtime.id}}:${seat(f)}`;
+    await redis.set(key, "other-reservation", "PX", 10000);
+    try {
+      const denied = await hold(f, customerA, [seat(f), seat(f, 1)]).expect(
+        409,
+      );
+      expect(
+        (JSON.parse(denied.text) as { details: { seatIds: string[] } }).details
+          .seatIds,
+      ).toEqual([seat(f)]);
+      expect(await redis.get(key)).toBe("other-reservation");
+      expect(
+        await redis.exists(
+          `${namespace()}:seat-lock:{${f.showtime.id}}:${seat(f, 1)}`,
+        ),
+      ).toBe(0);
+      expect(
+        await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+      ).toBe(0);
+    } finally {
+      await redis.del(key);
+    }
   });
 
   it("allows disjoint seats concurrently and up to 20 seats in one booking", async () => {
@@ -811,7 +998,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     expect(replacement.status).toBe("HOLDING");
   });
 
-  it("expires an overdue own booking on GET/list and cancellation returns EXPIRED", async () => {
+  it("projects overdue own bookings on read-only GET/list and reclaims expired row neighbours during hold", async () => {
     const f = await fixture();
     const a = booking(await hold(f).expect(201));
     await expireFixture(a.id);
@@ -1081,6 +1268,10 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     spy.mockRestore();
     expect(result.status).toBe(409);
     expect(code(result)).toBe("SEAT_UNAVAILABLE");
+    expect(
+      (JSON.parse(result.text) as { details: { seatIds: string[] } }).details
+        .seatIds,
+    ).toEqual([seat(f)]);
     expect(
       await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
     ).toBe(1);

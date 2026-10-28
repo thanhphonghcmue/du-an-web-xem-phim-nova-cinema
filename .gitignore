@@ -8,6 +8,10 @@ test-results/
 playwright-report/
 
 .next/
+frontend/.next/
+**/.next/
+frontend/dist/
+frontend/node_modules/
 out/
 .taste-skill/
 

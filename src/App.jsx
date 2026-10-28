@@ -1,3 +1,4 @@
+import { useQuerySelection } from "./useQuerySelection.js";
 /**
  * ==============================================================================
  * TỆP TIN: src/App.jsx
@@ -26,9 +27,11 @@
  * ==============================================================================
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import NovaLogo from "./components/NovaLogo.jsx";
+import { notifyApiError } from "./api/notice.js";
 import Discovery from "./components/Discovery.jsx";
 import PortalPage from "./components/PortalPage.jsx";
 import CinemaHero from "./components/CinemaHero.jsx";
@@ -44,7 +47,6 @@ import {
   Clock3,
   Crown,
   Film,
-  Infinity as InfinityIcon,
   MapPin,
   Menu,
   Play,
@@ -59,6 +61,7 @@ import {
   X,
   CheckCircle2,
 } from "lucide-react";
+import NovaJourney from "./components/NovaJourney.jsx";
 import { useCatalog } from "./catalog.js";
 import {
   apiGetProfile,
@@ -76,27 +79,14 @@ import LichSuVeKhachHang from "./components/LichSuVeKhachHang.jsx";
 import DangNhap_DangKy from "./components/DangNhap_DangKy.jsx";
 import LichChieuPhim from "./components/LichChieuPhim.jsx";
 import TimKiemPhim from "./components/TimKiemPhim.jsx";
+import { mainNavigation } from "./navigation.js";
 import MenuDieuHuong from "./components/MenuDieuHuong.jsx";
 import HopThoaiModal from "./components/HopThoaiModal.jsx";
 
 function Brand() {
   return (
     <a className="brand" href="/" aria-label="NOVA Cinema trang chủ">
-      <InfinityIcon
-        className="brand-symbol"
-        strokeWidth={1.8}
-        stroke="url(#nova-brand-glow)"
-      >
-        <defs>
-          <linearGradient id="nova-brand-glow">
-            <stop stopColor="#E50914" />
-            <stop offset="1" stopColor="#F59E0B" />
-          </linearGradient>
-        </defs>
-      </InfinityIcon>
-      <span>
-        NOVA<span className="brand-subtitle">CINEMA</span>
-      </span>
+      <NovaLogo />
     </a>
   );
 }
@@ -135,7 +125,8 @@ export default function App() {
   const pathname = usePathname();
   const view = pathname.split("/")[1] || "home";
   const { language, setLanguage, t } = useI18n();
-  const { movies, cinemas, getDates, getShowtimes, contextFor } = useCatalog();
+  const { movies, cinemas, rooms, getDates, getShowtimes, contextFor, isLive } =
+    useCatalog();
 
   const [slide, setSlide] = useState(0);
   const [welcomeOpen, setWelcomeOpen] = useState(() => {
@@ -160,10 +151,8 @@ export default function App() {
   const featured = (highlights.length ? highlights : movies).slice(0, 5);
   const hero = featured[slide % featured.length] || movies[0] || {};
   const eventMovie = movies.find((m) => m.artId === "oppenheimer");
-  const [cinemaId, setCinemaId] = useState("");
-  const [movieId, setMovieId] = useState(
-    () => new URLSearchParams(window.location.search).get("movie") || "",
-  );
+  const [cinemaId, setCinemaId] = useQuerySelection("cinema");
+  const [movieId, setMovieId] = useQuerySelection("movie");
   const [dateId, setDateId] = useState("");
   const [timeId, setTimeId] = useState("");
   const [group, setGroup] = useState(false);
@@ -171,6 +160,7 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [activeMovie, setActiveMovie] = useState(null);
   const [booking, setBooking] = useState(null);
+  const [pendingBooking, setPendingBooking] = useState(null);
   const [menu, setMenu] = useState(false);
   const [query, setQuery] = useState("");
   const [member, setMember] = useState(null);
@@ -198,10 +188,16 @@ export default function App() {
     };
   }, []);
   const memberId = member?.id;
+  const restoredMember = useRef(null);
   useEffect(() => {
-    if (!memberId) return;
+    if (!memberId) {
+      restoredMember.current = null;
+      return;
+    }
+    if (!isLive) return;
     const id = new URLSearchParams(window.location.search).get("booking");
     if (view !== "home" && !id) return;
+    if (!id && restoredMember.current === memberId) return;
     let active = true;
     apiGetMyBookings()
       .then((orders) => {
@@ -210,9 +206,12 @@ export default function App() {
           : orders.find((o) => ["HOLDING", "PENDING"].includes(o.status));
         const context = order && contextFor(order.showtimeId);
         if (active && context) {
-          setBooking({ ...context, orderId: order.id });
+          restoredMember.current = memberId;
+          setBooking((current) =>
+            id || !current ? { ...context, orderId: order.id } : current,
+          );
           if (id) window.history.replaceState({}, "", "/");
-        }
+        } else if (active && !id) restoredMember.current = memberId;
       })
       .catch((err) => {
         if (active) setSessionError(err.message);
@@ -220,7 +219,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [memberId, contextFor, view]);
+  }, [memberId, contextFor, view, isLive]);
   const [city, setCity] = useState("Tất cả");
 
   const dates = getDates(language);
@@ -263,7 +262,7 @@ export default function App() {
     setModal(null);
     document
       .getElementById("booking")
-      .scrollIntoView({ behavior: "smooth", block: "center" });
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   function openSeats(e) {
     e.preventDefault();
@@ -272,22 +271,34 @@ export default function App() {
     );
     if (!time) {
       setTimeId("");
+      notifyApiError(
+        "Hãy chọn đủ rạp, phim, ngày và suất chiếu còn mở bán trước khi đặt vé.",
+      );
       return;
     }
-    if (!member) {
-      setModal("login");
-      return;
-    }
-    setBooking({
+    const context = {
       showtimeId: time.id,
-      movie: movies.find((m) => m.id === movieId),
+      movie: movies.find((movie) => movie.id === movieId),
       cinema,
-      date: dates.find((d) => d.id === dateId),
+      date: dates.find((date) => date.id === dateId),
       time,
       group,
       combo: withCombo,
-    });
+    };
+    if (!member) {
+      setPendingBooking(context);
+      setModal("login");
+      return;
+    }
+    setBooking(context);
   }
+  function updateBookingSelection(patch) {
+    if ("cinemaId" in patch) setCinemaId(patch.cinemaId);
+    if ("movieId" in patch) setMovieId(patch.movieId);
+    if ("dateId" in patch) setDateId(patch.dateId);
+    setTimeId("");
+  }
+
   function openMovie(movie, type = "movie") {
     if (type === "trailer" && !movie.trailer) type = "movie";
     setActiveMovie(movie);
@@ -305,7 +316,7 @@ export default function App() {
     setMenu(false);
     document
       .getElementById("booking")
-      .scrollIntoView({ behavior: "smooth", block: "center" });
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   const results = movies.filter((m) =>
     `${t(m.title)} ${m.original} ${m.director}`
@@ -328,22 +339,6 @@ export default function App() {
         {language === "en" ? "Skip to content" : "Đến nội dung chính"}
       </a>
       <CinematicBackdrop />
-      <div className="nova-utility">
-        <div className="content-width">
-          <span>ĐIỆN ẢNH KHÔNG GIỚI HẠN.</span>
-          <div>
-            <Link href="/rap">
-              <MapPin size={12} />
-              Tìm rạp NOVA
-            </Link>
-            <Link href="/tai-khoan">
-              <Ticket size={12} />
-              Vé của tôi
-            </Link>
-            <span>VI / EN</span>
-          </div>
-        </div>
-      </div>
       <header className="site-header">
         <div className="nav-inner">
           <Brand />
@@ -355,7 +350,9 @@ export default function App() {
               onMovie={openMovie}
               onCinema={(c) => {
                 if (!["home", "dat-ve"].includes(view)) {
-                  window.location.assign("/dat-ve");
+                  window.location.assign(
+                    `/dat-ve?cinema=${encodeURIComponent(c.id)}`,
+                  );
                   return;
                 }
                 setCinemaId(c.id);
@@ -364,19 +361,27 @@ export default function App() {
                 setTimeId("");
                 document
                   .getElementById("booking")
-                  .scrollIntoView({ behavior: "smooth" });
+                  ?.scrollIntoView({ behavior: "smooth" });
               }}
               onExpand={() => setModal("search")}
             />
             <button
               className="language-toggle"
               onClick={() => setLanguage(language === "vi" ? "en" : "vi")}
-              aria-label="VN / EN"
+              aria-label="VI / EN"
             >
-              <span className={language === "vi" ? "active" : ""}>VN</span>
+              <span className={language === "vi" ? "active" : ""}>VI</span>
               <i />
               <span className={language === "en" ? "active" : ""}>EN</span>
             </button>
+            <Link
+              href="/tai-khoan#ve-cua-toi"
+              className="header-ticket-link"
+              aria-label={t("Vé của tôi")}
+              title={t("Vé của tôi")}
+            >
+              <Ticket size={20} />
+            </Link>
             <span className="nav-divider" />
             {member?.role === "ADMIN" && (
               <button
@@ -385,7 +390,7 @@ export default function App() {
                 title="Mở Bảng Quản Trị Admin & Doanh Thu"
               >
                 <Crown size={15} />
-                Quản Trị Rạp
+                {t("Quản trị")}
               </button>
             )}
             {["ADMIN", "STAFF"].includes(member?.role) && (
@@ -393,7 +398,7 @@ export default function App() {
                 className="text-button"
                 onClick={() => window.location.assign("/soat-ve")}
               >
-                Soát vé
+                {t("Soát vé")}
               </button>
             )}
             <button
@@ -413,10 +418,6 @@ export default function App() {
               <Ticket size={15} />
               {t("Đặt vé ngay")}{" "}
             </Link>
-            <Link href="/bap-nuoc" className="button header-food">
-              <Popcorn size={15} />
-              Đặt bắp nước
-            </Link>
             <button
               className="icon-button mobile-toggle"
               aria-label={menu ? t("Đóng menu") : t("Mở menu")}
@@ -429,20 +430,14 @@ export default function App() {
         </div>
         {menu && (
           <nav className="mobile-nav" aria-label="Điều hướng di động">
-            {[
-              ["/phim", t("Phim đang chiếu")],
-              ["/sap-chieu", t("Sắp chiếu tháng sau")],
-              ["/dat-ve", t("Lịch chiếu & đặt vé")],
-              ["/rap", t("Rạp Cinema")],
-              ["/uu-dai", t("Ưu đãi & sự kiện")],
-              ["/bap-nuoc", t("Bắp nước & đồ ăn")],
-              ["/hoi-vien", "C’MEMBER"],
-            ].map(([href, label]) => (
-              <a key={href} href={href} onClick={() => setMenu(false)}>
-                {t(label)}
-                <ArrowUpRight size={16} />
-              </a>
-            ))}
+            {[...mainNavigation, ["/tai-khoan#ve-cua-toi", "Vé của tôi"]].map(
+              ([href, label]) => (
+                <Link key={href} href={href} onClick={() => setMenu(false)}>
+                  {t(label)}
+                  <ArrowUpRight size={16} />
+                </Link>
+              ),
+            )}
             {member?.role === "ADMIN" && (
               <Link href="/quan-tri">
                 Quản trị rạp <Crown size={16} />
@@ -467,27 +462,6 @@ export default function App() {
           </nav>
         )}
       </header>
-      <nav className="nova-subnav" aria-label="Khám phá NOVA">
-        <div className="content-width">
-          {[
-            ["/phim", "Phim đang chiếu"],
-            ["/sap-chieu", "Sắp chiếu tháng sau"],
-            ["/dat-ve", "Lịch chiếu & đặt vé"],
-            ["/bap-nuoc", "Bắp nước & đồ ăn"],
-            ["/uu-dai", "Ưu đãi & sự kiện"],
-            ["/rap", "Rạp & trải nghiệm"],
-            ["/hoi-vien", "C’MEMBER"],
-          ].map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={pathname === href ? "page" : undefined}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-      </nav>
       <main id="main-content" tabIndex={-1}>
         {view === "home" ? (
           <>
@@ -530,7 +504,7 @@ export default function App() {
             />
             <div className="experience-strip content-width">
               <span>
-                <InfinityIcon size={23} />
+                <NovaLogo showText={false} size={23} />
                 <b>
                   {t("Không chỉ xem phim.")} <br />
                   <em>{t("Sống trong từng khung hình.")} </em>
@@ -564,8 +538,11 @@ export default function App() {
               onBook={bookMovie}
             />
             <LichChieuPhim
+              selection={{ cinemaId: resolvedCinemaId, movieId, dateId }}
+              onSelectionChange={updateBookingSelection}
               onBook={(value) => {
                 if (!member) {
+                  setPendingBooking(value);
                   setModal("login");
                   return;
                 }
@@ -573,10 +550,7 @@ export default function App() {
               }}
             />
             <Discovery view="offers-home" />
-            <Discovery
-              view="food-home"
-              onBooking={() => window.location.assign("/dat-ve")}
-            />
+            <NovaJourney />
             <section
               id="membership"
               className="membership-section content-width section-space"
@@ -594,6 +568,22 @@ export default function App() {
                   {t("Gia nhập C’MEMBER. Để mỗi lần đến rạp")} <br />
                   {t("đều là một trải nghiệm xứng đáng hơn.")}{" "}
                 </p>
+                <div className="membership-offer">
+                  <strong>
+                    {{ SILVER: 5, GOLD: 7, DIAMOND: 10 }[member?.tier] || 5}
+                    <small>%</small>
+                  </strong>
+                  <div>
+                    <b>
+                      {member
+                        ? `Quyền lợi hạng ${member.tier}`
+                        : "Ưu đãi ngay từ hạng SILVER"}
+                    </b>
+                    <span>
+                      Giảm trên đơn đủ điều kiện · Lưu vé QR trong tài khoản
+                    </span>
+                  </div>
+                </div>
                 <div className="member-benefits">
                   <span>
                     <Crown size={18} />
@@ -621,7 +611,7 @@ export default function App() {
               <div className="membership-card">
                 <div className="card-metal-line" />
                 <div className="member-card-top">
-                  <InfinityIcon size={31} />
+                  <NovaLogo showText={false} size={31} />
                   <span>C’MEMBER</span>
                 </div>
                 <p>
@@ -685,7 +675,7 @@ export default function App() {
                               "/images/cinema-auditorium.jpg",
                               "/images/cinema-lobby.jpg",
                               "/images/cinema-auditorium.jpg",
-                            ][i]
+                            ][i % 4]
                           }
                           alt={
                             language === "en"
@@ -709,6 +699,20 @@ export default function App() {
                           <MapPin size={13} />
                           {c.address}
                         </p>
+                        <div className="cinema-details">
+                          <span>
+                            <strong>
+                              {
+                                rooms.filter((room) => room.cinemaId === c.id)
+                                  .length
+                              }
+                            </strong>{" "}
+                            phòng chiếu
+                          </span>
+                          <span>
+                            {getDates(language, c.id).length} ngày có lịch
+                          </span>
+                        </div>
                         <span>{c.formats}</span>
                         <button
                           className="text-button"
@@ -717,7 +721,7 @@ export default function App() {
                             setMovieId("");
                             setDateId("");
                             setTimeId("");
-                            document.getElementById("booking").scrollIntoView({
+                            document.getElementById("booking")?.scrollIntoView({
                               behavior: "smooth",
                               block: "center",
                             });
@@ -779,7 +783,7 @@ export default function App() {
             <section className="app-banner content-width">
               <div className="app-symbol">
                 <Smartphone size={29} />
-                <InfinityIcon size={18} />
+                <NovaLogo showText={false} size={18} />
               </div>
               <div>
                 <h3>{t("Cả rạp phim, trong tầm tay.")} </h3>
@@ -847,8 +851,11 @@ export default function App() {
             }
             timeline={
               <LichChieuPhim
+                selection={{ cinemaId: resolvedCinemaId, movieId, dateId }}
+                onSelectionChange={updateBookingSelection}
                 onBook={(value) => {
                   if (!member) {
+                    setPendingBooking(value);
                     setModal("login");
                     return;
                   }
@@ -875,6 +882,13 @@ export default function App() {
           member={member}
           onMemberUpdate={setMember}
           onClose={() => setBooking(null)}
+          onViewTickets={(orderId) => {
+            setBooking(null);
+            setModal(null);
+            window.location.assign(
+              `/tai-khoan?ve=${encodeURIComponent(orderId)}#ve-cua-toi`,
+            );
+          }}
         />
       )}
       {modal && !["admin", "staff"].includes(modal) && (
@@ -899,6 +913,7 @@ export default function App() {
                             : t("Điều khoản & thông tin dự án")
           }
           onClose={() => {
+            if (modal === "login") setPendingBooking(null);
             setModal(null);
             setQuery("");
           }}
@@ -912,6 +927,7 @@ export default function App() {
                 <Search size={20} />
                 <input
                   autoFocus
+                  aria-label={t("Tìm phim, rạp...")}
                   placeholder={t("Tên phim, đạo diễn…")}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -946,6 +962,12 @@ export default function App() {
                   className="search-cinema-result"
                   key={c.id}
                   onClick={() => {
+                    if (!["home", "dat-ve"].includes(view)) {
+                      window.location.assign(
+                        `/dat-ve?cinema=${encodeURIComponent(c.id)}`,
+                      );
+                      return;
+                    }
                     setCinemaId(c.id);
                     setMovieId("");
                     setDateId("");
@@ -953,7 +975,7 @@ export default function App() {
                     setModal(null);
                     document
                       .getElementById("booking")
-                      .scrollIntoView({ behavior: "smooth" });
+                      ?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
                   <MapPin size={21} />
@@ -979,7 +1001,11 @@ export default function App() {
             <DangNhap_DangKy
               onSuccess={(next) => {
                 setMember(next);
-                setModal("account");
+                if (pendingBooking) {
+                  setBooking(pendingBooking);
+                  setPendingBooking(null);
+                  setModal(null);
+                } else setModal("account");
               }}
             />
           )}
@@ -1302,9 +1328,13 @@ export default function App() {
                 className="button button-primary"
                 onClick={() => {
                   setModal(null);
+                  if (!["home", "dat-ve"].includes(view)) {
+                    window.location.assign("/dat-ve");
+                    return;
+                  }
                   document
                     .getElementById("booking")
-                    .scrollIntoView({ behavior: "smooth" });
+                    ?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
                 {t("Bắt đầu đặt vé")} <ArrowRight size={17} />

@@ -13,6 +13,7 @@ import { BookingsRepository, BookingRecord } from "./bookings.repository";
 import { PricingService } from "./pricing.service";
 import { SeatLockLease, SeatLockService } from "./seat-lock.service";
 import { validateNoOrphanSeats } from "./orphan-seats";
+import { projectExpiredBooking } from "./booking-projection";
 
 export const HOLD_DURATION_MS = 300000;
 @Injectable()
@@ -42,12 +43,15 @@ export class SeatBookingService {
           showtimeId: dto.showtimeId,
           seatIds: requestedSeatIds,
           comboItems,
-          ...(dto.couponCode ? { couponCode: dto.couponCode.trim().toUpperCase() } : {}),
+          ...(dto.couponCode
+            ? { couponCode: dto.couponCode.trim().toUpperCase() }
+            : {}),
         }),
       )
       .digest("hex");
     for (let attempt = 0; attempt < 3; attempt++) {
       let lease: SeatLockLease | undefined;
+      let resolvedSeatIds = requestedSeatIds;
       try {
         return await this.database.transaction(async (tx) => {
           if (key) {
@@ -119,6 +123,7 @@ export class SeatBookingService {
             }
           }
           const seatIds = [...resolved].sort();
+          resolvedSeatIds = seatIds;
           if (seatIds.length > 20)
             throw new ApiException(
               400,
@@ -137,8 +142,13 @@ export class SeatBookingService {
             await this.bookings.lockBooking(row.id, tx);
             await this.expireLocked(row.id, tx);
           }
-          if (await this.bookings.activeSeat(showtime.id, seatIds, tx))
-            throw unavailable();
+          const conflicts = await this.bookings.activeSeat(
+            showtime.id,
+            seatIds,
+            tx,
+          );
+          if (conflicts.length)
+            throw unavailable(conflicts.map((s) => s.seatId));
 
           // Validate Orphan Seat Rule: ensure no new single-seat gap is created
           const affectedRows = [...new Set(seats.map((s) => s.seatRow))];
@@ -152,6 +162,7 @@ export class SeatBookingService {
               showtime.id,
               physicalRowSeats.map((s) => s.id),
               tx,
+              await this.bookings.now(tx),
             );
           const occupiedSet = new Set(
             occupiedBookingSeats.map((b) => b.seatId),
@@ -286,6 +297,29 @@ export class SeatBookingService {
           return this.requireRecord(booking.id, tx);
         });
       } catch (error) {
+        // BR01: transaction đã rollback; đọc claim hiện tại để UI biết ghế lỗi,
+        // kể cả writer bên ngoài Redis thắng ở unique constraint cuối cùng.
+        if (error instanceof ApiException) {
+          const body = error.getResponse();
+          if (
+            typeof body === "object" &&
+            "error" in body &&
+            body.error === "SEAT_UNAVAILABLE" &&
+            !("details" in body)
+          ) {
+            let unavailableIds: string[] | undefined;
+            try {
+              unavailableIds = (
+                await this.database.transaction((tx) =>
+                  this.bookings.activeSeat(dto.showtimeId, resolvedSeatIds, tx),
+                )
+              ).map((seat) => seat.seatId);
+            } catch {
+              // Vẫn giữ409 gốc khi snapshot tạm thời không đọc được.
+            }
+            if (unavailableIds) throw unavailable(unavailableIds);
+          }
+        }
         if (
           !(error instanceof Prisma.PrismaClientKnownRequestError) ||
           !["P2034", "P2010"].includes(error.code) ||
@@ -388,7 +422,6 @@ export class SeatBookingService {
   }
   getOwned(id: string, userId: string): Promise<BookingRecord> {
     return this.database.transaction(async (tx) => {
-      await this.bookings.lockOwned(id, userId, tx);
       const booking = await this.requireRecord(id, tx);
       if (booking.userId !== userId)
         throw new ApiException(
@@ -396,9 +429,8 @@ export class SeatBookingService {
           "BOOKING_NOT_FOUND",
           "Booking was not found.",
         );
-      await this.expireLocked(id, tx);
-      return this.requireRecord(id, tx);
-    });
+      return projectExpiredBooking(booking, await this.bookings.now(tx));
+    }, Prisma.TransactionIsolationLevel.RepeatableRead);
   }
   async sweepExpired(userId?: string): Promise<void> {
     const now = await this.database.transaction((tx) => this.bookings.now(tx));
@@ -411,10 +443,11 @@ export class SeatBookingService {
       await this.autoReleaseExpiredHold(row.id);
   }
 }
-function unavailable(): ApiException {
+function unavailable(seatIds?: string[]): ApiException {
   return new ApiException(
     409,
     "SEAT_UNAVAILABLE",
-    "One or more seats were just held or sold. Choose again.",
+    "Một hoặc nhiều ghế vừa được giữ hoặc bán. Vui lòng chọn lại.",
+    seatIds ? { seatIds } : undefined,
   );
 }

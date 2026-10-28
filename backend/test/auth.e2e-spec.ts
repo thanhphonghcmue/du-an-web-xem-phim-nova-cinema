@@ -243,6 +243,70 @@ describe("Phase 3 real PostgreSQL/Redis authentication", () => {
     ).toBe(0);
   });
 
+  it.each(["LOCKED", "INACTIVE"] as const)(
+    "UC02 E2 rejects %s login, existing access and refresh without exposing hashes",
+    async (status) => {
+      const user = await fixture(`disabled-${status.toLowerCase()}`);
+      const prior = await login(user);
+      await prisma.user.update({ where: { id: user.id }, data: { status } });
+      const denied = await request(server)
+        .post("/api/v1/auth/login")
+        .send({ email: user.email, password })
+        .expect(403);
+      expect(error(denied).error).toBe("ACCOUNT_DISABLED");
+      expect(denied.text).not.toMatch(/passwordHash|password_hash|accessToken/);
+      await request(server)
+        .get("/api/v1/users/me")
+        .auth(prior.accessToken, { type: "bearer" })
+        .expect(403);
+      await refresh(prior.refreshToken).expect(403);
+      await request(server)
+        .post("/api/v1/auth/login")
+        .send({ email: user.email, password: "incorrect-password" })
+        .expect(401);
+    },
+  );
+
+  it("ADMIN status update revokes refresh sessions atomically and only new login works after activation", async () => {
+    const user = await fixture("admin-lock");
+    const prior = await login(user),
+      management = await login(admin);
+    const update = (status: string, authorization = management.accessToken) =>
+      request(server)
+        .patch(`/api/v1/users/${user.id}/status`)
+        .auth(authorization, { type: "bearer" })
+        .send({ status });
+    await update("LOCKED", prior.accessToken).expect(403);
+    await update("LOCKED", (await login(staff)).accessToken).expect(403);
+    await update("invalid").expect(400);
+    await request(server)
+      .patch(`/api/v1/users/${user.id}/status`)
+      .auth(management.accessToken, { type: "bearer" })
+      .send({ status: "LOCKED", role: "ADMIN" })
+      .expect(400);
+    await update("LOCKED").expect(200);
+    expect(
+      await prisma.refreshToken.count({
+        where: { userId: user.id, revokedAt: null },
+      }),
+    ).toBe(0);
+    await request(server)
+      .get("/api/v1/users/me")
+      .auth(prior.accessToken, { type: "bearer" })
+      .expect(403);
+    await update("ACTIVE").expect(200);
+    await refresh(prior.refreshToken).expect(401);
+    expect((await login(user)).user.id).toBe(user.id);
+    await request(server)
+      .patch(`/api/v1/users/${admin.id}/status`)
+      .auth(management.accessToken, { type: "bearer" })
+      .send({ status: "LOCKED" })
+      .expect(409);
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: admin.id } })).status,
+    ).toBe("ACTIVE");
+  });
+
   it("uses generic login errors for absent email and wrong password", async () => {
     const absent = await request(server)
       .post("/api/v1/auth/login")

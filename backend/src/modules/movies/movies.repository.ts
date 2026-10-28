@@ -40,8 +40,8 @@ export class MoviesRepository {
       tx.movie.count({ where }),
     ]);
   }
-  create(data: Prisma.MovieCreateInput) {
-    return this.prisma.movie.create({ data });
+  create(data: Prisma.MovieCreateInput, tx: Prisma.TransactionClient) {
+    return tx.movie.create({ data });
   }
   update(
     id: string,

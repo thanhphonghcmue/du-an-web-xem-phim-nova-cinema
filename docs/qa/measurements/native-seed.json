@@ -1,0 +1,13 @@
+{
+  "mode": "native-postgresql",
+  "postgresVersion": "17.10",
+  "seeded": {
+    "movies": 24,
+    "cinemas": 4,
+    "rooms": 160,
+    "showtimes": 14011,
+    "combos": 24
+  },
+  "repeatBaseSeedPreservedEditedMemberPoints": true,
+  "memberInitialPoints": 50000
+}

@@ -1,6 +1,10 @@
 // Additive local programme: fixed UUIDs, real seats and collision-checked screenings.
 const { createHash } = require("node:crypto");
 const { Prisma } = require("@prisma/client");
+const {
+  programmeWindow,
+  filmDay,
+} = require("../../content/programme-calendar.cjs");
 const MINUTE = 60000;
 const DAY = 86400000;
 const id = (key) => {
@@ -33,15 +37,24 @@ function planDay(movies, hall, day) {
     };
   });
 }
-async function prepareRoom(db, cinema, key, index) {
-  const roomId = id(`room:advance:${key}:${index}`);
+async function prepareRoom(
+  db,
+  cinema,
+  key,
+  index,
+  namespace = "advance",
+  name,
+) {
+  const roomId = id(`room:${namespace}:${key}:${index}`);
   const room = await db.room.upsert({
     where: { id: roomId },
     update: {},
     create: {
       id: roomId,
       cinemaId: cinema.id,
-      name: `NOVA ${index % 4 === 0 ? "IMAX" : index % 4 === 1 ? "Dolby" : "Laser"} Studio ${String(index + 9).padStart(2, "0")}`,
+      name:
+        name ||
+        `NOVA ${index % 4 === 0 ? "IMAX" : index % 4 === 1 ? "Dolby" : "Laser"} Studio ${String(index + 9).padStart(2, "0")}`,
       roomType:
         index % 4 === 0
           ? "IMAX_70MM_LASER"
@@ -57,7 +70,7 @@ async function prepareRoom(db, cinema, key, index) {
       skipDuplicates: true,
       data: [..."ABCDEFGH"].flatMap((row) =>
         Array.from({ length: 20 }, (_, i) => ({
-          id: id(`seat:advance:${key}:${index}:${row}:${i + 1}`),
+          id: id(`seat:${namespace}:${key}:${index}:${row}:${i + 1}`),
           roomId,
           seatRow: row,
           seatColumn: i + 1,
@@ -131,8 +144,8 @@ async function insertDay(db, room, plans, namespace, now) {
 async function seedAdvanceProgramme(db, catalog) {
   if (process.env.NODE_ENV === "production")
     throw new Error("Demo programme is disabled in production.");
-  const now = Date.now(),
-    today = midnight(now);
+  const now = Date.now();
+  const { today, daysAhead } = programmeWindow(now);
   const originals = ["dune", "kong", "mai", "panda", "exhuma", "oppenheimer"];
   const keys = [
     ...new Set([
@@ -153,26 +166,22 @@ async function seedAdvanceProgramme(db, catalog) {
   );
   if (!movies.length)
     throw new Error("Demo films are missing; run discovery seed first.");
-  const soon = await db.movie.findMany({
+  const additional = await db.movie.findMany({
     where: {
-      id: {
-        in: catalog.movies
-          .filter((movie) => movie.status === "soon")
-          .map((movie) => id(`movie:${movie.id}`)),
-      },
-      status: "COMING_SOON",
+      id: { notIn: movies.map((movie) => movie.id) },
+      status: { not: "ENDED" },
     },
     orderBy: [{ releaseDate: "asc" }, { id: "asc" }],
   });
   let added = 0,
     conflicts = 0;
-  for (const key of ["landmark", "westlake"]) {
+  for (const key of ["landmark", "westlake", "sala", "riverside"]) {
     const cinema = await db.cinema.findUniqueOrThrow({
       where: { id: id(`cinema:${key}`) },
     });
     for (let hall = 0; hall < 16; hall++) {
       const room = await prepareRoom(db, cinema, key, hall);
-      for (let day = 0; day <= 30; day++) {
+      for (let day = 0; day <= daysAhead; day++) {
         const result = await insertDay(
           db,
           room,
@@ -184,36 +193,25 @@ async function seedAdvanceProgramme(db, catalog) {
         conflicts += result.conflicts;
       }
     }
-    // Legacy programme halls are free after the initial week; reuse them for advance sales.
-    const premiereRooms = await db.room.findMany({
-      where: {
-        cinemaId: cinema.id,
-        id: {
-          in: Array.from({ length: 8 }, (_, i) =>
-            id(`room:programme:${key}:${i}`),
-          ),
-        },
-      },
-      orderBy: { id: "asc" },
-    });
-    for (const [index, movie] of soon.entries()) {
-      if (!premiereRooms.length) break;
+    // Dedicated rooms keep early screenings independent from existing booked schedules.
+    // The demo's COMING_SOON titles are offered as advance/early screenings from today.
+    for (const movie of additional) {
       for (let side = 0; side < 2; side++) {
-        const room = premiereRooms[(index * 2 + side) % premiereRooms.length];
-        for (let day = 0; day < 7; day++) {
-          const base = midnight(movie.releaseDate) + day * DAY;
-          const plans = (side === 0 ? [10, 18.5] : [13, 21.25]).map((hour) => ({
-            movie,
-            startTime: new Date(base + hour * 60 * MINUTE),
-            endTime: new Date(
-              base + (hour * 60 + movie.durationMinutes + 15) * MINUTE,
-            ),
-          }));
+        const room = await prepareRoom(
+          db,
+          cinema,
+          key,
+          side,
+          `early:${movie.id}`,
+          `NOVA ${movie.title.slice(0, 65)} · Phòng ${side + 1}`,
+        );
+        for (let day = 0; day <= daysAhead; day++) {
+          const plans = filmDay(movie, side, today + day * DAY);
           const result = await insertDay(
             db,
             room,
             plans,
-            `presale:${movie.id}`,
+            `early:${movie.id}`,
             now,
           );
           added += result.added;
@@ -225,9 +223,18 @@ async function seedAdvanceProgramme(db, catalog) {
   return {
     added,
     conflicts,
-    daysAhead: 30,
-    films: movies.length,
-    presaleFilms: soon.length,
+    daysAhead,
+    films: movies.length + additional.length,
+    presaleFilms: additional.filter((movie) => movie.status === "COMING_SOON")
+      .length,
   };
 }
-module.exports = { seedAdvanceProgramme, planDay, id, dayKey, midnight };
+module.exports = {
+  seedAdvanceProgramme,
+  planDay,
+  id,
+  dayKey,
+  midnight,
+  programmeWindow,
+  filmDay,
+};

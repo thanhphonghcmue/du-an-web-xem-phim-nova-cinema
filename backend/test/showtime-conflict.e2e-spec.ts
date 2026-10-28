@@ -275,6 +275,17 @@ describe("Phase 5 BR03 / TC-02 with real PostgreSQL and Redis", () => {
     expect(await prisma.showtime.count({ where: { roomId: room.id } })).toBe(2);
   });
 
+  it.each([14, 15, 16])(
+    "BVA cleaning gap %i minutes is checked against the previous movie end",
+    async (minutes) => {
+      const { movie, room } = await fixture();
+      const start = `2042-01-01T12:${String(minutes).padStart(2, "0")}:00Z`;
+      await post(body(movie.id, room.id, start)).expect(
+        minutes < 15 ? 409 : 201,
+      );
+    },
+  );
+
   it("rejects all overlap shapes and permits a boundary immediately before the existing show", async () => {
     const { movie, room } = await fixture();
     for (const start of ["08:00", "09:59", "10:00", "11:00", "12:14"])

@@ -1,3 +1,4 @@
+import { chooseOption, chooseDate } from "./ui-choices.mjs";
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -50,15 +51,15 @@ test("dedicated discovery pages have real navigation, banners and accessible fil
   await page.getByRole("button", { name: "Xóa bộ lọc", exact: true }).click();
   await expect(page.locator(".discovery-film")).not.toHaveCount(0);
   await page
-    .locator(".nova-subnav")
-    .getByRole("link", { name: "Sắp chiếu tháng sau" })
+    .locator(".desktop-nav")
+    .getByRole("link", { name: "Sắp chiếu", exact: true })
     .click();
   await expect(page).toHaveURL(/\/sap-chieu$/);
   await expect(page.locator(".page-banner h1")).toContainText("Tháng mới");
   await expect(page.locator(".page-banner-image")).toBeVisible();
   await page
-    .locator(".nova-subnav")
-    .getByRole("link", { name: "Ưu đãi & sự kiện" })
+    .locator(".desktop-nav")
+    .getByRole("link", { name: "Ưu đãi", exact: true })
     .click();
   await expect(page.locator(".campaign-grid .campaign-card")).toHaveCount(6);
   await page
@@ -98,9 +99,7 @@ test("food draft survives navigation and transfers real combo IDs into seat sele
   expect(status).toBe(200);
   await page.reload();
   await expect(page.locator(".login-trigger")).toContainText("CUSTOMER");
-  await page
-    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
-    .selectOption(data.cinema.id);
+  await chooseOption(page, "Rạp trong lịch chiếu", data.cinema.id);
   await page.locator(".timeline-show").first().click();
   await expect(
     page.getByRole("dialog", { name: "Chọn ghế & đặt vé" }),
@@ -133,6 +132,10 @@ test("mobile page navigation and food categories remain within the viewport", as
   }
   await page.goto("/bap-nuoc");
   await page.getByRole("tab", { name: "Đồ ăn nóng", exact: true }).click();
+  await expect(page.locator(".food-product")).toHaveCount(4);
+  await page
+    .getByRole("searchbox", { name: "Tìm món hoặc khẩu vị" })
+    .fill("khongcophimnay");
   await expect(page.locator(".food-product")).toHaveCount(0);
   await expect(
     page.getByText("Thực đơn đang được cập nhật", { exact: true }),
@@ -211,9 +214,7 @@ test("room and day-part controls filter four real screenings without changing sh
 }) => {
   const data = fixture();
   await page.goto("/dat-ve");
-  await page
-    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
-    .selectOption(data.cinema.id);
+  await chooseOption(page, "Rạp trong lịch chiếu", data.cinema.id);
   await page
     .locator(".timeline-film-list [role=tab]")
     .filter({ hasText: "Dune" })
@@ -222,9 +223,7 @@ test("room and day-part controls filter four real screenings without changing sh
   const targetDay = new Date(
     data.programmeShowtimes[0].startTime,
   ).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
-  await page
-    .getByLabel("Chọn ngày xa trong lịch chiếu", { exact: true })
-    .fill(targetDay);
+  await chooseDate(page, "Chọn ngày xa trong lịch chiếu", targetDay);
   await page
     .getByRole("combobox", { name: "Phòng chiếu trong lịch", exact: true })
     .selectOption(data.programmeRoom.id);
@@ -269,9 +268,7 @@ test("month calendar loads over 100 screenings once and books an actual show 30 
   });
   await page.goto("/dat-ve");
   await authenticate(page);
-  await page
-    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
-    .selectOption(data.cinema.id);
+  await chooseOption(page, "Rạp trong lịch chiếu", data.cinema.id);
   await page
     .locator(".timeline-film-list [role=tab]")
     .filter({ hasText: "Dune" })
@@ -284,19 +281,19 @@ test("month calendar loads over 100 screenings once and books an actual show 30 
     "en-CA",
     { timeZone: "Asia/Ho_Chi_Minh" },
   );
-  await expect(picker).toHaveAttribute("max", far);
+  await expect(picker).toHaveAttribute("data-max", far);
   await expect(page.locator(".timeline-dates button")).toHaveCount(7);
   await page
     .getByRole("button", { name: "7 ngày tiếp theo", exact: true })
     .click();
-  const next = await picker.inputValue();
+  const next = await picker.getAttribute("data-value");
   expect(
     next >
       new Date(data.showtime.startTime).toLocaleDateString("en-CA", {
         timeZone: "Asia/Ho_Chi_Minh",
       }),
   ).toBe(true);
-  await picker.fill(far);
+  await chooseDate(page, "Chọn ngày xa trong lịch chiếu", far);
   await expect(page.locator(".timeline-show")).toHaveCount(4);
   await expect(
     page
@@ -350,17 +347,13 @@ test("a coming-soon film with a real schedule can be prebooked, paid and issued 
   );
   await expect(
     page.getByRole("combobox", { name: "Chọn phim", exact: true }),
-  ).toHaveValue(data.presaleMovie.id);
+  ).toHaveAttribute("data-value", data.presaleMovie.id);
   const date = new Date(data.presaleShow.startTime).toLocaleDateString(
     "en-CA",
     { timeZone: "Asia/Ho_Chi_Minh" },
   );
-  await page
-    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
-    .selectOption(date);
-  await page
-    .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
-    .selectOption(data.presaleShow.id);
+  await chooseDate(page, "Chọn ngày chiếu", date);
+  await chooseOption(page, "Chọn suất chiếu", data.presaleShow.id);
   await page
     .locator("#booking")
     .getByRole("button", { name: "Đặt ngay", exact: true })
@@ -400,8 +393,12 @@ test("a coming-soon film with a real schedule can be prebooked, paid and issued 
   await expect(page.getByRole("dialog", { name: /Mở màn rực rỡ/ })).toHaveCount(
     0,
   );
-  await page.locator(".login-trigger").click();
-  await expect(page.getByAltText(`QR vé ${order.orderCode}`)).toBeVisible();
+  await expect(page).toHaveURL(
+    new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
+  );
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
   const result = await page.request.get("/api/v1/tickets/me?limit=100");
   const tickets = (await result.json()).data.items.filter(
     (ticket) => ticket.bookingId === order.id,
@@ -414,9 +411,7 @@ test("schedule labels remain readable with sufficient contrast and no mobile ove
   page,
 }) => {
   await page.goto("/dat-ve");
-  await page
-    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
-    .selectOption(fixture().cinema.id);
+  await chooseOption(page, "Rạp trong lịch chiếu", fixture().cinema.id);
   await expect(page.locator(".timeline-show").first()).toBeVisible();
   const values = await page.evaluate(() => {
     const luminance = (color) => {
@@ -454,14 +449,14 @@ test("schedule labels remain readable with sufficient contrast and no mobile ove
     expect(value.ratio).toBeGreaterThanOrEqual(4.5);
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page
-    .getByLabel("Chọn ngày xa trong lịch chiếu", { exact: true })
-    .fill(
-      new Date(fixture().advanceShows.at(-1).startTime).toLocaleDateString(
-        "en-CA",
-        { timeZone: "Asia/Ho_Chi_Minh" },
-      ),
-    );
+  await chooseDate(
+    page,
+    "Chọn ngày xa trong lịch chiếu",
+    new Date(fixture().advanceShows.at(-1).startTime).toLocaleDateString(
+      "en-CA",
+      { timeZone: "Asia/Ho_Chi_Minh" },
+    ),
+  );
   await expect(page.locator(".timeline-show")).toHaveCount(4);
   expect(
     await page.evaluate(
@@ -481,4 +476,338 @@ test("schedule labels remain readable with sufficient contrast and no mobile ove
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+async function adminSession(page) {
+  const data = fixture();
+  await page.goto("/dang-nhap");
+  await expect(page.locator(".auth-quick-accounts")).toHaveCount(0);
+  const status = await page.evaluate(
+    async ({ email, password }) =>
+      (
+        await fetch("/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        })
+      ).status,
+    { email: data.accounts.admin.email, password: data.password },
+  );
+  expect(status).toBe(200);
+  await page.goto("/quan-tri");
+  await page
+    .getByRole("button", { name: "Rạp, Phim & Suất Chiếu", exact: true })
+    .click();
+}
+
+test("lower-page discovery uses current catalogue counts and each venue opens its own schedule", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.addInitScript(() =>
+    sessionStorage.setItem("nova-welcome-seen", "1"),
+  );
+  await page.goto("/");
+  await expect(page.locator(".journey-live")).toBeVisible();
+  await expect(page.locator(".journey-card")).toHaveCount(3);
+  await page
+    .locator(".journey-card")
+    .filter({ hasText: "Chọn rạp của bạn" })
+    .click();
+  await expect(page).toHaveURL(/\/rap$/);
+  const venue = page
+    .locator(".venue-card")
+    .filter({ hasText: fixture().cinema.name });
+  await expect(venue.locator(".venue-stats")).toContainText("4phòng chiếu");
+  await venue.getByRole("link", { name: "Xem lịch & đặt vé" }).click();
+  await expect(page).toHaveURL(new RegExp(`cinema=${fixture().cinema.id}`));
+  await expect(
+    page.getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true }),
+  ).toHaveAttribute("data-value", fixture().cinema.id);
+  await expect(
+    page.getByRole("combobox", { name: "Chọn cụm rạp", exact: true }),
+  ).toHaveAttribute("data-value", fixture().cinema.id);
+  for (const route of ["/hoi-vien", "/ho-tro", "/thanh-toan", "/rap"]) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(route);
+    await expect(page.locator(".page-banner h1")).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await expect(
+    page.locator(".venue-card").filter({ hasText: fixture().cinema.name }),
+  ).toBeVisible();
+  const font = await page
+    .locator(".venue-card")
+    .filter({ hasText: fixture().cinema.name })
+    .locator("h2")
+    .evaluate((el) => ({
+      size: parseFloat(getComputedStyle(el).fontSize),
+      color: getComputedStyle(el).color,
+    }));
+  expect(font.size).toBeGreaterThanOrEqual(28);
+  expect(errors).toEqual([]);
+});
+
+test("admin seat builder validates capacity and persists the displayed row types through the real API", async ({
+  page,
+}) => {
+  await adminSession(page);
+  const data = fixture();
+  const room = await page.evaluate(
+    async ({ cinemaId, name }) => {
+      const response = await fetch("/api/v1/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cinemaId, name, roomType: "STANDARD_2D" }),
+      });
+      return { status: response.status, body: await response.json() };
+    },
+    { cinemaId: data.cinema.id, name: `${data.prefix}-layout-browser` },
+  );
+  expect(room.status).toBe(201);
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Rạp, Phim & Suất Chiếu", exact: true })
+    .click();
+  await page
+    .getByRole("navigation", { name: "Danh mục vận hành" })
+    .getByRole("button", { name: "Phòng chiếu", exact: true })
+    .click();
+  const builder = page.locator(".room-builder");
+  await builder
+    .getByRole("combobox", { name: "Phòng cần xem / tạo sơ đồ" })
+    .selectOption(room.body.data.id);
+  await expect(
+    builder.getByRole("button", { name: "Lưu sơ đồ ghế" }),
+  ).toBeEnabled();
+  await builder.getByRole("spinbutton", { name: "Số hàng ghế" }).fill("15");
+  await builder.getByRole("spinbutton", { name: "Số cột ghế" }).fill("24");
+  await expect(builder.getByRole("alert")).toContainText("Vượt quá sức chứa");
+  await expect(
+    builder.getByRole("button", { name: "Lưu sơ đồ ghế" }),
+  ).toBeDisabled();
+  await builder.getByRole("spinbutton", { name: "Số hàng ghế" }).fill("2");
+  await builder.getByRole("spinbutton", { name: "Số cột ghế" }).fill("6");
+  await builder
+    .getByRole("combobox", { name: "Loại ghế hàng B", exact: true })
+    .selectOption("VIP");
+  const generated = page.waitForResponse((response) =>
+    response.url().endsWith(`/rooms/${room.body.data.id}/seats/generate`),
+  );
+  await builder.getByRole("button", { name: "Lưu sơ đồ ghế" }).click();
+  expect((await generated).status()).toBe(201);
+  await expect(builder.locator(".workspace-success")).toContainText(
+    "Đã lưu sơ đồ 12 ghế",
+  );
+  await expect(builder.locator(".layout-preview .layout-vip")).toHaveCount(6);
+  const saved = await page.evaluate(
+    async (id) =>
+      (await (await fetch(`/api/v1/rooms/${id}/seats?limit=100`)).json()).data,
+    room.body.data.id,
+  );
+  expect(saved.items).toHaveLength(12);
+  expect(
+    saved.items
+      .filter((seat) => seat.seatType === "VIP")
+      .every((seat) => seat.seatRow === "B" && seat.priceModifier === "1.20"),
+  ).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("admin catalogue pages are bounded and server-side search finds archived films on later pages", async ({
+  page,
+}) => {
+  await adminSession(page);
+  await expect(page.locator(".admin-list-panel tbody tr")).toHaveCount(25);
+  const target = fixture().prefix + "-archive-27";
+  const response = page.waitForResponse(
+    (res) =>
+      res.url().includes("/movies?") &&
+      new URL(res.url()).searchParams.get("keyword") === target,
+  );
+  await page
+    .getByRole("searchbox", { name: "Tìm trong danh mục quản trị" })
+    .fill(target);
+  expect((await response).status()).toBe(200);
+  await expect(page.locator(".admin-list-panel tbody tr")).toHaveCount(1);
+  await expect(page.locator(".admin-list-panel tbody")).toContainText(target);
+  await expect(page.locator(".admin-list-panel tbody")).toContainText(
+    "Ngừng chiếu",
+  );
+  await page
+    .getByRole("searchbox", { name: "Tìm trong danh mục quản trị" })
+    .fill("");
+  await expect(page.locator(".admin-list-panel tbody tr")).toHaveCount(25);
+  await page
+    .locator(".admin-list-panel")
+    .getByRole("button", { name: "Trang sau", exact: true })
+    .click();
+  await expect(page.locator(".workspace-pagination")).toContainText("Trang 2");
+  await expect(page.locator(".admin-list-panel tbody tr")).not.toHaveCount(0);
+});
+
+test("searchable cinema picker keeps quick booking and schedule in the same context", async ({
+  page,
+}) => {
+  const data = fixture();
+  await page.goto("/dat-ve");
+  await page
+    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("textbox").fill(data.cinema.name);
+  await expect(dialog.getByRole("option")).toHaveCount(1);
+  await dialog
+    .locator(`[role="option"][data-value="${data.cinema.id}"]`)
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Chọn cụm rạp", exact: true }),
+  ).toHaveAttribute("data-value", data.cinema.id);
+  await page
+    .locator(".timeline-film-list [role=tab]")
+    .filter({ hasText: "Dune" })
+    .first()
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Chọn phim", exact: true }),
+  ).toHaveAttribute("data-value", data.movie.id);
+  const day = new Date(data.programmeShowtimes[0].startTime).toLocaleDateString(
+    "en-CA",
+    { timeZone: "Asia/Ho_Chi_Minh" },
+  );
+  await chooseDate(page, "Chọn ngày xa trong lịch chiếu", day);
+  await expect(
+    page.getByRole("button", { name: "Chọn ngày chiếu", exact: true }),
+  ).toHaveAttribute("data-value", day);
+  await chooseOption(page, "Chọn suất chiếu", data.programmeShowtimes[0].id);
+  await expect(page.locator(".booking-choice-summary")).toContainText(
+    data.movie.title,
+  );
+  await expect(page.locator(".booking-choice-summary")).toContainText(
+    data.cinema.name,
+  );
+});
+
+test("film detail links survive direct reload and open the correct film and venue", async ({
+  page,
+}) => {
+  const data = fixture();
+  await page.goto("/phim");
+  await page
+    .locator(
+      `.discovery-film[data-movie-id="${data.movie.id}"] .poster-image-button`,
+    )
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/phim/${data.movie.id}$`));
+  await expect(page.locator(".movie-page h1")).toHaveText(data.movie.title);
+  await page.reload();
+  await expect(page.locator(".movie-page h1")).toHaveText(data.movie.title);
+  const venue = page
+    .locator(".movie-page-venues a")
+    .filter({ hasText: data.cinema.name });
+  await venue.click();
+  await expect(page).toHaveURL(
+    new RegExp(`cinema=${data.cinema.id}&movie=${data.movie.id}`),
+  );
+  await expect(
+    page.getByRole("combobox", { name: "Chọn phim", exact: true }),
+  ).toHaveAttribute("data-value", data.movie.id);
+  await expect(
+    page.getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true }),
+  ).toHaveAttribute("data-value", data.cinema.id);
+});
+
+test("mobile choices retain full labels, keyboard focus and a Vietnamese calendar", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dat-ve");
+  const trigger = page.getByRole("combobox", {
+    name: "Rạp trong lịch chiếu",
+    exact: true,
+  });
+  await trigger.click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByRole("textbox").fill("khongcotenrapnay");
+  await expect(
+    page.getByText("Chưa có lựa chọn phù hợp. Thử tên khác hoặc xóa từ khóa."),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+  await chooseOption(page, "Chọn cụm rạp", fixture().cinema.id);
+  await chooseOption(page, "Chọn phim", fixture().presaleMovie.id);
+  await page
+    .getByRole("button", { name: "Chọn ngày chiếu", exact: true })
+    .click();
+  await expect(page.locator(".rdp-caption_label")).toContainText(/tháng/i);
+  expect(
+    await page.locator(".rdp-day_button:disabled").count(),
+  ).toBeGreaterThan(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.keyboard.press("Escape");
+});
+
+test("support search and contact destinations have distinct useful content", async ({
+  page,
+}) => {
+  await page.goto("/ho-tro");
+  await page
+    .getByRole("textbox", { name: "Tìm câu hỏi hỗ trợ" })
+    .fill("5 phút");
+  await expect(page.locator(".faq-list details")).not.toHaveCount(0);
+  await page
+    .getByRole("textbox", { name: "Tìm câu hỏi hỗ trợ" })
+    .fill("chuakhongcocauhoi");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Chưa có câu hỏi phù hợp" }),
+  ).toBeVisible();
+  await page.goto("/lien-he");
+  await expect(page.locator(".contact-workspace")).toContainText(
+    "Kiểm tra đơn & vé",
+  );
+  await expect(
+    page.locator(".contact-venue").filter({ hasText: fixture().cinema.name }),
+  ).toBeVisible();
+  await expect(page.locator(".faq-list")).toHaveCount(0);
+});
+
+test("sign-in resumes the selected screening and seat zoom leaves API seat identity unchanged", async ({
+  page,
+}) => {
+  const data = fixture();
+  await page.goto("/dat-ve");
+  await chooseOption(page, "Rạp trong lịch chiếu", data.cinema.id);
+  await page.locator(".timeline-show").first().click();
+  await expect(page.locator(".auth-form")).toBeVisible();
+  await page
+    .getByLabel("Email", { exact: true })
+    .fill(data.accounts.customer.email);
+  await page.getByLabel("Mật khẩu", { exact: true }).fill(data.password);
+  await page
+    .getByRole("button", { name: "Đăng nhập ngay", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Chọn ghế & đặt vé" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Phóng to sơ đồ ghế" }).click();
+  await expect(dialog.locator(".seat-map-controls")).toContainText("110%");
+  await dialog.getByRole("button", { name: "Toàn cảnh sơ đồ ghế" }).click();
+  await expect(dialog.locator(".seat-map-controls")).toContainText("100%");
+  await expect(
+    dialog.getByRole("button", { name: "Ghế A1, còn trống", exact: true }),
+  ).toBeEnabled();
+  await page.keyboard.press("Escape");
 });

@@ -1,10 +1,8 @@
 /**
  * BFF cùng origin: cookie HttpOnly, kiểm tra Origin, proxy sang API đã cấu hình.
- * Local standalone là kho demo riêng khi không cấu hình BACKEND_API_URL trong development,
- * hoặc NOVA_STANDALONE=true. Không chuyển kho dữ liệu khi backend gặp sự cố.
+ * Mọi thao tác luôn chuyển tới NestJS; lỗi kết nối trả 503, không có kho thay thế.
  */
 import { NextResponse } from "next/server";
-import { handleResilientFallback } from "./resilientFallback.js";
 
 // Chỉ biến máy chủ này chọn upstream; trình duyệt không thể điều hướng sang host khác.
 const upstream = () =>
@@ -58,32 +56,11 @@ async function proxy(request, context) {
     );
 
   let body = mutation ? await request.text() : undefined;
-  // Local demo and configured API use separate stores for the entire session.
-  const standalone =
-    process.env.NODE_ENV !== "production" &&
-    (process.env.NOVA_STANDALONE === "true" || !process.env.BACKEND_API_URL);
   if (endpoint === "/runtime" && request.method === "GET")
     return NextResponse.json(
-      { success: true, data: { mode: standalone ? "standalone" : "backend" } },
+      { success: true, data: { mode: "backend" } },
       { headers: { "Cache-Control": "no-store" } },
     );
-  if (standalone) {
-    let rememberDemo = request.cookies.get(names.remember)?.value === "1";
-    if (endpoint === "/auth/login") {
-      try {
-        rememberDemo = JSON.parse(body || "{}").remember === true;
-      } catch {
-        return NextResponse.json({ message: "Invalid JSON." }, { status: 400 });
-      }
-    }
-    return handleResilientFallback(
-      endpoint,
-      request,
-      body,
-      rememberDemo,
-      request.cookies.get(names.access)?.value,
-    );
-  }
 
   let remember = request.cookies.get(names.remember)?.value === "1";
 
@@ -132,7 +109,7 @@ async function proxy(request, context) {
       body,
       cache: "no-store",
       redirect: "manual",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(7500)]),
     });
 
     const type = result.headers.get("content-type") || "application/json";
@@ -190,6 +167,10 @@ async function proxy(request, context) {
     }
 
     response.headers.set("Cache-Control", "no-store");
+    const backendKind = result.headers.get("x-nova-backend");
+    if (backendKind) response.headers.set("x-nova-backend", backendKind);
+    const requestId = result.headers.get("x-request-id");
+    if (requestId) response.headers.set("x-request-id", requestId);
     if (
       endpoint === "/auth/logout" ||
       (endpoint === "/auth/refresh" && result.status === 401)
@@ -201,7 +182,7 @@ async function proxy(request, context) {
       {
         success: false,
         code: "BACKEND_UNAVAILABLE",
-        message: "Không thể kết nối máy chủ. Vui lòng thử lại sau.",
+        message: "Không thể kết nối đến máy chủ Backend. Vui lòng thử lại sau.",
       },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );

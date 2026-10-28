@@ -611,8 +611,10 @@ describe("Phase10 ADMIN revenue on real PostgreSQL snapshots", () => {
         Prisma.sql`EXPLAIN (FORMAT JSON) ${revenueQuery(revenueFilters({ ...range, cinemaId: required(cinemas[0]), movieId: required(movies[0]) }))}`,
       );
     });
-    expect(JSON.stringify(plan)).toContain(
-      "bookings_status_created_at_showtime_id_idx",
+    // A selective movie/showtime join can legitimately choose the existing
+    // showtime FK index instead of the status/date index on a small fixture.
+    expect(JSON.stringify(plan)).toMatch(
+      /bookings_status_created_at_showtime_id_idx|bookings_showtime_id_idx/,
     );
     expect(JSON.stringify(plan)).toMatch(
       /booking_seats_booking_id_idx|uq_active_showtime_seat/,

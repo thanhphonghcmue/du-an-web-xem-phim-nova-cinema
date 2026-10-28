@@ -8,33 +8,29 @@
  */
 
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { mainNavigation } from "../navigation.js";
 import { motion } from "framer-motion";
 import { useI18n } from "../i18n.js";
 export default function MenuDieuHuong() {
   const { t } = useI18n();
   const [hovered, setHovered] = useState(null);
-  const [active, setActive] = useState("#movies");
-  const links = [
-    ["/phim", "Phim"],
-    ["/rap", "Rạp NOVA"],
-    ["/uu-dai", "Ưu đãi"],
-    ["/hoi-vien", "C’MEMBER"],
-    ["/bap-nuoc", "Bắp nước"],
-  ];
+  const active = usePathname();
   return (
     <nav
       className="desktop-nav"
-      aria-label="Điều hướng chính"
+      aria-label={t("Điều hướng chính")}
       onMouseLeave={() => setHovered(null)}
     >
-      {links.map(([href, label]) => (
-        <a
+      {mainNavigation.map(([href, label]) => (
+        <Link
           href={href}
           key={href}
           onMouseEnter={() => setHovered(href)}
           onFocus={() => setHovered(href)}
           onBlur={() => setHovered(null)}
-          onClick={() => setActive(href)}
+          aria-current={active === href ? "page" : undefined}
           className={(hovered || active) === href ? "nav-active" : ""}
         >
           {t(label)}
@@ -45,7 +41,7 @@ export default function MenuDieuHuong() {
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
             />
           )}
-        </a>
+        </Link>
       ))}
     </nav>
   );

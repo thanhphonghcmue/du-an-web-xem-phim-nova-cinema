@@ -34,7 +34,7 @@ async function fixture() {
     });
     const movie = await tx.movie.create({
       data: {
-        title: "Constraint test",
+        title: `Constraint test ${randomUUID()}`,
         description: "Isolated fixture",
         durationMinutes: 120,
         releaseDate: new Date("2030-01-01T00:00:00.000Z"),
@@ -145,6 +145,19 @@ afterAll(async () => {
 });
 
 describe("Phase 1 PostgreSQL constraints (not API TC01–TC05)", () => {
+  it("new and migrated account statuses remain active by default and reject unknown database states", async () => {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: ownerId },
+    });
+    expect(user.status).toBe("ACTIVE");
+    await expect(
+      prisma.$executeRaw`UPDATE users SET status = 'UNKNOWN' WHERE id = ${ownerId}::uuid`,
+    ).rejects.toBeDefined();
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: ownerId } })).status,
+    ).toBe("ACTIVE");
+  });
+
   it("connects to the dedicated test database", async () => {
     const rows = await prisma.$queryRaw<
       { database: string; version: string }[]

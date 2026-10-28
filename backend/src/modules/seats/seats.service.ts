@@ -61,6 +61,7 @@ export class SeatsService {
   }
   create(roomId: string, dto: CreateSeatDto): Promise<SeatDto> {
     return this.mutate(roomId, async (tx) => {
+      await this.capacity(roomId, dto.seatRow, undefined, tx);
       const seat = await this.seats.create(
         {
           roomId,
@@ -78,6 +79,12 @@ export class SeatsService {
   async update(id: string, dto: UpdateSeatDto): Promise<SeatDto> {
     const existing = await this.get(id);
     return this.mutate(existing.roomId, async (tx) => {
+      await this.capacity(
+        existing.roomId,
+        dto.seatRow ?? existing.seatRow,
+        id,
+        tx,
+      );
       const seat = await this.seats.update(
         id,
         {
@@ -105,7 +112,35 @@ export class SeatsService {
       return { id, deleted: true };
     });
   }
+  private async capacity(
+    roomId: string,
+    row: string,
+    editingId: string | undefined,
+    tx: Prisma.TransactionClient,
+  ) {
+    const seats = await this.seats.positions(roomId, tx);
+    const others = seats.filter((seat) => seat.id !== editingId);
+    const rows = new Set([...others.map((seat) => seat.seatRow), row]);
+    if (others.length + 1 > 300 || rows.size > 15)
+      throw new ApiException(
+        400,
+        "ROOM_CAPACITY_EXCEEDED",
+        "Vượt quá sức chứa cấu trúc vật lý của phòng (300 ghế, 15 hàng).",
+      );
+  }
   generate(roomId: string, dto: GenerateSeatsDto): Promise<GeneratedSeatsDto> {
+    if (dto.rows.length * dto.columns > 300)
+      throw new ApiException(
+        400,
+        "ROOM_CAPACITY_EXCEEDED",
+        "Vượt quá sức chứa cấu trúc vật lý của phòng (tối đa 300 ghế).",
+      );
+    if ((dto.sweetboxRows?.length ?? 0) > 0 && dto.columns % 2 !== 0)
+      throw new ApiException(
+        400,
+        "INVALID_SWEETBOX_LAYOUT",
+        "Hàng Sweetbox cần số cột chẵn để tạo đủ cặp ghế.",
+      );
     const vip = new Set(dto.vipRows || []);
     const sweetbox = new Set(dto.sweetboxRows || []);
     if (

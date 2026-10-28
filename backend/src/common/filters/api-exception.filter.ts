@@ -8,6 +8,7 @@ import {
 import { Prisma } from "@prisma/client";
 import { Response } from "express";
 import { ApiException } from "../exceptions/api.exception";
+import { publicErrorMessages } from "./public-error-messages";
 import { RequestContext } from "../utils/request-context";
 interface ErrorPayload {
   error?: unknown;
@@ -57,7 +58,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
         statusCode === 409 &&
         ["TICKET_ALREADY_USED", "TICKET_SHOWTIME_MISMATCH"].includes(error);
       details =
-        safeServiceFailure || safeAdmission ? payload.details : undefined;
+        safeServiceFailure ||
+        safeAdmission ||
+        (exception instanceof ApiException &&
+          statusCode === 409 &&
+          error === "SEAT_UNAVAILABLE")
+          ? payload.details
+          : undefined;
       if (statusCode === 400 && isParserError(exception)) {
         error = "INVALID_JSON";
         message = "Request body must contain valid JSON.";
@@ -67,7 +74,15 @@ export class ApiExceptionFilter implements ExceptionFilter {
         message = "Request body is too large.";
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      if (exception.code === "P2002") {
+      if (
+        ["P2024", "P2028"].includes(exception.code) ||
+        (exception.code === "P2010" &&
+          ["55P03", "57014"].includes(String(exception.meta?.code)))
+      ) {
+        statusCode = 503;
+        error = "DATABASE_BUSY";
+        message = "Máy chủ đang bận. Vui lòng thử lại sau giây lát.";
+      } else if (exception.code === "P2002") {
         statusCode = 409;
         error = "RESOURCE_CONFLICT";
         message = "The resource already exists.";
@@ -85,6 +100,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
         message = "The operation conflicts with a database constraint.";
       }
     }
+    if (statusCode < 500 && publicErrorMessages[error])
+      message = publicErrorMessages[error];
     if (statusCode >= 500)
       this.logger.error(
         `request=${request.correlationId || "unknown"} error=${error}`,

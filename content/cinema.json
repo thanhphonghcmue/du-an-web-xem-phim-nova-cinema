@@ -406,7 +406,11 @@
       "price": 69000,
       "description": "1 bắp lớn + 2 nước ngọt 22oz",
       "badge": "BÁN CHẠY",
-      "image": "/images/menu/party69.svg"
+      "image": "/images/menu/party69.svg",
+      "artIndex": 0,
+      "flavor": "savory",
+      "taste": "Bơ thơm",
+      "serves": "2 người"
     },
     {
       "key": "solo",
@@ -415,7 +419,11 @@
       "price": 59000,
       "description": "1 bắp vừa + 1 nước ngọt 22oz",
       "badge": "CHO MỘT NGƯỜI",
-      "image": "/images/menu/solo.svg"
+      "image": "/images/menu/solo.svg",
+      "artIndex": 1,
+      "flavor": "savory",
+      "taste": "Bơ truyền thống",
+      "serves": "1 người"
     },
     {
       "key": "couple",
@@ -424,7 +432,11 @@
       "price": 99000,
       "description": "1 bắp mix + 2 nước lớn + 1 snack",
       "badge": "HẸN HÒ",
-      "image": "/images/menu/couple.svg"
+      "image": "/images/menu/couple.svg",
+      "artIndex": 2,
+      "flavor": "sweet",
+      "taste": "Ngọt & phô mai",
+      "serves": "2 người"
     },
     {
       "key": "family",
@@ -433,7 +445,11 @@
       "price": 189000,
       "description": "2 bắp lớn + 4 nước + 2 hotdog",
       "badge": "ĐI CÙNG NHAU",
-      "image": "/images/menu/family.svg"
+      "image": "/images/menu/family.svg",
+      "artIndex": 3,
+      "flavor": "savory",
+      "taste": "Đa vị",
+      "serves": "4 người"
     },
     {
       "key": "festival",
@@ -442,7 +458,11 @@
       "price": 139000,
       "description": "1 bắp mix + 1 nước + móc khóa NOVA",
       "badge": "PHIÊN BẢN LỄ HỘI",
-      "image": "/images/menu/festival.svg"
+      "image": "/images/menu/festival.svg",
+      "artIndex": 4,
+      "flavor": "sweet",
+      "taste": "Bắp mix",
+      "serves": "1 người"
     },
     {
       "key": "infinity",
@@ -451,7 +471,11 @@
       "price": 249000,
       "description": "1 hộp bắp sưu tầm NOVA + 2 nước",
       "badge": "BỘ SƯU TẬP NOVA",
-      "image": "/images/menu/infinity.svg"
+      "image": "/images/menu/infinity.svg",
+      "artIndex": 5,
+      "flavor": "savory",
+      "taste": "Bơ thơm",
+      "serves": "2 người"
     },
     {
       "key": "pop-sweet",
@@ -460,7 +484,11 @@
       "price": 39000,
       "description": "Bắp rang giòn thơm · 46oz",
       "badge": "VỊ NGUYÊN BẢN",
-      "image": "/images/menu/pop-sweet.svg"
+      "image": "/images/menu/pop-sweet.svg",
+      "artIndex": 6,
+      "flavor": "sweet",
+      "taste": "Ngọt dịu",
+      "serves": "1 người"
     },
     {
       "key": "pop-cheese",
@@ -469,7 +497,11 @@
       "price": 45000,
       "description": "Bắp phủ phô mai · 46oz",
       "badge": "ĐẬM VỊ",
-      "image": "/images/menu/pop-cheese.svg"
+      "image": "/images/menu/pop-cheese.svg",
+      "artIndex": 7,
+      "flavor": "savory",
+      "taste": "Phô mai",
+      "serves": "1 người"
     },
     {
       "key": "pop-caramel",
@@ -478,7 +510,11 @@
       "price": 49000,
       "description": "Caramel vàng óng · 46oz",
       "badge": "NGỌT NGÀO",
-      "image": "/images/menu/pop-caramel.svg"
+      "image": "/images/menu/pop-caramel.svg",
+      "artIndex": 8,
+      "flavor": "sweet",
+      "taste": "Caramel",
+      "serves": "1 người"
     },
     {
       "key": "pop-mix",
@@ -487,7 +523,11 @@
       "price": 55000,
       "description": "Phô mai & caramel · 64oz",
       "badge": "HAI VỊ MỘT HỘP",
-      "image": "/images/menu/pop-mix.svg"
+      "image": "/images/menu/pop-mix.svg",
+      "artIndex": 9,
+      "flavor": "sweet",
+      "taste": "Phô mai & caramel",
+      "serves": "2 người"
     },
     {
       "key": "cola",
@@ -496,7 +536,11 @@
       "price": 25000,
       "description": "Nước ngọt có ga · 22oz",
       "badge": "MÁT LẠNH",
-      "image": "/images/menu/cola.svg"
+      "image": "/images/menu/cola.svg",
+      "artIndex": 10,
+      "flavor": "fresh",
+      "taste": "Cola có ga",
+      "serves": "1 người"
     },
     {
       "key": "peach",
@@ -505,7 +549,11 @@
       "price": 35000,
       "description": "Trà đào, cam và sả · 500ml",
       "badge": "TƯƠI MÁT",
-      "image": "/images/menu/peach.svg"
+      "image": "/images/menu/peach.svg",
+      "artIndex": 11,
+      "flavor": "fresh",
+      "taste": "Đào cam sả",
+      "serves": "1 người"
     },
     {
       "key": "water",
@@ -514,7 +562,11 @@
       "price": 18000,
       "description": "Nước tinh khiết · 500ml",
       "badge": "THANH KHIẾT",
-      "image": "/images/menu/water.svg"
+      "image": "/images/menu/water.svg",
+      "artIndex": 12,
+      "flavor": "fresh",
+      "taste": "Tinh khiết",
+      "serves": "1 người"
     },
     {
       "key": "hotdog",
@@ -523,7 +575,11 @@
       "price": 45000,
       "description": "Bánh mì nóng, xúc xích và phô mai",
       "badge": "NÓNG HỔI",
-      "image": "/images/menu/hotdog.svg"
+      "image": "/images/menu/hotdog.svg",
+      "artIndex": 13,
+      "flavor": "savory",
+      "taste": "Phô mai",
+      "serves": "1 người"
     },
     {
       "key": "nachos",
@@ -532,7 +588,11 @@
       "price": 49000,
       "description": "Bánh ngô giòn + sốt phô mai",
       "badge": "GIÒN RỤM",
-      "image": "/images/menu/nachos.svg"
+      "image": "/images/menu/nachos.svg",
+      "artIndex": 15,
+      "flavor": "savory",
+      "taste": "Phô mai",
+      "serves": "1 người"
     },
     {
       "key": "fries",
@@ -541,7 +601,115 @@
       "price": 39000,
       "description": "Khoai tây giòn + bột phô mai",
       "badge": "ĂN VẶT MÊ LY",
-      "image": "/images/menu/fries.svg"
+      "image": "/images/menu/fries.svg",
+      "artIndex": 14,
+      "flavor": "savory",
+      "taste": "Phô mai",
+      "serves": "1 người"
+    },
+    {
+      "key": "pop-spicy",
+      "name": "Bắp Phô Mai Cay",
+      "category": "popcorn",
+      "price": 49000,
+      "description": "Bắp phủ phô mai cay nhẹ · 46oz",
+      "badge": "CAY VỪA ĐỦ",
+      "image": "/images/menu/party69.svg",
+      "artIndex": 16,
+      "flavor": "spicy",
+      "taste": "Cay nhẹ",
+      "serves": "1 người"
+    },
+    {
+      "key": "pop-seaweed",
+      "name": "Bắp Rong Biển",
+      "category": "popcorn",
+      "price": 45000,
+      "description": "Bắp rang rong biển và mè · 46oz",
+      "badge": "THƠM RONG BIỂN",
+      "image": "/images/menu/party69.svg",
+      "artIndex": 17,
+      "flavor": "savory",
+      "taste": "Mặn thơm",
+      "serves": "1 người"
+    },
+    {
+      "key": "pop-chocolate",
+      "name": "Bắp Chocolate",
+      "category": "popcorn",
+      "price": 55000,
+      "description": "Bắp phủ chocolate đen · 46oz",
+      "badge": "CHO TÍN ĐỒ NGỌT",
+      "image": "/images/menu/party69.svg",
+      "artIndex": 18,
+      "flavor": "sweet",
+      "taste": "Ngọt đậm",
+      "serves": "1 người"
+    },
+    {
+      "key": "strawberry",
+      "name": "Soda Dâu Lấp Lánh",
+      "category": "drinks",
+      "price": 39000,
+      "description": "Soda dâu, bạc hà và đá · 500ml",
+      "badge": "SẮC VỊ MỚI",
+      "image": "/images/menu/party69.svg",
+      "artIndex": 19,
+      "flavor": "fresh",
+      "taste": "Chua ngọt",
+      "serves": "1 người"
+    },
+    {
+      "key": "lime",
+      "name": "Trà Chanh Tươi",
+      "category": "drinks",
+      "price": 29000,
+      "description": "Trà chanh tươi mát lạnh · 500ml",
+      "badge": "THANH MÁT",
+      "image": "/images/menu/party69.svg",
+      "artIndex": 20,
+      "flavor": "fresh",
+      "taste": "Chua thanh",
+      "serves": "1 người"
+    },
+    {
+      "key": "nuggets",
+      "name": "Gà Viên Giòn",
+      "category": "snacks",
+      "price": 55000,
+      "description": "Gà viên chiên giòn kèm sốt · 6 miếng",
+      "badge": "GIÒN NÓNG HỔI",
+      "image": "/images/menu/party69.svg",
+      "artIndex": 21,
+      "flavor": "savory",
+      "taste": "Mặn thơm",
+      "serves": "1 người"
+    },
+    {
+      "key": "green-pair",
+      "name": "Green Movie Combo",
+      "category": "combo",
+      "price": 79000,
+      "description": "1 bắp rong biển 46oz + 1 trà đào 500ml",
+      "badge": "MỘT MÌNH VẪN VUI",
+      "image": "/images/menu/party69.svg",
+      "artIndex": 22,
+      "flavor": "savory",
+      "taste": "Mặn & thanh",
+      "serves": "1 người"
+    },
+    {
+      "key": "berry-date",
+      "name": "Berry Date Combo",
+      "category": "combo",
+      "price": 129000,
+      "description": "2 bắp phô mai vừa + 2 soda dâu 500ml",
+      "badge": "HẸN HÒ RỰC RỠ",
+      "image": "/images/menu/party69.svg",
+      "artIndex": 23,
+      "flavor": "fresh",
+      "taste": "Phô mai & dâu",
+      "serves": "2 người"
     }
   ]
 }

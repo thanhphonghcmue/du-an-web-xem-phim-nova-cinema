@@ -1,4 +1,5 @@
 import "dotenv/config";
+import developmentAccounts from "../../content/development-accounts.json";
 import { createHash } from "node:crypto";
 import { hash, argon2id } from "argon2";
 import {
@@ -148,7 +149,13 @@ export async function seedDatabase(prisma: PrismaClient): Promise<void> {
   const baseDate = seedBaseDate();
   await prisma.$transaction(
     async (tx) => {
-      const accounts = [
+      const accounts: Array<{
+        email: string;
+        fullName: string;
+        role: UserRole;
+        tier: CMemberTier;
+        points?: number;
+      }> = [
         {
           email: "admin@nova.local",
           fullName: "NOVA Demo Admin",
@@ -168,6 +175,13 @@ export async function seedDatabase(prisma: PrismaClient): Promise<void> {
           tier: CMemberTier.SILVER,
         },
       ];
+      accounts.push(
+        ...developmentAccounts.map((account) => ({
+          ...account,
+          role: account.role as UserRole,
+          tier: account.tier as CMemberTier,
+        })),
+      );
       for (const user of accounts) {
         await tx.user.upsert({
           where: { email: user.email },
@@ -177,6 +191,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<void> {
             fullName: user.fullName,
             role: user.role,
             cMemberTier: user.tier,
+            cMemberPoints: user.points ?? 0,
             passwordHash,
           },
         });
@@ -193,6 +208,18 @@ export async function seedDatabase(prisma: PrismaClient): Promise<void> {
           name: "NOVA West Lake",
           address: "272 Võ Chí Công, Tây Hồ",
           city: "Hà Nội",
+        },
+        {
+          key: "sala",
+          name: "NOVA Sala",
+          address: "10 Mai Chí Thọ, Thủ Đức",
+          city: "TP. Hồ Chí Minh",
+        },
+        {
+          key: "riverside",
+          name: "NOVA Riverside",
+          address: "910A Ngô Quyền, Sơn Trà",
+          city: "Đà Nẵng",
         },
       ]) {
         await tx.cinema.upsert({

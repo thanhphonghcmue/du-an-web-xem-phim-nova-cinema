@@ -1,6 +1,6 @@
 # NOVA Cinema Backend — Phase 10
 
-Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–10 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR mỗi booking PAID, email SMTP có durable retry, owner ticket/calendar APIs, check-in STAFF/ADMIN nguyên tử và báo cáo doanh thu ADMIN. Frontend Next.js ở root đã nối qua BFF cùng origin, cookie HttpOnly và API thật.
+Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–10 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR mỗi booking PAID, email SMTP có durable retry, owner ticket/calendar APIs, check-in STAFF/ADMIN nguyên tử và báo cáo doanh thu ADMIN. Frontend Next.js ở `frontend/` đã nối qua BFF cùng origin, cookie HttpOnly và API thật.
 
 Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md) · [Phase 9](docs/validation-phase-9.md) · [Phase 10](docs/validation-phase-10.md).
 
@@ -11,16 +11,26 @@ tùy chọn và kiểm tra lại trước khi ghi USED. Preview không gửi th�
 đọc từ outbox, không khẳng định email đã vào inbox. ICS nhắc lịch trước 30 phút.
 
 Lịch nhiều ngày dùng public `GET /api/v1/showtimes/programme?days=60`: snapshot
-catalogue + lịch tương lai, days 1–60, tối đa 10.000 suất; vượt ngưỡng trả 422, không
+catalogue + lịch tương lai, days 1–60, tối đa 20.000 suất; vượt ngưỡng trả 422, không
 cắt bớt âm thầm. Không tăng rate limit hoặc giới hạn pagination cũ. Seed local bổ sung
 30 ngày, phòng và vé đặt trước; lệnh `db:verify:programme` kiểm tra độ phủ/overlap,
 `test:programme` kiểm tra planner. Xem [evidence](../docs/design/advance-booking-readability.md).
 
+Bản kiểm toán bổ sung trạng thái tài khoản/đối soát và cấu hình sau đổi thư mục: [Fullstack LAB04](../docs/qa/fullstack-lab04-audit.md). Với PostgreSQL hiện hữu, chạy `npm run setup:local` từ root sau cập nhật để apply migration additive và build backend mới.
+
+Lệnh kiểm tra tổng hợp native từ root: `npm run qa:native`; yêu cầu TEST_DATABASE_URL khác database ứng dụng và Redis test riêng. Có bài 20 request tranh một ghế, zero-trust giá và hành trình GOLD/VIP/combo/QR/ICS/soát vé. [Ma trận SIT/E2E/CONC/SEC/UI/RES và kết quả đo](../docs/qa/ultra-expanded-audit.md).
+
 ## Requirements
 
-Node.js **24 LTS** theo `.nvmrc`, npm, Docker Engine/Desktop và Docker Compose v2. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập. SMTP local dùng Mailpit; SMTP ngoài cấu hình riêng qua biến môi trường.
+Node.js **24 LTS** theo `.nvmrc`, npm, PostgreSQL/Redis và SMTP đã cấu hình. Có thể chạy trực tiếp không dùng Docker; các lệnh Compose bên dưới là tùy chọn riêng. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Nếu chủ động dùng cấu hình Compose, Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập. SMTP local dùng Mailpit; SMTP ngoài cấu hình riêng qua biến môi trường.
 
 Nếu đã có PostgreSQL/Redis riêng, điền connection settings vào `.env` thay vì ghi đè cấu hình bằng các helper local.
+
+## Chạy native theo cấu trúc monorepo (28/10/2026)
+
+Từ root: `npm install`, `npm run seed`, `npm run dev`. Frontend ở `frontend/`, backend ở đây. PostgreSQL mode cần database UTF8 và locale Unicode hỗ trợ chữ Việt, Redis native và backend/.env; dùng `npm run setup:local` sau khi cấu hình. Khi chưa cấu hình/không kết nối được PostgreSQL ở startup, giữ RAM fallback đã được yêu cầu; dữ liệu RAM không bền sau restart.
+
+[Hướng dẫn native và kiểm chứng STLC mới](../docs/qa/backend-native-audit.md). Các lệnh hạ tầng Compose trong hướng dẫn lịch sử bên dưới là cấu hình cũ được giữ lại; setup/seed/dev mới không gọi các lệnh đó.
 
 ## Cài và chạy từ đầu
 
@@ -780,3 +790,11 @@ backend/
 ```
 
 Các bootstrap/config/test Phase 0 được giữ; không có module API rỗng hoặc placeholder. Dừng sau Phase 10 và chờ **“TIẾP TỤC PHASE 11”**.
+
+### Bổ sung quản trị danh mục (23/10/2026)
+
+Migration mới thêm unique index tên phim và bảng `audit_logs`; CRUD phim có audit
+nguyên tử, API nhật ký chỉ ADMIN, API ghế kiểm tra 300 ghế/15 hàng/24 cột. Giữ DB,
+Redis và toàn bộ booking/payment/QR. Chạy `prisma:generate`, `db:migrate` (và
+`db:migrate:test` trước test), rồi build. Bằng chứng 336 ca và phạm vi chưa triển khai:
+[báo cáo giao diện & danh mục](../docs/design/catalog-operations-readability.md).

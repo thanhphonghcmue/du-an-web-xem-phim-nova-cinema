@@ -25,6 +25,8 @@ import { ApiDataResponse } from "../../common/decorators/api-data-response.decor
 import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { DeletedDto } from "../../common/dto/pagination.dto";
 import {
+  ShowtimeCapacityQueryDto,
+  ShowtimeCapacityDto,
   CreateShowtimeDto,
   ProgrammeDto,
   ProgrammeQueryDto,
@@ -56,11 +58,22 @@ export class ShowtimesController {
   @Public()
   @ApiOperation({
     summary:
-      "Public catalogue snapshot plus future schedule, bounded to 60 days/10000 screenings; never silently truncated.",
+      "Public catalogue snapshot plus future schedule, bounded to 60 days/20000 screenings; never silently truncated.",
   })
   @ApiDataResponse(ProgrammeDto)
   programme(@Query() query: ProgrammeQueryDto) {
     return this.service.programme(query.days);
+  }
+
+  @Get("capacities")
+  @Public()
+  @ApiOperation({
+    summary:
+      "Read real remaining/total capacity for 1–50 visible showtimes, without loading seat maps.",
+  })
+  @ApiDataResponse(ShowtimeCapacityDto, 200, true)
+  capacities(@Query() query: ShowtimeCapacityQueryDto) {
+    return this.service.capacities(query.ids);
   }
 
   @Get(":id")

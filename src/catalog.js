@@ -8,7 +8,7 @@
  *   - Cung cấp các tiện ích định dạng ngày giờ theo múi giờ Việt Nam (`Asia/Ho_Chi_Minh` UTC+7).
  *
  * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. `CatalogProvider` nạp dữ liệu từ backend hoặc fallback và truyền vào Provider.
+ *   1. `CatalogProvider` nạp programme từ NestJS và truyền vào Provider; lỗi không tạo dữ liệu thay thế.
  *   2. Các trang/component con (HeaderSearch, QuickBooking, SeatBooking, ShowtimeTimeline)
  *      gọi `useCatalog()` để lấy dữ liệu hiển thị.
  *   3. `dayKey`: chuẩn hóa ngày chiếu thành chuỗi `YYYY-MM-DD` để lọc theo ngày.
@@ -24,6 +24,7 @@
  */
 
 import { createContext, useContext } from "react";
+import { vietnamDay } from "./bookingDates.js";
 
 // Ngữ cảnh danh mục rạp chiếu
 export const CatalogContext = createContext(null);
@@ -36,8 +37,7 @@ export const useCatalog = () => useContext(CatalogContext);
  * @param {string | number | Date} value - Mốc thời gian
  * @returns {string} Chuỗi ngày chuẩn (ví dụ "2026-10-24")
  */
-export const dayKey = (value) =>
-  new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+export const dayKey = vietnamDay;
 export const formatVietnamDateKey = dayKey;
 
 /**
@@ -45,10 +45,10 @@ export const formatVietnamDateKey = dayKey;
  * @param {string | number | Date} value - Mốc thời gian
  * @returns {string} Chuỗi giờ hiển thị (ví dụ "19:45")
  */
-export const timeLabel = (value) =>
-  new Date(value).toLocaleTimeString("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const timeFormatter = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+export const timeLabel = (value) => timeFormatter.format(new Date(value));
 export const formatVietnamTimeLabel = timeLabel;

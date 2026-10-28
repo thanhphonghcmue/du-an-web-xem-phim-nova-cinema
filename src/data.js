@@ -1,26 +1,5 @@
-/**
- * ==============================================================================
- * TỆP TIN: src/data.js
- * VAI TRÒ / NHIỆM VỤ CHÍNH:
- *   - Kho dữ liệu tĩnh dự phòng (Static Fallback Data) khi frontend không kết nối được Backend.
- *   - Lưu trữ danh mục phim chiếu rạp chi tiết (poster, trailer, diễn viên, tóm tắt, độ tuổi).
- *   - Lưu trữ danh sách cụm rạp NOVA Cinema (TP.HCM, Hà Nội, Đà Nẵng).
- *   - Cung cấp hàm định dạng tiền tệ VNĐ chuẩn (`money` / `formatVNDCurrency`).
- *
- * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. Cung cấp dữ liệu poster cục bộ trong `public/images/` để hiển thị ngay cả khi offline.
- *   2. Tạo dữ liệu demo ngày chiếu (`getDates`) và suất chiếu (`getShowtimes`).
- *   3. Định dạng số tiền từ Decimal string của Backend thành chuỗi VNĐ có phân cách hàng nghìn (ví dụ "120.000 ₫").
- *
- * ĐỐI TƯỢNG SỬ DỤNG:
- *   - Các màn hình hiển thị phim, rạp, giá tiền và bảng điều khiển.
- *
- * 💡 SUY NGHĨ & HƯỚNG MỞ RỘNG (TODO / GỢI Ý PHÁT TRIỂN TIẾP):
- *   - Tích hợp thêm trường hình ảnh banner ngang tỷ lệ 21:9 cho màn hình UltraWide.
- *   - Thêm thông tin link Spotify hoặc YouTube cho album nhạc phim (OST) nổi bật.
- * ==============================================================================
- */
-
+// Artwork, synopses and currency formatting only. No accounts, cinemas, dates or screenings are generated here.
+// Bookable records always come from the NestJS programme API.
 import discovery from "../content/cinema.json";
 
 const tmdb = (path, size = "w780") =>
@@ -164,83 +143,6 @@ export const movies = [
 ];
 // Enriched local artwork; availability and booking IDs come from the API.
 movies.push(...discovery.movies);
-export const cinemas = [
-  {
-    id: "landmark",
-    name: "NOVA Landmark 81",
-    city: "TP. Hồ Chí Minh",
-    address: "720A Điện Biên Phủ, Bình Thạnh",
-    formats: "IMAX 70mm Laser · Dolby Atmos 12.1",
-    movies: ["dune", "kong", "mai", "panda", "exhuma", "oppenheimer"],
-  },
-  {
-    id: "sala",
-    name: "NOVA Sala",
-    city: "TP. Hồ Chí Minh",
-    address: "10 Mai Chí Thọ, Thủ Đức",
-    formats: "Dolby Atmos 12.1 · 2D Laser",
-    movies: ["dune", "kong", "mai", "panda", "exhuma"],
-  },
-  {
-    id: "hanoi",
-    name: "NOVA West Lake",
-    city: "Hà Nội",
-    address: "272 Võ Chí Công, Tây Hồ",
-    formats: "IMAX Laser · 2D Laser",
-    movies: ["dune", "kong", "panda", "oppenheimer"],
-  },
-  {
-    id: "danang",
-    name: "NOVA Riverside",
-    city: "Đà Nẵng",
-    address: "910 Ngô Quyền, Sơn Trà",
-    formats: "Dolby Atmos 12.1 · 2D Laser",
-    movies: ["mai", "panda", "exhuma", "kong"],
-  },
-];
-export function getDates(language = "vi") {
-  const base = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(`${base}T12:00:00+07:00`);
-    d.setUTCDate(d.getUTCDate() + i);
-    return {
-      id: d.toISOString().slice(0, 10),
-      label: `${i === 0 ? (language === "en" ? "Today" : "Hôm nay") : i === 1 ? (language === "en" ? "Tomorrow" : "Ngày mai") : new Intl.DateTimeFormat(language, { weekday: "long", timeZone: "Asia/Ho_Chi_Minh" }).format(d)}, ${new Intl.DateTimeFormat("vi", { day: "2-digit", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).format(d)}`,
-    };
-  });
-}
-export function getShowtimes(cinemaId, movieId, dateId) {
-  const today = getDates()[0].id;
-  const now = Number(
-    new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-      timeZone: "Asia/Ho_Chi_Minh",
-    })
-      .format(new Date())
-      .replace(":", ""),
-  );
-  const film = movies.find((m) => m.id === movieId);
-  const format =
-    film?.format === "70MM"
-      ? "IMAX 70mm"
-      : film?.format === "IMAX" && ["landmark", "hanoi"].includes(cinemaId)
-        ? "IMAX Laser"
-        : "2D Laser";
-  return ["10:00", "13:30", "16:45", "19:30", "22:30"]
-    .filter((t) => dateId !== today || Number(t.replace(":", "")) > now)
-    .map((time) => ({
-      id: time,
-      label: `${time} · ${format}`,
-      room: format.includes("IMAX") ? "IMAX HALL 01" : "INFINITY HALL 01",
-    }));
-}
 export const money = (value) => {
   const match = String(value ?? "0").match(/^(-?)(\d+)(?:\.(\d+))?$/);
   if (!match) return "—";

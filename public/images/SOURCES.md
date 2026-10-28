@@ -35,9 +35,23 @@ are a proposed demo re-screening program, not official film release announcement
 All 16 illustrations in `menu/` are original SVG drawings made for NOVA: popcorn boxes, drinks,
 hotdog, fries and nachos. They use NOVA branding and are not Cinestar promotional material.
 
-## NOVA premiere campaign
+## Product photography update — 28 October 2026
 
-- `campaigns/nova-dream-city.png`: original AI-generated concept illustration created for NOVA,
-  showing a folding dream city with blue/amber light. It is not an official Inception still or poster.
-- `campaigns/nova-movie-night.png`: original AI-generated NOVA popcorn/drinks campaign illustration.
-  It is not a Cinestar advertisement. Promotional copy and demo combo pricing are rendered in HTML.
+The generated sprite, generated sharing hero, generated dream-city artwork and generated movie-night campaign have been **removed**. Earlier design reports and screenshots describe the historical implementation; those assets are no longer served by the application.
+
+Current food photographs are stored unmodified in `food-photography/`. The precise upstream repository revision and path for each file is listed in [sources.json](food-photography/sources.json). No generative image tools, recolouring or invented NOVA packaging were used for this update. The chicken detail frames the lower-left chicken portion of an existing menu photograph using CSS; the original file remains unchanged.
+
+Sources:
+
+- [tomiabe/wpp](https://github.com/tomiabe/wpp): existing What's Poppin product flavour photographs and sharing-counter photo.
+- [JohnatanAccourt/Popcorn_Ecommerce](https://github.com/JohnatanAccourt/Popcorn_Ecommerce): generic popcorn bucket photograph present in the December 2020 source.
+- [KhoaNguyen22/cinestar-at-home](https://github.com/KhoaNguyen22/cinestar-at-home): existing cola and bottled-water product photos.
+- [ProgrammingHero1/tea-house-resources](https://github.com/ProgrammingHero1/tea-house-resources): existing fruit tea, citrus tea and berry drink reference photos.
+- [ju5tyn/hotdog-shop](https://github.com/ju5tyn/hotdog-shop): existing hotdog photograph.
+- [Ikuewumi/nachos](https://github.com/Ikuewumi/nachos): existing nachos photograph.
+- [terryhycheng/mcdonalds-menu-web](https://github.com/terryhycheng/mcdonalds-menu-web): existing fries product photograph.
+- [Dayveed14/McDonalds-Clone](https://github.com/Dayveed14/McDonalds-Clone): existing menu photograph containing chicken pieces.
+
+These are references for the student-project menu, not photographs of NOVA-manufactured products or an assertion that NOVA operates the source businesses. Quantities and ingredients are stated in the menu text. Visible third-party packaging remains unchanged. A public repository's software license does not automatically license third-party food photography or trademarks; attribution records the source and does not assert commercial clearance.
+
+UI references: [shadcn/ui](https://github.com/shadcn-ui/ui) (MIT card/spacing principles), existing [Radix UI](https://github.com/radix-ui/primitives) controls and native CSS Grid. External application code, servers and installation scripts were not executed or imported into the booking backend.

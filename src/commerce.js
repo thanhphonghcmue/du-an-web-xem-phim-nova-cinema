@@ -15,6 +15,8 @@ export function menuDetails(combo) {
       image: "/images/menu/party69.svg",
       category: "combo",
       badge: "NOVA MENU",
+      flavor: "other",
+      taste: "Theo thực đơn",
     }
   );
 }

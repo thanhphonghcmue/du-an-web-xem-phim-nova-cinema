@@ -22,7 +22,33 @@ export class UsersRepository {
   findCredentials(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
-      select: { ...profileSelect, passwordHash: true },
+      select: { ...profileSelect, passwordHash: true, status: true },
+    });
+  }
+  findAccount(id: string, tx: Prisma.TransactionClient = this.prisma) {
+    return tx.user.findUnique({
+      where: { id },
+      select: { ...profileSelect, status: true },
+    });
+  }
+  async lockAccount(id: string, tx: Prisma.TransactionClient): Promise<void> {
+    await tx.$queryRaw`SELECT id FROM users WHERE id = ${id}::uuid FOR UPDATE`;
+  }
+  setStatus(
+    id: string,
+    status: "ACTIVE" | "LOCKED" | "INACTIVE",
+    tx: Prisma.TransactionClient,
+  ) {
+    return tx.user.update({
+      where: { id },
+      data: { status },
+      select: { id: true, status: true },
+    });
+  }
+  revokeSessions(userId: string, tx: Prisma.TransactionClient) {
+    return tx.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
     });
   }
   create(

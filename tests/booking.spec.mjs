@@ -1,3 +1,4 @@
+import { chooseOption, chooseDate } from "./ui-choices.mjs";
 import { test, expect } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -42,6 +43,15 @@ async function read(page, path) {
     return { status: r.status, body: await r.json() };
   }, path);
 }
+async function restoredSeatScreen(page) {
+  const dialog = page.getByRole("dialog", { name: "Chọn ghế & đặt vé" });
+  // A full navigation must finish loading the real programme and seat/order snapshot.
+  await expect(dialog).toBeVisible({ timeout: 15000 });
+  await expect(
+    dialog.getByText("Đang tải trạng thái ghế…", { exact: true }),
+  ).toHaveCount(0, { timeout: 15000 });
+  return dialog;
+}
 async function login(page, role = "customer") {
   await page.addInitScript(() =>
     sessionStorage.setItem("nova-welcome-seen", "1"),
@@ -69,9 +79,7 @@ async function seats(page) {
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   // The timeline uses real room and showtime UUIDs loaded from the catalog.
-  await page
-    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
-    .selectOption(fixture().cinema.id);
+  await chooseOption(page, "Rạp trong lịch chiếu", fixture().cinema.id);
   const film = page
     .locator(".timeline-film-list [role=tab]")
     .filter({ hasText: "Dune" })
@@ -152,30 +160,34 @@ test("catalog, quick booking and search use backend UUIDs without browser errors
   await expect(page.locator(".site-header")).toBeVisible();
   expect((await read(page, "/runtime")).body.data.mode).toBe("backend");
   await expect(page.locator(".standalone-mode-notice")).toHaveCount(0);
-  await page
-    .getByRole("combobox", { name: "Chọn cụm rạp", exact: true })
-    .selectOption(fixture().cinema.id);
-  await page
-    .getByRole("combobox", { name: "Chọn phim", exact: true })
-    .selectOption(fixture().movie.id);
-  const day = await page
-    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
-    .locator("option")
-    .nth(1)
-    .getAttribute("value");
-  await page
-    .getByRole("combobox", { name: "Chọn ngày chiếu", exact: true })
-    .selectOption(day);
+  await chooseOption(page, "Chọn cụm rạp", fixture().cinema.id);
+  await chooseOption(page, "Chọn phim", fixture().movie.id);
+  const day = new Date(fixture().showtime.startTime).toLocaleDateString(
+    "en-CA",
+    { timeZone: "Asia/Ho_Chi_Minh" },
+  );
+  await chooseDate(page, "Chọn ngày chiếu", day);
   await expect(
     page.getByRole("combobox", { name: "Chọn suất chiếu", exact: true }),
   ).toBeEnabled();
+  await page
+    .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
+    .click();
   await expect(
     page
-      .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
-      .locator(`option[value="${fixture().showtime.id}"]`),
-  ).toHaveCount(1);
-  await page.getByRole("textbox", { name: "Tìm phim, rạp..." }).fill("Dune");
-  await expect(page.locator(".search-dropdown")).toContainText("Dune");
+      .getByRole("dialog")
+      .last()
+      .locator(`[role="option"][data-value="${fixture().showtime.id}"]`),
+  ).toBeEnabled();
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "Tìm phim, rạp...", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("textbox", { name: "Tìm phim, rạp..." })
+    .fill("Dune");
+  await expect(page.locator(".search-modal")).toContainText("Dune");
   expect(errors).toEqual([]);
 });
 
@@ -187,6 +199,10 @@ test("registration creates a real account, profile and session; logout revokes r
   await page.locator(".login-trigger").click();
   await page.getByRole("tab", { name: "Đăng ký thành viên" }).click();
   await page.getByLabel("Họ và tên", { exact: true }).fill("Khách kiểm thử");
+  await page.getByLabel("Số điện thoại (không bắt buộc)").fill("123");
+  await page.getByLabel("Số điện thoại (không bắt buộc)").blur();
+  await expect(page.locator("#error-phone")).toContainText("10 chữ số");
+  await page.getByLabel("Số điện thoại (không bắt buộc)").fill("0901234567");
   const email =
     fixture().prefix + "-" + randomUUID().slice(0, 8) + "@example.test";
   await page.getByLabel("Email", { exact: true }).fill(email);
@@ -198,6 +214,7 @@ test("registration creates a real account, profile and session; logout revokes r
   await expect(page.locator(".account-welcome")).toContainText(email);
   const profile = await read(page, "/users/me");
   expect(profile.body.data.cMemberPoints).toBe(0);
+  expect(profile.body.data.phone).toBe("0901234567");
   const cookies = await context.cookies();
   expect(
     cookies
@@ -241,9 +258,7 @@ test("guests can browse but must sign in before seat booking", async ({
 }) => {
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
-  await page
-    .getByRole("combobox", { name: "Rạp trong lịch chiếu", exact: true })
-    .selectOption(fixture().cinema.id);
+  await chooseOption(page, "Rạp trong lịch chiếu", fixture().cinema.id);
   await page.locator(".timeline-show").first().click();
   await expect(
     page.getByRole("dialog", { name: "Chào mừng đến C’MEMBER" }),
@@ -494,9 +509,8 @@ for (const [button, state] of [
         .bookingStatus,
     ).toBe(state);
     await page.getByRole("link", { name: "Quay lại ứng dụng" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Chọn ghế & đặt vé" }),
-    ).toContainText(state);
+    const restored = await restoredSeatScreen(page);
+    await expect(restored).toContainText(state);
   });
 
 test("Sandbox success issues one real QR, ICS and atomic staff check-in", async ({
@@ -533,12 +547,39 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
     (await read(page, `/payments/${order.id}/status`)).body.data.bookingStatus,
   ).toBe("PAID");
   await page.getByRole("link", { name: "Quay lại ứng dụng" }).click();
+  await restoredSeatScreen(page);
   await expect(
     page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Xem vé trong tài khoản" }).click();
-  await page.locator(".login-trigger").click();
-  await expect(page.getByAltText(`QR vé ${order.orderCode}`)).toBeVisible();
+  await expect(page).toHaveURL(
+    new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
+  );
+  await expect(page.locator(".account-page")).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeInViewport({ ratio: 1 });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  // A failure of the separate order list must not hide a successfully loaded ticket.
+  await page.route("**/api/v1/bookings/me?*", (route) => route.abort());
+  await page.reload();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".history-list [role=alert]")).toContainText(
+    "Kết nối bị gián đoạn",
+  );
+  await page.unroute("**/api/v1/bookings/me?*");
+  await page.getByRole("button", { name: "Làm mới vé", exact: true }).click();
+  await expect(page.locator(".history-list [role=alert]")).toHaveCount(0);
   const tickets = (
     await read(page, "/tickets/me?limit=100")
   ).body.data.items.filter((t) => t.bookingId === order.id);
@@ -727,7 +768,7 @@ test("customer cannot forge payment or gain ADMIN access and health errors show 
     page.getByText("Thanh toán đã được xác nhận", { exact: true }),
   ).toHaveCount(0);
   await login(page, "admin");
-  await page.getByRole("button", { name: "Quản Trị Rạp" }).click();
+  await page.getByRole("button", { name: "Quản trị", exact: true }).click();
   await page.route("**/api/v1/health", (route) =>
     route.fulfill({
       status: 503,
@@ -751,7 +792,7 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "VN / EN" }).click();
+  await page.getByRole("button", { name: "VI / EN" }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -761,18 +802,22 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
     route.fulfill({
       status: 503,
       contentType: "application/json",
-      body: JSON.stringify({ message: "Backend unavailable" }),
+      body: JSON.stringify({
+        success: false,
+        code: "BACKEND_UNAVAILABLE",
+        message: "Backend unavailable",
+      }),
     }),
   );
   await page.reload();
   await expect(
     page.locator(".catalog-connection-notice [role=alert]"),
   ).toContainText("Backend unavailable");
-  // A failed catalog request leaves discovery available without invented bookable slots.
-  await expect(page.locator(".discovery-film").first()).toBeVisible();
+  // Failed backend reads cannot manufacture bookable catalogue records.
+  await expect(page.locator(".discovery-film")).toHaveCount(0);
   await expect(page.locator(".timeline-show")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Thử kết nối lại" }),
+    page.getByRole("button", { name: "Retry connection" }),
   ).toBeVisible();
 });
 
@@ -808,7 +853,7 @@ test("ADMIN creates, edits and deletes a real movie using the operational form",
   page,
 }) => {
   await login(page, "admin");
-  await page.getByRole("button", { name: "Quản Trị Rạp" }).click();
+  await page.getByRole("button", { name: "Quản trị", exact: true }).click();
   await page.getByRole("button", { name: "Rạp, Phim & Suất Chiếu" }).click();
   const title = "Movie " + randomUUID().slice(0, 8);
   const form = page.locator(".live-admin-form").first();
@@ -830,6 +875,18 @@ test("ADMIN creates, edits and deletes a real movie using the operational form",
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: "Xóa", exact: true }).click();
   await expect(row).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Nhật ký quản trị", exact: true })
+    .click();
+  await expect(
+    page.locator(".audit-entry").filter({ hasText: title }),
+  ).toHaveCount(3);
+  const update = page
+    .locator(".audit-entry")
+    .filter({ hasText: "Sửa phim" })
+    .filter({ hasText: title });
+  await update.locator("summary").click();
+  await expect(update.locator("dl")).toContainText(`Sau: ${title} Edited`);
 });
 
 test("two tabs rotate one expired HttpOnly session without exposing tokens", async ({

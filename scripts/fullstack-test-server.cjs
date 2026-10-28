@@ -89,16 +89,20 @@ async function main() {
   });
   const passwordHash = await req("argon2").hash(password);
   const accounts = {};
-  for (const role of ["ADMIN", "STAFF", "CUSTOMER"]) {
+  for (const label of ["ADMIN", "STAFF", "CUSTOMER", "CMEMBER"]) {
+    const role = label === "CMEMBER" ? "CUSTOMER" : label;
     const user = await prisma.user.create({
       data: {
-        email: `${prefix}-${role.toLowerCase()}@example.test`,
-        fullName: `Web ${role}`,
+        email: `${prefix}-${label.toLowerCase()}@example.test`,
+        fullName: `Web ${label}`,
         passwordHash,
         role,
+        ...(label === "CMEMBER"
+          ? { cMemberTier: "GOLD", cMemberPoints: 50000 }
+          : {}),
       },
     });
-    accounts[role.toLowerCase()] = { id: user.id, email: user.email };
+    accounts[label.toLowerCase()] = { id: user.id, email: user.email };
   }
   const cinema = await prisma.cinema.create({
     data: {
@@ -128,13 +132,24 @@ async function main() {
   });
   const movie = await prisma.movie.create({
     data: {
-      title: "Dune: Hành Tinh Cát 2",
+      title: `Dune: Hành Tinh Cát 2 · ${prefix}`,
       description: prefix + " movie",
       durationMinutes: 120,
       releaseDate: new Date("2024-01-01Z"),
       ageRating: "T16",
       status: "NOW_SHOWING",
     },
+  });
+  // Archived films exercise real admin pagination without diluting the public programme.
+  await prisma.movie.createMany({
+    data: Array.from({ length: 28 }, (_, i) => ({
+      title: `${prefix}-archive-${String(i).padStart(2, "0")}`,
+      description: prefix + " archive fixture",
+      durationMinutes: 100,
+      releaseDate: new Date("2024-01-01Z"),
+      ageRating: "P",
+      status: "ENDED",
+    })),
   });
   const showtime = await prisma.showtime.create({
     data: {
@@ -234,7 +249,7 @@ async function main() {
     }
   const presaleMovie = await prisma.movie.create({
     data: {
-      title: "Interstellar: Infinity Return",
+      title: `Interstellar: Infinity Return · ${prefix}`,
       description: prefix + " advance-sale film",
       durationMinutes: 169,
       ageRating: "T13",
@@ -258,9 +273,44 @@ async function main() {
       price: "69000.00",
     },
   });
+  const menuCatalog = require("../content/cinema.json").menu;
+  const menuCombos = [];
+  for (const item of menuCatalog)
+    menuCombos.push(
+      (await prisma.combo.findFirst({
+        where: { name: item.name, isActive: true },
+      })) ||
+        (await prisma.combo.create({
+          data: {
+            name: item.name,
+            description: `${prefix} menu · ${item.description}`,
+            price: String(item.price),
+          },
+        })),
+    );
+  const extended =
+    await require("./extended-programme-fixture.cjs").extendedProgrammeFixture(
+      prisma,
+      prefix,
+    );
+  const fixtureSignals = ["SIGTERM", "SIGINT"];
+  const ownSignalListeners = new Map(
+    fixtureSignals.map((signal) => [
+      signal,
+      new Set(process.listeners(signal)),
+    ]),
+  );
   app = await require("../backend/dist/bootstrap.js").createApplication({
     logger: false,
   });
+  // The fixture owns signal ordering. Remove only listeners added during Nest
+  // bootstrap; its normal close hooks still run when we explicitly app.close().
+  for (const signal of fixtureSignals) {
+    for (const listener of process.listeners(signal)) {
+      if (!ownSignalListeners.get(signal).has(listener))
+        process.removeListener(signal, listener);
+    }
+  }
   await app.listen(apiPort, "127.0.0.1");
   mkdirSync(resolve(root, ".runtime"), { recursive: true });
   writeFileSync(
@@ -281,24 +331,32 @@ async function main() {
       presaleMovie,
       presaleShow,
       combo,
+      menuCombos,
+      extended,
     }),
     { mode: 0o600 },
   );
   child = spawn(
     process.execPath,
     [
-      resolve(root, "node_modules/next/dist/bin/next"),
-      "dev",
+      require.resolve("next/dist/bin/next", {
+        paths: [resolve(root, "frontend")],
+      }),
+      process.env.NOVA_QA_PRODUCTION === "1" ? "start" : "dev",
+      ...(process.env.NOVA_QA_PRODUCTION === "1" ? [] : ["--webpack"]),
       "--hostname",
       "127.0.0.1",
       "--port",
       String(frontendPort),
     ],
     {
-      cwd: root,
+      cwd: resolve(root, "frontend"),
       env: {
         ...process.env,
-        NODE_ENV: "development",
+        NODE_ENV:
+          process.env.NOVA_QA_PRODUCTION === "1" ? "production" : "development",
+        // An obsolete flag must never select a second data store.
+        NOVA_STANDALONE: "true",
         BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1`,
       },
       stdio: ["ignore", "ignore", "ignore"],

@@ -1,3 +1,6 @@
+import { usePathname } from "next/navigation";
+import MoviePage from "./MoviePage.jsx";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -29,7 +32,11 @@ export default function PortalPage({
   bookingWidget,
   timeline,
 }) {
-  const { cinemas, movies } = useCatalog();
+  const { cinemas, movies, rooms, getDates } = useCatalog();
+  const movieId = usePathname().split("/")[2];
+  const [venueCity, setVenueCity] = useState("all");
+  if (view === "phim" && movieId)
+    return <MoviePage id={movieId} onMovie={onMovie} onBook={onBook} />;
   if (
     [
       "gioi-thieu",
@@ -100,34 +107,91 @@ export default function PortalPage({
           image="/images/cinema-lobby.jpg"
         />
         <section className="content-width discovery-section">
+          <div className="venue-filter">
+            <div>
+              <p className="nova-kicker">CHỌN ĐIỂM HẸN</p>
+              <h2>Rạp nào gần bạn?</h2>
+            </div>
+            <label>
+              Thành phố
+              <select
+                aria-label="Thành phố tìm rạp"
+                value={venueCity}
+                onChange={(event) => setVenueCity(event.target.value)}
+              >
+                <option value="all">Tất cả thành phố</option>
+                {[...new Set(cinemas.map((cinema) => cinema.city))].map(
+                  (city) => (
+                    <option key={city}>{city}</option>
+                  ),
+                )}
+              </select>
+            </label>
+          </div>
           <div className="venue-grid">
-            {cinemas.map((cinema, index) => (
-              <article className="venue-card" key={cinema.id}>
-                <img
-                  src={
-                    index % 2 === 0
-                      ? "/images/cinema-auditorium.jpg"
-                      : "/images/cinema-imax.jpg"
-                  }
-                  alt={`Không gian điện ảnh minh họa ${cinema.name}`}
-                />
-                <div>
-                  <p className="nova-kicker">
-                    <MapPin size={13} />
-                    {cinema.city}
-                  </p>
-                  <h2>{cinema.name}</h2>
-                  <p>{cinema.address}</p>
-                  <div className="banner-chips">
-                    <span>LASER PROJECTION</span>
-                    <span>DOLBY ATMOS</span>
+            {cinemas
+              .filter(
+                (cinema) => venueCity === "all" || cinema.city === venueCity,
+              )
+              .map((cinema, index) => (
+                <article className="venue-card" key={cinema.id}>
+                  <img
+                    src={
+                      index % 2 === 0
+                        ? "/images/cinema-auditorium.jpg"
+                        : "/images/cinema-imax.jpg"
+                    }
+                    alt={`Không gian điện ảnh minh họa ${cinema.name}`}
+                  />
+                  <div>
+                    <p className="nova-kicker">
+                      <MapPin size={13} />
+                      {cinema.city}
+                    </p>
+                    <h2>{cinema.name}</h2>
+                    <p>{cinema.address}</p>
+                    <div className="venue-stats">
+                      <div>
+                        <strong>
+                          {
+                            rooms.filter((room) => room.cinemaId === cinema.id)
+                              .length
+                          }
+                        </strong>
+                        <span>phòng chiếu</span>
+                      </div>
+                      <div>
+                        <strong>{getDates("vi", cinema.id).length}</strong>
+                        <span>ngày có lịch</span>
+                      </div>
+                    </div>
+                    <div className="banner-chips">
+                      {[
+                        ...new Set(
+                          rooms
+                            .filter((room) => room.cinemaId === cinema.id)
+                            .map(
+                              (room) =>
+                                ({
+                                  STANDARD_2D: "2D",
+                                  IMAX_70MM_LASER: "IMAX Laser",
+                                  DOLBY_ATMOS: "Dolby Atmos",
+                                })[room.roomType],
+                            ),
+                        ),
+                      ].map((format) => (
+                        <span key={format}>{format}</span>
+                      ))}
+                    </div>
+                    <Link
+                      href={`/dat-ve?cinema=${cinema.id}`}
+                      className="button button-primary"
+                    >
+                      Xem lịch & đặt vé <ArrowUpRight size={16} />
+                    </Link>
                   </div>
-                  <Link href="/dat-ve" className="button button-primary">
-                    Xem lịch & đặt vé <ArrowUpRight size={16} />
-                  </Link>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))}
           </div>
           <p className="discovery-footnote">
             Hình ảnh không gian và địa điểm NOVA được dùng minh họa cho đồ án.
@@ -242,7 +306,7 @@ export default function PortalPage({
           description="Kiểm tra vé điện tử trước khi khách vào phòng chiếu."
           image="/images/cinema-lobby.jpg"
         />
-        <div className="content-width standalone-workspace">
+        <div className="content-width page-workspace">
           <StaffCheckIn embedded onClose={() => window.location.assign("/")} />
         </div>
       </>
@@ -280,7 +344,7 @@ export default function PortalPage({
           description="Đăng nhập để giữ ghế, nhận vé điện tử và tận hưởng những quyền lợi của riêng bạn."
           image="/images/cinema-lobby.jpg"
         />
-        <div className="content-width standalone-auth">
+        <div className="content-width page-auth">
           <AuthForm onSuccess={onMember} />
         </div>
       </>
@@ -341,7 +405,7 @@ export default function PortalPage({
         <div className="discovery-heading">
           <div>
             <p className="nova-kicker">YOUR MOVIE MEMORIES</p>
-            <h2>
+            <h2 id="ve-cua-toi" style={{ scrollMarginTop: "110px" }}>
               Vé & đơn đặt <em>của bạn.</em>
             </h2>
           </div>

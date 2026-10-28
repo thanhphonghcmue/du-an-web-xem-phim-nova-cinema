@@ -60,6 +60,13 @@ export class ShowtimesService {
     }, Prisma.TransactionIsolationLevel.RepeatableRead);
   }
 
+  capacities(ids: string[]) {
+    return this.database.transaction(
+      (tx) => this.showtimes.capacities(ids, tx),
+      Prisma.TransactionIsolationLevel.RepeatableRead,
+    );
+  }
+
   programme(days: number): Promise<ProgrammeDto> {
     return this.database.transaction(async (tx) => {
       const [clock] = await tx.$queryRaw<
@@ -74,7 +81,7 @@ export class ShowtimesService {
         cinemas.length > 1000 ||
         rooms.length > 2000 ||
         combos.length > 1000 ||
-        showtimes.length > 10000
+        showtimes.length > 20000
       )
         throw new ApiException(
           422,

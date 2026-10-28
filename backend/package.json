@@ -43,7 +43,8 @@
     "db:seed:discovery": "node scripts/seed-discovery.cjs",
     "db:seed:programme": "node scripts/seed-programme.cjs",
     "test:programme": "node --test scripts/advance-programme.test.cjs",
-    "db:verify:programme": "node scripts/verify-programme.cjs"
+    "db:verify:programme": "node scripts/verify-programme.cjs",
+    "dev": "nest start --watch"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.0",
@@ -62,6 +63,7 @@
     "bullmq": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "compression": "^1.8.2",
     "dotenv": "^17.0.0",
     "helmet": "^8.0.0",
     "ioredis": "^5.0.0",
@@ -77,6 +79,7 @@
     "@eslint/js": "^9.0.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/testing": "^11.2.0",
+    "@types/compression": "^1.8.1",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^24.0.0",

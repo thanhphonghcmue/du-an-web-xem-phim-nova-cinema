@@ -1,0 +1,559 @@
+{
+  "baseline": "04371a8",
+  "scenarioCount": 69,
+  "note": "Traceability scenarios overlap automated test cases; do not add this row count to test totals. PASS statuses refer to the linked functional assertions; see measured and partial rows for unmet requirements.",
+  "scenarios": [
+    {
+      "id": "SIT-01a",
+      "input": "showtimeId/movieId/cinemaId UUID string",
+      "steps": "Gửi request thật, kiểm tra DTO và DB",
+      "expected": "UUID đúng dạng, giữ nguyên ID server",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-01b",
+      "input": "seatIds:[], null, [null], duplicate, 21 IDs",
+      "steps": "Gửi request thật, kiểm tra DTO và DB",
+      "expected": "400; không có booking/claim/outbox",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-01c",
+      "input": "comboItems:[{comboId,quantity:1}], quantity0/âm/21/phân số",
+      "steps": "Gửi request thật, kiểm tra DTO và DB",
+      "expected": "1–20 nguyên;0 nghĩa là bỏ item khỏi payload; ngoài giới hạn400",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-01d",
+      "input": "Payload/envelope hiện hữu",
+      "steps": "Đối chiếu BFF/client/DTO và RAM smoke",
+      "expected": "Success {success,data,message}; lỗi {success:false,error,message,statusCode,...}. Không thêm comboCount/useCmemberPoints/errorCode giả.",
+      "evidence": "frontend/src/api/client.js; backend/src/common/dto/api-response.dto.ts; scripts/check-fullstack-startup.cjs",
+      "status": "CONTRACT"
+    },
+    {
+      "id": "SIT-02a",
+      "input": "Phim chưa có suất / keyword không khớp",
+      "steps": "GET movies/showtimes với filter thật",
+      "expected": "items:[] cùng metadata, không null/map crash",
+      "evidence": "backend/test/catalog.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-02b",
+      "input": "User mới chưa có booking/ticket",
+      "steps": "GET bookings/me và tickets/me",
+      "expected": "items:[]; màn ví vé có empty state",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts; backend/test/tickets.e2e-spec.ts; tests/booking.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-03a",
+      "input": "email:abc@",
+      "steps": "POST auth/register và submit form",
+      "expected": "400, không tạo user",
+      "evidence": "backend/test/auth.e2e-spec.ts; tests/booking.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-03b",
+      "input": "password5/11 ký tự",
+      "steps": "POST auth/register và submit form",
+      "expected": "400; giữ min12 mạnh hơn ví dụ6 trong prompt",
+      "evidence": "backend/test/auth.e2e-spec.ts; tests/booking.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-03c",
+      "input": "fullName:null hoặc rỗng",
+      "steps": "POST auth/register và submit form",
+      "expected": "400; input UI aria-invalid/lỗi đúng field",
+      "evidence": "backend/test/auth.e2e-spec.ts; tests/booking.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-03d",
+      "input": "durationMinutes:0,-1,1.5,\"120\",601",
+      "steps": "POST/PATCH movies",
+      "expected": "400; dữ liệu không được ghi",
+      "evidence": "backend/test/catalog.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-03e",
+      "input": "durationMinutes:1,500,501,600",
+      "steps": "POST movie mới với tên độc lập",
+      "expected": "Giữ contract1–600; bốn biên được test thật. Không tự hạ max500 phá API đang dùng.",
+      "evidence": "backend/test/catalog.e2e-spec.ts",
+      "status": "CONTRACT"
+    },
+    {
+      "id": "SIT-03f",
+      "input": "Ma trận ghế vượt giới hạn hàng/cột/sức chứa",
+      "steps": "Sinh sơ đồ trên phòng fixture",
+      "expected": "400; kiểm tra không tạo một phần ghế; failure trong transaction rollback",
+      "evidence": "backend/test/catalog.e2e-spec.ts; tests/discovery.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-03g",
+      "input": "quantity:-1,\"abc\",null,1.5,21",
+      "steps": "POST bookings/hold với combo",
+      "expected": "400; không tạo đơn/claim",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-04a",
+      "input": "Không cookie/Bearer",
+      "steps": "Gọi hold/create-sandbox-url",
+      "expected": "401; khách được yêu cầu đăng nhập, giữ context suất",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts; tests/booking.spec.mjs; tests/server-only.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-04b",
+      "input": "JWT đổi chữ ký/purpose/issuer/audience",
+      "steps": "Gọi route bảo vệ",
+      "expected": "401, không ghi dữ liệu",
+      "evidence": "backend/test/auth.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-04c",
+      "input": "Access hết hạn, refresh còn hạn",
+      "steps": "Hai tab reload và rotate",
+      "expected": "Một refresh thắng; phiên dùng được, không lộ JWT",
+      "evidence": "tests/booking.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-04d",
+      "input": "Cả access và refresh mất hiệu lực khi đã chọn ghế",
+      "steps": "Xóa cookie, submit hold, đăng nhập lại",
+      "expected": "Mở login, xóa profile cũ, không crash member=null; giữ suất/ghế đã chọn; submit mới tạo1 hold",
+      "evidence": "tests/business-audit.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-05a",
+      "input": "CUSTOMER vào staff/verify hoặc check-in",
+      "steps": "Gọi HTTP thật bằng role/session tương ứng",
+      "expected": "403; không consume vé",
+      "evidence": "backend/test/auth.e2e-spec.ts; backend/test/catalog.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-05b",
+      "input": "STAFF thêm/sửa/xóa danh mục/lịch",
+      "steps": "Gọi HTTP thật bằng role/session tương ứng",
+      "expected": "403; DB không đổi",
+      "evidence": "backend/test/auth.e2e-spec.ts; backend/test/catalog.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-05c",
+      "input": "LOCKED account",
+      "steps": "Gọi HTTP thật bằng role/session tương ứng",
+      "expected": "403 cho login/access; refresh không phát session mới",
+      "evidence": "backend/test/auth.e2e-spec.ts; backend/test/catalog.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-05d",
+      "input": "INACTIVE account",
+      "steps": "Gọi HTTP thật bằng role/session tương ứng",
+      "expected": "403; reactivation không hồi sinh refresh bị revoke",
+      "evidence": "backend/test/auth.e2e-spec.ts; backend/test/catalog.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-06a",
+      "input": "Hash64hex hợp lệ nhưng không tồn tại",
+      "steps": "POST staff/verify",
+      "expected": "404 TICKET_NOT_FOUND; không sửa vé",
+      "evidence": "backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-06b",
+      "input": "NOVA-FAKE-999999 / SQL/script input",
+      "steps": "POST staff/verify",
+      "expected": "400 vì sai định dạng opaque hash; không đổi thành404 để khớp ví dụ sai contract",
+      "evidence": "backend/test/tickets.e2e-spec.ts",
+      "status": "CONTRACT"
+    },
+    {
+      "id": "SIT-06c",
+      "input": "UUID phim/suất không tồn tại",
+      "steps": "GET detail / mở URL phim",
+      "expected": "404 từ API; UI fallback/empty state và đường quay lại",
+      "evidence": "backend/test/catalog.e2e-spec.ts; tests/booking.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-07a",
+      "input": "Email duplicate/case/space +2 request race",
+      "steps": "POST register đồng thời",
+      "expected": "Một201, một409; một account",
+      "evidence": "backend/test/auth.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-07b",
+      "input": "Ghế HOLDING còn hạn",
+      "steps": "Hold cùng ghế và mixed-seat request",
+      "expected": "409 SEAT_UNAVAILABLE, danh sách ID lỗi; rollback tất cả; không lộ owner",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-07c",
+      "input": "Ghế SOLD",
+      "steps": "Hold cùng ghế và mixed-seat request",
+      "expected": "409 SEAT_UNAVAILABLE, danh sách ID lỗi; rollback tất cả; không lộ owner",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-07d",
+      "input": "120 phút +15 cleaning; start12:14/12:15/12:16",
+      "steps": "Create/update cùng phòng, kể cả concurrent",
+      "expected": "409 trước12:15; được phép đúng12:15 trở đi. endTime đã gồm15 phút, không cộng hai lần.",
+      "evidence": "backend/test/showtime-conflict.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-07e",
+      "input": "Vé đã check-in",
+      "steps": "Verify/check-in lần hai",
+      "expected": "409 TICKET_ALREADY_USED; giữ timestamp/staff đầu",
+      "evidence": "backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-08a",
+      "input": "Outbox/DB write ném lỗi sau khi tạo booking",
+      "steps": "Fault injection trong transaction thật",
+      "expected": "500 masked; rollback booking/claims/combo/outbox; request hợp lệ sau vẫn chạy",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-08b",
+      "input": "Internal/HTTP500/parser lỗi",
+      "steps": "Gọi harness riêng; kiểm tra response/liveness",
+      "expected": "Không stack/secret/SQL diagnostic; server vẫn sống",
+      "evidence": "backend/test/app.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-09a",
+      "input": "Signed SUCCESS đúng order/amount/deadline",
+      "steps": "Gửi HMAC qua HTTP, kiểm tra DB/seats/ticket",
+      "expected": "PAID/SOLD/SUCCESS + durable ticket event, một QR",
+      "evidence": "backend/test/payments.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-09b",
+      "input": "Signed FAILED",
+      "steps": "Gửi HMAC qua HTTP, kiểm tra DB/seats/ticket",
+      "expected": "Payment.FAILED; booking.CANCELLED, AVAILABLE, không vé",
+      "evidence": "backend/test/payments.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-09c",
+      "input": "Signed CANCELLED",
+      "steps": "Gửi HMAC qua HTTP, kiểm tra DB/seats/ticket",
+      "expected": "Payment/booking.CANCELLED, AVAILABLE",
+      "evidence": "backend/test/payments.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-09d",
+      "input": "SUCCESS ở299/300/301 giây",
+      "steps": "Gửi HMAC qua HTTP, kiểm tra DB/seats/ticket",
+      "expected": "299 được phép; đúng300/301 EXPIRED/released, không hồi sinh PAID",
+      "evidence": "backend/test/payments.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-09e",
+      "input": "Callback SUCCESS lặp/đồng thời",
+      "steps": "Gửi HMAC qua HTTP, kiểm tra DB/seats/ticket",
+      "expected": "Same outcome idempotent; QR/points/outbox không nhân đôi",
+      "evidence": "backend/test/payments.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-09f",
+      "input": "Sai amount/order/signature/domain/timestamp",
+      "steps": "Gửi HMAC qua HTTP, kiểm tra DB/seats/ticket",
+      "expected": "400/401/409 theo DTO/state; không PAID",
+      "evidence": "backend/test/payments.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-10a",
+      "input": "SMTP451 thật qua loopback",
+      "steps": "Pay, issue QR, flush worker, quan sát lỗi, retry",
+      "expected": "PAID/QR còn nguyên; outbox RETRYING rồi SMTP accepted",
+      "evidence": "backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-10b",
+      "input": "SMTP treo/queue publish fail/ack fail",
+      "steps": "Cho worker timeout và retry",
+      "expected": "Không block payment; retry bền; ack failure có thể gửi email lặp cùng Message-ID, không exactly-once",
+      "evidence": "backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-10c",
+      "input": "QR web<50ms kể cả SMTP hỏng",
+      "steps": "Đo service fault path và browser journey riêng",
+      "expected": "Non-blocking đã chứng minh; service timing không phải browser QR SLA. Không cam kết50ms cho toàn hành trình.",
+      "evidence": "backend/test/tickets.e2e-spec.ts; tests/business-audit.spec.mjs",
+      "status": "PARTIAL"
+    },
+    {
+      "id": "SIT-11a",
+      "input": "ICS owner download",
+      "steps": "Tải ICS và kiểm tra nội dung byte/text",
+      "expected": "VERSION2/VEVENT/UID/DTSTAMP/SUMMARY/LOCATION/DTSTART/DTEND/VALARM; CRLF, foldedUTF8",
+      "evidence": "backend/test/tickets.e2e-spec.ts; backend/src/modules/tickets/ticket-format.spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-11b",
+      "input": "UTC DTSTART/DTEND và phim có duration120",
+      "steps": "Tải ICS và kiểm tra nội dung byte/text",
+      "expected": "UTC Z đúng giờ Việt Nam; DTEND kết thúc phim, không gồm cleaning15",
+      "evidence": "backend/test/tickets.e2e-spec.ts; backend/src/modules/tickets/ticket-format.spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SIT-11c",
+      "input": "Tên phim/address chứa dấu Việt, comma, newline, script",
+      "steps": "Tải ICS và kiểm tra nội dung byte/text",
+      "expected": "Escape/fold chống calendar/email injection; không lộ QR",
+      "evidence": "backend/test/tickets.e2e-spec.ts; backend/src/modules/tickets/ticket-format.spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "E2E-01",
+      "input": "GOLD50000 điểm, VIP2 ghế, Party69K",
+      "steps": "UI gợi ý→hold→Sandbox→ownerQR/ICS→staff",
+      "expected": "265050đ theo server, cộng26 điểm một lần; check-in một lần. Chưa có đổi điểm thành tiền; combo chọn trước hold để giữ snapshot API.",
+      "evidence": "tests/business-audit.spec.mjs",
+      "status": "PARTIAL"
+    },
+    {
+      "id": "E2E-02",
+      "input": "Hold thật rồi tua deadline server quá300s",
+      "steps": "Reload snapshot/timer và thử trả tiền",
+      "expected": "EXPIRED/AVAILABLE; payment disabled, không reset05:00",
+      "evidence": "tests/creative.spec.mjs; tests/booking.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "E2E-03",
+      "input": "Hold/cancel/rehold cùng ID ghế",
+      "steps": "Hai session hủy rồi đặt lại",
+      "expected": "Sau cancel response200, ghế trống và giữ lại được; không hứa roundtrip0ms",
+      "evidence": "tests/booking.spec.mjs; backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "E2E-04",
+      "input": "4 nhánh staff đúng/sai suất/unknown/used",
+      "steps": "Thao tác UI verify trước, check-in sau",
+      "expected": "Đúng màu/trạng thái; preview không consume; không dùng lại",
+      "evidence": "tests/booking.spec.mjs; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "E2E-05",
+      "input": "Admin CRUD phim/rạp/phòng/lịch",
+      "steps": "Tạo/sửa/xóa thực, overlap cleaning, capacity",
+      "expected": "Đúng RBAC, khóa dữ liệu có booking; lịch hợp lệ hiển thị để đặt",
+      "evidence": "tests/business-audit.spec.mjs; tests/discovery.spec.mjs; backend/test/showtime-conflict.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "PERF-01",
+      "input": "Nhiều requests/app instances, row write lock đang mở",
+      "steps": "Kiểm tra pool/Prisma lifecycle, SELECT không đợi lock",
+      "expected": "Một pool hữu hạn mỗi Nest app; không globalThis cross-DB; SQLite WAL không áp dụng",
+      "evidence": "backend/src/database/pool-url.spec.ts; backend/test/seats-realtime.e2e-spec.ts",
+      "status": "CONTRACT"
+    },
+    {
+      "id": "PERF-02a",
+      "input": "Catalogue movies/cinemas10 samples",
+      "steps": "Browser fetch qua BFF, đo TTFB/last-byte/wire/decoded",
+      "expected": "Không embedded seats; so p50/p95 với30ms, wire và decoded JSON với15KiB riêng; ghi cả mẫu lạnh.",
+      "evidence": "tests/qa-metrics.spec.mjs",
+      "status": "MEASURED"
+    },
+    {
+      "id": "PERF-02b",
+      "input": "Programme đầy đủ hàng nghìn suất",
+      "steps": "Cùng quy trình10 samples, không cắt records",
+      "expected": "Không đạt15KiB/30ms; giữ contract dữ liệu đầy đủ, ghi NOT_MET",
+      "evidence": "tests/qa-metrics.spec.mjs",
+      "status": "NOT_MET"
+    },
+    {
+      "id": "PERF-02c",
+      "input": "Seat map10 samples + stale holds/rowlock",
+      "steps": "Đo GET và đối chiếu capacities",
+      "expected": "GET lazy read-only, không sweep UPDATE; ghi số đo, không mặc định đạt30ms",
+      "evidence": "tests/qa-metrics.spec.mjs; backend/test/seats-realtime.e2e-spec.ts",
+      "status": "MEASURED"
+    },
+    {
+      "id": "CONC-01",
+      "input": "20users,2native API instances,1VIPseat",
+      "steps": "Barrier→Promise.all20requests→đọc SQL",
+      "expected": "Một201 +19x409,1active claim/booking,đúng giá; không500/deadlock/mutex thừa",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "CONC-02",
+      "input": "2cửa và stress6staff/admin requests",
+      "steps": "Check-in đồng thời qua2API instances",
+      "expected": "Một200, các request sau409, đúng một lần USED",
+      "evidence": "backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-01a",
+      "input": "totalAmount:1000",
+      "steps": "POST hold, kiểm DB rồi gửi payload hợp lệ",
+      "expected": "400 vì reject extra fields; không im lặng tin giá. Request đúng tính Decimal từ DB.",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-01b",
+      "input": "price:0",
+      "steps": "POST hold, kiểm DB rồi gửi payload hợp lệ",
+      "expected": "400 vì reject extra fields; không im lặng tin giá. Request đúng tính Decimal từ DB.",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-01c",
+      "input": "discount:9999999",
+      "steps": "POST hold, kiểm DB rồi gửi payload hợp lệ",
+      "expected": "400 vì reject extra fields; không im lặng tin giá. Request đúng tính Decimal từ DB.",
+      "evidence": "backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-02a",
+      "input": "A đọc ticket/calendar củaB",
+      "steps": "Gọi protected route bằng tokenA",
+      "expected": "404 owner-only để không xác nhận tài nguyên người khác tồn tại, không đổi thành403",
+      "evidence": "backend/test/tickets.e2e-spec.ts; backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "CONTRACT"
+    },
+    {
+      "id": "SEC-02b",
+      "input": "A hủy booking củaB",
+      "steps": "Gọi protected route bằng tokenA",
+      "expected": "404 owner-only để không xác nhận tài nguyên người khác tồn tại, không đổi thành403",
+      "evidence": "backend/test/tickets.e2e-spec.ts; backend/test/booking-concurrency.e2e-spec.ts",
+      "status": "CONTRACT"
+    },
+    {
+      "id": "SEC-03a",
+      "input": "' OR '1'='1'; DROP TABLE movies; --",
+      "steps": "GET movie keyword, staff invalid input",
+      "expected": "Text parameterized; không SQL/DB mutation; liveness200",
+      "evidence": "backend/test/catalog.e2e-spec.ts; backend/test/tickets.e2e-spec.ts",
+      "status": "PASS"
+    },
+    {
+      "id": "SEC-03b",
+      "input": "Stored <img src=x onerror=...> trong fullName",
+      "steps": "Register/login, mở account UI",
+      "expected": "Hiện text, không tạo executable markup hoặc dialog",
+      "evidence": "tests/business-audit.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "UI-01",
+      "input": "API cố tình lặp UUID suất/phim/seat",
+      "steps": "Browser route trả trùng rồi mở/select",
+      "expected": "Dedup Map, không React key warning, payload UUID gốc; ưu tiên key ổn định sau dedup thay vì thêm index khắp nơi",
+      "evidence": "tests/business-audit.spec.mjs; tests/creative.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "UI-02a",
+      "input": "Mobile375px",
+      "steps": "Chọn4gateways, kiểm bounds/scrollWidth",
+      "expected": "Không gãy chữ từng ký tự; mọi nút trong card, không page overflow",
+      "evidence": "tests/business-audit.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "UI-02b",
+      "input": "Tablet768px",
+      "steps": "Chọn4gateways, kiểm bounds/scrollWidth",
+      "expected": "Không gãy chữ từng ký tự; mọi nút trong card, không page overflow",
+      "evidence": "tests/business-audit.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "UI-02c",
+      "input": "Desktop1440px +320/390/820",
+      "steps": "Chọn4gateways, kiểm bounds/scrollWidth",
+      "expected": "Không gãy chữ từng ký tự; mọi nút trong card, không page overflow",
+      "evidence": "tests/business-audit.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "UI-03",
+      "input": "Timer hold thay đổi từng giây",
+      "steps": "Theo dõi countdown và MutationObserver trên grid",
+      "expected": "Grid không DOM mutation khi tick; state timer nằm trong HoldCountdown. Đây không phải chứng minh mọi React render trên toàn app bằng Profiler.",
+      "evidence": "tests/business-audit.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "RES-01a",
+      "input": "Browser request abort/offline",
+      "steps": "Submit hold và ngắt request",
+      "expected": "Thông báo mạng, finally mở nút; không fake success/PAID",
+      "evidence": "tests/performance.spec.mjs; tests/creative.spec.mjs",
+      "status": "PASS"
+    },
+    {
+      "id": "RES-01b",
+      "input": "Upstream treo hoặc HTTP503",
+      "steps": "Chờ deadline8s, bấm thử lại",
+      "expected": "Timeout hữu hạn, không spinner vô hạn; BFF không chuyển kho dữ liệu giữa request",
+      "evidence": "tests/performance.spec.mjs; scripts/check-backend-only.cjs",
+      "status": "PASS"
+    },
+    {
+      "id": "RES-02",
+      "input": "Hold còn hạn, F5/2tabs/tokenrotation",
+      "steps": "Reload rồi đọc cùng booking",
+      "expected": "Cùng order/expiredAt, không gia hạn300s mới; cookie HttpOnly, owner-only",
+      "evidence": "tests/booking.spec.mjs",
+      "status": "PASS"
+    }
+  ]
+}

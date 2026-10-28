@@ -7,7 +7,8 @@
  * ==============================================================================
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { revenueCsv } from "../api/revenueCsv.js";
 import {
   TrendingUp,
   Ticket,
@@ -25,6 +26,7 @@ import {
   PieChart,
   HardDrive,
   Download,
+  ShieldCheck,
 } from "lucide-react";
 import { money } from "../data.js";
 
@@ -40,6 +42,7 @@ function revenueShare(value, ticketAmount, comboAmount) {
     ? Math.min(100, Number((cents(value) * 10000n) / total) / 100) + "%"
     : "0%";
 }
+import AdminAudit from "./AdminAudit.jsx";
 import OperationalCatalog from "./OperationalCatalog.jsx";
 import {
   apiGetAdminOverview,
@@ -77,9 +80,50 @@ export default function QuanTriHeThong({
   const [toDate, setToDate] = useState(() => getVietnamDate(0));
   const [revenue, setRevenue] = useState(null);
   const [revenueLoading, setRevenueLoading] = useState(false);
+  const [revenueError, setRevenueError] = useState("");
+  const [revenueRange, setRevenueRange] = useState(null);
+  const revenueRequest = useRef(0);
+  const invalidateRevenue = useCallback(() => {
+    revenueRequest.current++;
+  }, []);
+  const initialRange = useRef({ from: fromDate, to: toDate });
 
   // Users state
   const [users, setUsers] = useState([]);
+  const [userQuery, setUserQuery] = useState("");
+  const [usersUpdatedAt, setUsersUpdatedAt] = useState(null);
+  useEffect(() => {
+    if (activeTab !== "users") return;
+    let active = true;
+    let running = false;
+    async function syncUsers() {
+      if (running || document.hidden) return;
+      running = true;
+      try {
+        const current = await apiGetAdminUsers();
+        if (active) {
+          setUsers(current);
+          setUsersUpdatedAt(new Date());
+          setError("");
+        }
+      } catch (cause) {
+        if (active) {
+          setUsers([]);
+          setError(cause.message);
+        }
+      } finally {
+        running = false;
+      }
+    }
+    void syncUsers();
+    const timer = setInterval(syncUsers, 15000);
+    window.addEventListener("focus", syncUsers);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", syncUsers);
+    };
+  }, [activeTab]);
 
   // Health state
   const [health, setHealth] = useState(null);
@@ -88,15 +132,21 @@ export default function QuanTriHeThong({
   const [purging, setPurging] = useState(false);
 
   const fetchRevenue = useCallback(async (from, to) => {
+    const request = ++revenueRequest.current;
     setRevenueLoading(true);
+    setRevenueError("");
     try {
       const rev = await apiGetAdminRevenue(from, to);
+      if (request !== revenueRequest.current) return;
       setRevenue(rev);
+      setRevenueRange({ from, to });
     } catch (err) {
+      if (request !== revenueRequest.current) return;
       setRevenue(null);
-      setError(err.message);
+      setRevenueRange(null);
+      setRevenueError(err.message);
     } finally {
-      setRevenueLoading(false);
+      if (request === revenueRequest.current) setRevenueLoading(false);
     }
   }, []);
 
@@ -119,7 +169,7 @@ export default function QuanTriHeThong({
 
   const loadAllData = useCallback(async () => {
     setError("");
-    setRevenueLoading(true);
+    const reportRequest = fetchRevenue(fromDate, toDate);
     try {
       const [ovData, healthData, usersData] = await Promise.allSettled([
         apiGetAdminOverview(),
@@ -139,12 +189,11 @@ export default function QuanTriHeThong({
       if (healthData.status === "fulfilled") setHealth(healthData.value);
       if (usersData.status === "fulfilled") setUsers(usersData.value);
 
-      await fetchRevenue(fromDate, toDate);
+      await reportRequest;
     } catch (err) {
       setError(err.message || "Lỗi khi tải dữ liệu trang quản trị");
     } finally {
       setLoading(false);
-      setRevenueLoading(false);
     }
   }, [fetchRevenue, fromDate, toDate]);
 
@@ -155,73 +204,35 @@ export default function QuanTriHeThong({
       apiGetAdminOverview(),
       apiGetHealth(),
       apiGetAdminUsers(),
-      apiGetAdminRevenue(fromDate, toDate),
-    ]).then(([ovRes, healthRes, usersRes, revRes]) => {
+      fetchRevenue(initialRange.current.from, initialRange.current.to),
+    ]).then(([ovRes, healthRes, usersRes]) => {
       if (!active) return;
       setOverview(null);
       setHealth(null);
       setUsers([]);
-      setRevenue(null);
-      const failures = [ovRes, healthRes, usersRes, revRes].filter(
+      const failures = [ovRes, healthRes, usersRes].filter(
         (r) => r.status === "rejected",
       );
       setError(failures.map((r) => r.reason.message).join(" · "));
       if (ovRes.status === "fulfilled") setOverview(ovRes.value);
       if (healthRes.status === "fulfilled") setHealth(healthRes.value);
       if (usersRes.status === "fulfilled") setUsers(usersRes.value);
-      if (revRes.status === "fulfilled") setRevenue(revRes.value);
       setLoading(false);
     });
     return () => {
       active = false;
+      invalidateRevenue();
     };
-  }, [fromDate, toDate]);
+  }, [fetchRevenue, invalidateRevenue]);
 
   function exportRevenueCsv() {
-    if (!revenue) return;
-    const lines = [];
-    lines.push("NOVA CINEMA - BÁO CÁO DOANH THU & KẾT QUẢ KINH DOANH");
-    lines.push(`Thời gian xuất báo cáo,${new Date().toLocaleString("vi-VN")}`);
-    lines.push(`Khoảng thời gian thống kê,Từ ${fromDate} đến ${toDate}`);
-    lines.push("");
-    lines.push("TỔNG QUAN TÀI CHÍNH");
-    lines.push("Chỉ số,Giá trị");
-    lines.push(
-      `Tổng doanh thu ròng (Net Revenue),${revenue.totalRevenue || 0} VNĐ`,
-    );
-    lines.push(
-      `Số đơn thanh toán thành công (PAID),${revenue.paidBookingCount || 0}`,
-    );
-    lines.push(`Doanh thu vé xem phim,${revenue.ticketRevenue || 0} VNĐ`);
-    lines.push(`Doanh thu bắp nước F&B,${revenue.comboRevenue || 0} VNĐ`);
-    lines.push(`Tổng tiền ưu đãi & Voucher,${revenue.discountAmount || 0} VNĐ`);
-    lines.push("");
-    lines.push("CHI TIẾT CÁC ĐƠN ĐẶT VÉ TRONG KỲ");
-    lines.push(
-      "Mã Đơn,Khách Hàng,Phim,Rạp Chiếu,Phòng Chiếu,Tổng Tiền (VNĐ),Trạng Thái,Thời Gian Đặt Vé",
-    );
-
-    const orders = overview?.recentBookings || [];
-    for (const b of orders) {
-      const row = [
-        `"${b.orderCode}"`,
-        `"${b.customer}"`,
-        `"${b.movie}"`,
-        `"${b.cinema}"`,
-        `"${b.room}"`,
-        b.finalAmount,
-        `"${b.status}"`,
-        `"${new Date(b.createdAt).toLocaleString("vi-VN")}"`,
-      ];
-      lines.push(row.join(","));
-    }
-
-    const csvContent = "\uFEFF" + lines.join("\r\n");
+    if (!revenue || !revenueRange || revenueLoading) return;
+    const csvContent = revenueCsv(revenue, revenueRange);
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Bao_Cao_Doanh_Thu_NovaCinema_${fromDate}_${toDate}.csv`;
+    link.download = `Bao_Cao_Doanh_Thu_NovaCinema_${revenueRange.from}_${revenueRange.to}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -314,12 +325,24 @@ export default function QuanTriHeThong({
             <HardDrive size={16} />
             Hạ Tầng & Dọn Dẹp Outbox
           </button>
+          <button
+            className={`admin-tab ${activeTab === "audit" ? "active" : ""}`}
+            onClick={() => setActiveTab("audit")}
+          >
+            <ShieldCheck size={16} />
+            Nhật ký quản trị
+          </button>
         </div>
 
-        {error && <div className="admin-error-banner">{error}</div>}
+        {(error || revenueError) && (
+          <div className="admin-error-banner" role="alert">
+            {[error, revenueError].filter(Boolean).join(" · ")}
+          </div>
+        )}
 
         {/* Content Body */}
         <div className="admin-content-body">
+          {activeTab === "audit" && <AdminAudit />}
           {/* TAB 1: DOANH THU & BÁO CÁO */}
           {activeTab === "revenue" && (
             <div className="admin-tab-pane">
@@ -329,6 +352,7 @@ export default function QuanTriHeThong({
                   <Calendar size={16} />
                   <label>Từ ngày:</label>
                   <input
+                    aria-label="Từ ngày báo cáo"
                     type="date"
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
@@ -338,6 +362,7 @@ export default function QuanTriHeThong({
                   <Calendar size={16} />
                   <label>Đến ngày:</label>
                   <input
+                    aria-label="Đến ngày báo cáo"
                     type="date"
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
@@ -397,7 +422,12 @@ export default function QuanTriHeThong({
                     type="button"
                     className="button button-primary export-csv-btn"
                     onClick={exportRevenueCsv}
-                    disabled={!revenue}
+                    disabled={
+                      !revenue ||
+                      revenueLoading ||
+                      revenueRange?.from !== fromDate ||
+                      revenueRange?.to !== toDate
+                    }
                     title="Tải xuống tệp CSV Excel có dấu UTF-8"
                   >
                     <Download size={15} />
@@ -415,7 +445,7 @@ export default function QuanTriHeThong({
                   <div className="stat-details">
                     <span className="stat-label">Doanh Thu Ròng (VND)</span>
                     <strong className="stat-value">
-                      {revenue ? money(revenue.netRevenue) : "0 đ"}
+                      {revenue ? money(revenue.netRevenue) : "—"}
                     </strong>
                     <span className="stat-sub">
                       Đã trừ chiết khấu & voucher
@@ -434,7 +464,7 @@ export default function QuanTriHeThong({
                     </strong>
                     <span className="stat-sub">
                       Doanh thu vé:{" "}
-                      {revenue ? money(revenue.ticketRevenue) : "0 đ"}
+                      {revenue ? money(revenue.ticketRevenue) : "—"}
                     </span>
                   </div>
                 </div>
@@ -446,7 +476,7 @@ export default function QuanTriHeThong({
                   <div className="stat-details">
                     <span className="stat-label">Đơn Hàng Thanh Toán</span>
                     <strong className="stat-value">
-                      {revenue?.paidBookingCount || 0} đơn
+                      {revenue ? revenue.paidBookingCount : "—"} đơn
                     </strong>
                     <span className="stat-sub">Đã thanh toán (PAID)</span>
                   </div>
@@ -459,7 +489,7 @@ export default function QuanTriHeThong({
                   <div className="stat-details">
                     <span className="stat-label">Doanh Thu Bắp Nước</span>
                     <strong className="stat-value">
-                      {revenue ? money(revenue.comboRevenue) : "0 đ"}
+                      {revenue ? money(revenue.comboRevenue) : "—"}
                     </strong>
                     <span className="stat-sub">Các gói Party/Duo Combo</span>
                   </div>
@@ -485,7 +515,7 @@ export default function QuanTriHeThong({
                       />
                     </div>
                     <strong>
-                      {revenue ? money(revenue.ticketRevenue) : "0 đ"}
+                      {revenue ? money(revenue.ticketRevenue) : "—"}
                     </strong>
                   </div>
 
@@ -504,7 +534,7 @@ export default function QuanTriHeThong({
                       />
                     </div>
                     <strong>
-                      {revenue ? money(revenue.comboRevenue) : "0 đ"}
+                      {revenue ? money(revenue.comboRevenue) : "—"}
                     </strong>
                   </div>
 
@@ -523,7 +553,7 @@ export default function QuanTriHeThong({
                       />
                     </div>
                     <strong>
-                      -{revenue ? money(revenue.discountAmount) : "0 đ"}
+                      {revenue ? `-${money(revenue.discountAmount)}` : "—"}
                     </strong>
                   </div>
                 </div>
@@ -533,9 +563,10 @@ export default function QuanTriHeThong({
               <div className="admin-box mt-4">
                 <div className="admin-box-header">
                   <div>
-                    <h3>Chi Tiết Đơn Đặt Vé & Doanh Thu Hệ Thống</h3>
+                    <h3>10 đơn gần nhất toàn hệ thống</h3>
                     <p className="admin-box-sub">
-                      Dữ liệu thực tế ghi nhận từ PostgreSQL & NestJS API.
+                      Danh sách gần nhất gồm mọi trạng thái, độc lập với khoảng
+                      ngày báo cáo doanh thu ở trên.
                     </p>
                   </div>
                   <span className="badge-note">
@@ -620,6 +651,22 @@ export default function QuanTriHeThong({
           {/* TAB 2: KHÁCH HÀNG & THÀNH VIÊN */}
           {activeTab === "users" && (
             <div className="admin-tab-pane">
+              <div className="admin-users-toolbar">
+                <label>
+                  Tìm khách hàng
+                  <input
+                    aria-label="Tìm khách hàng"
+                    value={userQuery}
+                    onChange={(event) => setUserQuery(event.target.value)}
+                    placeholder="Email hoặc họ tên"
+                  />
+                </label>
+                <p role="status">
+                  {usersUpdatedAt
+                    ? `Cập nhật lúc ${usersUpdatedAt.toLocaleTimeString("vi-VN")}`
+                    : "Đang đồng bộ danh sách khách hàng…"}
+                </p>
+              </div>
               <div className="admin-table-container">
                 <table className="admin-table">
                   <thead>
@@ -633,41 +680,53 @@ export default function QuanTriHeThong({
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((u) => (
-                      <tr key={u.id}>
-                        <td>
-                          <strong>{u.email}</strong>
-                        </td>
-                        <td>{u.fullName || "Chưa cập nhật"}</td>
-                        <td>
-                          <span
-                            className={`role-badge ${u.role.toLowerCase()}`}
-                          >
-                            {u.role}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`tier-badge ${u.cMemberTier?.toLowerCase()}`}
-                          >
-                            {u.cMemberTier || "STANDARD"}
-                          </span>
-                        </td>
-                        <td>
-                          <strong>{u.cMemberPoints || 0} pts</strong>
-                        </td>
-                        <td>
-                          {new Date(u.createdAt).toLocaleDateString("vi-VN")}
-                        </td>
-                      </tr>
-                    ))}
-                    {users.length === 0 && (
+                    {users
+                      .filter((user) =>
+                        `${user.email} ${user.fullName || ""}`
+                          .toLocaleLowerCase("vi")
+                          .includes(userQuery.toLocaleLowerCase("vi")),
+                      )
+                      .map((u) => (
+                        <tr key={u.id}>
+                          <td>
+                            <strong>{u.email}</strong>
+                          </td>
+                          <td>{u.fullName || "Chưa cập nhật"}</td>
+                          <td>
+                            <span
+                              className={`role-badge ${u.role.toLowerCase()}`}
+                            >
+                              {u.role}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className={`tier-badge ${u.cMemberTier?.toLowerCase()}`}
+                            >
+                              {u.cMemberTier || "STANDARD"}
+                            </span>
+                          </td>
+                          <td>
+                            <strong>{u.cMemberPoints || 0} pts</strong>
+                          </td>
+                          <td>
+                            {new Date(u.createdAt).toLocaleDateString("vi-VN")}
+                          </td>
+                        </tr>
+                      ))}
+                    {users.filter((user) =>
+                      `${user.email} ${user.fullName || ""}`
+                        .toLocaleLowerCase("vi")
+                        .includes(userQuery.toLocaleLowerCase("vi")),
+                    ).length === 0 && (
                       <tr>
                         <td
                           colSpan={6}
                           style={{ textAlign: "center", padding: "20px" }}
                         >
-                          Đang tải hoặc chưa có khách hàng
+                          {error
+                            ? "Chưa tải được danh sách. Hãy làm mới để thử lại."
+                            : "Chưa có khách hàng phù hợp."}
                         </td>
                       </tr>
                     )}

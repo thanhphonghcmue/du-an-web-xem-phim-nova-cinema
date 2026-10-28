@@ -97,3 +97,63 @@ không chạm rate limit do nhiều trang; giữ pagination100, DB/RBAC/Decimal 
 state machine. Seed additive 30 ngày, phòng và suất COMING_SOON theo ngày dự kiến;
 frontend mở luồng đặt trước theo suất thực. Không đánh dấu Phase11–12 hoàn tất.
 Evidence: [advance booking/readability](../../docs/design/advance-booking-readability.md).
+
+## Bổ sung danh mục & giao diện sau LAB04 (23/10/2026)
+
+Theo yêu cầu tiếp tục hoàn thiện trên backend hiện có: thêm unique tên phim, audit
+log transaction cùng CRUD phim, endpoint nhật ký chỉ ADMIN và giới hạn sức chứa
+phòng dưới room lock. Frontend có preview sơ đồ, tìm kiếm/phân trang và mở đúng
+lịch rạp. Migration additive mới không thay booking/payment/QR. Không đánh dấu
+Phase11–12 hoàn tất; xem [bằng chứng và phạm vi](../../docs/design/catalog-operations-readability.md).
+
+## Mở lịch đủ phim và cả tháng sau (24/10/2026)
+
+Theo yêu cầu kiểm tra thực tế: bổ sung lịch cho cả 24 phim đang mở bán/chiếu sớm,
+40 phòng mỗi rạp mẫu, tối thiểu 4 giờ khác nhau/ngày trên 2 phòng, bao gồm tháng
+sau. Seed additive có room lock, giữ lịch/đơn và dữ liệu admin; không migration.
+Programme snapshot tối đa 60 ngày/20.000 suất, không cắt âm thầm. Các ca UI dùng
+PostgreSQL test riêng xác nhận chọn đủ phim, ngày xa, giữ ghế/giá/QR thật và D11
+bị bỏ lẻ. 75 unit + 207 HTTP/realtime/SMTP + 22 DB + 5 planner + 41 Playwright
+PASS (350 ca), typecheck/lint/build và compiled smoke PASS. Không đánh dấu
+Phase11–12 hoặc các nghiệp vụ LAB04 còn thiếu hoàn tất. Xem
+[bằng chứng lịch đầy đủ](../../docs/design/full-calendar-booking.md).
+
+## Bắt buộc backend thật và kiểm tra lưu dữ liệu (24/10/2026)
+
+Theo yêu cầu đồng bộ frontend/NestJS: xóa kho RAM/standalone phía Next.js, giữ
+PostgreSQL là nguồn tài khoản/đơn/ghế/QR; mất kết nối trả 503 rõ ràng. Không đổi
+schema hoặc business state machine. ADMIN đọc tài khoản mới qua API hiện có,
+frontend đồng bộ lại khi focus và theo chu kỳ. Compiled production smoke bổ sung
+đăng ký thật và hai lần khởi động lại backend, xác nhận tài khoản, đơn PAID,
+SOLD, cùng QR và trạng thái đã check-in vẫn tồn tại. Không dùng Docker, không
+reset DB/.env và không đánh dấu Phase 11–12 hoàn tất. Xem
+[bằng chứng server-only](../../docs/design/server-only-qa.md).
+
+## Rà soát vé, quản trị và launcher (27/10/2026)
+
+Theo yêu cầu sửa lỗi QR/soát vé và kiểm tra nghiệp vụ: đã tích hợp commit remote
+`2abf704`, gỡ đường tự chuyển sang kho RAM theo cổng DB cố định. NestJS dùng
+DATABASE_URL cấu hình và dừng khi hạ tầng không sẵn sàng. Voucher không hợp lệ
+hoặc dưới ngưỡng trả 400, giao dịch không tạo booking/ghế; DTO chuẩn hóa và giới
+hạn độ dài mã. Không đổi schema, Decimal pricing/state machine, HMAC, ownership
+hoặc RBAC. Frontend mở ví vé thật, render SVG từ hash do backend cấp, dedup suất
+và xuất đúng aggregate doanh thu. Không đánh dấu Phase 11–12 hoàn tất. Bằng
+chứng: [rà soát nghiệp vụ](../../docs/design/business-flow-audit.md).
+
+## Kiểm toán frontend / API — 28/10/2026
+
+Bổ sung API public đọc số ghế theo lô tối đa50 UUID, truy vấn set-based/read-only và gzip cho GET danh mục/sơ đồ ghế. API đang có giữ nguyên payload/envelope và nghiệp vụ. Hai test PostgreSQL mới đối chiếu capacity với seat map cho overdue/PAID/mixed SOLD claims và xác nhận không chờ row lock/không ghi khi đọc. Không chuyển trạng thái Phase11–12.
+
+Kiểm chứng lượt này:89 unit +222 HTTP/Socket.IO +22 PostgreSQL; typecheck/typed lint/build đạt. Frontend production82 bài và Node/RAM/planner53 bài, tổng468. Chi tiết timing, phương pháp và giới hạn ở [báo cáo kiểm toán](../../docs/qa/frontend-performance-audit.md).
+
+Lượt native cùng ngày bổ sung các biên299/300/301s,14/15/16phút,4 tài khoản .vn (hội viên50000 điểm) và4 rạp. Seed không reset điểm đã chỉnh; sửa presale ID trùng trong RAM và đường dẫn monorepo/Prisma hoisted. Native PG17.10/Redis7.4.2, không dùng Docker; ma trận STLC/RTM và những mục tiêu hiệu năng chưa đạt tại [báo cáo native](../../docs/qa/backend-native-audit.md).
+
+## Kiểm toán Fullstack bổ sung — 28/10/2026
+
+Không đánh dấu hoàn thành Phase11–12. Bổ sung UC02 ACTIVE/LOCKED/INACTIVE (migration additive), Admin payment reconciliation/durable ticket recovery, exact conflict IDs, env compatibility sau chuyển frontend/ và responsive Admin. Kiểm chứng488 ca độc lập:89 backend unit,232 HTTP/Socket.IO,23 DB schema,60 Node/RAM/config/planner,84 browser production; các lần chạy lại không cộng trùng. Typecheck/lint/build đạt, native RAM/503-timeout smoke đạt. [Audit/RTM/TC-01…05 và giới hạn](../../docs/qa/fullstack-lab04-audit.md).
+
+## SIT/E2E/Concurrency/Security native mở rộng
+
+Giữ trạng thái Phase 11–12. Script `npm run qa:native` chạy hết 503 bài độc lập (89 unit + 242 native HTTP + 23 schema + 60 Node/RAM + 89 browser), lint/typecheck/build và hai smoke đều đạt. Ma trận có 69 kịch bản truy vết, ghi rõ khác biệt contract và giới hạn. Hai mươi users qua hai API instances tranh một ghế VIP cho kết quả 1 × 201/19 × 409.
+
+Vá conflict IDs sau SQL rollback, tái xác thực giữ context, null member và state ID bị hoãn ở picker; bổ sung envelope message RAM, fixture GOLD với 50.000 điểm và cleanup test. Mục tiêu latency/payload/QR 50 ms chưa đạt; functional PASS không được coi là performance PASS. [Báo cáo và toàn bộ số đo](../../docs/qa/ultra-expanded-audit.md).

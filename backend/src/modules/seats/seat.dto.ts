@@ -28,10 +28,10 @@ export class CreateSeatDto {
   @Transform(row)
   @Matches(/^[A-Z]{1,8}$/)
   seatRow!: string;
-  @ApiProperty({ minimum: 1, maximum: 50 })
+  @ApiProperty({ minimum: 1, maximum: 24 })
   @IsInt()
   @Min(1)
-  @Max(50)
+  @Max(24)
   seatColumn!: number;
   @ApiProperty({ enum: SeatType }) @IsEnum(SeatType) seatType!: SeatType;
 }
@@ -39,24 +39,24 @@ export class UpdateSeatDto extends PartialType(CreateSeatDto, {
   skipNullProperties: false,
 }) {}
 export class GenerateSeatsDto {
-  @ApiProperty({ type: [String], example: ["A", "B", "C"], maxItems: 26 })
+  @ApiProperty({ type: [String], example: ["A", "B", "C"], maxItems: 15 })
   @Transform(rows)
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(26)
+  @ArrayMaxSize(15)
   @ArrayUnique()
   @Matches(/^[A-Z]{1,8}$/, { each: true })
   rows!: string[];
-  @ApiProperty({ minimum: 1, maximum: 50, example: 20 })
+  @ApiProperty({ minimum: 1, maximum: 24, example: 20 })
   @IsInt()
   @Min(1)
-  @Max(50)
+  @Max(24)
   columns!: number;
   @ApiPropertyOptional({ type: [String], example: ["B"] })
   @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
   @Transform(rows)
   @IsArray()
-  @ArrayMaxSize(26)
+  @ArrayMaxSize(15)
   @ArrayUnique()
   @Matches(/^[A-Z]{1,8}$/, { each: true })
   vipRows?: string[];
@@ -64,7 +64,7 @@ export class GenerateSeatsDto {
   @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
   @Transform(rows)
   @IsArray()
-  @ArrayMaxSize(26)
+  @ArrayMaxSize(15)
   @ArrayUnique()
   @Matches(/^[A-Z]{1,8}$/, { each: true })
   sweetboxRows?: string[];

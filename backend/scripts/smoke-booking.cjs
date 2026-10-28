@@ -60,7 +60,11 @@ async function main() {
   const password = randomBytes(24).toString("hex");
   const passwordHash = await hash(password);
   const users = [];
-  for (const label of ["a", "b", "staff", "staff2", "admin"])
+  for (const label of ["a", "b", "staff", "staff2", "admin"]) {
+    if (label === "b") {
+      users.push({ email: `${prefix}-b@example.test` });
+      continue;
+    }
     users.push(
       await prisma.user.create({
         data: {
@@ -76,6 +80,7 @@ async function main() {
         },
       }),
     );
+  }
   const movie = await prisma.movie.create({
     data: {
       title: prefix,
@@ -125,7 +130,7 @@ async function main() {
   const combo = await prisma.combo.create({
     data: { name: prefix, description: "Party Combo", price: "69000.00" },
   });
-  child = spawn(process.execPath, ["dist/main.js"], {
+  const childOptions = {
     cwd: backend,
     stdio: "ignore",
     env: {
@@ -155,7 +160,11 @@ async function main() {
       CHECK_IN_BEFORE_MINUTES: "60",
       CHECK_IN_AFTER_MINUTES: "30",
     },
-  });
+  };
+  const launch = () => {
+    child = spawn(process.execPath, ["dist/main.js"], childOptions);
+  };
+  launch();
   const base = `http://127.0.0.1:${port}`;
   async function api(method, path, status, payload, token, key) {
     stage = `${method} ${path} expected ${status}`;
@@ -188,6 +197,15 @@ async function main() {
     }
   });
   assert.equal((await api("GET", "/api/v1", 200)).data.phase, 10);
+  const registeredEmail = users[1].email;
+  const registration = (
+    await api("POST", "/api/v1/auth/register", 201, {
+      email: registeredEmail,
+      password,
+      fullName: "Persisted registration",
+    })
+  ).data;
+  users[1] = registration;
   const tokens = [];
   for (const user of users)
     tokens.push(
@@ -198,6 +216,52 @@ async function main() {
         })
       ).data.accessToken,
     );
+  const registeredLogin = { accessToken: tokens[1] };
+  assert.equal(
+    (await api("GET", "/api/v1/users/me", 200, undefined, tokens[1])).data.id,
+    registration.id,
+  );
+  const registeredUsers = (
+    await api("GET", "/api/v1/admin/reports/users", 200, undefined, tokens[4])
+  ).data;
+  assert(
+    registeredUsers.some(
+      (user) => user.id === registration.id && user.email === registeredEmail,
+    ),
+  );
+  await api(
+    "GET",
+    "/api/v1/admin/reports/users",
+    403,
+    undefined,
+    registeredLogin.accessToken,
+  );
+  async function restartBackend() {
+    watcher?.disconnect();
+    const previous = child;
+    const exited = once(previous, "exit");
+    previous.kill("SIGTERM");
+    const timeout = setTimeout(() => previous.kill("SIGKILL"), 5000);
+    await exited;
+    clearTimeout(timeout);
+    launch();
+    assert.notEqual(child.pid, previous.pid);
+    await eventually(async () => {
+      if (child.exitCode !== null)
+        throw new Error("Restarted backend exited early.");
+      try {
+        return (
+          (
+            await fetch(`${base}/api/v1/health`, {
+              signal: AbortSignal.timeout(1000),
+            })
+          ).status === 200
+        );
+      } catch {
+        return false;
+      }
+    });
+  }
   const payload = {
     showtimeId: showtime.id,
     seatIds: seats.map((row) => row.id),
@@ -549,6 +613,38 @@ async function main() {
   assert.equal(calendar.status, 200);
   assert.match(calendar.headers.get("content-type"), /text\/calendar/);
   assert.match(await calendar.text(), /BEGIN:VCALENDAR/);
+  stage =
+    "fresh process preserves registration, PAID booking, SOLD seats and the identical QR";
+  await restartBackend();
+  assert.equal(
+    (await api("GET", "/api/v1/users/me", 200, undefined, tokens[1])).data.id,
+    registration.id,
+  );
+  const persistedUsers = (
+    await api("GET", "/api/v1/admin/reports/users", 200, undefined, tokens[4])
+  ).data;
+  assert(persistedUsers.some((user) => user.id === registration.id));
+  const persistedBooking = (
+    await api(
+      "GET",
+      `/api/v1/bookings/${paidBooking.id}`,
+      200,
+      undefined,
+      tokens[1],
+    )
+  ).data;
+  assert.equal(persistedBooking.status, "PAID");
+  assert.equal(persistedBooking.finalAmount, paidBooking.finalAmount);
+  const persistedTicket = (
+    await api("GET", `/api/v1/tickets/${ticket.id}`, 200, undefined, tokens[1])
+  ).data;
+  assert.equal(persistedTicket.ticketHash, ticket.ticketHash);
+  assert.equal(persistedTicket.qrCodeBase64, ticket.qrCodeBase64);
+  assert.equal(
+    (await api("GET", `/api/v1/showtimes/${showtime.id}/seats`, 200)).data
+      .capacity.sold,
+    2,
+  );
   stage = "production Sandbox form duplicate completion";
   const form = new URL(payment.url).searchParams;
   form.set("result", "SUCCESS");
@@ -642,6 +738,30 @@ async function main() {
   assert(spec.paths["/api/v1/bookings/hold"].post.security);
   assert(spec.paths["/api/v1/payments/webhook"]);
   assert(spec.paths["/api/v1/admin/reports/revenue"].get.security);
+  stage = "fresh process preserves completed staff check-in";
+  await restartBackend();
+  assert.equal(
+    (
+      await api(
+        "GET",
+        `/api/v1/tickets/${ticket.id}`,
+        200,
+        undefined,
+        tokens[1],
+      )
+    ).data.isCheckedIn,
+    true,
+  );
+  await api(
+    "POST",
+    "/api/v1/staff/check-in",
+    409,
+    { ticketHash: ticket.ticketHash },
+    tokens[2],
+  );
+  console.log(
+    "PASS persistence across two fresh backend processes: registered account, ADMIN user list, PAID order, SOLD seats, identical QR and completed check-in remain in PostgreSQL.",
+  );
   console.log(
     "PASS compiled Phase10 production smoke: full booking/payment/realtime/QR/SMTP/check-in chain plus ADMIN-only filtered Decimal revenue, one paid booking/two sold seats, and exclusion of cancelled/expired holds.",
   );

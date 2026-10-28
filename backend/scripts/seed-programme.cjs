@@ -57,7 +57,12 @@ async function seedProgramme() {
         "Run db:seed and db:seed:discovery before db:seed:programme.",
       );
     let added = 0;
-    for (const [cinemaIndex, key] of ["landmark", "westlake"].entries()) {
+    for (const [cinemaIndex, key] of [
+      "landmark",
+      "westlake",
+      "sala",
+      "riverside",
+    ].entries()) {
       const cinema = await db.cinema.findUnique({
         where: { id: id(`cinema:${key}`) },
       });
@@ -206,7 +211,7 @@ async function seedProgramme() {
         legacyAdded: added,
         ...expanded,
         message:
-          "Today + 30 days; existing bookings, schedules and layouts preserved.",
+          "All active films through at least 30 days and the end of next month; existing bookings, schedules and layouts preserved.",
       }),
     );
   } finally {

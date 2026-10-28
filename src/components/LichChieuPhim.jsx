@@ -1,3 +1,4 @@
+import { useQuerySelection } from "../useQuerySelection.js";
 // LichChieuPhim: mã nguồn chức năng, dùng chung cho mọi trang.
 /**
  * ==============================================================================
@@ -7,7 +8,10 @@
  * ==============================================================================
  */
 
-import { useEffect, useState } from "react";
+import CinemaPicker from "./CinemaPicker.jsx";
+import DateSelector from "./DateSelector.jsx";
+import Link from "next/link";
+import { useState } from "react";
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -21,18 +25,36 @@ import {
 import { motion, useReducedMotion } from "framer-motion";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
-import { apiGetShowtimeSeats } from "../api/client.js";
 import { useI18n } from "../i18n.js";
-export default function LichChieuPhim({ onBook }) {
-  const { language } = useI18n();
+export default function LichChieuPhim({
+  onBook,
+  selection,
+  onSelectionChange,
+}) {
+  const { language, t } = useI18n();
   const { cinemas, movies, rooms, getDates, getShowtimes } = useCatalog();
-  const [capacities, setCapacities] = useState({});
+  const [format, setFormat] = useState("all");
   const [period, setPeriod] = useState("all");
   const [roomFilter, setRoomFilter] = useState("all");
   const reduced = useReducedMotion();
-  const [cinemaId, setCinemaId] = useState(cinemas[0]?.id || "");
-  const [dateId, setDateId] = useState(() => getDates()[0]?.id || "");
-  const [filmId, setFilmId] = useState(movies[0]?.id || "");
+  const [localCinemaId, updateCinema] = useQuerySelection("cinema");
+  const cinemaId = selection?.cinemaId || localCinemaId;
+  function setCinemaId(value) {
+    updateCinema(value);
+    onSelectionChange?.({ cinemaId: value, movieId: "", dateId: "" });
+  }
+  const [localDateId, updateDate] = useState(() => getDates()[0]?.id || "");
+  const [localFilmId, updateFilm] = useState(movies[0]?.id || "");
+  const dateId = selection?.dateId || localDateId;
+  const filmId = selection?.movieId || localFilmId;
+  function setDateId(value) {
+    updateDate(value);
+    onSelectionChange?.({ dateId: value });
+  }
+  function setFilmId(value) {
+    updateFilm(value);
+    onSelectionChange?.({ movieId: value, dateId: "" });
+  }
   const scheduledCinemas = cinemas.filter((cinema) => cinema.movies.length);
   const cinema =
     scheduledCinemas.find((c) => c.id === cinemaId) ||
@@ -69,9 +91,13 @@ export default function LichChieuPhim({ onBook }) {
   const showRooms = cinemaRooms.filter((room) =>
     allTimes.some((time) => time.roomId === room.id),
   );
+  const activeFormat = allTimes.some((time) => time.roomType === format)
+    ? format
+    : "all";
   const times = allTimes.filter((time) => {
     const hour = Number(time.displayTime.slice(0, 2));
     return (
+      (activeFormat === "all" || time.roomType === activeFormat) &&
       (activeRoom === "all" || time.roomId === activeRoom) &&
       (period === "all" ||
         (period === "morning" && hour < 12) ||
@@ -80,30 +106,6 @@ export default function LichChieuPhim({ onBook }) {
         (period === "late" && hour >= 21))
     );
   });
-  const timeKey = times.map((t) => t.id).join(",");
-  useEffect(() => {
-    let active = true;
-    async function update() {
-      const results = await Promise.allSettled(
-        timeKey
-          .split(",")
-          .filter(Boolean)
-          .map(async (id) => [id, (await apiGetShowtimeSeats(id)).capacity]),
-      );
-      if (active)
-        setCapacities(
-          Object.fromEntries(
-            results.filter((r) => r.status === "fulfilled").map((r) => r.value),
-          ),
-        );
-    }
-    void update();
-    const timer = setInterval(update, 10000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [timeKey]);
   if (!cinema || !film)
     return (
       <section id="showtimes" className="content-width section-space">
@@ -139,30 +141,23 @@ export default function LichChieuPhim({ onBook }) {
         <div className="timeline-filters">
           <label>
             <MapPin size={16} />
-            <select
+            <CinemaPicker
+              label="Rạp trong lịch chiếu"
               value={activeCinemaId}
-              aria-label={
-                language === "en" ? "Timeline cinema" : "Rạp trong lịch chiếu"
-              }
-              onChange={(e) => {
-                setCinemaId(e.target.value);
+              scheduledOnly
+              onChange={(value) => {
+                setCinemaId(value);
                 setRoomFilter("all");
                 setPeriod("all");
                 setFilmId(
-                  cinemas.find((c) => c.id === e.target.value).movies[0],
+                  cinemas.find((cinema) => cinema.id === value).movies[0],
                 );
               }}
-            >
-              {scheduledCinemas.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <div className="schedule-calendar-header">
             <div>
-              <p className="nova-kicker">CHỌN NGÀY HẸN CỦA BẠN</p>
+              <p className="nova-kicker">{t("CHỌN NGÀY HẸN CỦA BẠN")}</p>
               <strong>
                 {dates.length} ngày có lịch ·{" "}
                 {film.status === "soon" ? "Đặt vé trước" : "Đang mở bán"}
@@ -170,22 +165,14 @@ export default function LichChieuPhim({ onBook }) {
             </div>
             <label>
               <CalendarDays size={17} />
-              <span>Đi đến ngày</span>
-              <input
-                type="date"
-                aria-label="Chọn ngày xa trong lịch chiếu"
-                min={dates[0]?.id}
-                max={dateEnd}
+              <span>{t("Đi đến ngày")}</span>
+              <DateSelector
+                label="Chọn ngày xa trong lịch chiếu"
+                dates={dates}
                 value={activeDate || ""}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  if (dates.some((date) => date.id === value)) {
-                    setDateId(value);
-                    setDateNotice("");
-                  } else
-                    setDateNotice(
-                      "Ngày này chưa có lịch cho phim đang chọn. Hãy chọn một ngày được mở bán bên dưới.",
-                    );
+                onChange={(value) => {
+                  setDateId(value);
+                  setDateNotice("");
                 }}
               />
             </label>
@@ -278,15 +265,15 @@ export default function LichChieuPhim({ onBook }) {
           <div className="timeline-content">
             <div className="timeline-film-heading">
               <h3>{language === "en" ? film.original : film.title}</h3>
-              <span>
-                {film.format} · {cinema.name}
-              </span>
+              <Link href={`/phim/${film.id}`}>
+                {t("Thông tin phim")} <ArrowUpRight size={15} />
+              </Link>
             </div>
             {film.status === "soon" && (
               <div className="presale-notice">
                 <Ticket size={18} />
                 <p>
-                  <strong>Đặt trước cho buổi tái chiếu.</strong> Chọn giờ, phòng
+                  <strong>Suất chiếu sớm & đặt trước.</strong> Chọn giờ, phòng
                   và ghế như vé thường. Ngày chiếu đã được mở bán trên hệ thống;
                   đây là chương trình minh họa của NOVA.
                 </p>
@@ -311,7 +298,7 @@ export default function LichChieuPhim({ onBook }) {
                     className={period === key ? "active" : ""}
                     onClick={() => setPeriod(key)}
                   >
-                    {label}
+                    {t(label)}
                   </button>
                 ))}
               </div>
@@ -337,7 +324,34 @@ export default function LichChieuPhim({ onBook }) {
               <Clock3 size={13} />
               {times.length} suất phù hợp
               {activeDateObj ? ` · ${activeDateObj.label}` : ""}
-              <span>Chọn một giờ để xem sơ đồ ghế</span>
+              <span>{t("Chọn một giờ để xem sơ đồ ghế")}</span>
+            </div>
+            <div
+              className="screening-format-tabs"
+              role="group"
+              aria-label="Lọc định dạng phòng"
+            >
+              {[
+                ["all", "Mọi định dạng"],
+                ["STANDARD_2D", "2D Laser"],
+                ["IMAX_70MM_LASER", "IMAX Laser"],
+                ["DOLBY_ATMOS", "Dolby Atmos"],
+              ]
+                .filter(
+                  ([key]) =>
+                    key === "all" ||
+                    allTimes.some((time) => time.roomType === key),
+                )
+                .map(([key, label]) => (
+                  <button
+                    type="button"
+                    key={key}
+                    aria-pressed={activeFormat === key}
+                    onClick={() => setFormat(key)}
+                  >
+                    {t(label)}
+                  </button>
+                ))}
             </div>
             <div className="timeline-shows">
               {times.length === 0 && (
@@ -348,6 +362,7 @@ export default function LichChieuPhim({ onBook }) {
                   <button
                     onClick={() => {
                       setPeriod("all");
+                      setFormat("all");
                       setRoomFilter("all");
                     }}
                   >
@@ -356,15 +371,11 @@ export default function LichChieuPhim({ onBook }) {
                 </div>
               )}
               {times.map((time) => {
-                const free = capacities[time.id]?.available ?? "—";
-                const total = capacities[time.id]?.total ?? "—";
-                const state =
-                  free > 60 ? "plenty" : free > 20 ? "filling" : "limited";
                 return (
                   <motion.button
                     key={time.id}
-                    className={`timeline-show ${state}`}
-                    aria-label={`${time.displayTime}, ${free}/${total} ${language === "en" ? "seats available" : "ghế trống"}`}
+                    className="timeline-show plenty"
+                    aria-label={`${time.displayTime}, ${time.roomName}, ${t("Xem ghế trống")}`}
                     whileHover={reduced ? undefined : { y: -2 }}
                     whileTap={reduced ? undefined : { scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 300, damping: 28 }}
@@ -391,20 +402,23 @@ export default function LichChieuPhim({ onBook }) {
                       )}
                     </span>
                     <strong>{time.displayTime}</strong>
+                    <span className="screening-end">
+                      Kết thúc{" "}
+                      {new Date(
+                        new Date(time.startTime).getTime() +
+                          (film.duration || film.durationMinutes) * 60000,
+                      ).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "Asia/Ho_Chi_Minh",
+                      })}
+                    </span>
                     <small>{time.roomName}</small>
                     <span className="show-price">
                       Từ {money(time.baseTicketPrice)}
                     </span>
-                    <span className="seat-capacity-track">
-                      <i
-                        style={{
-                          width: `${(typeof free === "number" && typeof total === "number" && total > 0 ? free / total : 0) * 100}%`,
-                        }}
-                      />
-                    </span>
                     <span className="show-capacity-label">
-                      {language === "en" ? "Available" : "Còn"} {free}/{total}{" "}
-                      {language === "en" ? "seats" : "ghế"}
+                      {t("Xem ghế trống")}
                       <Ticket size={14} />
                     </span>
                   </motion.button>

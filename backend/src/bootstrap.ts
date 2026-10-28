@@ -12,6 +12,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { randomUUID } from "node:crypto";
 import { json, NextFunction, Response, urlencoded } from "express";
 import helmet from "helmet";
+import compression from "compression";
 import { AppModule } from "./app.module";
 import { AppSettings } from "./config/app.config";
 import { ApiExceptionFilter } from "./common/filters/api-exception.filter";
@@ -40,7 +41,11 @@ export function configureApplication(app: INestApplication): void {
       header && /^[a-zA-Z0-9_-]{1,64}$/.test(header) ? header : randomUUID();
     response.setHeader("x-request-id", request.correlationId);
     response.setHeader("Cache-Control", "no-store");
+    response.setHeader("x-nova-backend", "postgres");
     const started = Date.now();
+    logger.log(
+      `START ${request.method} ${request.path} id=${request.correlationId}`,
+    );
     response.once("finish", () => {
       logger.log(
         `${request.method} ${request.path} ${String(response.statusCode)} ${String(Date.now() - started)}ms id=${request.correlationId || "unknown"}`,
@@ -49,6 +54,19 @@ export function configureApplication(app: INestApplication): void {
     next();
   });
   app.use(helmet());
+  // Compress public read-only catalogue/seat JSON, never authentication tokens or SSE.
+  app.use(
+    compression({
+      threshold: 1024,
+      level: 4,
+      filter: (request, response) =>
+        ["GET", "HEAD"].includes(request.method) &&
+        /^\/api\/v1\/(movies|cinemas|rooms|combos|showtimes)(\/|$)/.test(
+          request.path,
+        ) &&
+        compression.filter(request, response),
+    }),
+  );
   app.use(json({ limit: "100kb" }));
   app.use(urlencoded({ extended: true, limit: "100kb" }));
   app.use(

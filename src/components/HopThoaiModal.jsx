@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export default function HopThoaiModal({
@@ -17,6 +18,7 @@ export default function HopThoaiModal({
   wide = false,
   embedded = false,
   image = "/images/cinema-lobby.jpg",
+  className = "",
 }) {
   const panel = useRef(null);
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function HopThoaiModal({
       document.removeEventListener("keydown", onKey);
     };
   }, [onClose, embedded]);
-  return (
+  const content = (
     <div
       className={embedded ? "embedded-dialog" : "modal-backdrop"}
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -75,7 +77,7 @@ export default function HopThoaiModal({
         role="dialog"
         aria-modal={embedded ? undefined : true}
         aria-label={title}
-        className={`modal-panel ${wide ? "modal-wide" : ""}`}
+        className={`modal-panel ${wide ? "modal-wide" : ""} ${className}`}
       >
         <header
           className="modal-header"
@@ -84,7 +86,7 @@ export default function HopThoaiModal({
           }}
         >
           <div>
-            <span className="eyebrow">NOVA / INFINITY EXPERIENCE</span>
+            <span className="eyebrow">NOVA / BEYOND THE FRAME</span>
             <h2>{title}</h2>
           </div>
           {!embedded && (
@@ -97,4 +99,10 @@ export default function HopThoaiModal({
       </section>
     </div>
   );
+  // A transformed page section must not place the dialog below the sticky header.
+  return embedded
+    ? content
+    : typeof document === "undefined"
+      ? null
+      : createPortal(content, document.body);
 }

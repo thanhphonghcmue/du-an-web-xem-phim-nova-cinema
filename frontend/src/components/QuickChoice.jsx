@@ -148,9 +148,10 @@ export default function QuickChoice({
                   onClick={() => {
                     setOpen(false);
                     setQuery("");
+                    // ID nghiệp vụ phải cập nhật cùng lần chọn, không đợi transition.
+                    onChange(item.id);
                     startTransition(() => {
                       selectOptimistically(item.id);
-                      onChange(item.id);
                     });
                   }}
                 >

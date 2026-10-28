@@ -66,7 +66,16 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
     }
     return result;
   } catch (cause) {
-    if (cause.status) throw cause;
+    if (cause.status) {
+      if (
+        cause.status === 401 &&
+        !endpoint.startsWith("/auth/") &&
+        endpoint !== "/users/me" &&
+        typeof window !== "undefined"
+      )
+        window.dispatchEvent(new Event("nova-session-expired"));
+      throw cause;
+    }
     const timedOut = budget.signal.reason?.name === "TimeoutError";
     const message = timedOut
       ? "Máy chủ chưa phản hồi trong 8 giây. Vui lòng thử lại; đơn đang giữ có thể kiểm tra trong tài khoản."

@@ -853,7 +853,11 @@ function createMemoryServer(input) {
       method = request.method,
       query = url.searchParams;
     const json = (data, code = 200) =>
-      send(response, code, { success: true, data });
+      send(response, code, {
+        success: true,
+        data,
+        message: "Yêu cầu được xử lý thành công.",
+      });
     if (path === "/health" || path === "/health/live")
       return json({
         status: "ok",

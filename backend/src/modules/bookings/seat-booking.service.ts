@@ -51,6 +51,7 @@ export class SeatBookingService {
       .digest("hex");
     for (let attempt = 0; attempt < 3; attempt++) {
       let lease: SeatLockLease | undefined;
+      let resolvedSeatIds = requestedSeatIds;
       try {
         return await this.database.transaction(async (tx) => {
           if (key) {
@@ -122,6 +123,7 @@ export class SeatBookingService {
             }
           }
           const seatIds = [...resolved].sort();
+          resolvedSeatIds = seatIds;
           if (seatIds.length > 20)
             throw new ApiException(
               400,
@@ -295,6 +297,29 @@ export class SeatBookingService {
           return this.requireRecord(booking.id, tx);
         });
       } catch (error) {
+        // BR01: transaction đã rollback; đọc claim hiện tại để UI biết ghế lỗi,
+        // kể cả writer bên ngoài Redis thắng ở unique constraint cuối cùng.
+        if (error instanceof ApiException) {
+          const body = error.getResponse();
+          if (
+            typeof body === "object" &&
+            "error" in body &&
+            body.error === "SEAT_UNAVAILABLE" &&
+            !("details" in body)
+          ) {
+            let unavailableIds: string[] | undefined;
+            try {
+              unavailableIds = (
+                await this.database.transaction((tx) =>
+                  this.bookings.activeSeat(dto.showtimeId, resolvedSeatIds, tx),
+                )
+              ).map((seat) => seat.seatId);
+            } catch {
+              // Vẫn giữ409 gốc khi snapshot tạm thời không đọc được.
+            }
+            if (unavailableIds) throw unavailable(unavailableIds);
+          }
+        }
         if (
           !(error instanceof Prisma.PrismaClientKnownRequestError) ||
           !["P2034", "P2010"].includes(error.code) ||

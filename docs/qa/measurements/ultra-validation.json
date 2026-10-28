@@ -1,0 +1,50 @@
+{
+  "baselineCommit": "04371a8",
+  "scenarioRows": 69,
+  "independentPassingTests": {
+    "backendUnit": 89,
+    "nativeHttpSocketPostgres": 242,
+    "databaseSchema": 23,
+    "nodeRamPlannerConfig": 60,
+    "productionBrowser": 89,
+    "total": 503
+  },
+  "newTestsSinceBaseline": 15,
+  "fullCommand": "npm run qa:native",
+  "functionalStatus": "PASSED",
+  "performanceBudgets": "NOT_MET",
+  "nativeOnly": true,
+  "fullRuns": [
+    {
+      "functionalStatus": "FAILED",
+      "browserPassed": 88,
+      "browserFailed": 1,
+      "cause": "An earlier Admin reconciliation test retained its own pending hold; following capacity test hit409. Fixed owner cancellation in finally without changing product capacity rules."
+    },
+    {
+      "functionalStatus": "FAILED",
+      "browserPassed": 89,
+      "browserFailed": 0,
+      "cause": "RAM startup smoke exposed deferred committed selection state under React transition; immediate onChange fixes cinema/movie/showtime/date consistency."
+    },
+    {
+      "functionalStatus": "FAILED",
+      "browserPassed": 88,
+      "browserFailed": 1,
+      "smokesPassed": true,
+      "cause": "XSS test used generic main locator during overlapping loading/real main transition. Scoped to unique main-content; same execution checks retained."
+    },
+    {
+      "functionalStatus": "PASSED",
+      "browserPassed": 89,
+      "browserFailed": 0
+    }
+  ],
+  "separateRegression": [
+    "20-way native contention one201/nineteen409",
+    "reconciliation then capacity2/2 passed",
+    "expired-session same-seat reauthentication passed"
+  ],
+  "upstreamTimeoutMs": 7630,
+  "evidencePolicy": "Only measurements and counters; no credentials, signed URLs, ticket hashes or QR images. Earlier attempts are not added to the test total."
+}

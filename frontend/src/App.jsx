@@ -172,6 +172,20 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [member, setMember] = useState(null);
   const [sessionError, setSessionError] = useState("");
+  const reauthenticationOwner = useRef(null);
+  useEffect(() => {
+    const requireSignIn = () => {
+      if (!member && !booking) return;
+      // Giữ nguyên modal ghế và lựa chọn; đăng nhập lại không tạo đơn mới.
+      if (member) reauthenticationOwner.current = member.id;
+      setMember(null);
+      if (booking) setPendingBooking(booking);
+      setModal("login");
+    };
+    window.addEventListener("nova-session-expired", requireSignIn);
+    return () =>
+      window.removeEventListener("nova-session-expired", requireSignIn);
+  }, [member, booking]);
   const [userRating, setUserRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [userReview, setUserReview] = useState("");
@@ -884,6 +898,7 @@ export default function App() {
             booking.movie.id,
             booking.date.id,
             booking.time.id,
+            member?.id || reauthenticationOwner.current || "guest",
           ].join("|")}
           booking={booking}
           member={member}

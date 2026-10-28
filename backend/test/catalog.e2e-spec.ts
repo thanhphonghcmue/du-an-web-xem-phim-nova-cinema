@@ -324,6 +324,33 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
     });
   });
 
+  it.each([
+    "' OR '1'='1'; DROP TABLE movies; --",
+    "<script>alert('XSS')</script>",
+  ])(
+    "SEC-03 treats hostile search %s as text and preserves the catalogue",
+    async (keyword) => {
+      const before = await prisma.movie.count();
+      const result = listing(
+        await request(server)
+          .get("/api/v1/movies")
+          .query({ keyword })
+          .expect(200),
+      );
+      expect(result.items).toEqual([]);
+      expect(await prisma.movie.count()).toBe(before);
+      await request(server).get("/api/v1/health/live").expect(200);
+    },
+  );
+
+  it.each([1, 500, 501, 600])(
+    "SIT-03 preserves existing duration contract at %s minutes",
+    async (durationMinutes) => {
+      const result = await movie(randomUUID(), { durationMinutes });
+      expect(result.durationMinutes).toBe(durationMinutes);
+    },
+  );
+
   it("rejects invalid movie fields, unsafe URLs, nulls and mass assignment", async () => {
     for (const override of [
       { title: "  " },

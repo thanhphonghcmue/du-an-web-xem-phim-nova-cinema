@@ -151,3 +151,9 @@ Lượt native cùng ngày bổ sung các biên299/300/301s,14/15/16phút,4 tài
 ## Kiểm toán Fullstack bổ sung — 28/10/2026
 
 Không đánh dấu hoàn thành Phase11–12. Bổ sung UC02 ACTIVE/LOCKED/INACTIVE (migration additive), Admin payment reconciliation/durable ticket recovery, exact conflict IDs, env compatibility sau chuyển frontend/ và responsive Admin. Kiểm chứng488 ca độc lập:89 backend unit,232 HTTP/Socket.IO,23 DB schema,60 Node/RAM/config/planner,84 browser production; các lần chạy lại không cộng trùng. Typecheck/lint/build đạt, native RAM/503-timeout smoke đạt. [Audit/RTM/TC-01…05 và giới hạn](../../docs/qa/fullstack-lab04-audit.md).
+
+## SIT/E2E/Concurrency/Security native mở rộng
+
+Giữ trạng thái Phase 11–12. Script `npm run qa:native` chạy hết 503 bài độc lập (89 unit + 242 native HTTP + 23 schema + 60 Node/RAM + 89 browser), lint/typecheck/build và hai smoke đều đạt. Ma trận có 69 kịch bản truy vết, ghi rõ khác biệt contract và giới hạn. Hai mươi users qua hai API instances tranh một ghế VIP cho kết quả 1 × 201/19 × 409.
+
+Vá conflict IDs sau SQL rollback, tái xác thực giữ context, null member và state ID bị hoãn ở picker; bổ sung envelope message RAM, fixture GOLD với 50.000 điểm và cleanup test. Mục tiêu latency/payload/QR 50 ms chưa đạt; functional PASS không được coi là performance PASS. [Báo cáo và toàn bộ số đo](../../docs/qa/ultra-expanded-audit.md).

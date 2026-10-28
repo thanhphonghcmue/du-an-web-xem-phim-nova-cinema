@@ -1,0 +1,6 @@
+{
+  "measuredAt": "2026-10-28T18:16:33.129Z",
+  "samples": 1,
+  "paymentClickToVisibleOwnerQrMs": 2379.4100990000006,
+  "layer": "production browser; includes Sandbox navigation and owner QR rendering; healthy loopback SMTP"
+}

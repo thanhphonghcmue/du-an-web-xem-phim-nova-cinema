@@ -1,0 +1,57 @@
+{
+  "startedAt": "2026-10-28T17:29:03.878Z",
+  "nativeOnly": true,
+  "steps": [
+    {
+      "name": "generate",
+      "passed": true,
+      "durationMs": 1308,
+      "log": "generate.log"
+    },
+    {
+      "name": "migrate-test",
+      "passed": true,
+      "durationMs": 1056,
+      "log": "migrate-test.log"
+    },
+    {
+      "name": "backend",
+      "passed": true,
+      "durationMs": 98641,
+      "log": "backend.log"
+    },
+    {
+      "name": "schema",
+      "passed": true,
+      "durationMs": 5600,
+      "log": "schema.log"
+    },
+    {
+      "name": "node-ram",
+      "passed": true,
+      "durationMs": 16788,
+      "log": "node-ram.log"
+    },
+    {
+      "name": "lint",
+      "passed": true,
+      "durationMs": 6258,
+      "log": "lint.log"
+    },
+    {
+      "name": "build",
+      "passed": true,
+      "durationMs": 27592,
+      "log": "build.log"
+    },
+    {
+      "name": "browser",
+      "passed": false,
+      "durationMs": 442708,
+      "log": "browser.log"
+    }
+  ],
+  "functionalStatus": "FAILED",
+  "performanceBudgets": "NOT_MEASURED",
+  "completedAt": "2026-10-28T17:39:03.838Z"
+}

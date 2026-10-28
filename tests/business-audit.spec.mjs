@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { readFileSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
 import { createRequire } from "node:module";
 import { chooseOption, chooseDate } from "./ui-choices.mjs";
 const req = createRequire(new URL("../backend/package.json", import.meta.url));
@@ -212,7 +212,7 @@ test("payment gateways and signed Sandbox actions fit their cards on narrow and 
     await expect(button).toHaveAttribute("aria-pressed", "true");
     await expect(card.locator(".payment-provider-notice")).toContainText(label);
   }
-  for (const width of [320, 390, 820, 1440]) {
+  for (const width of [320, 375, 390, 768, 820, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await card.scrollIntoViewIfNeeded();
     expect(
@@ -691,81 +691,342 @@ test("ADMIN reconciliation renders real pending payment, safe failures and respo
   });
   expect(held.status()).toBe(201);
   const order = (await held.json()).data;
-  await page.request
-    .post("/api/v1/payments/create-sandbox-url", {
-      data: { bookingId: order.id, returnUrl: new URL("/", page.url()).href },
-    })
-    .then((r) => expect(r.status()).toBe(201));
+  const ownerCookies = await page.context().cookies();
+  try {
+    await page.request
+      .post("/api/v1/payments/create-sandbox-url", {
+        data: { bookingId: order.id, returnUrl: new URL("/", page.url()).href },
+      })
+      .then((r) => expect(r.status()).toBe(201));
+    const errors = [];
+    page.on("pageerror", () => errors.push("runtime"));
+    await login(page, "admin");
+    await page.goto("/quan-tri");
+    await page
+      .getByRole("button", { name: "Đối soát thanh toán", exact: true })
+      .click();
+    const input = page.getByRole("textbox", {
+      name: "Mã đơn hoặc mã giao dịch",
+      exact: true,
+    });
+    await input.fill(order.orderCode);
+    await page
+      .getByRole("button", { name: "Tra cứu giao dịch", exact: true })
+      .click();
+    const panel = page.getByRole("region", {
+      name: "Đối soát thanh toán",
+      exact: true,
+    });
+    await expect(
+      panel.getByText(order.orderCode, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      panel.getByText("Đang giữ ghế", { exact: true }),
+    ).toBeVisible();
+    if (process.env.NOVA_CAPTURE_DIR) {
+      mkdirSync(process.env.NOVA_CAPTURE_DIR, { recursive: true });
+      await page.screenshot({
+        path: resolve(
+          process.env.NOVA_CAPTURE_DIR,
+          "admin-reconciliation-desktop.jpg",
+        ),
+        type: "jpeg",
+        quality: 80,
+      });
+    }
+    await expect(
+      panel.getByRole("button", { name: "Khôi phục phát hành vé" }),
+    ).toHaveCount(0);
+    await page.setViewportSize({ width: 360, height: 900 });
+    const panelWidth = await panel.evaluate(
+      (el) => el.getBoundingClientRect().width,
+    );
+    expect(
+      await input.evaluate((el) => el.getBoundingClientRect().width),
+    ).toBeGreaterThan(panelWidth - 65);
+    expect(
+      await page
+        .locator(".admin-tabs")
+        .evaluate((el) => el.getBoundingClientRect().height),
+    ).toBeLessThan(110);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      await panel.evaluate(
+        (el) => el.getBoundingClientRect().right <= innerWidth,
+      ),
+    ).toBe(true);
+    if (process.env.NOVA_CAPTURE_DIR)
+      await panel.screenshot({
+        path: resolve(
+          process.env.NOVA_CAPTURE_DIR,
+          "admin-reconciliation-mobile.jpg",
+        ),
+        type: "jpeg",
+        quality: 80,
+      });
+    await input.fill(`NOVA-${"0".repeat(32)}`);
+    await page
+      .getByRole("button", { name: "Tra cứu giao dịch", exact: true })
+      .click();
+    await expect(panel.getByRole("alert")).toContainText(
+      "Không tìm thấy mã đơn",
+    );
+    expect(errors).toEqual([]);
+  } finally {
+    // Hủy bằng chủ đơn, không để test sau phụ thuộc việc hold đã đủ5 phút.
+    await page.context().addCookies(ownerCookies);
+    expect(
+      (await page.request.post(`/api/v1/bookings/${order.id}/cancel`)).status(),
+    ).toBe(200);
+  }
+});
+
+test("SIT-04 expired access and refresh prompt reauthentication without losing the chosen screening or seats", async ({
+  page,
+  context,
+}) => {
   const errors = [];
   page.on("pageerror", () => errors.push("runtime"));
-  await login(page, "admin");
-  await page.goto("/quan-tri");
-  await page
-    .getByRole("button", { name: "Đối soát thanh toán", exact: true })
-    .click();
-  const input = page.getByRole("textbox", {
-    name: "Mã đơn hoặc mã giao dịch",
-    exact: true,
+  await login(page);
+  const show = fixture().advanceShows[32];
+  await openScreening(page, show);
+  const selected = page.getByRole("button", {
+    name: /^Ghế A1,/,
   });
-  await input.fill(order.orderCode);
-  await page
-    .getByRole("button", { name: "Tra cứu giao dịch", exact: true })
+  await selected.click();
+  await expect(selected).toHaveAttribute("aria-pressed", "true");
+  await context.clearCookies();
+  await holdButton(page).click();
+  const loginDialog = page.getByRole("dialog").last();
+  await expect(
+    loginDialog.getByRole("button", { name: "Đăng nhập ngay", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".login-trigger")).toContainText("Đăng nhập");
+  await loginDialog
+    .getByLabel("Email", { exact: true })
+    .fill(fixture().accounts.customer.email);
+  await loginDialog
+    .getByLabel("Mật khẩu", { exact: true })
+    .fill(fixture().password);
+  await loginDialog
+    .getByRole("button", { name: "Đăng nhập ngay", exact: true })
     .click();
-  const panel = page.getByRole("region", {
-    name: "Đối soát thanh toán",
-    exact: true,
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  await expect(selected).toHaveAttribute("aria-pressed", "true");
+  const held = page.waitForResponse(
+    (r) =>
+      r.request().method() === "POST" &&
+      new URL(r.url()).pathname.endsWith("/bookings/hold"),
+  );
+  await holdButton(page).click();
+  expect((await held).status()).toBe(201);
+  await cancel(page);
+  expect(errors).toEqual([]);
+});
+
+test("UI-03 countdown changes without mutating the seat grid DOM and cleanup stops its observer", async ({
+  page,
+}) => {
+  await login(page);
+  await openScreening(page, fixture().advanceShows[33]);
+  await page
+    .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
+    .click();
+  await holdButton(page).click();
+  await expect(page.getByTestId("hold-timer")).toBeVisible();
+  const initial = await page.getByTestId("hold-timer").innerText();
+  await page.evaluate(() => {
+    const grid =
+      document.querySelector(".seat-map") ||
+      document.querySelector('[aria-label="Sơ đồ ghế"]');
+    if (!grid) throw new Error("Seat grid missing");
+    window.__seatMutations = 0;
+    window.__seatObserver = new MutationObserver(
+      (entries) => (window.__seatMutations += entries.length),
+    );
+    window.__seatObserver.observe(grid, {
+      childList: true,
+      attributes: true,
+      characterData: true,
+      subtree: true,
+    });
   });
-  await expect(panel.getByText(order.orderCode, { exact: true })).toBeVisible();
-  await expect(panel.getByText("Đang giữ ghế", { exact: true })).toBeVisible();
-  if (process.env.NOVA_CAPTURE_DIR) {
-    mkdirSync(process.env.NOVA_CAPTURE_DIR, { recursive: true });
-    await page.screenshot({
-      path: resolve(
-        process.env.NOVA_CAPTURE_DIR,
-        "admin-reconciliation-desktop.jpg",
-      ),
-      type: "jpeg",
-      quality: 80,
+  try {
+    await expect(page.getByTestId("hold-timer")).not.toHaveText(initial, {
+      timeout: 3000,
+    });
+    expect(await page.evaluate(() => window.__seatMutations)).toBe(0);
+  } finally {
+    await page.evaluate(() => {
+      window.__seatObserver.disconnect();
+      delete window.__seatObserver;
+      delete window.__seatMutations;
     });
   }
-  await expect(
-    panel.getByRole("button", { name: "Khôi phục phát hành vé" }),
-  ).toHaveCount(0);
-  await page.setViewportSize({ width: 360, height: 900 });
-  const panelWidth = await panel.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  await cancel(page);
+});
+
+test("SEC-03 stored profile markup renders as text and does not execute script", async ({
+  page,
+}) => {
+  const data = fixture();
+  const email = `${data.prefix}-xss@example.test`;
+  const fullName = '<img src=x onerror="window.__novaXss=1">';
+  const registered = await page.request.post("/api/v1/auth/register", {
+    data: { email, password: data.password, fullName },
+  });
+  expect(registered.status()).toBe(201);
   expect(
-    await input.evaluate((el) => el.getBoundingClientRect().width),
-  ).toBeGreaterThan(panelWidth - 65);
-  expect(
-    await page
-      .locator(".admin-tabs")
-      .evaluate((el) => el.getBoundingClientRect().height),
-  ).toBeLessThan(110);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
-  expect(
-    await panel.evaluate(
-      (el) => el.getBoundingClientRect().right <= innerWidth,
-    ),
-  ).toBe(true);
-  if (process.env.NOVA_CAPTURE_DIR)
-    await panel.screenshot({
-      path: resolve(
-        process.env.NOVA_CAPTURE_DIR,
-        "admin-reconciliation-mobile.jpg",
-      ),
-      type: "jpeg",
-      quality: 80,
-    });
-  await input.fill(`NOVA-${"0".repeat(32)}`);
+    (
+      await page.request.post("/api/v1/auth/login", {
+        data: { email, password: data.password },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.goto("/tai-khoan");
+  await expect(page.locator("#main-content")).toContainText(fullName);
+  expect(await page.evaluate(() => window.__novaXss)).toBeUndefined();
+  expect(await page.locator("#main-content img[onerror]").count()).toBe(0);
+});
+
+test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS, then staff checks in once", async ({
+  page,
+  browser,
+}) => {
+  const f = fixture();
+  await login(page, "cmember");
+  const profile = await page.request
+    .get("/api/v1/users/me")
+    .then((r) => r.json());
+  expect(profile.data.cMemberPoints).toBe(50000);
+  expect(profile.data.cMemberTier).toBe("GOLD");
+  await openScreening(page, f.showtime);
   await page
-    .getByRole("button", { name: "Tra cứu giao dịch", exact: true })
+    .getByLabel("Số người trong nhóm", { exact: true })
+    .selectOption("2");
+  await page
+    .getByRole("combobox", { name: "Loại ghế gợi ý", exact: true })
+    .selectOption("VIP");
+  await page.getByRole("button", { name: "Xếp ghế", exact: true }).click();
+  await expect(page.locator('.seat[aria-pressed="true"]')).toHaveCount(2);
+  await page
+    .getByRole("spinbutton", { name: `Số lượng ${f.combo.name}`, exact: true })
+    .fill("1");
+  const holding = page.waitForResponse(
+    (r) =>
+      r.request().method() === "POST" &&
+      new URL(r.url()).pathname.endsWith("/bookings/hold"),
+  );
+  await holdButton(page).click();
+  const response = await holding;
+  expect(response.status()).toBe(201);
+  const order = (await response.json()).data;
+  expect(order.finalAmount).toBe("265050.00");
+  expect(order.totalComboAmount).toBe("69000.00");
+  await page
+    .getByRole("checkbox", {
+      name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
+    })
+    .check();
+  const paymentJourneyStarted = performance.now();
+  await page
+    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
     .click();
-  await expect(panel.getByRole("alert")).toContainText("Không tìm thấy mã đơn");
-  expect(errors).toEqual([]);
+  await page
+    .getByRole("button", { name: "Thanh toán thành công", exact: true })
+    .click();
+  await page
+    .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Xem vé trong tài khoản", exact: true })
+    .click();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
+  if (process.env.NOVA_QA_JOURNEY_METRICS_FILE) {
+    mkdirSync(dirname(process.env.NOVA_QA_JOURNEY_METRICS_FILE), {
+      recursive: true,
+    });
+    writeFileSync(
+      process.env.NOVA_QA_JOURNEY_METRICS_FILE,
+      JSON.stringify(
+        {
+          measuredAt: new Date().toISOString(),
+          samples: 1,
+          paymentClickToVisibleOwnerQrMs:
+            performance.now() - paymentJourneyStarted,
+          layer:
+            "production browser; includes Sandbox navigation and owner QR rendering; healthy loopback SMTP",
+        },
+        null,
+        2,
+      ) + "\n",
+      { mode: 0o600 },
+    );
+  }
+  const items = (
+    await page.request.get("/api/v1/tickets/me?limit=100").then((r) => r.json())
+  ).data.items.filter((ticket) => ticket.bookingId === order.id);
+  expect(items).toHaveLength(1);
+  const ticket = items[0];
+  const calendar = await page.request.get(
+    `/api/v1/tickets/${ticket.id}/calendar`,
+  );
+  expect(calendar.status()).toBe(200);
+  expect(await calendar.text()).toContain("BEGIN:VCALENDAR");
+  expect(
+    (await page.request.get("/api/v1/users/me").then((r) => r.json())).data
+      .cMemberPoints,
+  ).toBe(50026);
+  const staff = await browser.newContext();
+  try {
+    expect(
+      (
+        await staff.request.post(
+          new URL("/api/v1/auth/login", page.url()).href,
+          { data: { email: f.accounts.staff.email, password: f.password } },
+        )
+      ).status(),
+    ).toBe(200);
+    const desk = await staff.newPage();
+    await desk.goto(new URL("/soat-ve", page.url()).href);
+    await desk.getByLabel("Ngày đang soát", { exact: true }).fill(
+      new Date(f.showtime.startTime).toLocaleDateString("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      }),
+    );
+    await desk
+      .getByRole("combobox", { name: "Suất chiếu đang soát", exact: true })
+      .selectOption(f.showtime.id);
+    await desk
+      .getByLabel("Mã đọc từ QR", { exact: true })
+      .fill(ticket.ticketHash);
+    await desk
+      .getByRole("button", { name: "Kiểm tra vé", exact: true })
+      .click();
+    await expect(desk.locator(".admission-result.valid")).toContainText(
+      f.movie.title,
+    );
+    await desk.getByRole("button", { name: /Xác nhận/ }).click();
+    await expect(desk.locator(".admission-result")).toContainText(
+      /Đã|thành công/i,
+    );
+    expect(
+      (
+        await staff.request.post(
+          new URL("/api/v1/staff/check-in", page.url()).href,
+          {
+            data: { ticketHash: ticket.ticketHash, showtimeId: f.showtime.id },
+          },
+        )
+      ).status(),
+    ).toBe(409);
+  } finally {
+    await staff.close();
+  }
 });

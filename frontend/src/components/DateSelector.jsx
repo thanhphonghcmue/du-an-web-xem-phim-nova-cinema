@@ -95,9 +95,10 @@ export default function DateSelector({
               onSelect={(date) => {
                 if (date) {
                   setOpen(false);
+                  // Đồng bộ ngày thật trước khi đóng lịch và chọn suất tiếp theo.
+                  onChange(calendarKey(date));
                   startTransition(() => {
                     selectOptimistically(calendarKey(date));
-                    onChange(calendarKey(date));
                   });
                 }
               }}

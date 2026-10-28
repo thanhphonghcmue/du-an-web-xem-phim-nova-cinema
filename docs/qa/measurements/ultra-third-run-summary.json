@@ -1,0 +1,69 @@
+{
+  "startedAt": "2026-10-28T17:56:01.628Z",
+  "nativeOnly": true,
+  "steps": [
+    {
+      "name": "generate",
+      "passed": true,
+      "durationMs": 1224,
+      "log": "generate.log"
+    },
+    {
+      "name": "migrate-test",
+      "passed": true,
+      "durationMs": 1112,
+      "log": "migrate-test.log"
+    },
+    {
+      "name": "backend",
+      "passed": true,
+      "durationMs": 96891,
+      "log": "backend.log"
+    },
+    {
+      "name": "schema",
+      "passed": true,
+      "durationMs": 5379,
+      "log": "schema.log"
+    },
+    {
+      "name": "node-ram",
+      "passed": true,
+      "durationMs": 16901,
+      "log": "node-ram.log"
+    },
+    {
+      "name": "lint",
+      "passed": true,
+      "durationMs": 6928,
+      "log": "lint.log"
+    },
+    {
+      "name": "build",
+      "passed": true,
+      "durationMs": 28968,
+      "log": "build.log"
+    },
+    {
+      "name": "ram-startup",
+      "passed": true,
+      "durationMs": 38233,
+      "log": "ram-startup.log"
+    },
+    {
+      "name": "upstream-failure",
+      "passed": true,
+      "durationMs": 34164,
+      "log": "upstream-failure.log"
+    },
+    {
+      "name": "browser",
+      "passed": false,
+      "durationMs": 427515,
+      "log": "browser.log"
+    }
+  ],
+  "functionalStatus": "FAILED",
+  "performanceBudgets": "NOT_MEASURED",
+  "completedAt": "2026-10-28T18:06:58.953Z"
+}

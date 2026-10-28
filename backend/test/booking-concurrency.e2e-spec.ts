@@ -591,6 +591,79 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     ).toBe(1);
   });
 
+  it("CONC-01: twenty users on two native API instances compete for one VIP seat with one201 and nineteen409", async () => {
+    const f = await fixture();
+    const targetSeat = seat(f);
+    await prisma.seat.update({
+      where: { id: targetSeat },
+      data: { seatType: "VIP", priceModifier: "1.20" },
+    });
+    const tokens: string[] = [];
+    for (let index = 0; index < 20; index++) {
+      const user = await prisma.user.create({
+        data: {
+          email: `${prefix}-burst-${String(index)}@example.test`,
+          passwordHash: randomBytes(32).toString("hex"),
+          fullName: "Owned concurrency fixture",
+          role: "CUSTOMER",
+        },
+      });
+      tokens.push(
+        (await app.get(TokenService).issue(user.id)).tokens.accessToken,
+      );
+    }
+    const start = gate();
+    const requests = tokens.map(async (token, index) => {
+      await start.promise;
+      return hold(f, token, [targetSeat], index % 2 ? otherServer : server);
+    });
+    start.release();
+    const responses = await Promise.all(requests);
+    expect(responses.filter((r) => r.status === 201)).toHaveLength(1);
+    expect(responses.filter((r) => r.status === 409)).toHaveLength(19);
+    for (const response of responses.filter((r) => r.status === 409)) {
+      expect(code(response)).toBe("SEAT_UNAVAILABLE");
+      expect(
+        (JSON.parse(response.text) as { details: { seatIds: string[] } })
+          .details.seatIds,
+      ).toContain(targetSeat);
+    }
+    const winner = booking(successful(responses));
+    expect(winner.finalAmount).toBe("102600.00");
+    expect(
+      await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+    ).toBe(1);
+    expect(
+      await prisma.bookingSeat.count({
+        where: { showtimeId: f.showtime.id, status: "HOLDING" },
+      }),
+    ).toBe(1);
+    expect(
+      await redis.keys(`${namespace()}:seat-lock:{${f.showtime.id}}:*`),
+    ).toEqual([]);
+  });
+
+  it.each([{ totalAmount: 1000 }, { price: 0 }, { discount: 9999999 }])(
+    "SEC-01 rejects price tampering %j without creating a booking or claims",
+    async (extra) => {
+      const f = await fixture();
+      await request(server)
+        .post("/api/v1/bookings/hold")
+        .auth(customerA, { type: "bearer" })
+        .send({ ...input(f), ...extra })
+        .expect(400);
+      expect(
+        await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
+      ).toBe(0);
+      expect(
+        await prisma.bookingSeat.count({
+          where: { showtimeId: f.showtime.id },
+        }),
+      ).toBe(0);
+      expect(booking(await hold(f).expect(201)).finalAmount).toBe("85500.00");
+    },
+  );
+
   it("rejects an overlapping multi-seat request atomically without reserving its other seats", async () => {
     const f = await fixture();
     const responses = await Promise.all([
@@ -1195,6 +1268,10 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     spy.mockRestore();
     expect(result.status).toBe(409);
     expect(code(result)).toBe("SEAT_UNAVAILABLE");
+    expect(
+      (JSON.parse(result.text) as { details: { seatIds: string[] } }).details
+        .seatIds,
+    ).toEqual([seat(f)]);
     expect(
       await prisma.booking.count({ where: { showtimeId: f.showtime.id } }),
     ).toBe(1);

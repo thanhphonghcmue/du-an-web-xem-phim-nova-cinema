@@ -158,7 +158,9 @@ async function main() {
     data: { email, password },
   });
   expect(login.status()).toBe(200);
-  const session = (await login.json()).data;
+  const payload = await login.json();
+  expect(typeof payload.message).toBe("string");
+  const session = payload.data;
   expect(session.accessToken).toBeUndefined();
   expect(session.refreshToken).toBeUndefined();
   await page.goto(`${origin}/dat-ve`);

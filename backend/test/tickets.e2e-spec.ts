@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { INestApplication } from "@nestjs/common";
 import { getQueueToken } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
@@ -874,8 +876,11 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
   });
   it("retains PAID and its QR on a real SMTP451, then retries the same email event successfully", async () => {
     const f = await fixture();
+    const started = performance.now();
     await pay(f);
+    const paymentCompletedMs = performance.now() - started;
     const ticket = await generate(f);
+    const qrServiceReadyMs = performance.now() - started;
     const event = await emailEvent(f.booking.id);
     smtp.state.rejectNext = 1;
     await app.get(FulfillmentRelay).flush();
@@ -891,6 +896,29 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
       where: { id: event.id },
     });
     expect(failed.processedAt).toBeNull();
+    if (process.env.NOVA_QA_SMTP_METRICS_FILE) {
+      mkdirSync(dirname(process.env.NOVA_QA_SMTP_METRICS_FILE), {
+        recursive: true,
+      });
+      writeFileSync(
+        process.env.NOVA_QA_SMTP_METRICS_FILE,
+        JSON.stringify(
+          {
+            measuredAt: new Date().toISOString(),
+            samples: 1,
+            paymentCompletedMs,
+            qrServiceReadyMs,
+            smtpFault: "451 confirmed; durable retry retained",
+            layer:
+              "native HTTP checkout+webhook then direct post-commit TicketsService; excludes browser rendering and relay polling",
+            budgets: { servicePathUnder50ms: qrServiceReadyMs < 50 },
+          },
+          null,
+          2,
+        ) + "\n",
+        { mode: 0o600 },
+      );
+    }
     const retryPreview = data(
       await request(server)
         .get(`/api/v1/tickets/${ticket.id}/confirmation`)

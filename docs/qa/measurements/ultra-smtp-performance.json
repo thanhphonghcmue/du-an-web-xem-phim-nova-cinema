@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-28T18:10:26.167Z",
+  "samples": 1,
+  "paymentCompletedMs": 41.60737099999824,
+  "qrServiceReadyMs": 669.1031689999982,
+  "smtpFault": "451 confirmed; durable retry retained",
+  "layer": "native HTTP checkout+webhook then direct post-commit TicketsService; excludes browser rendering and relay polling",
+  "budgets": {
+    "servicePathUnder50ms": false
+  }
+}

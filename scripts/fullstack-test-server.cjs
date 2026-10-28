@@ -89,16 +89,20 @@ async function main() {
   });
   const passwordHash = await req("argon2").hash(password);
   const accounts = {};
-  for (const role of ["ADMIN", "STAFF", "CUSTOMER"]) {
+  for (const label of ["ADMIN", "STAFF", "CUSTOMER", "CMEMBER"]) {
+    const role = label === "CMEMBER" ? "CUSTOMER" : label;
     const user = await prisma.user.create({
       data: {
-        email: `${prefix}-${role.toLowerCase()}@example.test`,
-        fullName: `Web ${role}`,
+        email: `${prefix}-${label.toLowerCase()}@example.test`,
+        fullName: `Web ${label}`,
         passwordHash,
         role,
+        ...(label === "CMEMBER"
+          ? { cMemberTier: "GOLD", cMemberPoints: 50000 }
+          : {}),
       },
     });
-    accounts[role.toLowerCase()] = { id: user.id, email: user.email };
+    accounts[label.toLowerCase()] = { id: user.id, email: user.email };
   }
   const cinema = await prisma.cinema.create({
     data: {

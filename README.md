@@ -290,6 +290,14 @@ Chi tiết Windows, cấu hình native, RTM20 ca kiểm thử và giới hạn n
 
 ## 🧪 8. KIỂM THỬ VÀ ĐẢM BẢO CHẤT LƯỢNG (QA)
 
+Kiểm toán SIT/E2E/Concurrency/Security mới: [69 kịch bản truy vết](docs/qa/ultra-expanded-audit.md). Với PostgreSQL/Redis native và database test riêng đã cấu hình, chạy một lệnh:
+
+```powershell
+npm run qa:native
+```
+
+Runner không gọi Docker, chạy các bộ ghi database tuần tự và lưu log/summary trong `.runtime/qa-native/<run-id>/`. Kết quả chức năng và các mục tiêu độ trễ/kích thước được tách trong báo cáo; không báo đạt 30/50 ms nếu số đo vượt ngưỡng. `npm run qa:native -- --api-only` dành cho backend/schema/Node/lint. Cần cài Chromium cho Playwright nếu máy chưa có.
+
 ```bash
 npm run test:unit
 npm run test:backend

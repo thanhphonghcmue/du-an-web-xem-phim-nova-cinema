@@ -974,7 +974,7 @@ function LiveBookingConsole({
             </div>
 
             <aside className="booking-summary live-summary">
-              <h3>Đơn của {member.name}</h3>
+              <h3>Đơn của {member?.name || "bạn"}</h3>
               <p>
                 Ghế:{" "}
                 {selected

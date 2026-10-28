@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaClient } from "@prisma/client";
 import { DatabaseSettings } from "../config/database.config";
+import { boundedPoolUrl } from "./pool-url";
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -9,7 +10,9 @@ export class PrismaService
 {
   constructor(config: ConfigService) {
     super({
-      datasourceUrl: config.getOrThrow<DatabaseSettings>("database").url,
+      datasourceUrl: boundedPoolUrl(
+        config.getOrThrow<DatabaseSettings>("database").url,
+      ),
       log: [],
     });
   }

@@ -16,7 +16,11 @@ const { chromium, expect } = require("@playwright/test");
 const root = resolve(__dirname, "..");
 let child, browser, upstream, directory;
 async function main() {
-  upstream = createServer((socket) => socket.destroy());
+  let stall = false;
+  upstream = createServer((socket) => {
+    if (!stall) socket.destroy();
+    else socket.setTimeout(10000, () => socket.destroy());
+  });
   upstream.listen(0, "127.0.0.1");
   await once(upstream, "listening");
   const portOwner = createServer();
@@ -117,8 +121,19 @@ async function main() {
     page.getByRole("combobox", { name: "Chọn cụm rạp", exact: true }),
   ).toBeDisabled();
   expect(errors).toEqual([]);
+  // A reachable server that never sends headers must also release the BFF.
+  stall = true;
+  const started = performance.now();
+  const stalled = await page.request.post("/api/v1/bookings/hold", {
+    data: {},
+  });
+  const elapsed = performance.now() - started;
+  expect(stalled.status()).toBe(503);
+  expect((await stalled.json()).code).toBe("BACKEND_UNAVAILABLE");
+  expect(elapsed).toBeGreaterThan(7000);
+  expect(elapsed).toBeLessThan(8300);
   console.log(
-    "PASS backend-only network check: legacy flag ignored; real upstream failure returns 503 for registration/login/booking; no RAM data, false success, bookable slots or browser errors.",
+    `PASS backend-only network check: legacy flag ignored; real upstream failure returns 503; stalled upstream released in ${elapsed.toFixed(0)}ms; no invented data, false success or browser errors.`,
   );
 }
 main()

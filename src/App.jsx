@@ -31,6 +31,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import NovaLogo from "./components/NovaLogo.jsx";
+import { notifyApiError } from "./api/notice.js";
 import Discovery from "./components/Discovery.jsx";
 import PortalPage from "./components/PortalPage.jsx";
 import CinemaHero from "./components/CinemaHero.jsx";
@@ -270,6 +271,9 @@ export default function App() {
     );
     if (!time) {
       setTimeId("");
+      notifyApiError(
+        "Hãy chọn đủ rạp, phim, ngày và suất chiếu còn mở bán trước khi đặt vé.",
+      );
       return;
     }
     const context = {

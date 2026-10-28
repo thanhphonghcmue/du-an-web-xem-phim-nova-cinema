@@ -109,7 +109,7 @@ async function proxy(request, context) {
       body,
       cache: "no-store",
       redirect: "manual",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(7500)]),
     });
 
     const type = result.headers.get("content-type") || "application/json";
@@ -167,6 +167,10 @@ async function proxy(request, context) {
     }
 
     response.headers.set("Cache-Control", "no-store");
+    const backendKind = result.headers.get("x-nova-backend");
+    if (backendKind) response.headers.set("x-nova-backend", backendKind);
+    const requestId = result.headers.get("x-request-id");
+    if (requestId) response.headers.set("x-request-id", requestId);
     if (
       endpoint === "/auth/logout" ||
       (endpoint === "/auth/refresh" && result.status === 401)

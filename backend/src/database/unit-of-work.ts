@@ -9,6 +9,13 @@ export class UnitOfWork {
     isolationLevel: Prisma.TransactionIsolationLevel = Prisma
       .TransactionIsolationLevel.ReadCommitted,
   ): Promise<T> {
-    return this.prisma.$transaction(operation, { isolationLevel });
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SET LOCAL lock_timeout = '1500ms'`;
+        await tx.$executeRaw`SET LOCAL statement_timeout = '4500ms'`;
+        return operation(tx);
+      },
+      { isolationLevel, maxWait: 1000, timeout: 5000 },
+    );
   }
 }

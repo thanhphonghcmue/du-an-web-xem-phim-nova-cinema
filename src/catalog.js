@@ -45,10 +45,10 @@ export const formatVietnamDateKey = dayKey;
  * @param {string | number | Date} value - Mốc thời gian
  * @returns {string} Chuỗi giờ hiển thị (ví dụ "19:45")
  */
-export const timeLabel = (value) =>
-  new Date(value).toLocaleTimeString("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const timeFormatter = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+export const timeLabel = (value) => timeFormatter.format(new Date(value));
 export const formatVietnamTimeLabel = timeLabel;

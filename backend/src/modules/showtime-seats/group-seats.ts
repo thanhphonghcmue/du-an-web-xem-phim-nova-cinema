@@ -24,7 +24,12 @@ export function findGroupSeats(
   for (const label of [...rows.keys()].sort()) {
     const row = rows.get(label);
     if (!row?.length) continue;
-    row.sort((a, b) => a.column - b.column);
+    if (
+      row.some(
+        (seat, i) => i > 0 && (row[i - 1]?.column ?? -Infinity) > seat.column,
+      )
+    )
+      row.sort((a, b) => a.column - b.column);
     const first = row[0];
     const last = row[row.length - 1];
     if (!first || !last) continue;
@@ -53,6 +58,18 @@ export function findGroupSeats(
               : 0)
           : 0;
     }
+    const byColumn = new Map(row.map((seat) => [seat.column, seat]));
+    const invalidPairs: number[] = [0];
+    for (let i = 0; i < row.length; i++) {
+      const seat = row[i];
+      if (!seat) continue;
+      const partner = byColumn.get(
+        seat.column % 2 ? seat.column + 1 : seat.column - 1,
+      );
+      invalidPairs[i + 1] =
+        (invalidPairs[i] ?? 0) +
+        Number(seat.type === "SWEETBOX" && partner?.type !== "SWEETBOX");
+    }
     let run = 0;
     let previous: number | undefined;
     for (let index = 0; index < row.length; index++) {
@@ -79,20 +96,10 @@ export function findGroupSeats(
         (row[index + 1]?.column === seat.column + 1 && right[index + 1] === 1)
       )
         continue;
-      const window = row.slice(start, index + 1);
       if (
-        window.some(
-          (candidate) =>
-            candidate.type === "SWEETBOX" &&
-            !window.some(
-              (partner) =>
-                partner.type === "SWEETBOX" &&
-                partner.column ===
-                  (candidate.column % 2 === 1
-                    ? candidate.column + 1
-                    : candidate.column - 1),
-            ),
-        )
+        (beginning.type === "SWEETBOX" && beginning.column % 2 === 0) ||
+        (seat.type === "SWEETBOX" && seat.column % 2 === 1) ||
+        (invalidPairs[index + 1] ?? 0) - (invalidPairs[start] ?? 0) > 0
       )
         continue;
       const distance = Math.abs((beginning.column + seat.column) / 2 - center);

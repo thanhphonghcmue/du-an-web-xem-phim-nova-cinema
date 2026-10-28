@@ -62,8 +62,20 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   );
   useEffect(() => {
     let active = true;
+    let running = false;
     async function load() {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return;
+      if (running) return;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+        if (active)
+          setSchedule({
+            items: [],
+            day,
+            cinemaId,
+            error: "Hãy chọn ngày hợp lệ để tải suất chiếu.",
+          });
+        return;
+      }
+      running = true;
       try {
         // Explicit date includes already-started screenings, unlike the public upcoming catalog.
         const items = await apiGetShowtimes({
@@ -74,6 +86,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
       } catch (err) {
         if (active)
           setSchedule({ items: [], day, cinemaId, error: err.message });
+      } finally {
+        running = false;
       }
     }
     void Promise.resolve().then(load);
@@ -112,7 +126,19 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     });
   }
   async function verify(targetHash) {
-    if (inFlight.current || !showtimeId || !scheduleReady) return;
+    if (inFlight.current) return;
+    if (!showtimeId || !scheduleReady) {
+      setError({
+        message: "Hãy chọn ngày, rạp và suất chiếu trước khi kiểm tra vé.",
+      });
+      return;
+    }
+    if (!/^[a-f0-9]{64}$/i.test(targetHash.trim())) {
+      setError({
+        message: "Mã QR chưa hợp lệ. Hãy nhập mã vé gồm 64 ký tự đọc từ QR.",
+      });
+      return;
+    }
     inFlight.current = true;
     setBusy(true);
     clearResult();
@@ -132,7 +158,11 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     }
   }
   async function admit() {
-    if (!preview || inFlight.current) return;
+    if (inFlight.current) return;
+    if (!preview) {
+      setError({ message: "Hãy kiểm tra vé trước khi xác nhận soát vé." });
+      return;
+    }
     inFlight.current = true;
     setBusy(true);
     setError(null);
@@ -397,10 +427,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           autoComplete="off"
           placeholder="Dán chuỗi 64 ký tự từ QR vé"
         />
-        <button
-          className="button button-primary"
-          disabled={busy || !showtimeId || !hash.trim() || !scheduleReady}
-        >
+        <button className="button button-primary" disabled={busy}>
           <ClipboardCheck size={16} />
           {busy ? "Đang đối chiếu…" : "Kiểm tra vé"}
         </button>

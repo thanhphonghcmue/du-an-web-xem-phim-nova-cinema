@@ -67,7 +67,15 @@ export class ApiExceptionFilter implements ExceptionFilter {
         message = "Request body is too large.";
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      if (exception.code === "P2002") {
+      if (
+        ["P2024", "P2028"].includes(exception.code) ||
+        (exception.code === "P2010" &&
+          ["55P03", "57014"].includes(String(exception.meta?.code)))
+      ) {
+        statusCode = 503;
+        error = "DATABASE_BUSY";
+        message = "Máy chủ đang bận. Vui lòng thử lại sau giây lát.";
+      } else if (exception.code === "P2002") {
         statusCode = 409;
         error = "RESOURCE_CONFLICT";
         message = "The resource already exists.";

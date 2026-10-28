@@ -40,7 +40,11 @@ export function configureApplication(app: INestApplication): void {
       header && /^[a-zA-Z0-9_-]{1,64}$/.test(header) ? header : randomUUID();
     response.setHeader("x-request-id", request.correlationId);
     response.setHeader("Cache-Control", "no-store");
+    response.setHeader("x-nova-backend", "postgres");
     const started = Date.now();
+    logger.log(
+      `START ${request.method} ${request.path} id=${request.correlationId}`,
+    );
     response.once("finish", () => {
       logger.log(
         `${request.method} ${request.path} ${String(response.statusCode)} ${String(Date.now() - started)}ms id=${request.correlationId || "unknown"}`,

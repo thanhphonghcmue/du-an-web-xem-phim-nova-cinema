@@ -3,7 +3,6 @@ import { Prisma } from "@prisma/client";
 import { ApiException } from "../../common/exceptions/api.exception";
 import { UnitOfWork } from "../../database/unit-of-work";
 import { PricingService } from "../bookings/pricing.service";
-import { SeatBookingService } from "../bookings/seat-booking.service";
 import { findGroupSeats } from "./group-seats";
 import {
   GroupSeatQueryDto,
@@ -17,7 +16,6 @@ export class ShowtimeSeatsService {
   constructor(
     private readonly repository: ShowtimeSeatsRepository,
     private readonly database: UnitOfWork,
-    private readonly bookings: SeatBookingService,
     private readonly pricing: PricingService,
   ) {}
   async requireShowtime(id: string): Promise<void> {
@@ -30,7 +28,6 @@ export class ShowtimeSeatsService {
   }
   async map(id: string): Promise<ShowtimeSeatMapDto> {
     await this.requireShowtime(id);
-    await this.bookings.expireShowtimeHolds(id);
     return this.database.transaction(async (tx) => {
       const asOf = await this.repository.now(tx);
       const showtime = await this.repository.showtime(id, tx);

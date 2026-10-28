@@ -5,6 +5,7 @@ import { UnitOfWork } from "../../database/unit-of-work";
 import { BookingDto, HoldSeatsDto, ListBookingsDto } from "./booking.dto";
 import { BookingRecord, BookingsRepository } from "./bookings.repository";
 import { SeatBookingService } from "./seat-booking.service";
+import { projectExpiredBooking } from "./booking-projection";
 @Injectable()
 export class BookingsService {
   constructor(
@@ -51,11 +52,11 @@ export class BookingsService {
     return this.serialize(await this.seats.releaseSeats(id, userId));
   }
   async list(userId: string, query: ListBookingsDto) {
-    await this.seats.sweepExpired(userId);
     return this.database.transaction(async (tx) => {
-      const [items, total] = await this.bookings.page(userId, query, tx);
+      const asOf = await this.bookings.now(tx);
+      const [items, total] = await this.bookings.page(userId, query, tx, asOf);
       return pageOf(
-        items.map((row) => this.serialize(row)),
+        items.map((row) => this.serialize(projectExpiredBooking(row, asOf))),
         total,
         query,
       );

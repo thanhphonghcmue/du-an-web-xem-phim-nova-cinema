@@ -12,7 +12,7 @@
  *   - Tự động xử lý lỗi tải lại (Retry backoff 350ms) khi hạ tầng tạm thời báo 503 Rate Limiter.
  *
  * TIẾN TRÌNH HOẠT ĐỘNG (WORKFLOW):
- *   1. `apiRequest`: Hàm gốc gửi HTTP request với timeout 20s, cache: no-store, credentials: same-origin.
+ *   1. `apiRequest`: Hàm gốc gửi HTTP request với timeout 8s, cache: no-store, credentials: same-origin.
  *   2. Nếu nhận HTTP 401 Unauthorized -> kích hoạt khóa `nova-session-refresh` -> gọi `/auth/refresh` -> thử lại yêu cầu.
  *   3. `apiList`: Hỗ trợ tự động phân trang (Pagination Auto-Fetch) gom toàn bộ danh sách items.
  *   4. Các hàm nghiệp vụ: Đăng ký, Đăng nhập, Đặt ghế, Thanh toán Sandbox, Quản trị doanh thu.
@@ -31,7 +31,13 @@ export const API_BASE = "/api/v1";
 import { apiErrorMessage } from "./errorMessage.js";
 import { notifyApiError } from "./notice.js";
 import { uniqueRecords } from "../uniqueRecords.js";
+import { requestBudget, abortable } from "./budget.js";
 let refreshing;
+let programmeCache,
+  catalogueEpoch = 0,
+  backendKind = "unknown";
+const reads = new Map();
+export const getBackendKind = () => backendKind;
 
 /**
  * Hàm gọi API tổng quát với cơ chế tự làm mới Token (Refresh Token) và tự thử lại (Retry)
@@ -41,68 +47,100 @@ let refreshing;
  * @returns {Promise<any>}
  */
 export async function apiRequest(endpoint, options = {}, retry = true) {
-  let response;
+  const budget = requestBudget(options.signal);
   try {
-    response = await fetch(API_BASE + endpoint, {
-      ...options,
-      credentials: "same-origin",
-      cache: "no-store",
-      headers: {
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...options.headers,
-      },
-      signal: options.signal || AbortSignal.timeout(20000),
-    });
+    const result = await abortable(
+      requestWithinBudget(endpoint, options, retry, budget.signal),
+      budget.signal,
+    );
+    if (options.method && options.method !== "GET") {
+      reads.clear();
+      programmeCache = null;
+      catalogueEpoch++;
+    }
+    return result;
   } catch (cause) {
-    const message =
-      cause.name === "TimeoutError"
-        ? "Máy chủ phản hồi quá lâu. Vui lòng thử lại."
+    if (cause.status) throw cause;
+    const timedOut = budget.signal.reason?.name === "TimeoutError";
+    const message = timedOut
+      ? "Máy chủ chưa phản hồi trong 8 giây. Vui lòng thử lại; đơn đang giữ có thể kiểm tra trong tài khoản."
+      : options.signal?.aborted
+        ? "Đã hủy yêu cầu."
         : "Kết nối bị gián đoạn. Vui lòng thử lại.";
     if (!options.signal?.aborted) notifyApiError(message);
-    throw new Error(message, { cause });
+    const error = new Error(message, { cause });
+    error.code = timedOut ? "REQUEST_TIMEOUT" : "CONNECTION_FAILED";
+    throw error;
+  } finally {
+    budget.dispose();
   }
+}
 
-  // Xử lý khi Token hết hạn (HTTP 401)
+async function requestWithinBudget(endpoint, options, retry, signal) {
+  signal.throwIfAborted();
+  const response = await fetch(API_BASE + endpoint, {
+    ...options,
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers,
+    },
+    signal,
+  });
+  const kind = response.headers.get("x-nova-backend");
+  if (kind === "memory" || kind === "postgres") backendKind = kind;
   if (response.status === 401 && retry && !endpoint.startsWith("/auth/")) {
     const rotate = async () => {
-      // Một tab khác có thể đã làm mới cookie xong trong lúc tab này chờ khóa
       try {
-        await apiRequest("/users/me", {}, false);
+        await requestWithinBudget("/users/me", {}, false, signal);
         return;
       } catch (error) {
         if (error.status !== 401) throw error;
       }
-      await apiRequest("/auth/refresh", { method: "POST" }, false);
+      await requestWithinBudget(
+        "/auth/refresh",
+        { method: "POST" },
+        false,
+        signal,
+      );
     };
-
-    // Dùng Web Locks API để chỉ đúng 1 tab thực hiện refresh token tại một thời điểm
     refreshing ||= (
-      navigator.locks?.request
-        ? navigator.locks.request("nova-session-refresh", rotate)
+      typeof navigator !== "undefined" && navigator.locks?.request
+        ? navigator.locks.request("nova-session-refresh", { signal }, rotate)
         : rotate()
     ).finally(() => {
       refreshing = null;
     });
-
-    await refreshing;
-    return apiRequest(endpoint, options, false);
+    await abortable(refreshing, signal);
+    return requestWithinBudget(endpoint, options, false, signal);
   }
-
-  const payload = await response.json().catch(() => ({}));
-
-  // Xử lý mã lỗi HTTP từ Backend
-  if (!response.ok) {
-    // Tự động thử lại khi hệ thống nghẽn rate limit tạm thời
+  let payload;
+  try {
+    payload = await response.json();
+  } catch (error) {
+    signal.throwIfAborted();
+    throw error;
+  }
+  signal.throwIfAborted();
+  if (!response.ok || payload?.success === false) {
+    const safeToReplay =
+      !options.method ||
+      options.method === "GET" ||
+      Boolean(options.headers?.["Idempotency-Key"]);
     if (
       retry &&
+      safeToReplay &&
       (response.status === 503 ||
         payload.error === "RATE_LIMIT_UNAVAILABLE" ||
         payload.code === "RATE_LIMIT_UNAVAILABLE")
     ) {
-      await new Promise((r) => setTimeout(r, 350));
-      return apiRequest(endpoint, options, false);
+      await abortable(
+        new Promise((resolve) => setTimeout(resolve, 350)),
+        signal,
+      );
+      return requestWithinBudget(endpoint, options, false, signal);
     }
-
     const msg = apiErrorMessage(
       payload,
       response.status,
@@ -121,7 +159,23 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
 /**
  * Đọc dữ liệu trả về từ trường `data` của API
  */
-export const read = async (path) => (await apiRequest(path)).data;
+export function read(path) {
+  if (path === "/showtimes/programme" && programmeCache?.until > Date.now())
+    return Promise.resolve(programmeCache.data);
+  if (reads.has(path)) return reads.get(path);
+  const epoch = catalogueEpoch;
+  const task = apiRequest(path)
+    .then((result) => {
+      if (path === "/showtimes/programme" && epoch === catalogueEpoch)
+        programmeCache = { data: result.data, until: Date.now() + 30000 };
+      return result.data;
+    })
+    .finally(() => {
+      if (reads.get(path) === task) reads.delete(path);
+    });
+  reads.set(path, task);
+  return task;
+}
 
 /**
  * Tự động phân trang và thu thập toàn bộ danh sách đối tượng
@@ -130,6 +184,16 @@ export async function apiList(path, params = {}) {
   const query = (page) =>
     `${path}?${new URLSearchParams({ ...params, limit: 100, page })}`;
   const first = await read(query(1));
+  if (
+    !Array.isArray(first?.items) ||
+    !Number.isInteger(first?.meta?.totalPages) ||
+    first.meta.totalPages < 0 ||
+    first.meta.totalPages > 1000 ||
+    (first.meta.totalPages === 0 && first.items.length > 0)
+  )
+    throw new Error(
+      "Danh sách máy chủ chưa hợp lệ hoặc quá lớn. Hãy thu hẹp bộ lọc.",
+    );
   const items = [...first.items];
   // Four pages at a time keeps the month-long schedule responsive and bounded.
   for (let page = 2; page <= first.meta.totalPages; page += 4) {

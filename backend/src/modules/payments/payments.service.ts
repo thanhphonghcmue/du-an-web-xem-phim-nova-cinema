@@ -17,6 +17,7 @@ import {
   BookingsRepository,
 } from "../bookings/bookings.repository";
 import { SeatBookingService } from "../bookings/seat-booking.service";
+import { projectExpiredBooking } from "../bookings/booking-projection";
 import { earnedMemberPoints } from "./member-points";
 import {
   CheckoutPayloadDto,
@@ -147,19 +148,16 @@ export class PaymentsService {
 
   status(id: string, userId: string): Promise<PaymentStateDto> {
     return this.database.transaction(async (tx) => {
-      await this.bookings.lockOwned(id, userId, tx);
       const booking = await this.seats.requireRecord(id, tx);
       if (booking.userId !== userId) throw notFound();
-      await this.seats.expireLocked(id, tx);
-      const current = await this.seats.requireRecord(id, tx);
-      const showtime = await this.bookings.showtime(current.showtimeId, tx);
+      const showtime = await this.bookings.showtime(booking.showtimeId, tx);
       return this.state(
-        current,
+        booking,
         await this.payments.forBooking(id, tx),
         await this.bookings.now(tx),
         showtime?.startTime,
       );
-    });
+    }, Prisma.TransactionIsolationLevel.RepeatableRead);
   }
 
   async webhook(dto: PaymentWebhookDto): Promise<PaymentWebhookResultDto> {
@@ -171,19 +169,17 @@ export class PaymentsService {
   async checkout(dto: SignedCheckoutDto): Promise<PaymentStateDto> {
     this.signatures.verifyCheckout(dto, dto.signature);
     return this.database.transaction(async (tx) => {
-      const booking = await this.lockForPayment(dto.bookingId, tx);
+      const booking = await this.seats.requireRecord(dto.bookingId, tx);
       const payment = await this.payments.find(dto.transactionCode, tx);
       this.matchCheckout(dto, booking, payment);
-      await this.seats.expireLocked(booking.id, tx);
-      const current = await this.seats.requireRecord(booking.id, tx);
-      const showtime = await this.bookings.showtime(current.showtimeId, tx);
+      const showtime = await this.bookings.showtime(booking.showtimeId, tx);
       return this.state(
-        current,
+        booking,
         payment,
         await this.bookings.now(tx),
         showtime?.startTime,
       );
-    });
+    }, Prisma.TransactionIsolationLevel.RepeatableRead);
   }
   async simulate(dto: CompleteSandboxDto): Promise<PaymentWebhookResultDto> {
     this.signatures.verifyCheckout(dto, dto.signature);
@@ -460,7 +456,7 @@ export class PaymentsService {
   ) {
     return {
       bookingId: booking.id,
-      bookingStatus: booking.status,
+      bookingStatus: projectExpiredBooking(booking, now).status,
       transactionCode: payment?.transactionCode ?? null,
       paymentStatus: payment?.status ?? null,
       amount: booking.finalAmount.toFixed(2),

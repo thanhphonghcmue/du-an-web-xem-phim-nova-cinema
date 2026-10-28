@@ -16,10 +16,17 @@ mất khi dừng tiến trình. Ở nhánh NestJS, dữ liệu được lưu tro
 `npm run dev` chỉ chạy frontend và gọi backend đã cấu hình; trình duyệt không
 tự tạo kho đơn khác khi API lỗi.
 
-Kiểm thử nghiệp vụ thanh toán/QR của đợt giao diện này chạy trên NestJS/PostgreSQL.
-Chế độ tự chuyển RAM được kiểm tra khởi động, danh mục 24 món và giỏ món qua BFF;
-không dùng kết quả RAM để khẳng định đơn/QR đã được lưu bền vững.
-Danh mục RAM cũng đọc cùng 24 món thay cho ba combo cố định trước đây.
+Luồng NestJS/PostgreSQL được kiểm tra độc lập với nhánh RAM. Backend RAM hiện có
+phiên đăng nhập đúng owner, giữ ghế, Sandbox có chữ ký, QR thật và soát vé một lần.
+Script khởi động kiểm tra tự chuyển RAM → BFF → đăng nhập → giữ ghế → thanh toán → QR
+trên trình duyệt; dữ liệu RAM vẫn mất khi restart và không gửi SMTP.
+Danh mục RAM đọc cùng 24 món. Có thể đặt `NOVA_DEMO_PASSWORD` để thay mật khẩu demo
+cho lần chạy đó; không dùng tài khoản demo cho triển khai thật.
+
+Bản sửa nút bấm/hiệu năng: [chẩn đoán theo file/dòng, hợp đồng API và bằng chứng](docs/design/performance-dead-click-audit.md).
+Client giới hạn mỗi lệnh API trong 8 giây, chương trình chiếu public cache 30 giây;
+sơ đồ ghế chỉ tải khi mở một suất. Nest giữ một pool/app (mặc định 10 kết nối),
+transaction có giới hạn chờ và GET chiếu trạng thái hết hạn mà không dọn bằng khóa ghi.
 
 Máy đã có PostgreSQL, Redis và cấu hình riêng `backend/.env`:
 
@@ -162,7 +169,8 @@ npm run build
 node scripts/check-backend-only.cjs
 node scripts/check-fullstack-startup.cjs
 node --test scripts/ticket-qr.test.mjs scripts/unique-records.test.mjs
-node --test scripts/food-cart.test.mjs
+node --test scripts/food-cart.test.mjs scripts/memory-contract.test.cjs scripts/request-budget.test.mjs scripts/catalog-index.test.mjs
+npm --prefix backend run test:programme
 # Backend build + dedicated test PostgreSQL/Redis phải sẵn sàng trước npm test.
 npm test
 cd backend

@@ -4,7 +4,6 @@ import QuickChoice from "./QuickChoice.jsx";
 import DateSelector from "./DateSelector.jsx";
 import { friendlyDay } from "../bookingDates.js";
 import { money } from "../data.js";
-import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -17,7 +16,6 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useCatalog } from "../catalog.js";
-import { apiGetShowtimeSeats } from "../api/client.js";
 import { useI18n } from "../i18n.js";
 
 export default function DatVeNhanh({
@@ -38,7 +36,6 @@ export default function DatVeNhanh({
   const { t, language } = useI18n();
   const { cinemas, movies, rooms, getDates, getShowtimes, isLive } =
     useCatalog();
-  const [capacities, setCapacities] = useState({});
   const cinema = cinemas.find((item) => item.id === cinemaId);
   const films = movies.filter((movie) => cinema?.movies.includes(movie.id));
   const dates = getDates("vi", cinemaId, movieId);
@@ -46,35 +43,7 @@ export default function DatVeNhanh({
     dateId && movieId ? getShowtimes(cinemaId, movieId, dateId) : [];
   const movie = films.find((movie) => movie.id === movieId);
   const selectedTime = times.find((time) => time.id === timeId);
-  const timeKey = times.map((time) => time.id).join(",");
-  useEffect(() => {
-    let active = true;
-    async function update() {
-      const results = await Promise.allSettled(
-        timeKey
-          .split(",")
-          .filter(Boolean)
-          .map(async (id) => [
-            id,
-            (await apiGetShowtimeSeats(id)).capacity.available,
-          ]),
-      );
-      if (active)
-        setCapacities(
-          Object.fromEntries(
-            results
-              .filter((result) => result.status === "fulfilled")
-              .map((result) => result.value),
-          ),
-        );
-    }
-    void update();
-    const timer = setInterval(update, 15000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [timeKey]);
+
   return (
     <section
       id="booking"
@@ -164,8 +133,7 @@ export default function DatVeNhanh({
               id: time.id,
               name: time.displayTime,
               description: time.roomName,
-              detail: `Từ ${money(time.baseTicketPrice)}${typeof capacities[time.id] === "number" ? ` · Còn ${capacities[time.id]} ghế` : " · Đang cập nhật ghế"}`,
-              disabled: capacities[time.id] === 0,
+              detail: `Từ ${money(time.baseTicketPrice)} · ${t("Xem ghế trống")}`,
             }))}
           />
           <small>
@@ -176,7 +144,7 @@ export default function DatVeNhanh({
         </label>
         <button
           className="button button-primary express-submit"
-          disabled={!isLive || !cinemaId || !movieId || !dateId || !timeId}
+          disabled={!isLive}
         >
           {t("Đặt ngay")} <ArrowRight size={18} />
         </button>

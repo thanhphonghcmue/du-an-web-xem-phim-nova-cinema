@@ -30,6 +30,7 @@ import { CatalogContext, dayKey, timeLabel } from "../catalog.js";
 import { movies as artwork } from "../data.js";
 import { read } from "../api/client.js";
 import { uniqueRecords } from "../uniqueRecords.js";
+import { calendarLabel } from "../bookingDates.js";
 import Link from "next/link";
 
 function getInitialCatalog() {
@@ -153,42 +154,14 @@ export default function CatalogProvider({ children }) {
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
-  const getDates = (_language, cinemaId, movieId) =>
-    [
-      ...new Set(
-        index
-          .select(cinemaId, movieId)
-          .filter(
-            (s) =>
-              new Date(s.startTime) > new Date() &&
-              (!movieId || s.movieId === movieId),
-          )
-          .map((s) => index.days.get(s.id)),
-      ),
-    ]
-      .sort()
-      .map((id) => ({
-        id,
-        label: new Date(id + "T12:00:00+07:00").toLocaleDateString(
-          _language === "en" ? "en-GB" : "vi-VN",
-          {
-            weekday: "short",
-            day: "2-digit",
-            month: "2-digit",
-            timeZone: "Asia/Ho_Chi_Minh",
-          },
-        ),
-      }));
+  const getDates = (language, cinemaId, movieId) =>
+    index
+      .dates(cinemaId, movieId)
+      .map((id) => ({ id, label: calendarLabel(id, language) }));
   const getShowtimes = (cinemaId, movieId, date) =>
     index
-      .select(cinemaId, movieId)
-      .filter(
-        (s) =>
-          s.movieId === movieId &&
-          index.rooms.get(s.roomId)?.cinemaId === cinemaId &&
-          index.days.get(s.id) === date &&
-          new Date(s.startTime) > new Date(),
-      )
+      .at(cinemaId, movieId, date)
+      .filter((s) => index.starts.get(s.id) > Date.now())
       .map((s) => ({
         ...s,
         label: `${timeLabel(s.startTime)} · ${index.rooms.get(s.roomId)?.name || ""}`,

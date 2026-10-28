@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useOptimistic, startTransition } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { DayPicker, DayButton } from "react-day-picker";
 import { vi, enGB } from "react-day-picker/locale";
@@ -25,10 +25,11 @@ export default function DateSelector({
   const { language, t } = useI18n();
   const [open, setOpen] = useState(false);
   const [today] = useState(() => vietnamDay(Date.now()));
+  const [optimisticValue, selectOptimistically] = useOptimistic(value);
   const available = new Set(dates.map((date) => date.id));
   const first = dates[0]?.id,
     last = dates.at(-1)?.id;
-  const selected = available.has(value) ? value : "";
+  const selected = available.has(optimisticValue) ? optimisticValue : "";
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
@@ -93,8 +94,11 @@ export default function DateSelector({
               modifiersClassNames={{ available: "calendar-available" }}
               onSelect={(date) => {
                 if (date) {
-                  onChange(calendarKey(date));
                   setOpen(false);
+                  startTransition(() => {
+                    selectOptimistically(calendarKey(date));
+                    onChange(calendarKey(date));
+                  });
                 }
               }}
               showOutsideDays

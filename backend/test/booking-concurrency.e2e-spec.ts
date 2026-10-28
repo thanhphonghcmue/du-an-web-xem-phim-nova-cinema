@@ -481,7 +481,13 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
       await prisma.bookingSeat.count({
         where: { showtimeId: f.showtime.id, status: "HOLDING" },
       }),
-    ).toBe(0);
+    ).toBe(2);
+    // Reads only project expiry; the next atomic writer releases the old pair.
+    await hold(f, customerB, [seat(f, 2)]).expect(201);
+    expect(
+      (await prisma.booking.findUniqueOrThrow({ where: { id: next.id } }))
+        .status,
+    ).toBe("EXPIRED");
   });
 
   it("rejects an orphan Sweetbox and more than20 resolved seats atomically", async () => {
@@ -589,7 +595,9 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     const f = await fixture();
     const responses = await Promise.all([
       hold(f, customerA, [seat(f), seat(f, 1)]),
-      hold(f, customerB, [seat(f, 1), seat(f, 2)], otherServer),
+      // Both competing inputs must be valid on an empty row. Omitting A1 here
+      // makes the second request an orphan-seat violation before any conflict.
+      hold(f, customerB, [seat(f), seat(f, 1), seat(f, 2)], otherServer),
     ]);
     expect(responses.map((row) => row.status).sort()).toEqual([201, 409]);
     expect(
@@ -866,7 +874,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     expect(replacement.status).toBe("HOLDING");
   });
 
-  it("expires an overdue own booking on GET/list and cancellation returns EXPIRED", async () => {
+  it("projects overdue own bookings on read-only GET/list and reclaims expired row neighbours during hold", async () => {
     const f = await fixture();
     const a = booking(await hold(f).expect(201));
     await expireFixture(a.id);

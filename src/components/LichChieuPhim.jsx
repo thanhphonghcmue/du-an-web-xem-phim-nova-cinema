@@ -11,7 +11,7 @@ import { useQuerySelection } from "../useQuerySelection.js";
 import CinemaPicker from "./CinemaPicker.jsx";
 import DateSelector from "./DateSelector.jsx";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -25,7 +25,6 @@ import {
 import { motion, useReducedMotion } from "framer-motion";
 import { useCatalog } from "../catalog.js";
 import { money } from "../data.js";
-import { apiGetShowtimeSeats } from "../api/client.js";
 import { useI18n } from "../i18n.js";
 export default function LichChieuPhim({
   onBook,
@@ -34,7 +33,6 @@ export default function LichChieuPhim({
 }) {
   const { language, t } = useI18n();
   const { cinemas, movies, rooms, getDates, getShowtimes } = useCatalog();
-  const [capacities, setCapacities] = useState({});
   const [format, setFormat] = useState("all");
   const [period, setPeriod] = useState("all");
   const [roomFilter, setRoomFilter] = useState("all");
@@ -108,30 +106,6 @@ export default function LichChieuPhim({
         (period === "late" && hour >= 21))
     );
   });
-  const timeKey = times.map((t) => t.id).join(",");
-  useEffect(() => {
-    let active = true;
-    async function update() {
-      const results = await Promise.allSettled(
-        timeKey
-          .split(",")
-          .filter(Boolean)
-          .map(async (id) => [id, (await apiGetShowtimeSeats(id)).capacity]),
-      );
-      if (active)
-        setCapacities(
-          Object.fromEntries(
-            results.filter((r) => r.status === "fulfilled").map((r) => r.value),
-          ),
-        );
-    }
-    void update();
-    const timer = setInterval(update, 10000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [timeKey]);
   if (!cinema || !film)
     return (
       <section id="showtimes" className="content-width section-space">
@@ -397,15 +371,11 @@ export default function LichChieuPhim({
                 </div>
               )}
               {times.map((time) => {
-                const free = capacities[time.id]?.available ?? "—";
-                const total = capacities[time.id]?.total ?? "—";
-                const state =
-                  free > 60 ? "plenty" : free > 20 ? "filling" : "limited";
                 return (
                   <motion.button
                     key={time.id}
-                    className={`timeline-show ${state}`}
-                    aria-label={`${time.displayTime}, ${free}/${total} ${language === "en" ? "seats available" : "ghế trống"}`}
+                    className="timeline-show plenty"
+                    aria-label={`${time.displayTime}, ${time.roomName}, ${t("Xem ghế trống")}`}
                     whileHover={reduced ? undefined : { y: -2 }}
                     whileTap={reduced ? undefined : { scale: 0.98 }}
                     transition={{ type: "spring", stiffness: 300, damping: 28 }}
@@ -447,16 +417,8 @@ export default function LichChieuPhim({
                     <span className="show-price">
                       Từ {money(time.baseTicketPrice)}
                     </span>
-                    <span className="seat-capacity-track">
-                      <i
-                        style={{
-                          width: `${(typeof free === "number" && typeof total === "number" && total > 0 ? free / total : 0) * 100}%`,
-                        }}
-                      />
-                    </span>
                     <span className="show-capacity-label">
-                      {language === "en" ? "Available" : "Còn"} {free}/{total}{" "}
-                      {language === "en" ? "seats" : "ghế"}
+                      {t("Xem ghế trống")}
                       <Ticket size={14} />
                     </span>
                   </motion.button>

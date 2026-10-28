@@ -16,6 +16,7 @@ const { spawn } = require("node:child_process");
 const { once } = require("node:events");
 const { createServer } = require("node:net");
 const { chromium, expect } = require("@playwright/test");
+const { randomBytes } = require("node:crypto");
 const root = resolve(__dirname, "..");
 let child, browser, directory;
 async function freePort() {
@@ -49,6 +50,11 @@ async function main() {
     join(root, "backend/standalone-server.cjs"),
     join(directory, "backend/standalone-server.cjs"),
   );
+  cpSync(
+    join(root, "backend/standalone"),
+    join(directory, "backend/standalone"),
+    { recursive: true },
+  );
   // If the launcher's port probe finds PostgreSQL, emulate a failed seed without
   // connecting to any database. Otherwise it takes the no-database fallback path.
   writeFileSync(
@@ -74,7 +80,8 @@ async function main() {
   child.stdout.on("data", (chunk) => {
     if (chunk.toString().includes("backend độc lập")) switched = true;
   });
-  let ready = false;
+  let ready = false,
+    programme;
   const deadline = Date.now() + 60000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null)
@@ -90,6 +97,7 @@ async function main() {
           new Set(data.combos.map((item) => item.id)).size !== 24
         )
           throw new Error("Wrong fallback menu.");
+        programme = data;
         ready = true;
         break;
       }
@@ -121,9 +129,98 @@ async function main() {
     .getByRole("button", { name: "Thêm Green Movie Combo", exact: true })
     .click();
   await expect(page.locator(".food-basket-count")).toHaveText("1");
-  if (errors.length) throw new Error("Browser error in fallback food UI.");
+  const password = randomBytes(18).toString("hex"),
+    email = `ram-${randomBytes(6).toString("hex")}@example.test`;
+  expect(
+    (
+      await page.request.post(`${origin}/api/v1/auth/register`, {
+        data: { email, password, fullName: "RAM smoke customer" },
+      })
+    ).status(),
+  ).toBe(201);
+  const login = await page.request.post(`${origin}/api/v1/auth/login`, {
+    data: { email, password },
+  });
+  expect(login.status()).toBe(200);
+  const session = (await login.json()).data;
+  expect(session.accessToken).toBeUndefined();
+  expect(session.refreshToken).toBeUndefined();
+  await page.goto(`${origin}/dat-ve`);
+  await expect(page.locator(".login-trigger")).toContainText("customer");
+  const { chooseOption, chooseDate } = await import("../tests/ui-choices.mjs");
+  const show = programme.showtimes.find(
+    (s) => Date.parse(s.startTime) > Date.now() + 3600000,
+  );
+  const room = programme.rooms.find((r) => r.id === show.roomId);
+  await chooseOption(page, "Chọn cụm rạp", room.cinemaId);
+  await chooseOption(page, "Chọn phim", show.movieId);
+  await chooseDate(
+    page,
+    "Chọn ngày chiếu",
+    new Date(show.startTime).toLocaleDateString("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }),
+  );
+  await chooseOption(page, "Chọn suất chiếu", show.id);
+  await page
+    .locator("#booking")
+    .getByRole("button", { name: "Đặt ngay", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Chọn ghế & đặt vé" });
+  await expect(dialog)
+    .toBeVisible()
+    .catch(async (error) => {
+      console.error(
+        "Fallback booking alerts:",
+        await page.getByRole("alert").allTextContents(),
+      );
+      console.error(
+        "Fallback dialog headings:",
+        await page.getByRole("dialog").getByRole("heading").allTextContents(),
+      );
+      throw error;
+    });
+  await expect(
+    dialog.getByRole("button", { name: "Ghế A1, còn trống", exact: true }),
+  )
+    .toBeVisible({ timeout: 15000 })
+    .catch(async (error) => {
+      console.error(
+        "Fallback booking alerts:",
+        await page.getByRole("alert").allTextContents(),
+      );
+      console.error("Fallback browser errors:", errors);
+      throw error;
+    });
+  await dialog
+    .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
+    .click();
+  await dialog
+    .getByRole("button", { name: "Giữ ghế 5 phút", exact: true })
+    .click();
+  await expect(page.getByTestId("hold-timer")).toBeVisible();
+  const age = dialog.getByRole("checkbox", {
+    name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
+  });
+  if (await age.count()) await age.check();
+  await dialog
+    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Thanh toán thành công", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Kết quả: PAID", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
+    .click();
+  await expect(page.locator(".ticket-qr-svg").first()).toBeVisible({
+    timeout: 20000,
+  });
+  if (errors.length) throw new Error("Browser error in fallback booking UI.");
   console.log(
-    "PASS automatic RAM fallback: seed failure/unavailable database selects the original standalone backend; real Next.js BFF displays 24 menu items and the food cart works. No database or payment was used.",
+    "PASS automatic RAM fallback: 24 menu items; register/login through HttpOnly BFF; select real RAM seat IDs; hold, signed Sandbox success and SVG QR. Disposable RAM only, no PostgreSQL/SMTP.",
   );
 }
 async function cleanup() {

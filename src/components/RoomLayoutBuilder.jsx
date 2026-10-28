@@ -77,7 +77,7 @@ export default function RoomLayoutBuilder() {
       setNotice(`Đã lưu sơ đồ ${result.totalSeats} ghế vào phòng chiếu.`);
       setExisting(null);
       setRevision((v) => v + 1);
-      await catalog.reload();
+      void catalog.reload().catch((error) => setError(error.message));
     } catch (err) {
       setError(err.message);
     } finally {

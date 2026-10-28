@@ -13,6 +13,7 @@ import { BookingsRepository, BookingRecord } from "./bookings.repository";
 import { PricingService } from "./pricing.service";
 import { SeatLockLease, SeatLockService } from "./seat-lock.service";
 import { validateNoOrphanSeats } from "./orphan-seats";
+import { projectExpiredBooking } from "./booking-projection";
 
 export const HOLD_DURATION_MS = 300000;
 @Injectable()
@@ -42,7 +43,9 @@ export class SeatBookingService {
           showtimeId: dto.showtimeId,
           seatIds: requestedSeatIds,
           comboItems,
-          ...(dto.couponCode ? { couponCode: dto.couponCode.trim().toUpperCase() } : {}),
+          ...(dto.couponCode
+            ? { couponCode: dto.couponCode.trim().toUpperCase() }
+            : {}),
         }),
       )
       .digest("hex");
@@ -152,6 +155,7 @@ export class SeatBookingService {
               showtime.id,
               physicalRowSeats.map((s) => s.id),
               tx,
+              await this.bookings.now(tx),
             );
           const occupiedSet = new Set(
             occupiedBookingSeats.map((b) => b.seatId),
@@ -388,7 +392,6 @@ export class SeatBookingService {
   }
   getOwned(id: string, userId: string): Promise<BookingRecord> {
     return this.database.transaction(async (tx) => {
-      await this.bookings.lockOwned(id, userId, tx);
       const booking = await this.requireRecord(id, tx);
       if (booking.userId !== userId)
         throw new ApiException(
@@ -396,9 +399,8 @@ export class SeatBookingService {
           "BOOKING_NOT_FOUND",
           "Booking was not found.",
         );
-      await this.expireLocked(id, tx);
-      return this.requireRecord(id, tx);
-    });
+      return projectExpiredBooking(booking, await this.bookings.now(tx));
+    }, Prisma.TransactionIsolationLevel.RepeatableRead);
   }
   async sweepExpired(userId?: string): Promise<void> {
     const now = await this.database.transaction((tx) => this.bookings.now(tx));

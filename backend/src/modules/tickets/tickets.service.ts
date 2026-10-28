@@ -37,7 +37,16 @@ export class TicketsService {
   ) {
     this.settings = config.getOrThrow<NotificationSettings>("notification");
   }
-  generateETicket(bookingId: string): Promise<TicketRecord> {
+  async generateETicket(bookingId: string): Promise<TicketRecord> {
+    // Encode before acquiring any booking/row lock. Payment itself only enqueues
+    // durable fulfillment; duplicate workers still converge under the lock below.
+    const ticketHash = randomBytes(32).toString("hex");
+    const qrCodeBase64 = await toDataURL(ticketHash, {
+      type: "image/png",
+      errorCorrectionLevel: "M",
+      width: 320,
+      margin: 4,
+    });
     return this.database.transaction(async (tx) => {
       await this.bookings.lockBooking(bookingId, tx);
       const booking = await this.bookings.find(bookingId, tx);
@@ -54,13 +63,6 @@ export class TicketsService {
         );
       const existing = await this.tickets.byBooking(bookingId, tx);
       if (existing) return existing;
-      const ticketHash = randomBytes(32).toString("hex");
-      const qrCodeBase64 = await toDataURL(ticketHash, {
-        type: "image/png",
-        errorCorrectionLevel: "M",
-        width: 320,
-        margin: 4,
-      });
       const ticket = await this.tickets.create(
         { bookingId, ticketHash, qrCodeBase64 },
         tx,

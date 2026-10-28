@@ -159,7 +159,7 @@ export default function QuanLyDanhMucPhimRap() {
       setDraft({});
       setEditId(null);
       setRevision((v) => v + 1);
-      await catalog.reload();
+      void catalog.reload().catch((error) => setMessage(error.message));
     } catch (err) {
       setMessage(err.message);
     } finally {
@@ -191,7 +191,7 @@ export default function QuanLyDanhMucPhimRap() {
       await readCommand(`/${kind}/${item.id}`, undefined, {}, "DELETE");
       setRevision((v) => v + 1);
       setMessage("Đã xóa mục chưa có lịch sử sử dụng.");
-      await catalog.reload();
+      void catalog.reload().catch((error) => setMessage(error.message));
     } catch (err) {
       setMessage(err.message);
     } finally {

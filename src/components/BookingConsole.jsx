@@ -6,6 +6,8 @@ import CinematicScreen3D from "./CinematicScreen3D.jsx";
 import BookingPreview from "./BookingPreview.jsx";
 import BookingTicket from "./BookingTicket.jsx";
 import NovaLogo from "./NovaLogo.jsx";
+import HoldCountdown from "./HoldCountdown.jsx";
+import { holdSeconds } from "../holdDeadline.js";
 import MenuImage from "./MenuImage.jsx";
 import { readFoodCart } from "../foodCart.js";
 import { uniqueRecords } from "../uniqueRecords.js";
@@ -40,9 +42,9 @@ import {
   apiHoldSeats,
   apiCancelBooking,
   apiCheckout,
-  apiPaymentStatus,
   apiGetProfile,
   memberProfile,
+  getBackendKind,
 } from "../api/client.js";
 
 function getAgeRestriction(ageRating) {
@@ -337,31 +339,38 @@ function LiveBookingConsole({
   });
   const [zoom, setZoom] = useState(100);
   const [count, setCount] = useState(3);
-  const [now, setNow] = useState(Date.now);
+  const [expiredOrderId, setExpiredOrderId] = useState(null);
   const [offset, setOffset] = useState(0);
   const requestKey = useRef(null);
   const mounted = useRef(true);
   const activeOrderId = useRef(booking.orderId);
   const expiryRefresh = useRef(null);
+  const snapshotVersion = useRef(0);
 
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [showAgeModal, setShowAgeModal] = useState(false);
   const ageInfo = getAgeRestriction(booking.movie?.age);
   const refresh = useCallback(async () => {
+    const version = ++snapshotVersion.current;
     const map = await apiGetShowtimeSeats(showtimeId);
-    if (!mounted.current) return;
+    if (!mounted.current || version !== snapshotVersion.current) return;
+    if (!Array.isArray(map?.seats) || typeof map.canBook !== "boolean")
+      throw new Error("Chưa nhận được sơ đồ ghế hợp lệ. Hãy thử lại.");
     setSnapshot(map);
+    setInitialized(true);
     setOffset(new Date(map.asOf).getTime() - Date.now());
   }, [showtimeId]);
 
   useEffect(() => {
     mounted.current = true;
-    let running = false;
+    let running = false,
+      loaded = false;
     async function update() {
-      if (running) return;
+      if (running || (loaded && document.hidden)) return;
       running = true;
       try {
         await refresh();
+        loaded = true;
         const orders = await apiGetMyBookings();
         if (!mounted.current) return;
         const current =
@@ -394,17 +403,16 @@ function LiveBookingConsole({
     }
     void update();
     const poll = setInterval(update, 5000);
-    const clock = setInterval(() => setNow(Date.now()), 1000);
     window.addEventListener("focus", update);
     return () => {
       mounted.current = false;
       clearInterval(poll);
-      clearInterval(clock);
       window.removeEventListener("focus", update);
     };
   }, [showtimeId, booking.orderId, refresh]);
 
   useEffect(() => {
+    if (!initialized || getBackendKind() === "memory") return;
     const stream = new EventSource(`/api/seat-events/${showtimeId}`);
     stream.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -414,30 +422,37 @@ function LiveBookingConsole({
     };
     stream.onerror = () => setLive(false);
     return () => stream.close();
-  }, [showtimeId, refresh]);
+  }, [showtimeId, refresh, initialized]);
 
   const seats = useMemo(
     () => uniqueRecords(snapshot?.seats, "seatId"),
     [snapshot],
   );
-  const rows = [...new Set(seats.map((s) => s.row))].sort();
+  const rows = useMemo(
+    () => [...new Set(seats.map((s) => s.row))].sort(),
+    [seats],
+  );
   const holding = order && ["PENDING", "HOLDING"].includes(order.status);
   // Derive from each fresh snapshot so another viewer's hold cannot leave a stale warning.
-  const orphanSeat = !holding ? checkClientOrphanSeats(selected, seats) : null;
+  const orphanSeat = useMemo(
+    () => (!holding ? checkClientOrphanSeats(selected, seats) : null),
+    [holding, selected, seats],
+  );
   const orphanWarning = orphanSeat
     ? language === "en"
       ? `Do not leave a single empty seat at ${orphanSeat.row}${orphanSeat.column}. Select that seat or leave at least two adjacent seats free.`
       : `Không để trống 1 ghế lẻ tại ${orphanSeat.row}${orphanSeat.column}. Hãy chọn ghế này hoặc đổi vị trí để chừa ít nhất 2 ghế liền nhau.`
     : null;
-  const remaining = holding
-    ? Math.max(
-        0,
-        Math.ceil((new Date(order.expiredAt).getTime() - now - offset) / 1000),
-      )
-    : 0;
+  const expired = Boolean(
+    holding &&
+    (expiredOrderId === order.id || !holdSeconds(order.expiredAt, offset)),
+  );
+  const notifyExpiry = useCallback(
+    () => setExpiredOrderId(order?.id),
+    [order?.id],
+  );
   useEffect(() => {
-    if (!holding || remaining > 0 || expiryRefresh.current === order?.id)
-      return;
+    if (!holding || !expired || expiryRefresh.current === order?.id) return;
     expiryRefresh.current = order.id;
     let active = true;
     apiGetBooking(order.id)
@@ -457,7 +472,7 @@ function LiveBookingConsole({
     return () => {
       active = false;
     };
-  }, [holding, remaining, order?.id, refresh]);
+  }, [holding, expired, order?.id, refresh]);
 
   function applyCoupon() {
     const code = couponInput.trim().toUpperCase();
@@ -486,7 +501,10 @@ function LiveBookingConsole({
                 Math.floor((seat.column - 1) / 2),
           )
         : [seat];
-    if (pair.some((s) => s.status !== "AVAILABLE")) return;
+    if (pair.some((s) => s.status !== "AVAILABLE")) {
+      setNotice("Ghế đã bán hoặc đang được giữ. Hãy chọn vị trí khác.");
+      return;
+    }
     const ids = pair.map((s) => s.seatId);
     const next = selected.includes(seat.seatId)
       ? selected.filter((id) => !ids.includes(id))
@@ -507,6 +525,8 @@ function LiveBookingConsole({
         quantity,
         groupType,
       );
+      if (!Array.isArray(result?.seatIds))
+        throw new Error("Chưa nhận được gợi ý ghế hợp lệ. Vui lòng thử lại.");
       setSelected(result.seatIds);
       setNotice(
         result.seatIds.length
@@ -521,6 +541,22 @@ function LiveBookingConsole({
   }
 
   async function hold() {
+    if (!initialized || !snapshot?.canBook) {
+      setNotice("Suất chiếu chưa sẵn sàng hoặc đã bắt đầu. Hãy chọn lại suất.");
+      return;
+    }
+    if (!selected.length) {
+      setNotice("Hãy chọn ít nhất một ghế trước khi giữ chỗ.");
+      return;
+    }
+    if (
+      Object.values(comboItems).filter((quantity) => quantity > 0).length > 20
+    ) {
+      setNotice(
+        "Mỗi đơn tối đa 20 loại bắp nước. Hãy bớt món trước khi giữ ghế.",
+      );
+      return;
+    }
     setBusy(true);
     setNotice("");
 
@@ -546,13 +582,19 @@ function LiveBookingConsole({
       if (requestKey.current?.body !== canonical)
         requestKey.current = { body: canonical, key: createRequestKey() };
       const result = await apiHoldSeats(payload, requestKey.current.key);
+      if (!result?.id || !Array.isArray(result.seats))
+        throw new Error(
+          "Máy chủ chưa trả đủ thông tin đơn. Hãy kiểm tra tài khoản trước khi thử lại.",
+        );
       activeOrderId.current = result.id;
       setOrder(result);
       setSelected(result.seats.map((s) => s.seatId));
-      await refresh();
+      void refresh().catch((err) => {
+        if (mounted.current) setNotice(err.message);
+      });
     } catch (err) {
       setNotice(err.message);
-      await refresh().catch(() => {});
+      void refresh().catch(() => {});
     } finally {
       setBusy(false);
     }
@@ -566,7 +608,9 @@ function LiveBookingConsole({
       activeOrderId.current = undefined;
       setSelected([]);
       requestKey.current = null;
-      await refresh();
+      void refresh().catch((err) => {
+        if (mounted.current) setNotice(err.message);
+      });
       setNotice("Đã hủy đơn và trả ghế.");
     } catch (err) {
       setNotice(err.message);
@@ -579,17 +623,9 @@ function LiveBookingConsole({
     setBusy(true);
     setNotice("");
     try {
-      if (!holding || remaining <= 0) {
+      if (!holding || !holdSeconds(order.expiredAt, offset)) {
         setNotice(
           "Đã hết thời gian giữ ghế. Hãy chọn lại suất và giữ ghế mới.",
-        );
-        return;
-      }
-      const state = await apiPaymentStatus(order.id);
-      if (!state.canPay) {
-        setOrder(await apiGetBooking(order.id));
-        setNotice(
-          "Đơn đã kết thúc hoặc hết hạn. Vui lòng kiểm tra lại trạng thái.",
         );
         return;
       }
@@ -697,16 +733,11 @@ function LiveBookingConsole({
           </div>
         </div>
         {holding && (
-          <div className={`hold-timer ${remaining < 60 ? "urgent" : ""}`}>
-            <Clock3 size={18} />
-            <div>
-              <small>Giữ ghế còn lại</small>
-              <strong data-testid="hold-timer">
-                {String(Math.floor(remaining / 60)).padStart(2, "0")}:
-                {String(remaining % 60).padStart(2, "0")}
-              </strong>
-            </div>
-          </div>
+          <HoldCountdown
+            expiresAt={order.expiredAt}
+            offset={offset}
+            onExpire={notifyExpiry}
+          />
         )}
       </div>
 
@@ -715,6 +746,11 @@ function LiveBookingConsole({
         {live ? "Đồng bộ ghế trực tiếp" : "Cập nhật ghế mỗi 5 giây"} · Hỗ trợ
         thanh toán mô phỏng qua Sandbox, không thu tiền thật.
       </p>
+      {busy && (
+        <p role="status" aria-live="polite">
+          Đang xử lý yêu cầu, vui lòng chờ…
+        </p>
+      )}
 
       {orphanWarning && !holding && (
         <div className="orphan-warning-banner" id="orphan-warning" role="alert">
@@ -754,7 +790,28 @@ function LiveBookingConsole({
       ) : (
         <div className="checkout-layout">
           <div className="seat-area">
-            {!initialized && <p role="status">Đang tải trạng thái ghế…</p>}
+            {!initialized && (
+              <div>
+                <p role="status">Đang tải trạng thái ghế…</p>
+                <button
+                  type="button"
+                  className="button button-glass"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      await refresh();
+                    } catch (error) {
+                      setNotice(error.message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Thử tải lại sơ đồ
+                </button>
+              </div>
+            )}
             {!holding && (
               <div className="group-picker">
                 <UsersRound size={20} />
@@ -1108,7 +1165,7 @@ function LiveBookingConsole({
                   <div className="payment-action flex w-full max-w-full box-border">
                     <button
                       className="button button-primary w-full max-w-full box-border"
-                      disabled={busy || remaining <= 0}
+                      disabled={busy || expired}
                       onClick={handlePaymentClick}
                     >
                       {t("Thanh toán Sandbox")}

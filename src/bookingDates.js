@@ -9,9 +9,41 @@ const vietnamDateFormatter = new Intl.DateTimeFormat("en-CA", {
 });
 export const vietnamDay = (value) =>
   vietnamDateFormatter.format(new Date(value));
+const friendlyFormatters = new Map(
+  ["en", "vi"].map((language) => [
+    language,
+    new Intl.DateTimeFormat(language === "en" ? "en-GB" : "vi-VN", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+    }),
+  ]),
+);
 export const friendlyDay = (key, language = "vi") =>
-  new Intl.DateTimeFormat(language === "en" ? "en-GB" : "vi-VN", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-  }).format(calendarDate(key));
+  friendlyFormatters
+    .get(language === "en" ? "en" : "vi")
+    .format(calendarDate(key));
+const shortFormatters = new Map(
+  ["en", "vi"].map((language) => [
+    language,
+    new Intl.DateTimeFormat(language === "en" ? "en-GB" : "vi-VN", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh",
+    }),
+  ]),
+);
+const labels = new Map();
+export function calendarLabel(key, language = "vi") {
+  const locale = language === "en" ? "en" : "vi",
+    cacheKey = `${locale}:${key}`;
+  if (!labels.has(cacheKey)) {
+    if (labels.size >= 512) labels.clear();
+    labels.set(
+      cacheKey,
+      shortFormatters.get(locale).format(new Date(key + "T12:00:00+07:00")),
+    );
+  }
+  return labels.get(cacheKey);
+}

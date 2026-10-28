@@ -87,12 +87,21 @@ export class BookingsRepository {
     showtimeId: string,
     seatIds: string[],
     tx: Prisma.TransactionClient,
+    asOf: Date,
   ) {
     return tx.bookingSeat.findMany({
       where: {
         showtimeId,
         seatId: { in: seatIds },
         status: { in: ["HOLDING", "SOLD"] },
+        NOT: {
+          status: "HOLDING",
+          booking: {
+            status: { in: ["HOLDING", "PENDING"] },
+            expiredAt: { lte: asOf },
+            seats: { none: { status: "SOLD" } },
+          },
+        },
       },
       select: { seatId: true },
     });
@@ -165,10 +174,28 @@ export class BookingsRepository {
       include: bookingRelations,
     });
   }
-  page(userId: string, query: ListBookingsDto, tx: Prisma.TransactionClient) {
+  page(
+    userId: string,
+    query: ListBookingsDto,
+    tx: Prisma.TransactionClient,
+    asOf: Date,
+  ) {
+    const overdue: Prisma.BookingWhereInput = {
+      status: { in: ["PENDING", "HOLDING"] },
+      expiredAt: { lte: asOf },
+      seats: { none: { status: "SOLD" } },
+    };
+    const filter: Prisma.BookingWhereInput =
+      query.status === "EXPIRED"
+        ? { OR: [{ status: "EXPIRED" }, overdue] }
+        : query.status && ["PENDING", "HOLDING"].includes(query.status)
+          ? { status: query.status, NOT: overdue }
+          : query.status
+            ? { status: query.status }
+            : {};
     const where: Prisma.BookingWhereInput = {
       userId,
-      ...(query.status ? { status: query.status } : {}),
+      ...filter,
     };
     return Promise.all([
       tx.booking.findMany({

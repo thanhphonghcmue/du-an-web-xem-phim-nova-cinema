@@ -359,7 +359,7 @@ describe("Phase 7 seat snapshots, group suggestions and real Socket.IO/Redis del
       (data(await map(f.showtime.id).expect(200)) as SeatMap).capacity.sold,
     ).toBe(1);
   });
-  it("lazily expires overdue holds in a seat-map read and preserves released history", async () => {
+  it("projects overdue holds without writes, then atomically reclaims them on POST", async () => {
     const f = await fixture();
     const held = entity(await hold(f).expect(201));
     const now = Date.now();
@@ -377,6 +377,18 @@ describe("Phase 7 seat snapshots, group suggestions and real Socket.IO/Redis del
     expect(
       (await prisma.booking.findUniqueOrThrow({ where: { id: held.id } }))
         .status,
+    ).toBe("HOLDING");
+    expect(
+      (
+        await prisma.bookingSeat.findFirstOrThrow({
+          where: { bookingId: held.id },
+        })
+      ).status,
+    ).toBe("HOLDING");
+    await hold(f).expect(201);
+    expect(
+      (await prisma.booking.findUniqueOrThrow({ where: { id: held.id } }))
+        .status,
     ).toBe("EXPIRED");
     expect(
       (
@@ -385,6 +397,49 @@ describe("Phase 7 seat snapshots, group suggestions and real Socket.IO/Redis del
         })
       ).status,
     ).toBe("AVAILABLE");
+  });
+  it("reads an expired seat snapshot without waiting for an unrelated booking row write lock", async () => {
+    const f = await fixture();
+    const held = entity(await hold(f).expect(201));
+    await prisma.booking.update({
+      where: { id: held.id },
+      data: {
+        createdAt: new Date(Date.now() - 301000),
+        expiredAt: new Date(Date.now() - 1000),
+      },
+    });
+    let release: () => void = () => {};
+    let ready: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const locked = new Promise<void>((resolve) => {
+      ready = resolve;
+    });
+    const writer = prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM bookings WHERE id = ${held.id}::uuid FOR UPDATE`;
+        ready();
+        await gate;
+      },
+      { timeout: 10000 },
+    );
+    await locked;
+    try {
+      const started = Date.now();
+      expect(
+        (data(await map(f.showtime.id).expect(200)) as SeatMap).capacity
+          .available,
+      ).toBe(24);
+      expect(Date.now() - started).toBeLessThan(1000);
+    } finally {
+      release();
+      await writer;
+    }
+    expect(
+      (await prisma.booking.findUniqueOrThrow({ where: { id: held.id } }))
+        .status,
+    ).toBe("HOLDING");
   });
   it("suggests centered adjacent seats, respects type/blocked seats and remains advisory", async () => {
     const f = await fixture();

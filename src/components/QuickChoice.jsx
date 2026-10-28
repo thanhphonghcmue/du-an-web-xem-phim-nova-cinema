@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useOptimistic, startTransition } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { useI18n } from "../i18n.js";
@@ -21,7 +21,8 @@ export default function QuickChoice({
   const { language, t } = useI18n();
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState("");
-  const selected = items.find((item) => item.id === value);
+  const [optimisticValue, selectOptimistically] = useOptimistic(value);
+  const selected = items.find((item) => item.id === optimisticValue);
   const visible = items.filter((item) =>
     normalize(`${item.name} ${item.description || ""}`).includes(
       normalize(query),
@@ -108,14 +109,17 @@ export default function QuickChoice({
               <button
                 type="button"
                 role="option"
-                aria-selected={item.id === value}
+                aria-selected={item.id === optimisticValue}
                 data-value={item.id}
                 disabled={item.disabled}
                 key={item.id}
                 onClick={() => {
-                  onChange(item.id);
                   setOpen(false);
                   setQuery("");
+                  startTransition(() => {
+                    selectOptimistically(item.id);
+                    onChange(item.id);
+                  });
                 }}
               >
                 {item.image && <img src={item.image} alt="" loading="lazy" />}
@@ -124,7 +128,7 @@ export default function QuickChoice({
                   {item.description && <span>{item.description}</span>}
                   {item.detail && <small>{item.detail}</small>}
                 </div>
-                {item.id === value ? (
+                {item.id === optimisticValue ? (
                   <Check size={21} />
                 ) : (
                   <span className="choice-circle" />

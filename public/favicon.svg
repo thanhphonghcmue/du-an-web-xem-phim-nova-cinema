@@ -1,29 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 54">
   <defs>
-    <linearGradient id="fav-cyan" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#38BDF8"/>
-      <stop offset="100%" stop-color="#6366F1"/>
+    <linearGradient id="fav-plat" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#E2E8F0"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
     </linearGradient>
-    <linearGradient id="fav-red" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0%" stop-color="#DC2626"/>
-      <stop offset="55%" stop-color="#EF4444"/>
-      <stop offset="100%" stop-color="#F59E0B"/>
+    <linearGradient id="fav-plat-sub" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#BAE6FD"/>
+      <stop offset="60%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <linearGradient id="fav-gold" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="35%" stop-color="#F59E0B"/>
+      <stop offset="80%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#FFFBEB"/>
+    </linearGradient>
+    <linearGradient id="fav-gold-sub" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#B45309"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#FEF08A"/>
     </linearGradient>
   </defs>
-  <rect width="128" height="54" rx="12" fill="#080C1D"/>
+  <rect width="128" height="54" rx="12" fill="#080E1B"/>
   <!-- N -->
-  <polygon points="6,48 13,48 31,6 24,6" fill="url(#fav-cyan)"/>
-  <polygon points="15,48 21,48 39,6 33,6" fill="#FFFFFF"/>
-  <polygon points="33,6 40,6 64,48 57,48" fill="url(#fav-cyan)"/>
-  <polygon points="25,6 31,6 55,48 49,48" fill="#FFFFFF"/>
-  <polygon points="57,48 63,48 81,6 75,6" fill="url(#fav-cyan)"/>
-  <polygon points="65,48 71,48 89,6 83,6" fill="#FFFFFF"/>
+  <polygon points="6,48 13,48 31,6 24,6" fill="url(#fav-plat-sub)"/>
+  <polygon points="15,48 21,48 39,6 33,6" fill="url(#fav-plat)"/>
+  <polygon points="33,6 40,6 64,48 57,48" fill="url(#fav-plat)"/>
+  <polygon points="25,6 31,6 55,48 49,48" fill="url(#fav-plat-sub)"/>
+  <polygon points="57,48 63,48 81,6 75,6" fill="url(#fav-plat-sub)"/>
+  <polygon points="65,48 71,48 89,6 83,6" fill="url(#fav-plat)"/>
   <!-- V -->
-  <polygon points="76,14 82,14 97,48 91,48" fill="url(#fav-red)"/>
-  <polygon points="84,14 90,14 105,48 99,48" fill="#FDE047"/>
-  <polygon points="91,48 97,48 113,4 107,4" fill="url(#fav-red)"/>
-  <polygon points="99,48 105,48 121,4 115,4" fill="#FDE047"/>
+  <polygon points="76,14 82,14 97,48 91,48" fill="url(#fav-gold-sub)"/>
+  <polygon points="84,14 90,14 105,48 99,48" fill="url(#fav-gold)"/>
+  <polygon points="91,48 97,48 113,4 107,4" fill="url(#fav-gold-sub)"/>
+  <polygon points="99,48 105,48 121,4 115,4" fill="url(#fav-gold)"/>
   <!-- Star -->
-  <polygon points="114,4 116,0 118,4 122,6 118,8 116,12 114,8 110,6" fill="#FDE047"/>
-  <circle cx="116" cy="6" r="1.5" fill="#FFFFFF"/>
+  <polygon points="114,4 116,0 118,4 122,6 118,8 116,12 114,8 110,6" fill="#FFFBEB"/>
+  <circle cx="116" cy="6" r="1.5" fill="#FDE047"/>
 </svg>

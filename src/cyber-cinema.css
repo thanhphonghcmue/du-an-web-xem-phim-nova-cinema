@@ -28,10 +28,11 @@
 .nova-logo .nova-logo__wordmark > span {
   display: block;
   font:
-    600 8px/1.2 "Be Vietnam Pro",
+    600 8.5px/1.2 "Be Vietnam Pro",
     sans-serif;
   letter-spacing: 0.58em;
   padding-left: 2px;
+  color: #f59e0b;
 }
 .nova-logo__halo {
   opacity: 0.35;

@@ -50,8 +50,8 @@ a:hover .nova-logo__halo,
   opacity: 1;
 }
 .brand .nova-logo__mark {
-  width: 62px;
-  height: 40px;
+  width: 68px;
+  height: 32px;
 }
 .brand .nova-logo__wordmark {
   font-size: 22px;
@@ -480,8 +480,8 @@ a:hover .nova-logo__halo,
 }
 @media (max-width: 560px) {
   .brand .nova-logo__mark {
-    width: 44px;
-    height: 34px;
+    width: 54px;
+    height: 25px;
   }
   .brand .nova-logo__wordmark {
     font-size: 19px;

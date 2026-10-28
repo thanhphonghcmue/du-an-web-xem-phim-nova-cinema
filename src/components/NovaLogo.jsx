@@ -12,77 +12,86 @@ export default function NovaLogo({
     <span className={`nova-logo ${className}`} {...props}>
       <svg
         className="nova-logo__mark"
-        viewBox="0 0 112 72"
+        viewBox="0 0 128 54"
         fill="none"
-        width={size || 64}
-        height={size ? (size * 72) / 112 : 42}
+        width={size || 72}
+        height={size ? (size * 54) / 128 : 32}
         aria-hidden="true"
         data-nova-mark="supernova"
       >
         <defs>
-          <linearGradient
-            id={`${id}-spectrum`}
-            x1="8"
-            y1="10"
-            x2="103"
-            y2="60"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#38BDF8" />
-            <stop offset=".5" stopColor="#6366F1" />
-            <stop offset="1" stopColor="#EC4899" />
+          {/* Gradient N: Electric Ice Cyan sang Platinum sang trọng */}
+          <linearGradient id={`${id}-cyan`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#38BDF8" />
+            <stop offset="100%" stopColor="#6366F1" />
           </linearGradient>
-          <radialGradient id={`${id}-halo`}>
-            <stop stopColor="#38BDF8" stopOpacity=".58" />
-            <stop offset="1" stopColor="#6366F1" stopOpacity="0" />
+
+          {/* Gradient V: Đỏ Cờ Khát Vọng chuyển sang Ánh Vàng Kim Vươn Mình */}
+          <linearGradient id={`${id}-red`} x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stopColor="#DC2626" />
+            <stop offset="55%" stopColor="#EF4444" />
+            <stop offset="100%" stopColor="#F59E0B" />
+          </linearGradient>
+
+          {/* Quầng sáng nền điện ảnh */}
+          <radialGradient id={`${id}-halo`} cx="50%" cy="50%" r="50%">
+            <stop stopColor="#38BDF8" stopOpacity=".35" />
+            <stop offset="1" stopColor="#0B1120" stopOpacity="0" />
           </radialGradient>
-          <filter
-            id={`${id}-glow`}
-            x="-60%"
-            y="-80%"
-            width="220%"
-            height="260%"
-          >
-            <feGaussianBlur stdDeviation="2.5" />
+
+          {/* Hiệu ứng hào quang ngôi sao */}
+          <filter id={`${id}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.6" result="blur" />
             <feMerge>
-              <feMergeNode />
+              <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
         </defs>
+
+        {/* 1. Hào quang tỏa sáng nền */}
         <ellipse
           className="nova-logo__halo"
-          cx="56"
-          cy="36"
-          rx="54"
-          ry="34"
+          cx="64"
+          cy="28"
+          rx="58"
+          ry="24"
           fill={`url(#${id}-halo)`}
         />
-        <path
-          d="M16 18Q56 9 96 18L102 51Q56 64 10 51Z"
-          stroke={`url(#${id}-spectrum)`}
-          strokeWidth="2.4"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M20 23Q56 16 92 23M17 47Q56 57 95 47"
-          stroke={`url(#${id}-spectrum)`}
-          strokeOpacity=".35"
-        />
+
+        {/* 2. CHỮ N: Dual-Stripe Ribbons song song (Cyan & Trắng Bạc) */}
+        <g className="nova-logo__monogram-n">
+          {/* Cột trái 1 (xiên lên /) */}
+          <polygon points="6,48 13,48 31,6 24,6" fill={`url(#${id}-cyan)`} />
+          <polygon points="15,48 21,48 39,6 33,6" fill="#FFFFFF" />
+
+          {/* Nét chéo 2 (xiên xuống \) */}
+          <polygon points="33,6 40,6 64,48 57,48" fill={`url(#${id}-cyan)`} />
+          <polygon points="25,6 31,6 55,48 49,48" fill="#FFFFFF" />
+
+          {/* Cột giữa 3 (xiên lên /) */}
+          <polygon points="57,48 63,48 81,6 75,6" fill={`url(#${id}-cyan)`} />
+          <polygon points="65,48 71,48 89,6 83,6" fill="#FFFFFF" />
+        </g>
+
+        {/* 3. CHỮ V: Dual-Stripe Ribbons song song (Đỏ Cờ & Vàng Kim Vươn Mình Dân Tộc) */}
+        <g className="nova-logo__monogram-v">
+          {/* Nhánh 1 của V (xiên xuống \) */}
+          <polygon points="76,14 82,14 97,48 91,48" fill={`url(#${id}-red)`} />
+          <polygon points="84,14 90,14 105,48 99,48" fill="#FDE047" />
+
+          {/* Nhánh 2 của V (xiên lên vút cao / - Biểu tượng Khát vọng Vươn Mình) */}
+          <polygon points="91,48 97,48 113,4 107,4" fill={`url(#${id}-red)`} />
+          <polygon points="99,48 105,48 121,4 115,4" fill="#FDE047" />
+        </g>
+
+        {/* 4. NGÔI SAO KHÁT VỌNG ĐIỆN ẢNH (Tỏa sáng tại đỉnh vươn mình) */}
         <g className="nova-logo__star" filter={`url(#${id}-glow)`}>
-          <path
-            d="M56 10 60 28 75 18 65 32 92 36 65 40 75 54 60 44 56 64 52 44 37 54 47 40 20 36 47 32 37 18 52 28Z"
-            fill={`url(#${id}-spectrum)`}
+          <polygon
+            points="114,4 116,0 118,4 122,6 118,8 116,12 114,8 110,6"
+            fill="#FDE047"
           />
-          <circle
-            cx="56"
-            cy="36"
-            r="7"
-            fill="#050817"
-            stroke="#CCF8FF"
-            strokeWidth="1.2"
-          />
-          <circle cx="56" cy="36" r="3" fill="#ECFEFF" />
+          <circle cx="116" cy="6" r="1.5" fill="#FFFFFF" />
         </g>
       </svg>
       {showText && (

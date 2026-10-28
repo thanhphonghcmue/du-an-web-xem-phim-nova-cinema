@@ -65,6 +65,12 @@ export default function CinemaHero({
         src={movie.localBackdrop || movie.backdrop || "/images/cinema-imax.jpg"}
         alt=""
         fetchPriority="high"
+        onError={(e) => {
+          if (!e.currentTarget.dataset.fallback) {
+            e.currentTarget.dataset.fallback = "1";
+            e.currentTarget.src = "/images/cinema-imax.jpg";
+          }
+        }}
       />
       <div className="premiere-atmosphere" />
       <div className="content-width premiere-content">

@@ -1,10 +1,14 @@
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import { MovieDto } from "../movies/movie.dto";
 import { CinemaDto } from "../cinemas/cinema.dto";
 import { RoomDto } from "../rooms/room.dto";
 import { ComboDto } from "../combos/combo.dto";
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  ArrayUnique,
+  IsArray,
   IsDateString,
   IsInt,
   Min,
@@ -115,4 +119,28 @@ export class ProgrammeDto {
   @ApiProperty({ type: [ShowtimeDto] }) showtimes!: ShowtimeDto[];
   @ApiProperty({ format: "date-time" }) asOf!: Date;
   @ApiProperty({ format: "date-time" }) until!: Date;
+}
+
+/** One bounded read for the currently visible showtime cards; no seat identities. */
+export class ShowtimeCapacityQueryDto {
+  @ApiProperty({ description: "Comma-separated unique showtime UUIDs (1–50)." })
+  @Transform(({ value }: { value: unknown }): unknown =>
+    typeof value === "string"
+      ? value.split(",").map((id) => id.toLowerCase())
+      : value,
+  )
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @ArrayUnique()
+  @IsUUID("all", { each: true })
+  ids!: string[];
+}
+export class ShowtimeCapacityDto {
+  @ApiProperty({ format: "uuid" }) showtimeId!: string;
+  @ApiProperty() total!: number;
+  @ApiProperty() available!: number;
+  @ApiProperty() holding!: number;
+  @ApiProperty() sold!: number;
+  @ApiProperty({ format: "date-time" }) asOf!: Date;
 }

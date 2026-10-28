@@ -223,9 +223,9 @@ for (const cinema of cinemas) {
 
       for (let day = 0; day <= window.daysAhead; day++) {
         const baseDay = window.today + day * DAY;
-        for (const plan of filmDay(movie, side, baseDay)) {
+        for (const [slot, plan] of filmDay(movie, side, baseDay).entries()) {
           const showId = id(
-            `showtime:presale:${movie.key}:${roomId}:${dayKey(plan.startTime)}:${side}`,
+            `showtime:presale:${movie.key}:${roomId}:${dayKey(plan.startTime)}:${side}:${slot}`,
           );
           showtimes.push({
             id: showId,
@@ -298,21 +298,42 @@ const usersStore = new Map([
   ],
 ]);
 
-const { createMemoryServer } = require("./standalone/runtime.cjs");
-const server = createMemoryServer({
-  movies: catalogMovies,
-  cinemas,
-  rooms,
-  showtimes,
-  combos: defaultCombos,
-  accounts: [...usersStore.values()].map((user) => ({
-    ...user,
-    password: process.env.NOVA_DEMO_PASSWORD || user.password,
-  })),
-});
-const port = Number(process.env.NOVA_API_PORT || process.env.PORT || 4000);
-server.listen(port, "0.0.0.0", () => {
-  console.log(
-    `[NOVA RAM] Disposable demo API ready on port ${port}; data is not persisted.`,
-  );
-});
+// Preserve existing .local accounts and add the four requested native development roles.
+const developmentAccounts = require("../content/development-accounts.json");
+function createDemoData() {
+  return {
+    movies: catalogMovies,
+    cinemas,
+    rooms,
+    showtimes,
+    combos: defaultCombos,
+    accounts: [
+      ...[...usersStore.values()].map((user) => ({
+        ...user,
+        password: process.env.NOVA_DEMO_PASSWORD || user.password,
+      })),
+      ...developmentAccounts.map((user) => ({
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        cMemberTier: user.tier,
+        cMemberPoints: user.points,
+        password:
+          process.env.NOVA_DEMO_PASSWORD ||
+          process.env.SEED_DEMO_PASSWORD ||
+          usersStore.get("customer@nova.local").password,
+      })),
+    ],
+  };
+}
+if (require.main === module) {
+  const { createMemoryServer } = require("./standalone/runtime.cjs");
+  const server = createMemoryServer(createDemoData());
+  const port = Number(process.env.NOVA_API_PORT || process.env.PORT || 4000);
+  server.listen(port, process.env.HOST || "127.0.0.1", () => {
+    console.log(
+      `[NOVA RAM] Native process ready on port ${port}; data is not persisted. Existing .local accounts and four .vn development roles are available.`,
+    );
+  });
+}
+module.exports = { createDemoData };

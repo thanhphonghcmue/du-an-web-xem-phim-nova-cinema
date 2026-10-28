@@ -3,6 +3,17 @@
  * Mọi thao tác luôn chuyển tới NestJS; lỗi kết nối trả 503, không có kho thay thế.
  */
 import { NextResponse } from "next/server";
+import { promisify } from "node:util";
+import { gzip } from "node:zlib";
+const compress = promisify(gzip);
+const publicRead = (method, endpoint) =>
+  method === "GET" &&
+  /^\/(movies|cinemas|rooms|combos|showtimes)(\/|$)/.test(endpoint);
+const acceptsGzip = (header) =>
+  (header || "").split(",").some((part) => {
+    const match = part.trim().match(/^gzip(?:;\s*q=([01](?:\.\d+)?))?$/i);
+    return match && (match[1] === undefined || Number(match[1]) > 0);
+  });
 
 // Chỉ biến máy chủ này chọn upstream; trình duyệt không thể điều hướng sang host khác.
 const upstream = () =>
@@ -101,6 +112,10 @@ async function proxy(request, context) {
   const token = request.cookies.get(names.access)?.value;
   if (token) headers.set("authorization", `Bearer ${token}`);
 
+  // BFF compresses public reads once, after forwarding unchanged JSON bytes.
+  // Native direct clients negotiate their own compression separately.
+  if (publicRead(request.method, endpoint))
+    headers.set("accept-encoding", "identity");
   try {
     const target = upstream() + endpoint + new URL(request.url).search;
     const result = await fetch(target, {
@@ -115,7 +130,27 @@ async function proxy(request, context) {
     const type = result.headers.get("content-type") || "application/json";
     let response;
 
-    if (type.includes("application/json")) {
+    if (
+      result.ok &&
+      type.includes("application/json") &&
+      publicRead(request.method, endpoint)
+    ) {
+      const bytes = Buffer.from(await result.arrayBuffer());
+      const useGzip =
+        bytes.length >= 1024 &&
+        acceptsGzip(request.headers.get("accept-encoding"));
+      response = new NextResponse(
+        useGzip ? await compress(bytes, { level: 4 }) : bytes,
+        {
+          status: result.status,
+          headers: {
+            "Content-Type": type,
+            Vary: "Accept-Encoding",
+            ...(useGzip ? { "Content-Encoding": "gzip" } : {}),
+          },
+        },
+      );
+    } else if (type.includes("application/json")) {
       const payload = await result.json();
       if (
         payload?.error === "RATE_LIMIT_UNAVAILABLE" ||

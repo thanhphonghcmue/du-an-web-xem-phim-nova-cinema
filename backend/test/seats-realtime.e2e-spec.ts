@@ -359,6 +359,106 @@ describe("Phase 7 seat snapshots, group suggestions and real Socket.IO/Redis del
       (data(await map(f.showtime.id).expect(200)) as SeatMap).capacity.sold,
     ).toBe(1);
   });
+  it("batched capacities match seat maps for expired, PAID and mixed SOLD/HOLDING claims", async () => {
+    const f = await fixture();
+    const held = entity(await hold(f, [id(f, 0), id(f, 1)]).expect(201));
+    const counts = async () => {
+      const rows = data(
+        await request(server)
+          .get("/api/v1/showtimes/capacities")
+          .query({ ids: `${f.showtime.id.toUpperCase()},${randomUUID()}` })
+          .expect(200),
+      ) as Array<SeatMap["capacity"] & { showtimeId: string; asOf: string }>;
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject(
+        (data(await map(f.showtime.id).expect(200)) as SeatMap).capacity,
+      );
+      return rows[0];
+    };
+    expect(await counts()).toMatchObject({
+      holding: 2,
+      sold: 0,
+      available: 22,
+    });
+    await prisma.booking.update({
+      where: { id: held.id },
+      data: {
+        createdAt: new Date(Date.now() - 301000),
+        expiredAt: new Date(Date.now() - 1000),
+      },
+    });
+    expect(await counts()).toMatchObject({
+      holding: 0,
+      sold: 0,
+      available: 24,
+    });
+    await prisma.booking.update({
+      where: { id: held.id },
+      data: { status: "PAID" },
+    });
+    expect(await counts()).toMatchObject({
+      holding: 2,
+      sold: 0,
+      available: 22,
+    });
+    await prisma.bookingSeat.updateMany({
+      where: { bookingId: held.id, seatId: id(f, 0) },
+      data: { status: "SOLD" },
+    });
+    await prisma.booking.update({
+      where: { id: held.id },
+      data: { status: "HOLDING" },
+    });
+    expect(await counts()).toMatchObject({
+      holding: 1,
+      sold: 1,
+      available: 22,
+    });
+  });
+
+  it("reads batched expired capacities while a writer owns the booking row lock, without mutating claims", async () => {
+    const f = await fixture();
+    const held = entity(await hold(f).expect(201));
+    const before = await prisma.booking.update({
+      where: { id: held.id },
+      data: {
+        createdAt: new Date(Date.now() - 301000),
+        expiredAt: new Date(Date.now() - 1000),
+      },
+    });
+    const ready = gate(),
+      unlock = gate();
+    const writer = prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM bookings WHERE id = ${held.id}::uuid FOR UPDATE`;
+        ready.release();
+        await unlock.promise;
+      },
+      { timeout: 10000 },
+    );
+    await ready.promise;
+    try {
+      const started = Date.now();
+      const rows = data(
+        await request(server)
+          .get("/api/v1/showtimes/capacities")
+          .query({ ids: f.showtime.id })
+          .expect(200),
+      ) as Array<SeatMap["capacity"]>;
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ available: 24, holding: 0 });
+      expect(Date.now() - started).toBeLessThan(1000);
+      const after = await prisma.booking.findUniqueOrThrow({
+        where: { id: held.id },
+      });
+      expect(after.status).toBe("HOLDING");
+      expect(after.updatedAt).toEqual(before.updatedAt);
+    } finally {
+      unlock.release();
+      await writer;
+    }
+  });
+
   it("projects overdue holds without writes, then atomically reclaims them on POST", async () => {
     const f = await fixture();
     const held = entity(await hold(f).expect(201));

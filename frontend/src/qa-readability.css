@@ -1,0 +1,260 @@
+/* Audited cinema choice and booking controls. Loaded after the shared theme. */
+.nova-choice-dialog.is-grouped {
+  width: min(880px, calc(100vw - 28px));
+}
+.cinema-choice-columns {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(0, 2.4fr);
+  gap: 18px;
+}
+.cinema-regions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.cinema-regions > span {
+  color: #bfcfe6;
+  font-size: 13px;
+  font-weight: 700;
+}
+.cinema-regions button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid #465978;
+  background: #142033;
+  color: #eaf0fa;
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.cinema-regions button[aria-pressed="true"] {
+  background: #294b60;
+  border-color: #7dd3fc;
+  color: white;
+}
+.cinema-regions small {
+  flex-shrink: 0;
+  color: #d4e7f5;
+}
+.is-grouped .choice-options {
+  min-width: 0;
+  align-content: start;
+}
+.is-grouped .choice-options > button {
+  align-items: flex-start;
+}
+.is-grouped .choice-options > button > svg,
+.is-grouped .choice-circle {
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+.is-grouped .choice-options strong,
+.is-grouped .choice-options span,
+.is-grouped .choice-options small {
+  overflow-wrap: anywhere;
+}
+.timeline-dates .date-relative {
+  display: block;
+  color: #fde3a9;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.timeline-dates button.active {
+  outline: 2px solid #f3c990;
+  outline-offset: -2px;
+}
+.schedule-empty button {
+  min-height: 44px;
+  margin: 5px;
+}
+.booking-console .seat {
+  width: var(--seat-target, 32px);
+  min-width: var(--seat-target, 32px);
+  height: var(--seat-target, 32px);
+  min-height: var(--seat-target, 32px);
+}
+.booking-console .seat-row {
+  width: max-content;
+  min-width: 100%;
+  gap: 6px;
+}
+.booking-console .live-combos > label {
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+}
+.booking-combo-quantity {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.booking-combo-quantity button {
+  min-width: 32px;
+  min-height: 36px;
+  border: 1px solid #66758d;
+  border-radius: 7px;
+  background: #1c2d40;
+  color: #f8fafc;
+  font-size: 18px;
+}
+.booking-combo-quantity input[type="number"] {
+  width: 35px;
+  min-width: 0;
+  padding: 6px 0;
+  text-align: center;
+  appearance: textfield;
+}
+.booking-combo-quantity input::-webkit-inner-spin-button,
+.booking-combo-quantity input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.booking-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto auto auto;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 0;
+  margin-top: 24px;
+  border-top: 1px solid #65788e;
+  background: #111b2b;
+  box-shadow: 0 -12px 30px #060d1a55;
+}
+.booking-dock-context {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.booking-dock-context strong {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.booking-dock-context span,
+.booking-dock-hint {
+  font-size: 11px;
+  color: #c9d7e9;
+  line-height: 1.6;
+}
+.booking-dock-hint {
+  max-width: 120px;
+}
+.booking-dock-total {
+  display: grid;
+}
+.booking-dock-total small {
+  font-size: 11px;
+  color: #d0ddee;
+}
+.booking-dock-total strong {
+  font-size: 23px;
+  color: #f5d6a4;
+  line-height: 1.4;
+}
+.booking-console .booking-dock .hold-timer {
+  margin: 0;
+  padding: 7px 10px;
+}
+.booking-dock .button {
+  min-height: 48px;
+  max-width: 100%;
+  white-space: normal;
+  padding: 12px 16px;
+}
+@media (max-width: 700px) {
+  .cinema-choice-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .cinema-regions {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 3px 1px 6px;
+  }
+  .cinema-regions > span {
+    display: none;
+  }
+  .cinema-regions button {
+    flex-shrink: 0;
+    padding: 9px 12px;
+  }
+  .is-grouped .choice-options {
+    max-height: 45dvh;
+  }
+  .booking-dock {
+    bottom: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+  }
+  .booking-dock-context {
+    grid-column: 1/-1;
+  }
+  .booking-dock-context strong {
+    font-size: 13px;
+  }
+  .booking-dock-total strong {
+    font-size: 22px;
+  }
+  .booking-dock .hold-timer {
+    justify-self: end;
+  }
+  .booking-dock-hint {
+    max-width: 160px;
+    text-align: right;
+  }
+  .booking-dock-action {
+    grid-column: 1/-1;
+    width: 100%;
+  }
+}
+@media (max-width: 400px) {
+  .booking-console .live-combos > label {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+  .booking-combo-quantity {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+/* Override the old full-width mobile timer: total and clock own separate cells. */
+.booking-console .booking-dock .hold-timer {
+  width: auto;
+  min-width: 0;
+  gap: 6px;
+}
+.booking-console .booking-dock .hold-timer > div {
+  display: grid;
+  gap: 1px;
+}
+.booking-dock-total strong {
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .booking-dock {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .booking-console .booking-dock .hold-timer svg {
+    display: none;
+  }
+  .booking-console .booking-dock .hold-timer small {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+  .booking-console .booking-dock .hold-timer strong {
+    font-size: 24px;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .booking-dock-total strong {
+    font-size: 21px;
+  }
+}

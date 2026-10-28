@@ -289,9 +289,24 @@ async function main() {
       prisma,
       prefix,
     );
+  const fixtureSignals = ["SIGTERM", "SIGINT"];
+  const ownSignalListeners = new Map(
+    fixtureSignals.map((signal) => [
+      signal,
+      new Set(process.listeners(signal)),
+    ]),
+  );
   app = await require("../backend/dist/bootstrap.js").createApplication({
     logger: false,
   });
+  // The fixture owns signal ordering. Remove only listeners added during Nest
+  // bootstrap; its normal close hooks still run when we explicitly app.close().
+  for (const signal of fixtureSignals) {
+    for (const listener of process.listeners(signal)) {
+      if (!ownSignalListeners.get(signal).has(listener))
+        process.removeListener(signal, listener);
+    }
+  }
   await app.listen(apiPort, "127.0.0.1");
   mkdirSync(resolve(root, ".runtime"), { recursive: true });
   writeFileSync(
@@ -320,18 +335,22 @@ async function main() {
   child = spawn(
     process.execPath,
     [
-      resolve(root, "node_modules/next/dist/bin/next"),
-      "dev",
+      require.resolve("next/dist/bin/next", {
+        paths: [resolve(root, "frontend")],
+      }),
+      process.env.NOVA_QA_PRODUCTION === "1" ? "start" : "dev",
+      ...(process.env.NOVA_QA_PRODUCTION === "1" ? [] : ["--webpack"]),
       "--hostname",
       "127.0.0.1",
       "--port",
       String(frontendPort),
     ],
     {
-      cwd: root,
+      cwd: resolve(root, "frontend"),
       env: {
         ...process.env,
-        NODE_ENV: "development",
+        NODE_ENV:
+          process.env.NOVA_QA_PRODUCTION === "1" ? "production" : "development",
         // An obsolete flag must never select a second data store.
         NOVA_STANDALONE: "true",
         BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1`,

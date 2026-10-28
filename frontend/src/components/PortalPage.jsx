@@ -2,6 +2,7 @@ import { usePathname } from "next/navigation";
 import MoviePage from "./MoviePage.jsx";
 import { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -14,10 +15,10 @@ import {
 } from "lucide-react";
 import { useCatalog } from "@/catalog.js";
 import PageBanner from "./PageBanner.jsx";
-import AuthForm from "./AuthForm.jsx";
-import AdminDashboard from "./AdminDashboard.jsx";
-import StaffCheckIn from "./StaffCheckIn.jsx";
-import TicketHistory from "./TicketHistory.jsx";
+const AuthForm = dynamic(() => import("./AuthForm.jsx"));
+const AdminDashboard = dynamic(() => import("./AdminDashboard.jsx"));
+const StaffCheckIn = dynamic(() => import("./StaffCheckIn.jsx"));
+const TicketHistory = dynamic(() => import("./TicketHistory.jsx"));
 import Discovery from "./Discovery.jsx";
 import InfoPage from "./InfoPage.jsx";
 

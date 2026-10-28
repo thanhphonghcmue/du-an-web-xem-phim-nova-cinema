@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
-import { ListShowtimesDto } from "./showtime.dto";
+import { ListShowtimesDto, ShowtimeCapacityDto } from "./showtime.dto";
 
 @Injectable()
 export class ShowtimesRepository {
@@ -66,6 +66,36 @@ export class ShowtimesRepository {
       }),
       tx.showtime.count({ where }),
     ]);
+  }
+
+  capacities(
+    ids: string[],
+    tx: Prisma.TransactionClient,
+  ): Promise<ShowtimeCapacityDto[]> {
+    // Three set-based groups, no per-show seat-map queries, no mutation/row locks.
+    // Match lazy-expiry policy: SOLD, PAID and mixed SOLD/HOLDING bookings stay occupied.
+    return tx.$queryRaw<ShowtimeCapacityDto[]>`
+      WITH clock AS (SELECT CURRENT_TIMESTAMP AS now),
+      requested AS (SELECT id, room_id FROM showtimes
+        WHERE id = ANY(ARRAY[${Prisma.join(ids)}]::uuid[])),
+      physical AS (SELECT room_id, COUNT(*)::int AS total FROM seats
+        WHERE room_id IN (SELECT room_id FROM requested) GROUP BY room_id),
+      active AS (
+        SELECT bs.showtime_id,
+          COUNT(*) FILTER (WHERE bs.status = 'HOLDING')::int AS holding,
+          COUNT(*) FILTER (WHERE bs.status = 'SOLD')::int AS sold
+        FROM booking_seats bs JOIN bookings b ON b.id = bs.booking_id CROSS JOIN clock
+        WHERE bs.showtime_id IN (SELECT id FROM requested)
+          AND bs.status IN ('HOLDING', 'SOLD')
+          AND NOT (bs.status = 'HOLDING' AND b.status IN ('HOLDING', 'PENDING')
+            AND b.expired_at <= clock.now AND NOT EXISTS (
+              SELECT 1 FROM booking_seats protected WHERE protected.booking_id = b.id AND protected.status = 'SOLD'))
+        GROUP BY bs.showtime_id)
+      SELECT r.id AS "showtimeId", COALESCE(p.total, 0)::int AS total,
+        GREATEST(0, COALESCE(p.total, 0) - COALESCE(a.holding, 0) - COALESCE(a.sold, 0))::int AS available,
+        COALESCE(a.holding, 0)::int AS holding, COALESCE(a.sold, 0)::int AS sold, clock.now AS "asOf"
+      FROM requested r LEFT JOIN physical p ON p.room_id = r.room_id
+      LEFT JOIN active a ON a.showtime_id = r.id CROSS JOIN clock ORDER BY r.id`;
   }
 
   programme(now: Date, until: Date, tx: Prisma.TransactionClient) {

@@ -175,7 +175,7 @@ async function seedAdvanceProgramme(db, catalog) {
   });
   let added = 0,
     conflicts = 0;
-  for (const key of ["landmark", "westlake"]) {
+  for (const key of ["landmark", "westlake", "sala", "riverside"]) {
     const cinema = await db.cinema.findUniqueOrThrow({
       where: { id: id(`cinema:${key}`) },
     });

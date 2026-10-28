@@ -30,7 +30,7 @@
 export const API_BASE = "/api/v1";
 import { apiErrorMessage } from "./errorMessage.js";
 import { notifyApiError } from "./notice.js";
-import { uniqueRecords } from "@/uniqueRecords.js";
+import { uniqueRecords } from "../uniqueRecords.js";
 import { requestBudget, abortable } from "./budget.js";
 let refreshing;
 let programmeCache,
@@ -57,6 +57,12 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
       reads.clear();
       programmeCache = null;
       catalogueEpoch++;
+      if (
+        typeof window !== "undefined" &&
+        /^\/(bookings|payments)(\/|$)/.test(endpoint)
+      ) {
+        window.dispatchEvent(new Event("nova-seat-capacity-change"));
+      }
     }
     return result;
   } catch (cause) {

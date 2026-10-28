@@ -303,3 +303,11 @@ transaction client; API đọc nhật ký chỉ ADMIN, phân trang snapshot Repe
 Unique expression index tên phim phân xử ghi trùng đồng thời. Physical seat mutations
 vẫn khóa room trước, kiểm tra giới hạn 300 ghế/15 hàng; generate tối đa 24 cột và
 Sweetbox nguyên cặp. Không thay ranh giới transaction booking/payment/outbox.
+
+## Bổ sung kiểm toán ngày 28/10/2026
+
+`GET /showtimes/capacities?ids=...` nhận1–50 UUID duy nhất và trả mảng số đếm `showtimeId,total,available,holding,sold,asOf`. Một truy vấn SQL dùng các nhóm requested/physical/active cho toàn lô, không N truy vấn seat-map. Cùng REPEATABLE READ snapshot; hold overdue chỉ được chiếu thành trống khi booking còn HOLDING/PENDING và không có SOLD claim. PAID/SOLD được bảo vệ như seat map. Không thay status, không row lock, không lộ seat/owner/QR. UUID không tồn tại được bỏ khỏi kết quả; frontend không suy diễn số ghế cho ID bị thiếu.
+
+Native nén gzip cấp4 cho GET/HEAD public movies/cinemas/rooms/combos/showtimes từ1024 byte. BFF chuyển bytes JSON thành công, không parse/stringify lại, nén gzip bất đồng bộ nếu browser chấp nhận; giữ `no-store` và `Vary: Accept-Encoding`. Các route auth/private/SSE không đi qua lớp nén này. Không đổi cấu hình pool, schema, giá, HMAC thanh toán hoặc outbox.
+
+SSE trên Next production dùng `socket.io-client` như server external để giữ Node WebSocket transport. Stream gửi comment mở đầu ngay; socket/ack có timeout5 giây, heartbeat và socket được dọn khi client hủy. Stream reconnect vẫn yêu cầu client lấy lại snapshot; không cam kết ordered/exactly-once delivery. Adapter RAM giữ polling và tự fallback như lựa chọn đã có.

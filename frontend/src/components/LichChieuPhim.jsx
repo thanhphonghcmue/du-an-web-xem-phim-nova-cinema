@@ -8,6 +8,8 @@ import { useQuerySelection } from "@/useQuerySelection.js";
  * ==============================================================================
  */
 
+import { useShowtimeCapacity } from "@/useShowtimeCapacity.js";
+import { relativeCinemaDay } from "@/bookingDates.js";
 import CinemaPicker from "./CinemaPicker.jsx";
 import DateSelector from "./DateSelector.jsx";
 import Link from "next/link";
@@ -106,6 +108,8 @@ export default function LichChieuPhim({
         (period === "late" && hour >= 21))
     );
   });
+  const capacities = useShowtimeCapacity(times.map((time) => time.id));
+  const nextDate = dates.find((date) => date.id > activeDate);
   if (!cinema || !film)
     return (
       <section id="showtimes" className="content-width section-space">
@@ -203,6 +207,11 @@ export default function LichChieuPhim({
                     <small>/{d.id.slice(5, 7)}</small>
                   </strong>
                   <span>{d.label.split(",")[0]}</span>
+                  {relativeCinemaDay(d.id, language) && (
+                    <small className="date-relative">
+                      {relativeCinemaDay(d.id, language)}
+                    </small>
+                  )}
                 </button>
               ))}
             </div>
@@ -368,6 +377,18 @@ export default function LichChieuPhim({
                   >
                     Xóa bộ lọc giờ & phòng
                   </button>
+                  {nextDate && (
+                    <button
+                      onClick={() => {
+                        setDateId(nextDate.id);
+                        setPeriod("all");
+                        setFormat("all");
+                        setRoomFilter("all");
+                      }}
+                    >
+                      {t("Xem ngày kế tiếp")}
+                    </button>
+                  )}
                 </div>
               )}
               {times.map((time) => {
@@ -417,8 +438,17 @@ export default function LichChieuPhim({
                     <span className="show-price">
                       Từ {money(time.baseTicketPrice)}
                     </span>
-                    <span className="show-capacity-label">
-                      {t("Xem ghế trống")}
+                    <span
+                      className="show-capacity-label"
+                      title={
+                        capacities.has(time.id)
+                          ? `Theo hệ thống lúc ${new Date(capacities.get(time.id).asOf).toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })} · Ghế được xác nhận khi giữ chỗ`
+                          : "Xem sơ đồ để xác nhận ghế khả dụng"
+                      }
+                    >
+                      {capacities.has(time.id)
+                        ? `${capacities.get(time.id).available}/${capacities.get(time.id).total} ${t("ghế trống")}`
+                        : t("Xem ghế trống")}
                       <Ticket size={14} />
                     </span>
                   </motion.button>

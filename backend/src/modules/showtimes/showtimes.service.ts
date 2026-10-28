@@ -60,6 +60,13 @@ export class ShowtimesService {
     }, Prisma.TransactionIsolationLevel.RepeatableRead);
   }
 
+  capacities(ids: string[]) {
+    return this.database.transaction(
+      (tx) => this.showtimes.capacities(ids, tx),
+      Prisma.TransactionIsolationLevel.RepeatableRead,
+    );
+  }
+
   programme(days: number): Promise<ProgrammeDto> {
     return this.database.transaction(async (tx) => {
       const [clock] = await tx.$queryRaw<

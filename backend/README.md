@@ -22,6 +22,12 @@ Node.js **24 LTS** theo `.nvmrc`, npm, PostgreSQL/Redis và SMTP đã cấu hìn
 
 Nếu đã có PostgreSQL/Redis riêng, điền connection settings vào `.env` thay vì ghi đè cấu hình bằng các helper local.
 
+## Chạy native theo cấu trúc monorepo (28/10/2026)
+
+Từ root: `npm install`, `npm run seed`, `npm run dev`. Frontend ở `frontend/`, backend ở đây. PostgreSQL mode cần database UTF8 và locale Unicode hỗ trợ chữ Việt, Redis native và backend/.env; dùng `npm run setup:local` sau khi cấu hình. Khi chưa cấu hình/không kết nối được PostgreSQL ở startup, giữ RAM fallback đã được yêu cầu; dữ liệu RAM không bền sau restart.
+
+[Hướng dẫn native và kiểm chứng STLC mới](../docs/qa/backend-native-audit.md). Các lệnh hạ tầng Compose trong hướng dẫn lịch sử bên dưới là cấu hình cũ được giữ lại; setup/seed/dev mới không gọi các lệnh đó.
+
 ## Cài và chạy từ đầu
 
 Từ root repository:

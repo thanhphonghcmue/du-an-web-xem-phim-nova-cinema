@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ticketQrData, ticketPng } from "../src/ticketQr.js";
-import { revenueCsv } from "../src/api/revenueCsv.js";
-import { apiErrorMessage } from "../src/api/errorMessage.js";
+import { ticketQrData, ticketPng } from "../frontend/src/ticketQr.js";
+import { revenueCsv } from "../frontend/src/api/revenueCsv.js";
+import { apiErrorMessage } from "../frontend/src/api/errorMessage.js";
 const ticket = {
   id: "39cd8d10-446c-4057-a455-8d3b746c6028",
   bookingId: "84828076-f89c-4aa0-b6af-9ae7639a3bcd",

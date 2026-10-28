@@ -45,25 +45,33 @@ export async function GET(request, context) {
             encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
           );
       };
+      // Flush headers immediately, including when upstream is offline.
+      controller.enqueue(encoder.encode(": connected\nretry: 3000\n\n"));
       const socket = io(origin + "/seats", {
         transports: ["websocket"],
+        forceNew: true,
+        timeout: 5000,
         reconnection: true,
       });
       const timer = setInterval(() => {
         if (!closed) controller.enqueue(encoder.encode(": heartbeat\n\n"));
       }, 15000);
-      cleanup = () => {
+      cleanup = (close = true) => {
         if (closed) return;
         closed = true;
         clearInterval(timer);
         socket.disconnect();
         request.signal.removeEventListener("abort", cleanup);
-        controller.close();
+        if (close !== false) controller.close();
       };
       socket.on("connect", () =>
-        socket.emit("join_showtime", { showtimeId: id }, (ack) =>
-          emit({ type: ack?.success === false ? "unavailable" : "resync" }),
-        ),
+        socket
+          .timeout(5000)
+          .emit("join_showtime", { showtimeId: id }, (error, ack) =>
+            emit({
+              type: error || ack?.success !== true ? "unavailable" : "resync",
+            }),
+          ),
       );
       for (const event of [
         "seat_locked",
@@ -78,7 +86,7 @@ export async function GET(request, context) {
       if (request.signal.aborted) cleanup();
     },
     cancel() {
-      cleanup();
+      cleanup(false);
     },
   });
   return new Response(stream, {

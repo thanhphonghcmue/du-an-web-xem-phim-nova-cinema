@@ -2,6 +2,9 @@ const { spawn } = require("node:child_process");
 const { resolve } = require("node:path");
 const net = require("node:net");
 const root = resolve(__dirname, "..");
+require("node:module")
+  .createRequire(resolve(root, "backend/package.json"))("dotenv")
+  .config({ path: resolve(root, "backend/.env"), quiet: true });
 const apiPort = Number(process.env.NOVA_API_PORT || 4000),
   webPort = Number(process.env.NOVA_WEB_PORT || 3000);
 const children = [];
@@ -52,8 +55,22 @@ async function main() {
     return;
   }
 
-  const hasDb = await checkPort(55432);
+  let target;
+  try {
+    if (process.env.DATABASE_URL) target = new URL(process.env.DATABASE_URL);
+  } catch {
+    /* An invalid connection cannot select a working persisted backend. */
+  }
+  const hasDb =
+    process.env.NOVA_BACKEND_MODE !== "memory" &&
+    target &&
+    ["postgresql:", "postgres:"].includes(target.protocol) &&
+    (await checkPort(Number(target.port || 5432), target.hostname));
   let useStandaloneBackend = !hasDb;
+  if (!hasDb)
+    console.log(
+      "[NOVA] PostgreSQL unavailable/unconfigured; automatic native RAM fallback (data resets on restart).",
+    );
 
   if (
     hasDb &&
@@ -80,7 +97,9 @@ async function main() {
   }
 
   if (useStandaloneBackend) {
-    console.log(`[NOVA] Khởi động máy chủ backend độc lập trên cổng ${apiPort}...`);
+    console.log(
+      `[NOVA] Khởi động máy chủ backend độc lập trên cổng ${apiPort}...`,
+    );
     start(["backend/standalone-server.cjs"], root, {
       ...process.env,
       PORT: String(apiPort),
@@ -129,7 +148,9 @@ async function main() {
 
   start(
     [
-      resolve(root, "node_modules/next/dist/bin/next"),
+      require.resolve("next/dist/bin/next", {
+        paths: [resolve(root, "frontend")],
+      }),
       "dev",
       "--webpack",
       "--hostname",

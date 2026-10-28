@@ -29,6 +29,7 @@ import { useQuerySelection } from "./useQuerySelection.js";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import NovaLogo from "./components/NovaLogo.jsx";
 import { notifyApiError } from "./api/notice.js";
@@ -71,12 +72,18 @@ import {
 } from "./api/client.js";
 import CinematicBackdrop from "./components/CinematicBackdrop.jsx";
 import { useI18n } from "./i18n.js";
-import ChonGhe_Va_ThanhToan from "./components/ChonGhe_Va_ThanhToan.jsx";
+const ChonGhe_Va_ThanhToan = dynamic(
+  () => import("./components/ChonGhe_Va_ThanhToan.jsx"),
+);
 import DatVeNhanh from "./components/DatVeNhanh.jsx";
-import SoatVeNhanVien from "./components/SoatVeNhanVien.jsx";
-import QuanTriHeThong from "./components/QuanTriHeThong.jsx";
-import LichSuVeKhachHang from "./components/LichSuVeKhachHang.jsx";
-import DangNhap_DangKy from "./components/DangNhap_DangKy.jsx";
+const SoatVeNhanVien = dynamic(() => import("./components/SoatVeNhanVien.jsx"));
+const QuanTriHeThong = dynamic(() => import("./components/QuanTriHeThong.jsx"));
+const LichSuVeKhachHang = dynamic(
+  () => import("./components/LichSuVeKhachHang.jsx"),
+);
+const DangNhap_DangKy = dynamic(
+  () => import("./components/DangNhap_DangKy.jsx"),
+);
 import LichChieuPhim from "./components/LichChieuPhim.jsx";
 import TimKiemPhim from "./components/TimKiemPhim.jsx";
 import { mainNavigation } from "./navigation.js";

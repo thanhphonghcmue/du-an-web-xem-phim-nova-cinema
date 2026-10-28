@@ -29,17 +29,32 @@ async function freePort() {
 }
 async function main() {
   directory = mkdtempSync(join(tmpdir(), "nova-fallback-startup-"));
-  for (const name of ["src", "content"])
-    cpSync(join(root, name), join(directory, name), { recursive: true });
+  mkdirSync(join(directory, "frontend"));
+  cpSync(join(root, "content"), join(directory, "content"), {
+    recursive: true,
+  });
   for (const name of [
+    "src",
+    "content",
     "package.json",
+    "jsconfig.json",
     "next.config.mjs",
     "postcss.config.js",
     "tailwind.config.js",
   ])
-    cpSync(join(root, name), join(directory, name));
-  for (const name of ["node_modules", "public"])
-    symlinkSync(join(root, name), join(directory, name), "junction");
+    cpSync(join(root, "frontend", name), join(directory, "frontend", name), {
+      recursive: true,
+    });
+  symlinkSync(
+    join(root, "node_modules"),
+    join(directory, "node_modules"),
+    "junction",
+  );
+  symlinkSync(
+    join(root, "frontend/public"),
+    join(directory, "frontend/public"),
+    "junction",
+  );
   mkdirSync(join(directory, "scripts"));
   mkdirSync(join(directory, "backend", "scripts"), { recursive: true });
   cpSync(

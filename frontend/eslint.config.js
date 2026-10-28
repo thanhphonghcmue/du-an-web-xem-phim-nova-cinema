@@ -4,7 +4,18 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 
 export default [
-  { ignores: ["dist", ".next", "out", "test-results", ".taste-skill", "nova-web/**", "my-project/**", "backend/**"] },
+  {
+    ignores: [
+      "dist",
+      ".next",
+      "out",
+      "test-results",
+      ".taste-skill",
+      "nova-web/**",
+      "my-project/**",
+      "backend/**",
+    ],
+  },
   {
     files: ["**/*.{js,jsx}"],
     languageOptions: {
@@ -24,5 +35,15 @@ export default [
       "no-unused-vars": ["error", { varsIgnorePattern: "^[A-Z_]" }],
     },
   },
-  { files:['src/app/**/*.{js,jsx}'], languageOptions:{globals:{...globals.browser,...globals.node}}, rules:{'react-refresh/only-export-components':['error',{allowExportNames:['metadata','viewport']}] } },
+  { files: ["scripts/**/*.js"], languageOptions: { globals: globals.node } },
+  {
+    files: ["src/app/**/*.{js,jsx}"],
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
+    rules: {
+      "react-refresh/only-export-components": [
+        "error",
+        { allowExportNames: ["metadata", "viewport"] },
+      ],
+    },
+  },
 ];

@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import { requestBudget, abortable } from "../src/api/budget.js";
-import { holdSeconds } from "../src/holdDeadline.js";
+import { requestBudget, abortable } from "../frontend/src/api/budget.js";
+import { holdSeconds } from "../frontend/src/holdDeadline.js";
 const nativeFetch = globalThis.fetch;
 async function fixture(t, handler) {
   const server = createServer(handler);
@@ -16,7 +16,7 @@ async function fixture(t, handler) {
     server.closeAllConnections();
     await new Promise((done) => server.close(done));
   });
-  return import(`../src/api/client.js?test=${Math.random()}`);
+  return import(`../frontend/src/api/client.js?test=${Math.random()}`);
 }
 test("a hung response body cannot exceed the shared eight-second request budget", async (t) => {
   const api = await fixture(t, (_req, res) => {

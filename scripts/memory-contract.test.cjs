@@ -403,8 +403,12 @@ test("RAM checkout is signed, does not fake PAID and issues one real QR after su
     image = (await f.call("/tickets/me", undefined, f.customer.accessToken))
       .data.items[0].qrCodeBase64;
   }
-  const { PNG } = require("../backend/node_modules/pngjs");
-  const jsQR = require("../backend/node_modules/jsqr");
+  const { PNG } = require("node:module").createRequire(
+    require("node:path").resolve(__dirname, "../backend/package.json"),
+  )("pngjs");
+  const jsQR = require("node:module").createRequire(
+    require("node:path").resolve(__dirname, "../backend/package.json"),
+  )("jsqr");
   assert.ok(image.startsWith("data:image/png;base64,"));
   const png = PNG.sync.read(Buffer.from(image.split(",")[1], "base64"));
   const decoded = jsQR(new Uint8ClampedArray(png.data), png.width, png.height);
@@ -570,3 +574,65 @@ test("RAM seat-map and suggestion reads remain bounded over repeated calls", asy
   );
   assert.ok(durations[28] < 500, "bounded local fixture latency");
 });
+
+test("RAM batched capacities validate IDs and match live holds, lazy expiry and cancellation", async (t) => {
+  const f = await fixture(t),
+    path = `/showtimes/capacities?ids=${f.showtimeId.toUpperCase()},${f.secondShow}`;
+  const capacity = async () => {
+    const r = await f.call(path);
+    assert.equal(r.status, 200);
+    assert.equal(r.data.length, 2);
+    return r.data.find((item) => item.showtimeId === f.showtimeId);
+  };
+  const initial = (await f.call(`/showtimes/${f.showtimeId}/seats`)).data
+    .capacity;
+  assert.equal((await capacity()).available, initial.available);
+  const hold = await f.call(
+    "/bookings/hold",
+    { showtimeId: f.showtimeId, seatIds: [f.seat("A1")] },
+    f.customer.accessToken,
+  );
+  assert.equal(hold.status, 201);
+  assert.equal((await capacity()).available, initial.available - 1);
+  f.advance(300001);
+  assert.equal((await capacity()).available, initial.available);
+  await f.call(`/bookings/${hold.data.id}/cancel`, {}, f.customer.accessToken);
+  assert.equal((await capacity()).holding, 0);
+  for (const ids of [
+    "",
+    "bad",
+    `${f.showtimeId},${f.showtimeId}`,
+    Array.from({ length: 51 }, () => randomUUID()).join(","),
+  ])
+    assert.equal(
+      (await f.call(`/showtimes/capacities?ids=${ids}`)).status,
+      400,
+    );
+  assert.deepEqual(
+    (await f.call(`/showtimes/capacities?ids=${randomUUID()}`)).data,
+    [],
+  );
+});
+
+for (const seconds of [299, 300, 301]) {
+  test(`RAM exact hold boundary at ${seconds}s cannot resurrect expired inventory`, async (t) => {
+    const f = await paidFixture(t);
+    f.advance(seconds * 1000);
+    const r = await f.call("/payments/sandbox/complete", {
+      ...f.fields,
+      result: "SUCCESS",
+    });
+    assert.equal(r.status, seconds < 300 ? 200 : 409);
+    const order = await f.call(
+      `/bookings/${f.order.id}`,
+      undefined,
+      f.customer.accessToken,
+    );
+    assert.equal(order.data.status, seconds < 300 ? "PAID" : "EXPIRED");
+    const map = (await f.call(`/showtimes/${f.showtimeId}/seats`)).data;
+    assert.equal(
+      map.seats.find((s) => s.seatId === f.seat("A1")).status,
+      seconds < 300 ? "SOLD" : "AVAILABLE",
+    );
+  });
+}

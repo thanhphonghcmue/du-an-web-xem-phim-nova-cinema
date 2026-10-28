@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createCatalogIndex } from "../src/catalogIndex.js";
-import { calendarLabel } from "../src/bookingDates.js";
+import { createCatalogIndex } from "../frontend/src/catalogIndex.js";
+import { calendarLabel } from "../frontend/src/bookingDates.js";
 const data = {
   rooms: [
     { id: "r1", cinemaId: "c1" },

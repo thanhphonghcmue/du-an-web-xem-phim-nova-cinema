@@ -17,16 +17,23 @@ export default function QuickChoice({
   placeholder = "Chọn…",
   disabled = false,
   searchable = true,
+  grouped = false,
 }) {
   const { language, t } = useI18n();
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState("");
+  const [region, setRegion] = useState("");
+  const groups = grouped
+    ? [...new Set(items.map((item) => item.group).filter(Boolean))]
+    : [];
   const [optimisticValue, selectOptimistically] = useOptimistic(value);
   const selected = items.find((item) => item.id === optimisticValue);
-  const visible = items.filter((item) =>
-    normalize(`${item.name} ${item.description || ""}`).includes(
-      normalize(query),
-    ),
+  const visible = items.filter(
+    (item) =>
+      (!grouped || !region || item.group === region) &&
+      normalize(`${item.name} ${item.description || ""}`).includes(
+        normalize(query),
+      ),
   );
   function keyboard(event) {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
@@ -70,7 +77,7 @@ export default function QuickChoice({
       <Dialog.Portal>
         <Dialog.Overlay className="nova-choice-overlay" />
         <Dialog.Content
-          className="nova-choice-dialog"
+          className={`nova-choice-dialog${grouped ? " is-grouped" : ""}`}
           aria-describedby={undefined}
         >
           <div className="choice-heading">
@@ -95,46 +102,72 @@ export default function QuickChoice({
                 aria-label={`${language === "en" ? "Search" : "Tìm trong"} ${t(label).toLowerCase()}`}
                 placeholder={t("Nhập tên hoặc địa điểm…")}
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setRegion("");
+                }}
               />
             </label>
           )}
-          <div
-            className="choice-options"
-            role="listbox"
-            aria-label={t(label)}
-            onKeyDown={keyboard}
-          >
-            {visible.map((item) => (
-              <button
-                type="button"
-                role="option"
-                aria-selected={item.id === optimisticValue}
-                data-value={item.id}
-                disabled={item.disabled}
-                key={item.id}
-                onClick={() => {
-                  setOpen(false);
-                  setQuery("");
-                  startTransition(() => {
-                    selectOptimistically(item.id);
-                    onChange(item.id);
-                  });
-                }}
-              >
-                {item.image && <img src={item.image} alt="" loading="lazy" />}
-                <div>
-                  <strong>{item.name}</strong>
-                  {item.description && <span>{item.description}</span>}
-                  {item.detail && <small>{item.detail}</small>}
-                </div>
-                {item.id === optimisticValue ? (
-                  <Check size={21} />
-                ) : (
-                  <span className="choice-circle" />
-                )}
-              </button>
-            ))}
+          <div className={grouped ? "cinema-choice-columns" : undefined}>
+            {grouped && (
+              <nav className="cinema-regions" aria-label={t("Khu vực rạp")}>
+                <span>{t("Khu vực")}</span>
+                {["", ...groups].map((group) => (
+                  <button
+                    type="button"
+                    key={group || "all"}
+                    aria-pressed={region === group}
+                    onClick={() => setRegion(group)}
+                  >
+                    {group || t("Tất cả khu vực")}
+                    <small>
+                      {
+                        items.filter((item) => !group || item.group === group)
+                          .length
+                      }
+                    </small>
+                  </button>
+                ))}
+              </nav>
+            )}
+            <div
+              className="choice-options"
+              role="listbox"
+              aria-label={t(label)}
+              onKeyDown={keyboard}
+            >
+              {visible.map((item) => (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={item.id === optimisticValue}
+                  data-value={item.id}
+                  disabled={item.disabled}
+                  key={item.id}
+                  onClick={() => {
+                    setOpen(false);
+                    setQuery("");
+                    startTransition(() => {
+                      selectOptimistically(item.id);
+                      onChange(item.id);
+                    });
+                  }}
+                >
+                  {item.image && <img src={item.image} alt="" loading="lazy" />}
+                  <div>
+                    <strong>{item.name}</strong>
+                    {item.description && <span>{item.description}</span>}
+                    {item.detail && <small>{item.detail}</small>}
+                  </div>
+                  {item.id === optimisticValue ? (
+                    <Check size={21} />
+                  ) : (
+                    <span className="choice-circle" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
           {!visible.length && (
             <p className="choice-empty">

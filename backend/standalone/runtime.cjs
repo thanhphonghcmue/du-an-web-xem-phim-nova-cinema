@@ -951,6 +951,27 @@ function createMemoryServer(input) {
       }
       return json(publicUser(user));
     }
+    if (path === "/showtimes/capacities" && method === "GET") {
+      const ids = (query.get("ids") || "").toLowerCase().split(",");
+      assert(
+        ids.length >= 1 &&
+          ids.length <= 50 &&
+          new Set(ids).size === ids.length &&
+          ids.every((id) =>
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              id,
+            ),
+          ),
+      );
+      return json(
+        ids
+          .filter((id) => maps.showtimes.has(id))
+          .map((id) => {
+            const map = seatMap(id);
+            return { showtimeId: id, ...map.capacity, asOf: map.asOf };
+          }),
+      );
+    }
     if (path === "/showtimes/programme") {
       const days = Number(query.get("days") || 60);
       assert(Number.isInteger(days) && days >= 1 && days <= 60);

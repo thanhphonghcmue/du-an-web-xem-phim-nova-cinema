@@ -6,7 +6,7 @@ import {
   normalizeFoodCart,
   readFoodCart,
   saveFoodCart,
-} from "../src/foodCart.js";
+} from "../frontend/src/foodCart.js";
 test("cart drafts reject malformed, nonnumeric and nonfinite quantities", () => {
   for (const input of [null, [], 3, "hello"])
     assert.deepEqual(normalizeFoodCart(input), {});

@@ -30,16 +30,23 @@ async function main() {
   await new Promise((resolve) => portOwner.close(resolve));
   directory = mkdtempSync(join(tmpdir(), "nova-backend-only-"));
   for (const name of ["src", "content"])
-    cpSync(join(root, name), join(directory, name), { recursive: true });
+    cpSync(join(root, "frontend", name), join(directory, name), {
+      recursive: true,
+    });
   for (const name of [
     "package.json",
+    "jsconfig.json",
     "next.config.mjs",
     "postcss.config.js",
     "tailwind.config.js",
   ])
-    cpSync(join(root, name), join(directory, name));
+    cpSync(join(root, "frontend", name), join(directory, name));
   for (const name of ["node_modules", "public"])
-    symlinkSync(join(root, name), join(directory, name), "junction");
+    symlinkSync(
+      join(root, name === "public" ? "frontend/public" : name),
+      join(directory, name),
+      "junction",
+    );
   const origin = `http://127.0.0.1:${port}`;
   child = spawn(
     process.execPath,

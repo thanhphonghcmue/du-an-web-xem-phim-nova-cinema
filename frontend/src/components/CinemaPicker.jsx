@@ -11,6 +11,7 @@ export default function CinemaPicker({
   const { cinemas, rooms, isLive } = useCatalog();
   return (
     <QuickChoice
+      grouped
       disabled={!isLive}
       label={label}
       title="Chọn rạp cho cuộc hẹn"
@@ -22,6 +23,7 @@ export default function CinemaPicker({
         .map((cinema) => ({
           id: cinema.id,
           name: cinema.name,
+          group: cinema.city || "Khu vực khác",
           description: `${cinema.city} · ${cinema.address}`,
           detail: `${rooms.filter((room) => room.cinemaId === cinema.id).length} ${t("phòng chiếu")} · ${cinema.formats || "NOVA Cinema"}`,
         }))}

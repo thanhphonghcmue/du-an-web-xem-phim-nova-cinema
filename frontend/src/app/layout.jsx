@@ -32,6 +32,7 @@ import "@/nova-refresh.css";
 import "@/server-experience.css";
 import "@/cyber-cinema.css";
 import "@/food-studio.css";
+import "@/qa-readability.css";
 import "@fontsource/be-vietnam-pro/latin-400.css";
 import "@fontsource/be-vietnam-pro/latin-500.css";
 import "@fontsource/be-vietnam-pro/latin-600.css";

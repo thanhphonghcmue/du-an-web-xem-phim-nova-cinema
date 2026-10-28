@@ -1,0 +1,30 @@
+[
+  {
+    "email": "customer@nova.vn",
+    "fullName": "NOVA Development Customer",
+    "role": "CUSTOMER",
+    "tier": "SILVER",
+    "points": 0
+  },
+  {
+    "email": "cmember@nova.vn",
+    "fullName": "NOVA Development C’MEMBER",
+    "role": "CUSTOMER",
+    "tier": "GOLD",
+    "points": 50000
+  },
+  {
+    "email": "staff@nova.vn",
+    "fullName": "NOVA Development Staff",
+    "role": "STAFF",
+    "tier": "GOLD",
+    "points": 0
+  },
+  {
+    "email": "admin@nova.vn",
+    "fullName": "NOVA Development Admin",
+    "role": "ADMIN",
+    "tier": "DIAMOND",
+    "points": 0
+  }
+]

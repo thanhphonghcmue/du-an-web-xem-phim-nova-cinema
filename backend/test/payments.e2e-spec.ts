@@ -12,6 +12,7 @@ import { PrismaService } from "../src/database/prisma.service";
 import { TokenService } from "../src/modules/auth/token.service";
 import { BookingMaintenanceService } from "../src/modules/bookings/booking-maintenance.service";
 import { SeatBookingService } from "../src/modules/bookings/seat-booking.service";
+import { BookingsRepository } from "../src/modules/bookings/bookings.repository";
 import { PaymentsRepository } from "../src/modules/payments/payments.repository";
 import {
   PaymentOutcome,
@@ -647,6 +648,35 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
     expect((await stored(second.id)).seats[0]?.status).toBe("HOLDING");
     expect(await points()).toBe(0);
   });
+  it.each([299, 300, 301])(
+    "BVA hold deadline at second %i uses the service clock and persists only the allowed outcome",
+    async (seconds) => {
+      const f = await fixture(),
+        booking = await hold(f),
+        payment = await checkout(booking);
+      const now = new Date(
+        new Date(booking.expiredAt).getTime() + (seconds - 300) * 1000,
+      );
+      // Real PostgreSQL transactions/constraints; only the service clock is controlled
+      // so the exact boundary cannot depend on machine scheduling or a five-minute sleep.
+      jest.spyOn(app.get(BookingsRepository), "now").mockResolvedValue(now);
+      const response = await webhook(
+        callback(booking, payment, "SUCCESS", { timestamp: now.toISOString() }),
+      );
+      expect(response.status).toBe(seconds < 300 ? 200 : 409);
+      const row = await stored(booking.id);
+      expect(row.status).toBe(seconds < 300 ? "PAID" : "EXPIRED");
+      expect(
+        row.seats.every(
+          (seat) => seat.status === (seconds < 300 ? "SOLD" : "AVAILABLE"),
+        ),
+      ).toBe(true);
+      expect(row.payments[0]?.status).toBe(
+        seconds < 300 ? "SUCCESS" : "CANCELLED",
+      );
+    },
+  );
+
   it("commits expiry on a late SUCCESS, cancels its payment and protects a later hold", async () => {
     const f = await fixture();
     const booking = await hold(f);
@@ -851,7 +881,18 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
       .spyOn(app.get(SeatExpirationQueueService), "cancel")
       .mockRejectedValue(new Error("queue-unavailable"));
     await webhook(callback(booking, payment)).expect(200);
-    await app.get(ExpiryOutboxRelay).flush();
+    // A relay claims at most 20 events. Earlier cases may leave a larger backlog;
+    // wait for this booking's attempted delivery rather than assuming one flush drains it.
+    await eventually(async () => {
+      await app.get(ExpiryOutboxRelay).flush();
+      const attempted = await prisma.outboxEvent.findFirst({
+        where: {
+          aggregateId: booking.id,
+          eventType: EXPIRATION_CANCEL_REQUESTED,
+        },
+      });
+      return attempted?.lastError === "EXPIRATION_QUEUE_UNAVAILABLE";
+    });
     const event = await prisma.outboxEvent.findFirstOrThrow({
       where: {
         aggregateId: booking.id,

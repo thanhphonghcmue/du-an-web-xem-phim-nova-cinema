@@ -32,7 +32,7 @@
 - **BR02 (Khóa Ghế 5:00 Phút - 300 Giây)**: Khi người dùng chọn ghế, hệ thống khóa giữ chỗ tạm thời chính xác 300 giây và đếm ngược hiển thị trên giao diện. Ghế ở trạng thái `HOLDING` không thể bị chọn bởi người dùng khác.
 - **BR03 (Chống Trùng Lịch Chiếu & Giãn Cách Phòng)**: Không cho phép hai suất chiếu diễn ra cùng một phòng nếu có khoảng thời gian giao thoa. Bắt buộc có khoảng giãn cách dọn dẹp vệ sinh phòng chiếu tối thiểu 15 phút giữa 2 suất chiếu liên tiếp.
 - **BR04 (Tự Động Hoàn Trả Ghế Khi Quá Hạn Hoặc Hủy Đơn)**: Nếu đồng hồ 5:00 phút đếm về 0 mà chưa thanh toán, hoặc người dùng hủy giao dịch, hoặc thanh toán Sandbox thất bại, hệ thống tự động giải phóng ghế về trạng thái `AVAILABLE`.
-- **BR05 (Giới Hạn Đặt Vé & Chính Sách Hội Viên C'MEMBER)**: Mỗi đơn hàng được đặt tối đa 20 ghế. Hội viên C'MEMBER được hưởng quyền lợi giảm giá theo bậc: Silver (5%), Gold (10%), Diamond (15%) và tích lũy điểm thưởng.
+- **BR05 (Giới Hạn Đặt Vé & Chính Sách Hội Viên C'MEMBER)**: Mỗi đơn hàng được đặt tối đa 20 ghế. Hội viên C'MEMBER được hưởng quyền lợi giảm giá theo bậc: Silver (5%), Gold (7%), Diamond (10%) và tích lũy điểm thưởng.
 
 ---
 

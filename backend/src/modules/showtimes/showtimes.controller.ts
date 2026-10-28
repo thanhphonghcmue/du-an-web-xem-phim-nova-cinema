@@ -25,6 +25,8 @@ import { ApiDataResponse } from "../../common/decorators/api-data-response.decor
 import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { DeletedDto } from "../../common/dto/pagination.dto";
 import {
+  ShowtimeCapacityQueryDto,
+  ShowtimeCapacityDto,
   CreateShowtimeDto,
   ProgrammeDto,
   ProgrammeQueryDto,
@@ -61,6 +63,17 @@ export class ShowtimesController {
   @ApiDataResponse(ProgrammeDto)
   programme(@Query() query: ProgrammeQueryDto) {
     return this.service.programme(query.days);
+  }
+
+  @Get("capacities")
+  @Public()
+  @ApiOperation({
+    summary:
+      "Read real remaining/total capacity for 1–50 visible showtimes, without loading seat maps.",
+  })
+  @ApiDataResponse(ShowtimeCapacityDto, 200, true)
+  capacities(@Query() query: ShowtimeCapacityQueryDto) {
+    return this.service.capacities(query.ids);
   }
 
   @Get(":id")

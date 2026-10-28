@@ -47,3 +47,18 @@ export function calendarLabel(key, language = "vi") {
   }
   return labels.get(cacheKey);
 }
+
+/** Relative labels use the cinema's Vietnam day, independently of browser timezone. */
+export function relativeCinemaDay(key, language = "vi", now = Date.now()) {
+  const today = vietnamDay(now),
+    tomorrow = vietnamDay(now + 86400000);
+  return key === today
+    ? language === "en"
+      ? "Today"
+      : "Hôm nay"
+    : key === tomorrow
+      ? language === "en"
+        ? "Tomorrow"
+        : "Ngày mai"
+      : "";
+}

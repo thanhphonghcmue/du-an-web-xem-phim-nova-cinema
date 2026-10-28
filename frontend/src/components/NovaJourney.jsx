@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { useMemo } from "react";
+import { vietnamDay } from "@/bookingDates.js";
 import {
   ArrowUpRight,
   CalendarDays,
@@ -10,12 +12,11 @@ import {
 import { useCatalog } from "@/catalog.js";
 export default function NovaJourney() {
   const { movies, rooms, cinemas, showtimes, isLive } = useCatalog();
-  const dates = new Set(
-    showtimes.map((show) =>
-      new Date(show.startTime).toLocaleDateString("en-CA", {
-        timeZone: "Asia/Ho_Chi_Minh",
-      }),
-    ),
+  // Reuse the Vietnam formatter and calculate only when the snapshot changes.
+  // Creating thousands of Intl formatters blocked cinema selection for >500ms.
+  const dateCount = useMemo(
+    () => new Set(showtimes.map((show) => vietnamDay(show.startTime))).size,
+    [showtimes],
   );
   return (
     <section
@@ -90,7 +91,7 @@ export default function NovaJourney() {
             ],
             [MapPin, cinemas.length, "cụm rạp"],
             [Ticket, rooms.length, "phòng chiếu"],
-            [CalendarDays, dates.size, "ngày có lịch"],
+            [CalendarDays, dateCount, "ngày có lịch"],
           ].map(([Icon, count, label]) => (
             <div key={label}>
               <Icon size={20} />

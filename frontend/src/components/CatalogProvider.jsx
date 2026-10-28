@@ -106,13 +106,25 @@ export default function CatalogProvider({ children }) {
               year: new Date(m.releaseDate).getUTCFullYear(),
             };
           });
+        const roomCinema = new Map(
+          rooms.map((room) => [room.id, room.cinemaId]),
+        );
+        const formatsByCinema = new Map(),
+          moviesByCinema = new Map();
+        for (const room of rooms) {
+          if (!formatsByCinema.has(room.cinemaId))
+            formatsByCinema.set(room.cinemaId, new Set());
+          formatsByCinema.get(room.cinemaId).add(room.roomType);
+        }
+        for (const show of showtimes) {
+          const cinemaId = roomCinema.get(show.roomId);
+          if (!moviesByCinema.has(cinemaId))
+            moviesByCinema.set(cinemaId, new Set());
+          moviesByCinema.get(cinemaId).add(show.movieId);
+        }
         const cinemas = locations.map((c) => ({
           ...c,
-          formats: [
-            ...new Set(
-              rooms.filter((r) => r.cinemaId === c.id).map((r) => r.roomType),
-            ),
-          ]
+          formats: [...(formatsByCinema.get(c.id) || [])]
             .map(
               (type) =>
                 ({
@@ -122,16 +134,7 @@ export default function CatalogProvider({ children }) {
                 })[type] || type,
             )
             .join(" · "),
-          movies: [
-            ...new Set(
-              showtimes
-                .filter(
-                  (s) =>
-                    rooms.find((r) => r.id === s.roomId)?.cinemaId === c.id,
-                )
-                .map((s) => s.movieId),
-            ),
-          ],
+          movies: [...(moviesByCinema.get(c.id) || [])],
         }));
         setData({
           isLive: true,

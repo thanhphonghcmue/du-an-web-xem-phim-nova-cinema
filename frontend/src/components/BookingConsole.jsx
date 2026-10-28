@@ -432,6 +432,20 @@ function LiveBookingConsole({
     () => [...new Set(seats.map((s) => s.row))].sort(),
     [seats],
   );
+  const previewTotal = useMemo(
+    () =>
+      seats.reduce(
+        (total, seat) =>
+          total + (selected.includes(seat.seatId) ? Number(seat.price) : 0),
+        0,
+      ) +
+      combos.reduce(
+        (total, combo) =>
+          total + Number(combo.price) * (comboItems[combo.id] || 0),
+        0,
+      ),
+    [seats, selected, combos, comboItems],
+  );
   const holding = order && ["PENDING", "HOLDING"].includes(order.status);
   // Derive from each fresh snapshot so another viewer's hold cannot leave a stale warning.
   const orphanSeat = useMemo(
@@ -732,13 +746,6 @@ function LiveBookingConsole({
             </span>
           </div>
         </div>
-        {holding && (
-          <HoldCountdown
-            expiresAt={order.expiredAt}
-            offset={offset}
-            onExpire={notifyExpiry}
-          />
-        )}
       </div>
 
       <p className="sandbox-note">
@@ -788,422 +795,497 @@ function LiveBookingConsole({
           </button>
         </div>
       ) : (
-        <div className="checkout-layout">
-          <div className="seat-area">
-            {!initialized && (
-              <div>
-                <p role="status">Đang tải trạng thái ghế…</p>
-                <button
-                  type="button"
-                  className="button button-glass"
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    try {
-                      await refresh();
-                    } catch (error) {
-                      setNotice(error.message);
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  Thử tải lại sơ đồ
-                </button>
-              </div>
-            )}
-            {!holding && (
-              <div className="group-picker">
-                <UsersRound size={20} />
-                <label htmlFor="group-count">Số người trong nhóm</label>
-                <select
-                  id="group-count"
-                  value={count}
-                  onChange={(e) => setCount(Number(e.target.value))}
-                >
-                  {Array.from({ length: 20 }, (_, i) => (
-                    <option key={i} value={i + 1}>
-                      {i + 1}
-                    </option>
-                  ))}
-                </select>
-                <label className="group-type-label">
-                  Ưu tiên chỗ ngồi
-                  <select
-                    value={groupType}
-                    onChange={(event) => setGroupType(event.target.value)}
-                    aria-label="Loại ghế gợi ý"
-                  >
-                    <option value="">Trung tâm · Tất cả loại ghế</option>
-                    <option value="STANDARD">Ghế thường</option>
-                    <option value="VIP">Ghế VIP</option>
-                    <option value="SWEETBOX">Sweetbox · Chọn số chẵn</option>
-                  </select>
-                </label>
-                <button
-                  className="button button-glass"
-                  disabled={busy || !initialized}
-                  onClick={() => suggest(count)}
-                >
-                  {t("Xếp ghế")}
-                </button>
-                <button
-                  className="text-button"
-                  disabled={busy || !initialized}
-                  onClick={() => suggest(3)}
-                >
-                  Chọn nhanh 3 ghế liền nhau
-                </button>
-              </div>
-            )}
-            <div className="seat-map-controls">
-              <p>Màn hình phía trước · Kéo ngang để xem toàn bộ hàng ghế</p>
-              <div>
-                <button
-                  type="button"
-                  aria-label={t("Thu nhỏ sơ đồ ghế")}
-                  disabled={zoom <= 70}
-                  onClick={() => setZoom((value) => value - 10)}
-                >
-                  −
-                </button>
-                <span aria-live="polite">{zoom}%</span>
-                <button
-                  type="button"
-                  aria-label={t("Phóng to sơ đồ ghế")}
-                  disabled={zoom >= 160}
-                  onClick={() => setZoom((value) => value + 10)}
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  aria-label={t("Toàn cảnh sơ đồ ghế")}
-                  onClick={() => setZoom(100)}
-                >
-                  ↺
-                </button>
-              </div>
-            </div>
-            <div className="seat-map-scroll">
-              <div className="seat-map" style={{ zoom: zoom / 100 }}>
-                <CinematicScreen3D />
-                {rows.map((row) => (
-                  <div className="seat-row" key={row}>
-                    <span className="row-label">{row}</span>
-                    {seats
-                      .filter((s) => s.row === row)
-                      .sort((a, b) => a.column - b.column)
-                      .map((seat, index) => {
-                        const chosen = selected.includes(seat.seatId);
-                        const state = chosen
-                          ? "selected"
-                          : seat.status === "SOLD"
-                            ? "sold"
-                            : seat.status === "HOLDING"
-                              ? "held"
-                              : seat.type === "VIP"
-                                ? "vip"
-                                : seat.type === "SWEETBOX"
-                                  ? "sweet"
-                                  : "standard";
-                        return (
-                          <button
-                            key={`${seat.seatId}-${index}`}
-                            className={`seat ${state}${orphanSeat?.seatId === seat.seatId ? " orphan-seat" : ""}`}
-                            aria-pressed={chosen}
-                            aria-describedby={
-                              orphanSeat?.seatId === seat.seatId
-                                ? "orphan-warning"
-                                : undefined
-                            }
-                            disabled={
-                              busy ||
-                              Boolean(holding) ||
-                              seat.status !== "AVAILABLE"
-                            }
-                            aria-label={`Ghế ${seat.row}${seat.column}, ${chosen ? "đang chọn" : seat.status === "AVAILABLE" ? "còn trống" : seat.status === "SOLD" ? "đã bán" : "đang giữ"}`}
-                            onClick={() => toggle(seat)}
-                            title={`${seat.row}${seat.column} · ${money(seat.price)}`}
-                          >
-                            {seat.column}
-                          </button>
-                        );
-                      })}
-                    <span className="row-label">{row}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="seat-legend">
-              {[
-                ["standard", "Thường"],
-                ["vip", "VIP"],
-                ["sweet", "Sweetbox đôi"],
-                ["selected", "Bạn chọn"],
-                ["held", "Đang giữ"],
-                ["sold", "Đã bán"],
-              ].map(([c, label]) => (
-                <span key={c}>
-                  <i className={c} />
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <aside className="booking-summary live-summary">
-            <h3>Đơn của {member.name}</h3>
-            <p>
-              Ghế:{" "}
-              {selected
-                .map((id) => {
-                  const s = seats.find((s) => s.seatId === id);
-                  return s ? `${s.row}${s.column}` : "";
-                })
-                .join(", ") || "Chưa chọn"}
-            </p>
-
-            {!holding && (
-              <div className="live-combos">
-                {combos.map((combo) => (
-                  <label key={combo.id}>
-                    <MenuImage
-                      item={{ ...menuDetails(combo), ...combo }}
-                      decorative
-                    />
-                    <span>
-                      {combo.name}
-                      <small>{money(combo.price)}</small>
-                    </span>
-                    <input
-                      aria-label={`Số lượng ${combo.name}`}
-                      type="number"
-                      min="0"
-                      max="20"
-                      value={comboItems[combo.id] || 0}
-                      onChange={(e) =>
-                        setComboItems({
-                          ...comboItems,
-                          [combo.id]: Math.min(
-                            20,
-                            Math.max(0, Math.trunc(Number(e.target.value))),
-                          ),
-                        })
-                      }
-                    />
-                  </label>
-                ))}
-              </div>
-            )}
-
-            {/* Voucher / Coupon Section */}
-            {!holding && (
-              <div className="voucher-box-section">
-                <div className="voucher-header">
-                  <Tag size={15} />
-                  <span>Mã Giảm Giá / Voucher</span>
-                </div>
-                <div className="voucher-input-row">
-                  <input
-                    type="text"
-                    placeholder="VD: NOVA20, CINEMA10..."
-                    value={couponInput}
-                    onChange={(e) =>
-                      setCouponInput(e.target.value.toUpperCase())
-                    }
-                  />
+        <>
+          <div className="checkout-layout">
+            <div className="seat-area">
+              {!initialized && (
+                <div>
+                  <p role="status">Đang tải trạng thái ghế…</p>
                   <button
                     type="button"
                     className="button button-glass"
-                    onClick={applyCoupon}
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        await refresh();
+                      } catch (error) {
+                        setNotice(error.message);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
                   >
-                    Áp dụng
+                    Thử tải lại sơ đồ
                   </button>
                 </div>
-                {appliedCoupon && (
-                  <div className="applied-voucher-badge">
-                    <span>
-                      <Sparkles size={14} /> <b>{appliedCoupon.code}</b> (
-                      {appliedCoupon.desc})
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setAppliedCoupon(null)}
-                      title="Gỡ mã"
+              )}
+              {!holding && (
+                <div className="group-picker">
+                  <UsersRound size={20} />
+                  <label htmlFor="group-count">Số người trong nhóm</label>
+                  <select
+                    id="group-count"
+                    value={count}
+                    onChange={(e) => setCount(Number(e.target.value))}
+                  >
+                    {Array.from({ length: 20 }, (_, i) => (
+                      <option key={i} value={i + 1}>
+                        {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="group-type-label">
+                    Ưu tiên chỗ ngồi
+                    <select
+                      value={groupType}
+                      onChange={(event) => setGroupType(event.target.value)}
+                      aria-label="Loại ghế gợi ý"
                     >
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-                <div className="voucher-quick-tags">
-                  <small>Gợi ý mã hot:</small>
-                  {PROMO_COUPONS.map((cp) => (
-                    <button
-                      key={cp.code}
-                      type="button"
-                      className={`v-tag ${appliedCoupon?.code === cp.code ? "active" : ""}`}
-                      onClick={() => {
-                        setCouponInput(cp.code);
-                        setAppliedCoupon(cp);
-                      }}
-                    >
-                      {cp.code}
-                    </button>
+                      <option value="">Trung tâm · Tất cả loại ghế</option>
+                      <option value="STANDARD">Ghế thường</option>
+                      <option value="VIP">Ghế VIP</option>
+                      <option value="SWEETBOX">Sweetbox · Chọn số chẵn</option>
+                    </select>
+                  </label>
+                  <button
+                    className="button button-glass"
+                    disabled={busy || !initialized}
+                    onClick={() => suggest(count)}
+                  >
+                    {t("Xếp ghế")}
+                  </button>
+                  <button
+                    className="text-button"
+                    disabled={busy || !initialized}
+                    onClick={() => suggest(3)}
+                  >
+                    Chọn nhanh 3 ghế liền nhau
+                  </button>
+                </div>
+              )}
+              <div className="seat-map-controls">
+                <p>Màn hình phía trước · Kéo ngang để xem toàn bộ hàng ghế</p>
+                <div>
+                  <button
+                    type="button"
+                    aria-label={t("Thu nhỏ sơ đồ ghế")}
+                    disabled={zoom <= 70}
+                    onClick={() => setZoom((value) => value - 10)}
+                  >
+                    −
+                  </button>
+                  <span aria-live="polite">{zoom}%</span>
+                  <button
+                    type="button"
+                    aria-label={t("Phóng to sơ đồ ghế")}
+                    disabled={zoom >= 160}
+                    onClick={() => setZoom((value) => value + 10)}
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={t("Toàn cảnh sơ đồ ghế")}
+                    onClick={() => setZoom(100)}
+                  >
+                    ↺
+                  </button>
+                </div>
+              </div>
+              <div className="seat-map-scroll">
+                <div
+                  className="seat-map"
+                  style={{
+                    zoom: zoom / 100,
+                    "--seat-target": `${Math.max(32, 32 / (zoom / 100))}px`,
+                  }}
+                >
+                  <CinematicScreen3D />
+                  {rows.map((row) => (
+                    <div className="seat-row" key={row}>
+                      <span className="row-label">{row}</span>
+                      {seats
+                        .filter((s) => s.row === row)
+                        .sort((a, b) => a.column - b.column)
+                        .map((seat, index) => {
+                          const chosen = selected.includes(seat.seatId);
+                          const state = chosen
+                            ? "selected"
+                            : seat.status === "SOLD"
+                              ? "sold"
+                              : seat.status === "HOLDING"
+                                ? "held"
+                                : seat.type === "VIP"
+                                  ? "vip"
+                                  : seat.type === "SWEETBOX"
+                                    ? "sweet"
+                                    : "standard";
+                          return (
+                            <button
+                              key={`${seat.seatId}-${index}`}
+                              className={`seat ${state}${orphanSeat?.seatId === seat.seatId ? " orphan-seat" : ""}`}
+                              aria-pressed={chosen}
+                              aria-describedby={
+                                orphanSeat?.seatId === seat.seatId
+                                  ? "orphan-warning"
+                                  : undefined
+                              }
+                              disabled={
+                                busy ||
+                                Boolean(holding) ||
+                                seat.status !== "AVAILABLE"
+                              }
+                              aria-label={`Ghế ${seat.row}${seat.column}, ${chosen ? "đang chọn" : seat.status === "AVAILABLE" ? "còn trống" : seat.status === "SOLD" ? "đã bán" : "đang giữ"}`}
+                              onClick={() => toggle(seat)}
+                              title={`${seat.row}${seat.column} · ${money(seat.price)}`}
+                            >
+                              {seat.column}
+                            </button>
+                          );
+                        })}
+                      <span className="row-label">{row}</span>
+                    </div>
                   ))}
                 </div>
               </div>
-            )}
-
-            {/* Age Rating Compliance Card */}
-            {ageInfo && (
-              <div
-                className="age-compliance-card"
-                style={{ borderColor: ageInfo.border, background: ageInfo.bg }}
-              >
-                <div className="age-card-top">
-                  <span
-                    className="age-badge-pill"
-                    style={{ background: ageInfo.color }}
-                  >
-                    {ageInfo.code}
+              <div className="seat-legend">
+                {[
+                  ["standard", "Thường"],
+                  ["vip", "VIP"],
+                  ["sweet", "Sweetbox đôi"],
+                  ["selected", "Bạn chọn"],
+                  ["held", "Đang giữ"],
+                  ["sold", "Đã bán"],
+                ].map(([c, label]) => (
+                  <span key={c}>
+                    <i className={c} />
+                    {label}
                   </span>
-                  <span className="age-card-title">{ageInfo.name}</span>
-                </div>
-                <p className="age-card-desc">{ageInfo.shortNotice}</p>
-                <label className="age-card-confirm">
-                  <input
-                    type="checkbox"
-                    checked={ageConfirmed}
-                    onChange={(e) => setAgeConfirmed(e.target.checked)}
-                  />
-                  <span>
-                    {t("Tôi xác nhận bản thân và người đi cùng đã đủ tuổi")}
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  className="age-detail-link"
-                  onClick={() => setShowAgeModal(true)}
-                >
-                  Xem quy định kiểm duyệt chi tiết →
-                </button>
+                ))}
               </div>
-            )}
+            </div>
 
-            {holding ? (
-              <>
-                <p>
-                  Mã đơn: <small>{order.orderCode}</small>
-                </p>
-                <p>
-                  Tiền vé <b>{money(order.totalTicketAmount)}</b>
-                </p>
-                <p>
-                  Combo <b>{money(order.totalComboAmount)}</b>
-                </p>
-                <p>
-                  Ưu đãi {order.membershipTier}{" "}
-                  <b>−{money(order.discountAmount)}</b>
-                </p>
-                <p className="summary-total">
-                  Tổng thanh toán{" "}
-                  <strong data-testid="server-total">
-                    {money(order.finalAmount)}
-                  </strong>
-                </p>
-                <div className="payment-sandbox-card">
-                  <div className="payment-secure-icon">
-                    <ShieldCheck size={26} />
+            <aside className="booking-summary live-summary">
+              <h3>Đơn của {member.name}</h3>
+              <p>
+                Ghế:{" "}
+                {selected
+                  .map((id) => {
+                    const s = seats.find((s) => s.seatId === id);
+                    return s ? `${s.row}${s.column}` : "";
+                  })
+                  .join(", ") || "Chưa chọn"}
+              </p>
+
+              {!holding && (
+                <div className="live-combos">
+                  {combos.map((combo) => (
+                    <label key={combo.id}>
+                      <MenuImage
+                        item={{ ...menuDetails(combo), ...combo }}
+                        decorative
+                      />
+                      <span>
+                        {combo.name}
+                        <small>{money(combo.price)}</small>
+                      </span>
+                      <div className="booking-combo-quantity">
+                        <button
+                          type="button"
+                          aria-label={`Giảm ${combo.name}`}
+                          disabled={!comboItems[combo.id]}
+                          onClick={() =>
+                            setComboItems((items) => ({
+                              ...items,
+                              [combo.id]: Math.max(
+                                0,
+                                (items[combo.id] || 0) - 1,
+                              ),
+                            }))
+                          }
+                        >
+                          −
+                        </button>
+                        <input
+                          aria-label={`Số lượng ${combo.name}`}
+                          type="number"
+                          min="0"
+                          max="20"
+                          value={comboItems[combo.id] || 0}
+                          onChange={(e) =>
+                            setComboItems({
+                              ...comboItems,
+                              [combo.id]: Math.min(
+                                20,
+                                Math.max(0, Math.trunc(Number(e.target.value))),
+                              ),
+                            })
+                          }
+                        />
+                        <button
+                          type="button"
+                          aria-label={`Tăng ${combo.name}`}
+                          disabled={comboItems[combo.id] >= 20}
+                          onClick={() =>
+                            setComboItems((items) => ({
+                              ...items,
+                              [combo.id]: Math.min(
+                                20,
+                                (items[combo.id] || 0) + 1,
+                              ),
+                            }))
+                          }
+                        >
+                          +
+                        </button>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* Voucher / Coupon Section */}
+              {!holding && (
+                <div className="voucher-box-section">
+                  <div className="voucher-header">
+                    <Tag size={15} />
+                    <span>Mã Giảm Giá / Voucher</span>
                   </div>
-                  <h4>Một bước nữa tới màn ảnh lớn.</h4>
-                  <div
-                    className="payment-provider-tabs grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full min-w-0"
-                    role="group"
-                    aria-label="Chọn cổng thanh toán mô phỏng"
-                  >
-                    {paymentGateways.map((method, index) => (
+                  <div className="voucher-input-row">
+                    <input
+                      type="text"
+                      placeholder="VD: NOVA20, CINEMA10..."
+                      value={couponInput}
+                      onChange={(e) =>
+                        setCouponInput(e.target.value.toUpperCase())
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="button button-glass"
+                      onClick={applyCoupon}
+                    >
+                      Áp dụng
+                    </button>
+                  </div>
+                  {appliedCoupon && (
+                    <div className="applied-voucher-badge">
+                      <span>
+                        <Sparkles size={14} /> <b>{appliedCoupon.code}</b> (
+                        {appliedCoupon.desc})
+                      </span>
                       <button
-                        key={`${method.id}-${index}`}
-                        className="leading-tight break-normal min-w-0"
                         type="button"
-                        aria-pressed={gateway === method.id}
-                        disabled={busy}
-                        onClick={() => setGateway(method.id)}
+                        onClick={() => setAppliedCoupon(null)}
+                        title="Gỡ mã"
                       >
-                        <span className="whitespace-nowrap">
-                          {method.title}
-                        </span>
-                        <small className="whitespace-nowrap">
-                          {method.detail}
-                        </small>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                  <div className="voucher-quick-tags">
+                    <small>Gợi ý mã hot:</small>
+                    {PROMO_COUPONS.map((cp) => (
+                      <button
+                        key={cp.code}
+                        type="button"
+                        className={`v-tag ${appliedCoupon?.code === cp.code ? "active" : ""}`}
+                        onClick={() => {
+                          setCouponInput(cp.code);
+                          setAppliedCoupon(cp);
+                        }}
+                      >
+                        {cp.code}
                       </button>
                     ))}
                   </div>
-                  <p className="payment-provider-notice" role="status">
-                    {
-                      paymentGateways.find((method) => method.id === gateway)
-                        .title
-                    }{" "}
-                    · Mô phỏng qua Sandbox. Không kết nối ngân hàng hoặc ví
-                    thật.
+                </div>
+              )}
+
+              {/* Age Rating Compliance Card */}
+              {ageInfo && (
+                <div
+                  className="age-compliance-card"
+                  style={{
+                    borderColor: ageInfo.border,
+                    background: ageInfo.bg,
+                  }}
+                >
+                  <div className="age-card-top">
+                    <span
+                      className="age-badge-pill"
+                      style={{ background: ageInfo.color }}
+                    >
+                      {ageInfo.code}
+                    </span>
+                    <span className="age-card-title">{ageInfo.name}</span>
+                  </div>
+                  <p className="age-card-desc">{ageInfo.shortNotice}</p>
+                  <label className="age-card-confirm">
+                    <input
+                      type="checkbox"
+                      checked={ageConfirmed}
+                      onChange={(e) => setAgeConfirmed(e.target.checked)}
+                    />
+                    <span>
+                      {t("Tôi xác nhận bản thân và người đi cùng đã đủ tuổi")}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="age-detail-link"
+                    onClick={() => setShowAgeModal(true)}
+                  >
+                    Xem quy định kiểm duyệt chi tiết →
+                  </button>
+                </div>
+              )}
+
+              {holding ? (
+                <>
+                  <p>
+                    Mã đơn: <small>{order.orderCode}</small>
                   </p>
                   <p>
-                    Đơn hàng và giá đã được xác nhận. Tiếp tục sang Sandbox để
-                    chọn kết quả thanh toán mô phỏng.
+                    Tiền vé <b>{money(order.totalTicketAmount)}</b>
                   </p>
-                  <div className="payment-assurances">
-                    <span>
-                      <Check size={14} />
-                      Không thu tiền thật
-                    </span>
-                    <span>
-                      <Clock3 size={14} />
-                      Giữ nguyên hạn giữ ghế
-                    </span>
-                  </div>
-                  <div className="payment-action flex w-full max-w-full box-border">
-                    <button
-                      className="button button-primary w-full max-w-full box-border"
-                      disabled={busy || expired}
-                      onClick={handlePaymentClick}
+                  <p>
+                    Combo <b>{money(order.totalComboAmount)}</b>
+                  </p>
+                  <p>
+                    Ưu đãi {order.membershipTier}{" "}
+                    <b>−{money(order.discountAmount)}</b>
+                  </p>
+                  <p className="summary-total">
+                    Tổng thanh toán{" "}
+                    <strong data-testid="server-total">
+                      {money(order.finalAmount)}
+                    </strong>
+                  </p>
+                  <div className="payment-sandbox-card">
+                    <div className="payment-secure-icon">
+                      <ShieldCheck size={26} />
+                    </div>
+                    <h4>Một bước nữa tới màn ảnh lớn.</h4>
+                    <div
+                      className="payment-provider-tabs grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full min-w-0"
+                      role="group"
+                      aria-label="Chọn cổng thanh toán mô phỏng"
                     >
-                      {t("Thanh toán Sandbox")}
-                    </button>
+                      {paymentGateways.map((method, index) => (
+                        <button
+                          key={`${method.id}-${index}`}
+                          className="leading-tight break-normal min-w-0"
+                          type="button"
+                          aria-pressed={gateway === method.id}
+                          disabled={busy}
+                          onClick={() => setGateway(method.id)}
+                        >
+                          <span className="whitespace-nowrap">
+                            {method.title}
+                          </span>
+                          <small className="whitespace-nowrap">
+                            {method.detail}
+                          </small>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="payment-provider-notice" role="status">
+                      {
+                        paymentGateways.find((method) => method.id === gateway)
+                          .title
+                      }{" "}
+                      · Mô phỏng qua Sandbox. Không kết nối ngân hàng hoặc ví
+                      thật.
+                    </p>
+                    <p>
+                      Đơn hàng và giá đã được xác nhận. Tiếp tục sang Sandbox để
+                      chọn kết quả thanh toán mô phỏng.
+                    </p>
+                    <div className="payment-assurances">
+                      <span>
+                        <Check size={14} />
+                        Không thu tiền thật
+                      </span>
+                      <span>
+                        <Clock3 size={14} />
+                        Giữ nguyên hạn giữ ghế
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <button
-                  className="text-button"
-                  disabled={busy}
-                  onClick={cancel}
-                >
-                  {t("Hủy đơn & trả ghế")}
-                </button>
-              </>
+                  <button
+                    className="text-button"
+                    disabled={busy}
+                    onClick={cancel}
+                  >
+                    {t("Hủy đơn & trả ghế")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="muted">
+                    Chưa giữ chỗ. Máy chủ sẽ xác nhận giá, ưu đãi thành viên và
+                    thời hạn khi giữ ghế.
+                  </p>
+                  {order && <p>Trạng thái đơn trước: {order.status}</p>}
+                </>
+              )}
+            </aside>
+          </div>
+          <div
+            className="booking-dock"
+            aria-label="Tóm tắt đặt vé"
+            data-testid="booking-dock"
+          >
+            <div className="booking-dock-context">
+              <strong>{booking.movie.title}</strong>
+              <span>
+                {booking.cinema.name} · {booking.time.label} ·{" "}
+                {booking.date.label}
+              </span>
+            </div>
+            <div className="booking-dock-total" aria-live="polite">
+              <small>
+                {selected.length} ghế ·{" "}
+                {holding ? "Tổng thanh toán" : "Tạm tính trước ưu đãi"}
+              </small>
+              <strong>
+                {money(holding ? order.finalAmount : previewTotal)}
+              </strong>
+            </div>
+            {holding ? (
+              <HoldCountdown
+                expiresAt={order.expiredAt}
+                offset={offset}
+                onExpire={notifyExpiry}
+              />
             ) : (
-              <>
-                <p className="muted">
-                  Chưa giữ chỗ. Máy chủ sẽ xác nhận giá, ưu đãi thành viên và
-                  thời hạn khi giữ ghế.
-                </p>
-                {order && <p>Trạng thái đơn trước: {order.status}</p>}
-                <button
-                  className="button button-primary"
-                  disabled={
-                    busy ||
+              <small className="booking-dock-hint">
+                Giữ chỗ trong 5 phút sau khi hệ thống xác nhận
+              </small>
+            )}
+            <button
+              className="button button-primary booking-dock-action"
+              disabled={
+                holding
+                  ? busy || expired
+                  : busy ||
                     !initialized ||
                     !selected.length ||
                     Boolean(orphanWarning) ||
                     !snapshot?.canBook
-                  }
-                  onClick={hold}
-                >
-                  {busy ? "Đang xử lý…" : "Giữ ghế 5 phút"}
-                </button>
-              </>
-            )}
-          </aside>
-        </div>
+              }
+              onClick={holding ? handlePaymentClick : hold}
+            >
+              {holding
+                ? t("Thanh toán Sandbox")
+                : busy
+                  ? "Đang xử lý…"
+                  : "Giữ ghế 5 phút"}
+            </button>
+          </div>
+        </>
       )}
 
       {showAgeModal && ageInfo && (

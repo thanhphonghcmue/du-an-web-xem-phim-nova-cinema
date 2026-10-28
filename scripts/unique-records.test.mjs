@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { uniqueRecords } from "../src/uniqueRecords.js";
+import { uniqueRecords } from "../frontend/src/uniqueRecords.js";
 test("latest duplicate record wins without changing its server ID", () => {
   const result = uniqueRecords([
     { id: "one", value: 1 },

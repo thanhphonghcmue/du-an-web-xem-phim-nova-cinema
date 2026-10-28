@@ -1,7 +1,7 @@
 const { spawnSync } = require("node:child_process");
 const { resolve } = require("node:path");
 const { testDatabaseTarget } = require("./test-database-target.cjs");
-const executable = resolve(__dirname, "../node_modules/prisma/build/index.js");
+const executable = require.resolve("prisma/build/index.js");
 const result = spawnSync(process.execPath, [executable, "migrate", "deploy"], {
   cwd: resolve(__dirname, ".."),
   stdio: "inherit",

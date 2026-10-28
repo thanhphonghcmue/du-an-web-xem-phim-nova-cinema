@@ -1,13 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { menuPhotographs } from "../src/menuPhotography.js";
+import { menuPhotographs } from "../frontend/src/menuPhotography.js";
 const catalog = JSON.parse(
   readFileSync(new URL("../content/cinema.json", import.meta.url)),
 );
 const sources = JSON.parse(
   readFileSync(
-    new URL("../public/images/food-photography/sources.json", import.meta.url),
+    new URL("../frontend/public/images/food-photography/sources.json", import.meta.url),
   ),
 );
 test("every live menu reference has existing local raster photographs with recorded sources", () => {

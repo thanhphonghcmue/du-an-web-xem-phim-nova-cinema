@@ -14,6 +14,7 @@ export function normalizeFoodCart(value) {
   );
 }
 export function readFoodCart() {
+  if (typeof window === "undefined") return {};
   try {
     return normalizeFoodCart(
       JSON.parse(sessionStorage.getItem("nova-food-cart") || "{}"),
@@ -23,6 +24,7 @@ export function readFoodCart() {
   }
 }
 export function saveFoodCart(cart) {
+  if (typeof window === "undefined") return false;
   try {
     sessionStorage.setItem(
       "nova-food-cart",

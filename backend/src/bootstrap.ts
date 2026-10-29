@@ -10,7 +10,7 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { randomUUID } from "node:crypto";
-import { json, NextFunction, Response, urlencoded } from "express";
+import { json, NextFunction, Request, Response, urlencoded } from "express";
 import helmet from "helmet";
 import compression from "compression";
 import { AppModule } from "./app.module";
@@ -59,7 +59,7 @@ export function configureApplication(app: INestApplication): void {
     compression({
       threshold: 1024,
       level: 4,
-      filter: (request, response) =>
+      filter: (request: Request, response: Response) =>
         ["GET", "HEAD"].includes(request.method) &&
         /^\/api\/v1\/(movies|cinemas|rooms|combos|showtimes)(\/|$)/.test(
           request.path,

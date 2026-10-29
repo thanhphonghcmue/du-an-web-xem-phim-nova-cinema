@@ -14,38 +14,51 @@ import {
 } from "../../queues/outbox/outbox.repository";
 import { TicketEmailQueueService } from "../../queues/ticket-email/ticket-email-queue.service";
 import { TicketsService } from "../tickets/tickets.service";
+import { FulfillmentSignal } from "../../queues/outbox/fulfillment-signal";
 @Injectable()
 export class FulfillmentRelay
   implements OnApplicationBootstrap, OnModuleDestroy
 {
   private timer: ReturnType<typeof setInterval> | undefined;
   private active: Promise<void> | undefined;
+  private unsubscribe: (() => void) | undefined;
+  private wakeAgain = false;
   private readonly logger = new Logger("FulfillmentRelay");
   constructor(
     private readonly database: UnitOfWork,
     private readonly events: OutboxRepository,
     private readonly tickets: TicketsService,
     private readonly queue: TicketEmailQueueService,
+    private readonly signal: FulfillmentSignal,
   ) {}
   onApplicationBootstrap(): void {
     this.start();
   }
   start(): void {
     if (this.timer) return;
+    this.unsubscribe = this.signal.subscribe(() => {
+      this.wake();
+    });
     this.timer = setInterval(() => {
-      void this.flush().catch(() => {
-        this.logger.warn("Ticket/email delivery will retry.");
-      });
+      this.wake();
     }, 1000);
     this.timer.unref();
+    this.wake();
+  }
+  private wake(): void {
+    this.wakeAgain = true;
+    if (this.active) return;
     void this.flush().catch(() => {
-      this.logger.warn("Initial ticket/email recovery deferred.");
+      this.logger.warn("Ticket/email delivery will retry.");
     });
   }
   flush(): Promise<void> {
     if (this.active) return this.active;
+    this.wakeAgain = false;
     this.active = this.dispatch().finally(() => {
       this.active = undefined;
+      // Commit đến giữa một batch phải được đọc ngay, không đợi poll1s kế tiếp.
+      if (this.wakeAgain && this.timer) this.wake();
     });
     return this.active;
   }
@@ -109,6 +122,9 @@ export class FulfillmentRelay
   async stop(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
+    this.unsubscribe?.();
+    this.unsubscribe = undefined;
+    this.wakeAgain = false;
     await this.active?.catch(() => undefined);
   }
   async onModuleDestroy(): Promise<void> {

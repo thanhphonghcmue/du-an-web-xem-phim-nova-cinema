@@ -1,0 +1,96 @@
+{
+  "source": "application database, real catalogue; transactions explicitly READ ONLY; isolated Redis prefix, no Nest background workers",
+  "samples": [
+    {
+      "run": 1,
+      "readMs": 297.83794400000005,
+      "codecMs": 341.09222999999986,
+      "counts": {
+        "movies": 24,
+        "cinemas": 4,
+        "rooms": 160,
+        "combos": 24,
+        "showtimes": 13469
+      },
+      "chunks": 139,
+      "sourceBytes": 4460773,
+      "totalMs": 707.3028889999998,
+      "redisMs": 53.64575100000002,
+      "sqlMs": 40,
+      "otherMs": 14.726963999999896
+    },
+    {
+      "run": 2,
+      "readMs": 240.85898300000008,
+      "codecMs": 272.62375599999996,
+      "counts": {
+        "movies": 24,
+        "cinemas": 4,
+        "rooms": 160,
+        "combos": 24,
+        "showtimes": 13469
+      },
+      "chunks": 139,
+      "sourceBytes": 4460773,
+      "totalMs": 563.837644,
+      "redisMs": 38.30916399999978,
+      "sqlMs": 31,
+      "otherMs": 12.045741000000135
+    },
+    {
+      "run": 3,
+      "readMs": 207.777646,
+      "codecMs": 186.3456930000002,
+      "counts": {
+        "movies": 24,
+        "cinemas": 4,
+        "rooms": 160,
+        "combos": 24,
+        "showtimes": 13469
+      },
+      "chunks": 139,
+      "sourceBytes": 4460773,
+      "totalMs": 467.62511600000016,
+      "redisMs": 62.75107200000002,
+      "sqlMs": 18,
+      "otherMs": 10.750704999999925
+    },
+    {
+      "run": 4,
+      "readMs": 259.946993,
+      "codecMs": 179.79936300000008,
+      "counts": {
+        "movies": 24,
+        "cinemas": 4,
+        "rooms": 160,
+        "combos": 24,
+        "showtimes": 13469
+      },
+      "chunks": 139,
+      "sourceBytes": 4460773,
+      "totalMs": 495.66304100000025,
+      "redisMs": 44.96139799999992,
+      "sqlMs": 20,
+      "otherMs": 10.955287000000226
+    },
+    {
+      "run": 5,
+      "readMs": 209.01332300000013,
+      "codecMs": 191.57985199999985,
+      "counts": {
+        "movies": 24,
+        "cinemas": 4,
+        "rooms": 160,
+        "combos": 24,
+        "showtimes": 13469
+      },
+      "chunks": 139,
+      "sourceBytes": 4460773,
+      "totalMs": 463.33048299999973,
+      "redisMs": 51.42541699999947,
+      "sqlMs": 23,
+      "otherMs": 11.311891000000287
+    }
+  ],
+  "note": "Owned read-only application dataset; different row count from browser fixture. SQL text/parameters and private prefix excluded."
+}

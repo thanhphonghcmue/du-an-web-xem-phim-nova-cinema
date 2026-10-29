@@ -1,0 +1,343 @@
+{
+  "measuredAt": "2026-10-29T01:39:26.718Z",
+  "node": "v24.19.0",
+  "method": "normalNode;40same-input pairs;alternating encoderorder;initialsamples retained;encodingonly excludes DB/browser;developmenthost notisolatedload",
+  "encoders": [
+    {
+      "label": "baselineRGBA320",
+      "samples": [
+        {
+          "elapsedMs": 40.20891500000005,
+          "pngBytes": 2840
+        },
+        {
+          "elapsedMs": 7.926259000000073,
+          "pngBytes": 2769
+        },
+        {
+          "elapsedMs": 8.646253999999999,
+          "pngBytes": 2717
+        },
+        {
+          "elapsedMs": 8.507835,
+          "pngBytes": 2798
+        },
+        {
+          "elapsedMs": 9.368241000000012,
+          "pngBytes": 2445
+        },
+        {
+          "elapsedMs": 8.797651999999971,
+          "pngBytes": 2795
+        },
+        {
+          "elapsedMs": 7.935481999999979,
+          "pngBytes": 2436
+        },
+        {
+          "elapsedMs": 9.065405000000055,
+          "pngBytes": 2794
+        },
+        {
+          "elapsedMs": 8.79324500000007,
+          "pngBytes": 2867
+        },
+        {
+          "elapsedMs": 7.920941000000084,
+          "pngBytes": 2514
+        },
+        {
+          "elapsedMs": 11.616287000000057,
+          "pngBytes": 2792
+        },
+        {
+          "elapsedMs": 12.780741000000035,
+          "pngBytes": 2820
+        },
+        {
+          "elapsedMs": 11.504538000000025,
+          "pngBytes": 2454
+        },
+        {
+          "elapsedMs": 7.70406400000013,
+          "pngBytes": 2427
+        },
+        {
+          "elapsedMs": 12.933982000000015,
+          "pngBytes": 2463
+        },
+        {
+          "elapsedMs": 9.15933700000005,
+          "pngBytes": 2418
+        },
+        {
+          "elapsedMs": 7.914641000000074,
+          "pngBytes": 2441
+        },
+        {
+          "elapsedMs": 7.2061539999999695,
+          "pngBytes": 2423
+        },
+        {
+          "elapsedMs": 10.567137000000002,
+          "pngBytes": 2809
+        },
+        {
+          "elapsedMs": 6.713823000000048,
+          "pngBytes": 2502
+        },
+        {
+          "elapsedMs": 7.208417999999938,
+          "pngBytes": 2447
+        },
+        {
+          "elapsedMs": 7.59466899999984,
+          "pngBytes": 2448
+        },
+        {
+          "elapsedMs": 8.888858999999911,
+          "pngBytes": 2417
+        },
+        {
+          "elapsedMs": 16.482786999999917,
+          "pngBytes": 2442
+        },
+        {
+          "elapsedMs": 16.89659000000006,
+          "pngBytes": 2767
+        },
+        {
+          "elapsedMs": 24.62584700000002,
+          "pngBytes": 2761
+        },
+        {
+          "elapsedMs": 19.47469299999989,
+          "pngBytes": 2447
+        },
+        {
+          "elapsedMs": 8.586074000000053,
+          "pngBytes": 2795
+        },
+        {
+          "elapsedMs": 8.485842000000048,
+          "pngBytes": 2857
+        },
+        {
+          "elapsedMs": 8.251097999999956,
+          "pngBytes": 2421
+        },
+        {
+          "elapsedMs": 6.632671000000073,
+          "pngBytes": 2435
+        },
+        {
+          "elapsedMs": 8.140130999999883,
+          "pngBytes": 2480
+        },
+        {
+          "elapsedMs": 6.581593000000112,
+          "pngBytes": 2773
+        },
+        {
+          "elapsedMs": 7.465533999999934,
+          "pngBytes": 2737
+        },
+        {
+          "elapsedMs": 6.557708000000048,
+          "pngBytes": 2867
+        },
+        {
+          "elapsedMs": 6.305237000000034,
+          "pngBytes": 2846
+        },
+        {
+          "elapsedMs": 6.520481999999902,
+          "pngBytes": 2794
+        },
+        {
+          "elapsedMs": 6.48509799999988,
+          "pngBytes": 2828
+        },
+        {
+          "elapsedMs": 6.619641000000001,
+          "pngBytes": 2430
+        },
+        {
+          "elapsedMs": 6.54753299999993,
+          "pngBytes": 2474
+        }
+      ],
+      "p50Ms": 8.251097999999956,
+      "p95Ms": 19.47469299999989,
+      "meanPngBytes": 2624.75
+    },
+    {
+      "label": "grayscale320",
+      "samples": [
+        {
+          "elapsedMs": 3.5385899999999992,
+          "pngBytes": 846
+        },
+        {
+          "elapsedMs": 1.7948840000000246,
+          "pngBytes": 846
+        },
+        {
+          "elapsedMs": 1.9687149999999747,
+          "pngBytes": 855
+        },
+        {
+          "elapsedMs": 1.2672890000000052,
+          "pngBytes": 853
+        },
+        {
+          "elapsedMs": 1.3242740000000595,
+          "pngBytes": 807
+        },
+        {
+          "elapsedMs": 0.981698999999935,
+          "pngBytes": 846
+        },
+        {
+          "elapsedMs": 1.0624099999999999,
+          "pngBytes": 828
+        },
+        {
+          "elapsedMs": 1.0337279999999964,
+          "pngBytes": 843
+        },
+        {
+          "elapsedMs": 1.0668869999999515,
+          "pngBytes": 846
+        },
+        {
+          "elapsedMs": 0.6805650000000014,
+          "pngBytes": 826
+        },
+        {
+          "elapsedMs": 2.036436999999978,
+          "pngBytes": 838
+        },
+        {
+          "elapsedMs": 1.4455370000000585,
+          "pngBytes": 844
+        },
+        {
+          "elapsedMs": 1.0245740000000296,
+          "pngBytes": 831
+        },
+        {
+          "elapsedMs": 0.7812470000000076,
+          "pngBytes": 815
+        },
+        {
+          "elapsedMs": 1.3984869999999319,
+          "pngBytes": 834
+        },
+        {
+          "elapsedMs": 1.0106829999999718,
+          "pngBytes": 834
+        },
+        {
+          "elapsedMs": 1.022431000000097,
+          "pngBytes": 836
+        },
+        {
+          "elapsedMs": 0.6453420000000278,
+          "pngBytes": 834
+        },
+        {
+          "elapsedMs": 1.0679689999999482,
+          "pngBytes": 868
+        },
+        {
+          "elapsedMs": 0.7257529999999406,
+          "pngBytes": 852
+        },
+        {
+          "elapsedMs": 0.8297500000001037,
+          "pngBytes": 840
+        },
+        {
+          "elapsedMs": 0.6163490000001275,
+          "pngBytes": 817
+        },
+        {
+          "elapsedMs": 1.2574839999999767,
+          "pngBytes": 827
+        },
+        {
+          "elapsedMs": 1.3447959999998602,
+          "pngBytes": 821
+        },
+        {
+          "elapsedMs": 1.554971999999907,
+          "pngBytes": 857
+        },
+        {
+          "elapsedMs": 1.3523069999998825,
+          "pngBytes": 859
+        },
+        {
+          "elapsedMs": 2.0261719999998604,
+          "pngBytes": 808
+        },
+        {
+          "elapsedMs": 1.9838979999999538,
+          "pngBytes": 851
+        },
+        {
+          "elapsedMs": 1.3149510000000646,
+          "pngBytes": 843
+        },
+        {
+          "elapsedMs": 0.7252720000001318,
+          "pngBytes": 824
+        },
+        {
+          "elapsedMs": 0.8446930000000066,
+          "pngBytes": 820
+        },
+        {
+          "elapsedMs": 0.8250430000000506,
+          "pngBytes": 848
+        },
+        {
+          "elapsedMs": 0.7528839999999946,
+          "pngBytes": 841
+        },
+        {
+          "elapsedMs": 1.0079879999998411,
+          "pngBytes": 835
+        },
+        {
+          "elapsedMs": 1.0352990000001228,
+          "pngBytes": 839
+        },
+        {
+          "elapsedMs": 0.6711009999999078,
+          "pngBytes": 876
+        },
+        {
+          "elapsedMs": 0.970931999999948,
+          "pngBytes": 843
+        },
+        {
+          "elapsedMs": 0.9498710000000301,
+          "pngBytes": 869
+        },
+        {
+          "elapsedMs": 0.6734850000000279,
+          "pngBytes": 823
+        },
+        {
+          "elapsedMs": 0.6483960000000479,
+          "pngBytes": 841
+        }
+      ],
+      "p50Ms": 1.0245740000000296,
+      "p95Ms": 2.0261719999998604,
+      "meanPngBytes": 839.1
+    }
+  ]
+}

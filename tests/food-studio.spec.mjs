@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { useLegacyProgramme } from "./programme-routes.mjs";
 import { readFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { createRequire } from "node:module";
@@ -335,6 +336,7 @@ test("food cards, basket and detail stay inside 320/390/768px viewports", async 
 test("a broken administrator image falls back without breaking product selection", async ({
   page,
 }) => {
+  await useLegacyProgramme(page);
   await page.route("**/api/v1/showtimes/programme", async (route) => {
     const r = await route.fetch();
     const body = await r.json();
@@ -360,6 +362,7 @@ test("a broken administrator image falls back without breaking product selection
 test("an unavailable backend never exposes purchasable mock food or a false checkout", async ({
   page,
 }) => {
+  await useLegacyProgramme(page);
   const calls = [];
   page.on("request", (request) => {
     if (

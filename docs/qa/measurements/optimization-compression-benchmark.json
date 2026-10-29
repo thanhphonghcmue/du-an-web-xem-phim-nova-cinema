@@ -1,0 +1,795 @@
+{
+  "source": "owned running RAM backend read-only public GET programme days60; no DB writes",
+  "measuredAt": "2026-10-29T07:03:14.421Z",
+  "comparison": "paired exact HTTP JSON envelopes, no fields or rows omitted; 1 encode each, microbenchmark CPU times not network/SLA",
+  "counts": {
+    "movies": 24,
+    "cinemas": 4,
+    "rooms": 128,
+    "combos": 24,
+    "showtimes": 12480
+  },
+  "chunks": 95,
+  "legacy": {
+    "rawHttpJsonBytes": 3134863,
+    "gzip4Bytes": 403201,
+    "brotli4Bytes": 353153
+  },
+  "structured": {
+    "aggregateRawHttpJsonBytes": 1326553,
+    "gzip4Bytes": 412574,
+    "brotli4Bytes": 362668,
+    "brotliReductionVsChunkGzipPercent": 12.096254247722838,
+    "brotliReductionVsLegacyGzipPercent": 10.052802448406627
+  },
+  "samples": [
+    {
+      "resource": "manifest",
+      "rawHttpJsonBytes": 355,
+      "gzip4Bytes": 355,
+      "brotli4Bytes": 355,
+      "gzipEncodeMs": 0.0024140000000159034,
+      "brotliEncodeMs": 0.0007410000000049877
+    },
+    {
+      "resource": "chunk-0",
+      "rawHttpJsonBytes": 1450,
+      "gzip4Bytes": 815,
+      "brotli4Bytes": 803,
+      "gzipEncodeMs": 0.6402539999999988,
+      "brotliEncodeMs": 0.841276999999991
+    },
+    {
+      "resource": "chunk-1",
+      "rawHttpJsonBytes": 3889,
+      "gzip4Bytes": 1807,
+      "brotli4Bytes": 1820,
+      "gzipEncodeMs": 0.10449799999997822,
+      "brotliEncodeMs": 0.157968000000011
+    },
+    {
+      "resource": "chunk-2",
+      "rawHttpJsonBytes": 738,
+      "gzip4Bytes": 738,
+      "brotli4Bytes": 738,
+      "gzipEncodeMs": 0.0007209999999986394,
+      "brotliEncodeMs": 0.00042099999998868043
+    },
+    {
+      "resource": "chunk-3",
+      "rawHttpJsonBytes": 7952,
+      "gzip4Bytes": 3690,
+      "brotli4Bytes": 3472,
+      "gzipEncodeMs": 0.17700600000000577,
+      "brotliEncodeMs": 0.23737700000000928
+    },
+    {
+      "resource": "chunk-4",
+      "rawHttpJsonBytes": 3024,
+      "gzip4Bytes": 1669,
+      "brotli4Bytes": 1670,
+      "gzipEncodeMs": 0.34168499999998403,
+      "brotliEncodeMs": 0.15899899999999434
+    },
+    {
+      "resource": "chunk-5",
+      "rawHttpJsonBytes": 14499,
+      "gzip4Bytes": 4422,
+      "brotli4Bytes": 3858,
+      "gzipEncodeMs": 0.312059999999974,
+      "brotliEncodeMs": 0.30740299999999365
+    },
+    {
+      "resource": "chunk-6",
+      "rawHttpJsonBytes": 14512,
+      "gzip4Bytes": 4438,
+      "brotli4Bytes": 3881,
+      "gzipEncodeMs": 0.15962000000001808,
+      "brotliEncodeMs": 0.1959449999999947
+    },
+    {
+      "resource": "chunk-7",
+      "rawHttpJsonBytes": 14500,
+      "gzip4Bytes": 4393,
+      "brotli4Bytes": 3880,
+      "gzipEncodeMs": 0.13049700000001963,
+      "brotliEncodeMs": 0.19241999999999848
+    },
+    {
+      "resource": "chunk-8",
+      "rawHttpJsonBytes": 14512,
+      "gzip4Bytes": 4440,
+      "brotli4Bytes": 3861,
+      "gzipEncodeMs": 0.12167300000001546,
+      "brotliEncodeMs": 0.2092760000000169
+    },
+    {
+      "resource": "chunk-9",
+      "rawHttpJsonBytes": 14501,
+      "gzip4Bytes": 4445,
+      "brotli4Bytes": 3884,
+      "gzipEncodeMs": 0.1323199999999929,
+      "brotliEncodeMs": 0.21314100000000735
+    },
+    {
+      "resource": "chunk-10",
+      "rawHttpJsonBytes": 14513,
+      "gzip4Bytes": 4467,
+      "brotli4Bytes": 3860,
+      "gzipEncodeMs": 0.13762800000000652,
+      "brotliEncodeMs": 0.19463300000001027
+    },
+    {
+      "resource": "chunk-11",
+      "rawHttpJsonBytes": 14501,
+      "gzip4Bytes": 4496,
+      "brotli4Bytes": 3872,
+      "gzipEncodeMs": 0.168943999999982,
+      "brotliEncodeMs": 0.21468300000000795
+    },
+    {
+      "resource": "chunk-12",
+      "rawHttpJsonBytes": 14513,
+      "gzip4Bytes": 4476,
+      "brotli4Bytes": 3870,
+      "gzipEncodeMs": 0.20873499999999012,
+      "brotliEncodeMs": 0.2649289999999951
+    },
+    {
+      "resource": "chunk-13",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4477,
+      "brotli4Bytes": 3875,
+      "gzipEncodeMs": 0.13201899999998545,
+      "brotliEncodeMs": 0.23082800000000248
+    },
+    {
+      "resource": "chunk-14",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4499,
+      "brotli4Bytes": 3855,
+      "gzipEncodeMs": 0.13028599999998391,
+      "brotliEncodeMs": 0.18785300000001826
+    },
+    {
+      "resource": "chunk-15",
+      "rawHttpJsonBytes": 14502,
+      "gzip4Bytes": 4461,
+      "brotli4Bytes": 3872,
+      "gzipEncodeMs": 0.12221400000001381,
+      "brotliEncodeMs": 0.18617000000000417
+    },
+    {
+      "resource": "chunk-16",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4459,
+      "brotli4Bytes": 3866,
+      "gzipEncodeMs": 0.12114300000001776,
+      "brotliEncodeMs": 0.20986600000000522
+    },
+    {
+      "resource": "chunk-17",
+      "rawHttpJsonBytes": 14402,
+      "gzip4Bytes": 4445,
+      "brotli4Bytes": 3867,
+      "gzipEncodeMs": 0.1246579999999824,
+      "brotliEncodeMs": 0.1835659999999848
+    },
+    {
+      "resource": "chunk-18",
+      "rawHttpJsonBytes": 14413,
+      "gzip4Bytes": 4447,
+      "brotli4Bytes": 3865,
+      "gzipEncodeMs": 0.11960999999999444,
+      "brotliEncodeMs": 0.17158800000001406
+    },
+    {
+      "resource": "chunk-19",
+      "rawHttpJsonBytes": 14300,
+      "gzip4Bytes": 4401,
+      "brotli4Bytes": 3839,
+      "gzipEncodeMs": 0.11384100000000785,
+      "brotliEncodeMs": 0.17526399999999853
+    },
+    {
+      "resource": "chunk-20",
+      "rawHttpJsonBytes": 14454,
+      "gzip4Bytes": 4434,
+      "brotli4Bytes": 3920,
+      "gzipEncodeMs": 0.14667099999999778,
+      "brotliEncodeMs": 0.18966599999998834
+    },
+    {
+      "resource": "chunk-21",
+      "rawHttpJsonBytes": 14328,
+      "gzip4Bytes": 4383,
+      "brotli4Bytes": 3910,
+      "gzipEncodeMs": 0.16875399999997853,
+      "brotliEncodeMs": 0.1959850000000074
+    },
+    {
+      "resource": "chunk-22",
+      "rawHttpJsonBytes": 15356,
+      "gzip4Bytes": 4893,
+      "brotli4Bytes": 4357,
+      "gzipEncodeMs": 0.1356839999999977,
+      "brotliEncodeMs": 0.24915599999999927
+    },
+    {
+      "resource": "chunk-23",
+      "rawHttpJsonBytes": 15293,
+      "gzip4Bytes": 4810,
+      "brotli4Bytes": 4268,
+      "gzipEncodeMs": 0.13352100000000178,
+      "brotliEncodeMs": 0.19981099999998264
+    },
+    {
+      "resource": "chunk-24",
+      "rawHttpJsonBytes": 15329,
+      "gzip4Bytes": 4808,
+      "brotli4Bytes": 4252,
+      "gzipEncodeMs": 0.13260999999999967,
+      "brotliEncodeMs": 0.19349099999999453
+    },
+    {
+      "resource": "chunk-25",
+      "rawHttpJsonBytes": 14463,
+      "gzip4Bytes": 4409,
+      "brotli4Bytes": 3891,
+      "gzipEncodeMs": 0.11790700000000243,
+      "brotliEncodeMs": 0.42957699999999477
+    },
+    {
+      "resource": "chunk-26",
+      "rawHttpJsonBytes": 14538,
+      "gzip4Bytes": 4466,
+      "brotli4Bytes": 3956,
+      "gzipEncodeMs": 0.13146799999998393,
+      "brotliEncodeMs": 0.18644100000000208
+    },
+    {
+      "resource": "chunk-27",
+      "rawHttpJsonBytes": 14340,
+      "gzip4Bytes": 4672,
+      "brotli4Bytes": 4232,
+      "gzipEncodeMs": 0.13026700000000346,
+      "brotliEncodeMs": 0.19362199999997642
+    },
+    {
+      "resource": "chunk-28",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4458,
+      "brotli4Bytes": 3860,
+      "gzipEncodeMs": 0.17361200000001986,
+      "brotliEncodeMs": 0.1862509999999986
+    },
+    {
+      "resource": "chunk-29",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4500,
+      "brotli4Bytes": 3881,
+      "gzipEncodeMs": 0.12156400000000644,
+      "brotliEncodeMs": 0.1814329999999984
+    },
+    {
+      "resource": "chunk-30",
+      "rawHttpJsonBytes": 14401,
+      "gzip4Bytes": 4431,
+      "brotli4Bytes": 3856,
+      "gzipEncodeMs": 0.11729699999997933,
+      "brotliEncodeMs": 0.1707969999999932
+    },
+    {
+      "resource": "chunk-31",
+      "rawHttpJsonBytes": 14413,
+      "gzip4Bytes": 4424,
+      "brotli4Bytes": 3863,
+      "gzipEncodeMs": 0.11771799999999644,
+      "brotliEncodeMs": 0.3230769999999836
+    },
+    {
+      "resource": "chunk-32",
+      "rawHttpJsonBytes": 14402,
+      "gzip4Bytes": 4423,
+      "brotli4Bytes": 3886,
+      "gzipEncodeMs": 0.13004600000002142,
+      "brotliEncodeMs": 0.17809800000000564
+    },
+    {
+      "resource": "chunk-33",
+      "rawHttpJsonBytes": 14413,
+      "gzip4Bytes": 4411,
+      "brotli4Bytes": 3856,
+      "gzipEncodeMs": 0.11955000000000382,
+      "brotliEncodeMs": 0.20776299999999992
+    },
+    {
+      "resource": "chunk-34",
+      "rawHttpJsonBytes": 14526,
+      "gzip4Bytes": 4507,
+      "brotli4Bytes": 3969,
+      "gzipEncodeMs": 0.15664599999999496,
+      "brotliEncodeMs": 0.24887499999999818
+    },
+    {
+      "resource": "chunk-35",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4407,
+      "brotli4Bytes": 3886,
+      "gzipEncodeMs": 0.12699100000000385,
+      "brotliEncodeMs": 0.17905000000001792
+    },
+    {
+      "resource": "chunk-36",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4442,
+      "brotli4Bytes": 3888,
+      "gzipEncodeMs": 0.11764800000000264,
+      "brotliEncodeMs": 0.38002199999999675
+    },
+    {
+      "resource": "chunk-37",
+      "rawHttpJsonBytes": 14502,
+      "gzip4Bytes": 4423,
+      "brotli4Bytes": 3851,
+      "gzipEncodeMs": 0.12989600000003065,
+      "brotliEncodeMs": 0.253592000000026
+    },
+    {
+      "resource": "chunk-38",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4434,
+      "brotli4Bytes": 3843,
+      "gzipEncodeMs": 0.185670000000016,
+      "brotliEncodeMs": 0.18347699999998213
+    },
+    {
+      "resource": "chunk-39",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4463,
+      "brotli4Bytes": 3884,
+      "gzipEncodeMs": 0.21689600000001974,
+      "brotliEncodeMs": 0.19812799999999697
+    },
+    {
+      "resource": "chunk-40",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4484,
+      "brotli4Bytes": 3870,
+      "gzipEncodeMs": 0.12004100000001472,
+      "brotliEncodeMs": 0.17720700000000988
+    },
+    {
+      "resource": "chunk-41",
+      "rawHttpJsonBytes": 15007,
+      "gzip4Bytes": 4619,
+      "brotli4Bytes": 3992,
+      "gzipEncodeMs": 0.1255090000000223,
+      "brotliEncodeMs": 0.1804920000000152
+    },
+    {
+      "resource": "chunk-42",
+      "rawHttpJsonBytes": 15101,
+      "gzip4Bytes": 4879,
+      "brotli4Bytes": 4359,
+      "gzipEncodeMs": 0.15818899999999303,
+      "brotliEncodeMs": 0.20260500000000548
+    },
+    {
+      "resource": "chunk-43",
+      "rawHttpJsonBytes": 15358,
+      "gzip4Bytes": 4788,
+      "brotli4Bytes": 4255,
+      "gzipEncodeMs": 0.3213039999999978,
+      "brotliEncodeMs": 0.2360659999999939
+    },
+    {
+      "resource": "chunk-44",
+      "rawHttpJsonBytes": 14492,
+      "gzip4Bytes": 4434,
+      "brotli4Bytes": 3909,
+      "gzipEncodeMs": 0.15402199999999766,
+      "brotliEncodeMs": 0.24196500000005017
+    },
+    {
+      "resource": "chunk-45",
+      "rawHttpJsonBytes": 14506,
+      "gzip4Bytes": 4427,
+      "brotli4Bytes": 3900,
+      "gzipEncodeMs": 0.1299359999999865,
+      "brotliEncodeMs": 0.24838399999998728
+    },
+    {
+      "resource": "chunk-46",
+      "rawHttpJsonBytes": 14320,
+      "gzip4Bytes": 4389,
+      "brotli4Bytes": 3898,
+      "gzipEncodeMs": 0.1317889999999693,
+      "brotliEncodeMs": 0.18814400000002252
+    },
+    {
+      "resource": "chunk-47",
+      "rawHttpJsonBytes": 14326,
+      "gzip4Bytes": 4389,
+      "brotli4Bytes": 3909,
+      "gzipEncodeMs": 0.1564660000000231,
+      "brotliEncodeMs": 0.19485400000002073
+    },
+    {
+      "resource": "chunk-48",
+      "rawHttpJsonBytes": 14517,
+      "gzip4Bytes": 4493,
+      "brotli4Bytes": 4023,
+      "gzipEncodeMs": 0.1260300000000143,
+      "brotliEncodeMs": 0.18755299999997987
+    },
+    {
+      "resource": "chunk-49",
+      "rawHttpJsonBytes": 14360,
+      "gzip4Bytes": 4478,
+      "brotli4Bytes": 4008,
+      "gzipEncodeMs": 0.12292500000000928,
+      "brotliEncodeMs": 0.18452800000000025
+    },
+    {
+      "resource": "chunk-50",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4430,
+      "brotli4Bytes": 3850,
+      "gzipEncodeMs": 0.14016099999997778,
+      "brotliEncodeMs": 0.17623600000001716
+    },
+    {
+      "resource": "chunk-51",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4453,
+      "brotli4Bytes": 3888,
+      "gzipEncodeMs": 0.11983099999997648,
+      "brotliEncodeMs": 0.17684600000001183
+    },
+    {
+      "resource": "chunk-52",
+      "rawHttpJsonBytes": 14502,
+      "gzip4Bytes": 4440,
+      "brotli4Bytes": 3875,
+      "gzipEncodeMs": 0.11667499999998654,
+      "brotliEncodeMs": 0.17047600000000784
+    },
+    {
+      "resource": "chunk-53",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4440,
+      "brotli4Bytes": 3878,
+      "gzipEncodeMs": 0.116375000000005,
+      "brotliEncodeMs": 0.20074299999998857
+    },
+    {
+      "resource": "chunk-54",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4434,
+      "brotli4Bytes": 3867,
+      "gzipEncodeMs": 0.11955999999997857,
+      "brotliEncodeMs": 0.16980499999999665
+    },
+    {
+      "resource": "chunk-55",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4464,
+      "brotli4Bytes": 3846,
+      "gzipEncodeMs": 0.11937000000000353,
+      "brotliEncodeMs": 0.5104289999999878
+    },
+    {
+      "resource": "chunk-56",
+      "rawHttpJsonBytes": 14502,
+      "gzip4Bytes": 4494,
+      "brotli4Bytes": 3879,
+      "gzipEncodeMs": 0.13822800000002644,
+      "brotliEncodeMs": 0.1815539999999487
+    },
+    {
+      "resource": "chunk-57",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4458,
+      "brotli4Bytes": 3857,
+      "gzipEncodeMs": 0.1922999999999888,
+      "brotliEncodeMs": 0.1932509999999752
+    },
+    {
+      "resource": "chunk-58",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4461,
+      "brotli4Bytes": 3872,
+      "gzipEncodeMs": 0.12335600000000113,
+      "brotliEncodeMs": 0.20935499999995955
+    },
+    {
+      "resource": "chunk-59",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4503,
+      "brotli4Bytes": 3870,
+      "gzipEncodeMs": 0.12360599999999522,
+      "brotliEncodeMs": 0.18117200000000366
+    },
+    {
+      "resource": "chunk-60",
+      "rawHttpJsonBytes": 14502,
+      "gzip4Bytes": 4466,
+      "brotli4Bytes": 3898,
+      "gzipEncodeMs": 0.11831799999998793,
+      "brotliEncodeMs": 0.17124699999999393
+    },
+    {
+      "resource": "chunk-61",
+      "rawHttpJsonBytes": 14413,
+      "gzip4Bytes": 4418,
+      "brotli4Bytes": 3858,
+      "gzipEncodeMs": 0.1158839999999941,
+      "brotliEncodeMs": 0.19776699999999892
+    },
+    {
+      "resource": "chunk-62",
+      "rawHttpJsonBytes": 14402,
+      "gzip4Bytes": 4434,
+      "brotli4Bytes": 3851,
+      "gzipEncodeMs": 0.1204710000000091,
+      "brotliEncodeMs": 0.1678829999999607
+    },
+    {
+      "resource": "chunk-63",
+      "rawHttpJsonBytes": 14413,
+      "gzip4Bytes": 4412,
+      "brotli4Bytes": 3844,
+      "gzipEncodeMs": 0.11509399999999914,
+      "brotliEncodeMs": 0.17355100000003176
+    },
+    {
+      "resource": "chunk-64",
+      "rawHttpJsonBytes": 14401,
+      "gzip4Bytes": 4397,
+      "brotli4Bytes": 3855,
+      "gzipEncodeMs": 0.11507299999999532,
+      "brotliEncodeMs": 0.16769299999998566
+    },
+    {
+      "resource": "chunk-65",
+      "rawHttpJsonBytes": 14550,
+      "gzip4Bytes": 4522,
+      "brotli4Bytes": 4008,
+      "gzipEncodeMs": 0.142024000000049,
+      "brotliEncodeMs": 0.18832399999996596
+    },
+    {
+      "resource": "chunk-66",
+      "rawHttpJsonBytes": 15271,
+      "gzip4Bytes": 4780,
+      "brotli4Bytes": 4258,
+      "gzipEncodeMs": 0.13163799999995263,
+      "brotliEncodeMs": 0.19004599999999527
+    },
+    {
+      "resource": "chunk-67",
+      "rawHttpJsonBytes": 15307,
+      "gzip4Bytes": 4790,
+      "brotli4Bytes": 4257,
+      "gzipEncodeMs": 0.1292750000000069,
+      "brotliEncodeMs": 0.2780389999999784
+    },
+    {
+      "resource": "chunk-68",
+      "rawHttpJsonBytes": 14523,
+      "gzip4Bytes": 4454,
+      "brotli4Bytes": 3914,
+      "gzipEncodeMs": 0.19377200000002404,
+      "brotliEncodeMs": 0.24386700000002293
+    },
+    {
+      "resource": "chunk-69",
+      "rawHttpJsonBytes": 14457,
+      "gzip4Bytes": 4400,
+      "brotli4Bytes": 3917,
+      "gzipEncodeMs": 0.12846400000000813,
+      "brotliEncodeMs": 0.1879729999999995
+    },
+    {
+      "resource": "chunk-70",
+      "rawHttpJsonBytes": 14471,
+      "gzip4Bytes": 4392,
+      "brotli4Bytes": 3892,
+      "gzipEncodeMs": 0.12096200000002,
+      "brotliEncodeMs": 0.19902999999999338
+    },
+    {
+      "resource": "chunk-71",
+      "rawHttpJsonBytes": 14558,
+      "gzip4Bytes": 4493,
+      "brotli4Bytes": 3992,
+      "gzipEncodeMs": 0.12446699999998145,
+      "brotliEncodeMs": 0.1875119999999697
+    },
+    {
+      "resource": "chunk-72",
+      "rawHttpJsonBytes": 14310,
+      "gzip4Bytes": 4643,
+      "brotli4Bytes": 4202,
+      "gzipEncodeMs": 0.1289040000000341,
+      "brotliEncodeMs": 0.2690650000000119
+    },
+    {
+      "resource": "chunk-73",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4446,
+      "brotli4Bytes": 3883,
+      "gzipEncodeMs": 0.1312780000000089,
+      "brotliEncodeMs": 0.2195199999999886
+    },
+    {
+      "resource": "chunk-74",
+      "rawHttpJsonBytes": 14514,
+      "gzip4Bytes": 4497,
+      "brotli4Bytes": 3885,
+      "gzipEncodeMs": 0.12426699999997481,
+      "brotliEncodeMs": 0.1801510000000235
+    },
+    {
+      "resource": "chunk-75",
+      "rawHttpJsonBytes": 14401,
+      "gzip4Bytes": 4424,
+      "brotli4Bytes": 3849,
+      "gzipEncodeMs": 0.11665599999997767,
+      "brotliEncodeMs": 0.17490299999997205
+    },
+    {
+      "resource": "chunk-76",
+      "rawHttpJsonBytes": 14413,
+      "gzip4Bytes": 4424,
+      "brotli4Bytes": 3863,
+      "gzipEncodeMs": 0.12835300000000416,
+      "brotliEncodeMs": 0.19735800000000836
+    },
+    {
+      "resource": "chunk-77",
+      "rawHttpJsonBytes": 14402,
+      "gzip4Bytes": 4410,
+      "brotli4Bytes": 3877,
+      "gzipEncodeMs": 0.11812800000001289,
+      "brotliEncodeMs": 0.17920999999995502
+    },
+    {
+      "resource": "chunk-78",
+      "rawHttpJsonBytes": 14414,
+      "gzip4Bytes": 4388,
+      "brotli4Bytes": 3844,
+      "gzipEncodeMs": 0.11652600000002167,
+      "brotliEncodeMs": 0.17116800000002286
+    },
+    {
+      "resource": "chunk-79",
+      "rawHttpJsonBytes": 14589,
+      "gzip4Bytes": 4481,
+      "brotli4Bytes": 3944,
+      "gzipEncodeMs": 0.11914000000001579,
+      "brotliEncodeMs": 0.20397700000000896
+    },
+    {
+      "resource": "chunk-80",
+      "rawHttpJsonBytes": 14504,
+      "gzip4Bytes": 4432,
+      "brotli4Bytes": 3878,
+      "gzipEncodeMs": 0.13779799999997522,
+      "brotliEncodeMs": 0.23695700000001807
+    },
+    {
+      "resource": "chunk-81",
+      "rawHttpJsonBytes": 14515,
+      "gzip4Bytes": 4440,
+      "brotli4Bytes": 3893,
+      "gzipEncodeMs": 0.22610000000003083,
+      "brotliEncodeMs": 0.215925000000027
+    },
+    {
+      "resource": "chunk-82",
+      "rawHttpJsonBytes": 14503,
+      "gzip4Bytes": 4418,
+      "brotli4Bytes": 3873,
+      "gzipEncodeMs": 0.12671100000000024,
+      "brotliEncodeMs": 0.21836799999999812
+    },
+    {
+      "resource": "chunk-83",
+      "rawHttpJsonBytes": 14515,
+      "gzip4Bytes": 4449,
+      "brotli4Bytes": 3867,
+      "gzipEncodeMs": 0.12223500000004606,
+      "brotliEncodeMs": 0.17669599999999264
+    },
+    {
+      "resource": "chunk-84",
+      "rawHttpJsonBytes": 14504,
+      "gzip4Bytes": 4480,
+      "brotli4Bytes": 3851,
+      "gzipEncodeMs": 0.1214729999999804,
+      "brotliEncodeMs": 0.16697099999998954
+    },
+    {
+      "resource": "chunk-85",
+      "rawHttpJsonBytes": 14515,
+      "gzip4Bytes": 4490,
+      "brotli4Bytes": 3847,
+      "gzipEncodeMs": 0.12270499999999629,
+      "brotliEncodeMs": 0.23494400000004134
+    },
+    {
+      "resource": "chunk-86",
+      "rawHttpJsonBytes": 15008,
+      "gzip4Bytes": 4612,
+      "brotli4Bytes": 3972,
+      "gzipEncodeMs": 0.1439760000000092,
+      "brotliEncodeMs": 0.19907999999998083
+    },
+    {
+      "resource": "chunk-87",
+      "rawHttpJsonBytes": 15159,
+      "gzip4Bytes": 4845,
+      "brotli4Bytes": 4365,
+      "gzipEncodeMs": 0.13695699999999533,
+      "brotliEncodeMs": 0.19519400000001497
+    },
+    {
+      "resource": "chunk-88",
+      "rawHttpJsonBytes": 14549,
+      "gzip4Bytes": 4448,
+      "brotli4Bytes": 3949,
+      "gzipEncodeMs": 0.12278500000002168,
+      "brotliEncodeMs": 0.20037200000001576
+    },
+    {
+      "resource": "chunk-89",
+      "rawHttpJsonBytes": 14483,
+      "gzip4Bytes": 4430,
+      "brotli4Bytes": 3911,
+      "gzipEncodeMs": 0.1252590000000282,
+      "brotliEncodeMs": 0.1798610000000167
+    },
+    {
+      "resource": "chunk-90",
+      "rawHttpJsonBytes": 14497,
+      "gzip4Bytes": 4425,
+      "brotli4Bytes": 3896,
+      "gzipEncodeMs": 0.12202400000001035,
+      "brotliEncodeMs": 0.17453299999999672
+    },
+    {
+      "resource": "chunk-91",
+      "rawHttpJsonBytes": 14511,
+      "gzip4Bytes": 4430,
+      "brotli4Bytes": 3916,
+      "gzipEncodeMs": 0.12820299999998497,
+      "brotliEncodeMs": 0.22670199999998886
+    },
+    {
+      "resource": "chunk-92",
+      "rawHttpJsonBytes": 14323,
+      "gzip4Bytes": 4388,
+      "brotli4Bytes": 3912,
+      "gzipEncodeMs": 0.12713100000001987,
+      "brotliEncodeMs": 0.1775480000000016
+    },
+    {
+      "resource": "chunk-93",
+      "rawHttpJsonBytes": 14329,
+      "gzip4Bytes": 4380,
+      "brotli4Bytes": 3896,
+      "gzipEncodeMs": 0.1180180000000064,
+      "brotliEncodeMs": 0.17486399999995683
+    },
+    {
+      "resource": "chunk-94",
+      "rawHttpJsonBytes": 13824,
+      "gzip4Bytes": 4241,
+      "brotli4Bytes": 3774,
+      "gzipEncodeMs": 0.145087999999987,
+      "brotliEncodeMs": 0.18737300000003643
+    }
+  ]
+}

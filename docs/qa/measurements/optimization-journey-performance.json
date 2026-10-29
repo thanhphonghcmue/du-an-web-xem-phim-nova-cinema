@@ -1,0 +1,8 @@
+{
+  "measuredAt": "2026-10-29T07:19:38.656Z",
+  "samples": 1,
+  "paymentClickToVisibleOwnerQrMs": 2493.5988829999988,
+  "paymentClickToVisibleInlineQrMs": 2266.729044000007,
+  "returnClickToVisibleInlineQrMs": 1859.0258449999965,
+  "layer": "production browser; includes Sandbox navigation and owner QR rendering; healthy loopback SMTP"
+}

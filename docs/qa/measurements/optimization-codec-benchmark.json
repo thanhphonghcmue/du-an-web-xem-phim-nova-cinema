@@ -1,0 +1,54 @@
+{
+  "source": "same real application catalogue SELECT-only; no prewarm; all five alternating-order pairs retained; codec stages only, not browser or complete manifest latency",
+  "counts": {
+    "movies": 24,
+    "cinemas": 4,
+    "rooms": 160,
+    "combos": 24,
+    "showtimes": 13469
+  },
+  "dateCells": 54324,
+  "uniqueDateTimestamps": 14584,
+  "results": [
+    {
+      "pair": 1,
+      "order": "old-new",
+      "oldMs": 234.719648,
+      "newMs": 168.997747,
+      "chunks": 139,
+      "sourceBytes": 4460773
+    },
+    {
+      "pair": 2,
+      "order": "new-old",
+      "newMs": 187.74277100000018,
+      "oldMs": 183.46008000000006,
+      "chunks": 139,
+      "sourceBytes": 4460773
+    },
+    {
+      "pair": 3,
+      "order": "old-new",
+      "oldMs": 186.1657160000002,
+      "newMs": 149.5505250000001,
+      "chunks": 139,
+      "sourceBytes": 4460773
+    },
+    {
+      "pair": 4,
+      "order": "new-old",
+      "newMs": 162.35006899999985,
+      "oldMs": 210.01079100000015,
+      "chunks": 139,
+      "sourceBytes": 4460773
+    },
+    {
+      "pair": 5,
+      "order": "old-new",
+      "oldMs": 203.5782320000003,
+      "newMs": 162.19750399999975,
+      "chunks": 139,
+      "sourceBytes": 4460773
+    }
+  ]
+}

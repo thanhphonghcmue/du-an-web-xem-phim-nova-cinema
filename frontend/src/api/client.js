@@ -32,6 +32,7 @@ import { apiErrorMessage } from "./errorMessage.js";
 import { notifyApiError } from "./notice.js";
 import { uniqueRecords } from "../uniqueRecords.js";
 import { requestBudget, abortable } from "./budget.js";
+import { loadProgramme } from "./programme-transport.js";
 let refreshing;
 let programmeCache,
   catalogueEpoch = 0,
@@ -96,7 +97,11 @@ async function requestWithinBudget(endpoint, options, retry, signal) {
   const response = await fetch(API_BASE + endpoint, {
     ...options,
     credentials: "same-origin",
-    cache: "no-store",
+    cache:
+      /^\/showtimes\/programme\/chunks\/[a-f\d-]+\/\d+$/i.test(endpoint) &&
+      options.cache === "force-cache"
+        ? "force-cache"
+        : "no-store",
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...options.headers,
@@ -189,6 +194,35 @@ export function read(path) {
       if (reads.get(path) === task) reads.delete(path);
     });
   reads.set(path, task);
+  return task;
+}
+
+/** Giữ nguyên catalogue trong bộ nhớ; chỉ chia nhỏ cách truyền qua mạng. */
+export function readProgramme() {
+  if (programmeCache?.until > Date.now())
+    return Promise.resolve(programmeCache.data);
+  const key = "programme:transport";
+  if (reads.has(key)) return reads.get(key);
+  const epoch = catalogueEpoch;
+  const budget = requestBudget();
+  const task = abortable(
+    loadProgramme(
+      (path, options) =>
+        apiRequest(path, options).then((result) => result.data),
+      budget.signal,
+    ),
+    budget.signal,
+  )
+    .then((data) => {
+      if (epoch === catalogueEpoch)
+        programmeCache = { data, until: Date.now() + 30000 };
+      return data;
+    })
+    .finally(() => {
+      budget.dispose();
+      if (reads.get(key) === task) reads.delete(key);
+    });
+  reads.set(key, task);
   return task;
 }
 

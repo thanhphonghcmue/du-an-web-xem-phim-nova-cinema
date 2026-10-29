@@ -1,0 +1,78 @@
+{
+  "startedAt": "2026-10-29T02:09:08.134Z",
+  "nativeOnly": true,
+  "steps": [
+    {
+      "name": "generate",
+      "passed": true,
+      "durationMs": 1146,
+      "log": "generate.log"
+    },
+    {
+      "name": "migrate-test",
+      "passed": true,
+      "durationMs": 1046,
+      "log": "migrate-test.log"
+    },
+    {
+      "name": "backend",
+      "passed": true,
+      "durationMs": 56816,
+      "log": "backend.log"
+    },
+    {
+      "name": "schema",
+      "passed": true,
+      "durationMs": 5185,
+      "log": "schema.log"
+    },
+    {
+      "name": "node-ram",
+      "passed": true,
+      "durationMs": 16913,
+      "log": "node-ram.log"
+    },
+    {
+      "name": "lint",
+      "passed": true,
+      "durationMs": 5854,
+      "log": "lint.log"
+    },
+    {
+      "name": "build",
+      "passed": true,
+      "durationMs": 25351,
+      "log": "build.log"
+    },
+    {
+      "name": "ram-startup",
+      "passed": true,
+      "durationMs": 37389,
+      "log": "ram-startup.log"
+    },
+    {
+      "name": "upstream-failure",
+      "passed": true,
+      "durationMs": 32362,
+      "log": "upstream-failure.log"
+    },
+    {
+      "name": "browser",
+      "passed": true,
+      "durationMs": 398616,
+      "log": "browser.log"
+    }
+  ],
+  "functionalStatus": "PASSED",
+  "performanceBudgets": "NOT_MET",
+  "optimizedPathBudgets": {
+    "coldManifestUnder30ms": false,
+    "warmManifestP95Under30ms": true,
+    "firstPassChunksP95Under30ms": true,
+    "warmChunkNetworkP95Under30ms": true,
+    "everyChunkHttpJsonUnder15KiB": true,
+    "reconstructedCatalogueJsonUnder15KiB": false,
+    "aggregateHttpJsonUnder15KiB": false
+  },
+  "completedAt": "2026-10-29T02:18:48.816Z"
+}

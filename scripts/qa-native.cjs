@@ -36,6 +36,7 @@ async function main() {
     steps: [],
     functionalStatus: "RUNNING",
     performanceBudgets: "NOT_MEASURED",
+    optimizedPathBudgets: "NOT_MEASURED",
   };
   const metricsPath = join(directory, "performance.json");
   const env = {
@@ -44,6 +45,10 @@ async function main() {
     NOVA_QA_METRICS_FILE: metricsPath,
     NOVA_QA_SMTP_METRICS_FILE: join(directory, "smtp-performance.json"),
     NOVA_QA_JOURNEY_METRICS_FILE: join(directory, "journey-performance.json"),
+    NOVA_QA_OPTIMIZATION_METRICS_FILE: join(
+      directory,
+      "optimization-performance.json",
+    ),
   };
   // Thư mục log riêng có thể chứa thông tin test thất bại; không commit hoặc in QR/token.
   async function run(name, args, direct = false) {
@@ -115,6 +120,11 @@ async function main() {
         ? "MET"
         : "NOT_MET";
     }
+    const optimizedPath = join(directory, "optimization-performance.json");
+    if (existsSync(optimizedPath))
+      report.optimizedPathBudgets =
+        JSON.parse(readFileSync(optimizedPath, "utf8")).structuredTransport
+          ?.budgets || "NOT_MEASURED";
   } catch (error) {
     report.functionalStatus = "FAILED";
     throw error;

@@ -157,3 +157,7 @@ Không đánh dấu hoàn thành Phase11–12. Bổ sung UC02 ACTIVE/LOCKED/INAC
 Giữ trạng thái Phase 11–12. Script `npm run qa:native` chạy hết 503 bài độc lập (89 unit + 242 native HTTP + 23 schema + 60 Node/RAM + 89 browser), lint/typecheck/build và hai smoke đều đạt. Ma trận có 69 kịch bản truy vết, ghi rõ khác biệt contract và giới hạn. Hai mươi users qua hai API instances tranh một ghế VIP cho kết quả 1 × 201/19 × 409.
 
 Vá conflict IDs sau SQL rollback, tái xác thực giữ context, null member và state ID bị hoãn ở picker; bổ sung envelope message RAM, fixture GOLD với 50.000 điểm và cleanup test. Mục tiêu latency/payload/QR 50 ms chưa đạt; functional PASS không được coi là performance PASS. [Báo cáo và toàn bộ số đo](../../docs/qa/ultra-expanded-audit.md).
+
+## Tối ưu catalogue/QR — 29/10/2026
+
+Không thay đổi trạng thái Phase 11–12. Thêm snapshot Redis chia trang lossless, invalidation Admin, cache browser chỉ cho chunk bất biến và nén Brotli/gzip. Giữ đầy đủ API legacy và các kiểm tra ghế/giá/hạn/owner. QR PNG 1-bit được giải mã kiểm chứng; fulfillment được đánh thức sau commit, vẫn có outbox/poll phục hồi. Native `npm run qa:native` chạy hết 547 bài độc lập; lint/typecheck/build và hai smoke đạt. Phân biệt budget đường lịch mới/service QR với cache lạnh, catalogue đầy đủ và browser: [báo cáo/số đo](../../docs/qa/performance-optimization.md).

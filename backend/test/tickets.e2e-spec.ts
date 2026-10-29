@@ -16,6 +16,7 @@ import { BookingMaintenanceService } from "../src/modules/bookings/booking-maint
 import { FulfillmentRelay } from "../src/modules/notifications/fulfillment-relay.service";
 import { TicketEmailProcessor } from "../src/modules/notifications/ticket-email.processor";
 import { TicketsService } from "../src/modules/tickets/tickets.service";
+import * as ticketQr from "../src/modules/tickets/ticket-qr";
 import { TicketsRepository } from "../src/modules/tickets/tickets.repository";
 import { ticketCalendar } from "../src/modules/tickets/ticket-format";
 import { ticketEmail } from "../src/modules/notifications/ticket-email";
@@ -422,6 +423,63 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     ).toBe(a.ticketHash);
     expect(a.ticketHash).not.toBe(b.ticketHash);
     expect(a.ticketHash).not.toContain(first.booking.id);
+  });
+  it("issues a committed PAID ticket from the wake signal while periodic recovery is delayed60s", async () => {
+    const f = await fixture();
+    const relay = app.get(FulfillmentRelay);
+    const originalInterval = global.setInterval;
+    const interval = jest
+      .spyOn(global, "setInterval")
+      .mockImplementationOnce((callback) => originalInterval(callback, 60000));
+    try {
+      relay.start();
+      interval.mockRestore();
+      await relay.flush(); // Drain startup before payment; the next poll is60s away.
+      const callback = await pay(f);
+      await eventually(
+        async () =>
+          (await prisma.eTicket.count({
+            where: { bookingId: f.booking.id },
+          })) === 1,
+      );
+      const ticket = await prisma.eTicket.findUniqueOrThrow({
+        where: { bookingId: f.booking.id },
+        include: { booking: { include: { seats: true } } },
+      });
+      expect(ticket.booking.status).toBe("PAID");
+      expect(ticket.booking.seats.every((seat) => seat.status === "SOLD")).toBe(
+        true,
+      );
+      const png = PNG.sync.read(
+        Buffer.from(ticket.qrCodeBase64.split(",")[1] ?? "", "base64"),
+      );
+      expect(
+        jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data,
+      ).toBe(ticket.ticketHash);
+      await request(server)
+        .post("/api/v1/payments/webhook")
+        .send(callback)
+        .expect(200);
+      await relay.flush();
+      expect(
+        await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+      ).toBe(1);
+      expect(
+        await prisma.outboxEvent.count({
+          where: { aggregateId: f.booking.id, eventType: EMAIL_REQUESTED },
+        }),
+      ).toBe(1);
+      expect(
+        (
+          await prisma.eTicket.findUniqueOrThrow({
+            where: { bookingId: f.booking.id },
+          })
+        ).ticketHash,
+      ).toBe(ticket.ticketHash);
+    } finally {
+      interval.mockRestore();
+      await relay.stop();
+    }
   });
   it("serializes concurrent generation across2 instances and keeps one stable QR and email event", async () => {
     const f = await fixture();
@@ -879,7 +937,28 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     const started = performance.now();
     await pay(f);
     const paymentCompletedMs = performance.now() - started;
-    const ticket = await generate(f);
+    const encode = ticketQr.ticketQrPng;
+    const pngTimes: number[] = [];
+    const encoder = jest
+      .spyOn(ticketQr, "ticketQrPng")
+      .mockImplementation((hash) => {
+        const encodedAt = performance.now();
+        try {
+          return encode(hash);
+        } finally {
+          pngTimes.push(performance.now() - encodedAt);
+        }
+      });
+    const ticketStarted = performance.now();
+    const ticket = await (async () => {
+      try {
+        return await generate(f);
+      } finally {
+        encoder.mockRestore();
+      }
+    })();
+    const ticketServiceMs = performance.now() - ticketStarted;
+    const pngEncodingMs = pngTimes.reduce((sum, time) => sum + time, 0);
     const qrServiceReadyMs = performance.now() - started;
     const event = await emailEvent(f.booking.id);
     smtp.state.rejectNext = 1;
@@ -908,9 +987,13 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
             samples: 1,
             paymentCompletedMs,
             qrServiceReadyMs,
+            ticketServiceMs,
+            pngEncodingMs,
+            pngEncodingCalls: pngTimes.length,
+            ticketNonPngMs: ticketServiceMs - pngEncodingMs,
             smtpFault: "451 confirmed; durable retry retained",
             layer:
-              "native HTTP checkout+webhook then direct post-commit TicketsService; excludes browser rendering and relay polling",
+              "native HTTP checkout+webhook then direct post-commit TicketsService inside Jest; PNG component is measured separately; excludes browser rendering and relay polling",
             budgets: { servicePathUnder50ms: qrServiceReadyMs < 50 },
           },
           null,

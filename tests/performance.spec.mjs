@@ -94,11 +94,15 @@ test("cinema, film and time choices use local data, cache programme and never fe
   page,
 }) => {
   const seatCalls = [],
-    programmeCalls = [];
+    programmeCalls = [],
+    chunkCalls = [],
+    legacyProgrammeCalls = [];
   page.on("request", (r) => {
     const p = new URL(r.url()).pathname;
     if (/\/showtimes\/[^/]+\/seats$/.test(p)) seatCalls.push(p);
-    if (p === "/api/v1/showtimes/programme") programmeCalls.push(p);
+    if (p === "/api/v1/showtimes/programme/manifest") programmeCalls.push(p);
+    if (p.startsWith("/api/v1/showtimes/programme/chunks/")) chunkCalls.push(p);
+    if (p === "/api/v1/showtimes/programme") legacyProgrammeCalls.push(p);
   });
   await page.goto("/dat-ve");
   await expect(
@@ -161,7 +165,10 @@ test("cinema, film and time choices use local data, cache programme and never fe
   await expect(
     page.getByRole("combobox", { name: "Chọn cụm rạp", exact: true }),
   ).toBeEnabled();
+  expect(programmeCalls.length).toBeGreaterThan(0);
   expect(programmeCalls.length).toBeLessThanOrEqual(2);
+  expect(chunkCalls.length).toBeGreaterThan(0);
+  expect(legacyProgrammeCalls).toEqual([]);
   expect(seatCalls).toEqual([]);
 });
 test("a dead hold request releases submitting state at eight seconds and can be retried safely", async ({

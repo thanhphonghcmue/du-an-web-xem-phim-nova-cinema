@@ -2,7 +2,6 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma } from "@prisma/client";
 import { randomBytes } from "node:crypto";
-import { toDataURL } from "qrcode";
 import { ApiException } from "../../common/exceptions/api.exception";
 import { pageOf } from "../../common/dto/pagination.dto";
 import { NotificationSettings } from "../../config/notification.settings";
@@ -25,6 +24,7 @@ import {
 } from "./ticket-format";
 import { ticketEmail } from "../notifications/ticket-email";
 import { TicketRecord, TicketsRepository } from "./tickets.repository";
+import { ticketQrPng } from "./ticket-qr";
 @Injectable()
 export class TicketsService {
   private readonly settings: NotificationSettings;
@@ -41,16 +41,14 @@ export class TicketsService {
     // Encode before acquiring any booking/row lock. Payment itself only enqueues
     // durable fulfillment; duplicate workers still converge under the lock below.
     const ticketHash = randomBytes(32).toString("hex");
-    const qrCodeBase64 = await toDataURL(ticketHash, {
-      type: "image/png",
-      errorCorrectionLevel: "M",
-      width: 320,
-      margin: 4,
-    });
+    const qrCodeBase64 = ticketQrPng(ticketHash);
     return this.database.transaction(async (tx) => {
       await this.bookings.lockBooking(bookingId, tx);
-      const booking = await this.bookings.find(bookingId, tx);
-      if (!booking) throw missing();
+      const snapshot = await this.tickets.issuanceSnapshot(bookingId, tx);
+      if (!snapshot) throw missing();
+      // Một snapshot chứa cả dữ liệu kiểm tra và chi tiết vé; không include lại
+      // toàn bộ phim/rạp/ghế/combo sau INSERT hoặc khi phát lại cùng booking.
+      const { ticket: existing, ...booking } = snapshot;
       if (
         booking.status !== "PAID" ||
         !booking.seats.length ||
@@ -61,9 +59,8 @@ export class TicketsService {
           "TICKET_BOOKING_NOT_PAID",
           "Only a paid booking with sold seats can issue a ticket.",
         );
-      const existing = await this.tickets.byBooking(bookingId, tx);
-      if (existing) return existing;
-      const ticket = await this.tickets.create(
+      if (existing) return { ...existing, booking };
+      const ticket = await this.tickets.createRecord(
         { bookingId, ticketHash, qrCodeBase64 },
         tx,
       );
@@ -73,7 +70,7 @@ export class TicketsService {
         { bookingId, ticketId: ticket.id },
         tx,
       );
-      return ticket;
+      return { ...ticket, booking };
     });
   }
   async get(id: string, userId: string): Promise<TicketDto> {

@@ -3,6 +3,7 @@ import { readFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { createRequire } from "node:module";
 import { chooseOption, chooseDate } from "./ui-choices.mjs";
+import { useLegacyProgramme } from "./programme-routes.mjs";
 const req = createRequire(new URL("../backend/package.json", import.meta.url));
 const fixture = () =>
   JSON.parse(
@@ -209,6 +210,7 @@ test("duplicate catalogue/seat records keep UUID payloads and an expired real ho
       errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
+  await useLegacyProgramme(page);
   for (const pattern of [
     "**/api/v1/showtimes/programme",
     "**/api/v1/showtimes/*/seats",
@@ -321,6 +323,7 @@ test("duplicate catalogue/seat records keep UUID payloads and an expired real ho
 test("a network error displays a dismissible toast and can open the isolated preview", async ({
   page,
 }) => {
+  await useLegacyProgramme(page);
   await page.route("**/api/v1/showtimes/programme", (route) => route.abort());
   await page.goto("/");
   await expect(page.locator(".nova-api-toast")).toContainText(

@@ -300,9 +300,15 @@ test("month calendar loads over 100 screenings once and books an actual show 30 
       .getByRole("combobox", { name: "Phòng chiếu trong lịch", exact: true })
       .locator("option"),
   ).toHaveCount(3);
-  expect(requests.some((path) => path === "/api/v1/showtimes/programme")).toBe(
-    true,
-  );
+  expect(
+    requests.some((path) => path === "/api/v1/showtimes/programme/manifest"),
+  ).toBe(true);
+  expect(
+    requests.some((path) =>
+      path.startsWith("/api/v1/showtimes/programme/chunks/"),
+    ),
+  ).toBe(true);
+  expect(requests).not.toContain("/api/v1/showtimes/programme");
   expect(requests.some((path) => path === "/api/v1/showtimes")).toBe(false);
   await page.locator(".timeline-show").filter({ hasText: "21:00" }).click();
   await page

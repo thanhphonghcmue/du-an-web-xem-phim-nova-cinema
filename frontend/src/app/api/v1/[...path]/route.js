@@ -3,17 +3,15 @@
  * Mọi thao tác luôn chuyển tới NestJS; lỗi kết nối trả 503, không có kho thay thế.
  */
 import { NextResponse } from "next/server";
-import { promisify } from "node:util";
-import { gzip } from "node:zlib";
-const compress = promisify(gzip);
+import {
+  compressCatalogue,
+  immutableChunkCacheControl,
+  preferredContentEncoding,
+  reusableCatalogue,
+} from "../catalog-compression";
 const publicRead = (method, endpoint) =>
   method === "GET" &&
   /^\/(movies|cinemas|rooms|combos|showtimes)(\/|$)/.test(endpoint);
-const acceptsGzip = (header) =>
-  (header || "").split(",").some((part) => {
-    const match = part.trim().match(/^gzip(?:;\s*q=([01](?:\.\d+)?))?$/i);
-    return match && (match[1] === undefined || Number(match[1]) > 0);
-  });
 
 // Chỉ biến máy chủ này chọn upstream; trình duyệt không thể điều hướng sang host khác.
 const upstream = () =>
@@ -136,17 +134,24 @@ async function proxy(request, context) {
       publicRead(request.method, endpoint)
     ) {
       const bytes = Buffer.from(await result.arrayBuffer());
-      const useGzip =
-        bytes.length >= 1024 &&
-        acceptsGzip(request.headers.get("accept-encoding"));
+      const encoding =
+        bytes.length >= 1024
+          ? preferredContentEncoding(request.headers.get("accept-encoding"))
+          : null;
       response = new NextResponse(
-        useGzip ? await compress(bytes, { level: 4 }) : bytes,
+        encoding
+          ? await compressCatalogue(
+              bytes,
+              reusableCatalogue(request.method, endpoint),
+              encoding,
+            )
+          : bytes,
         {
           status: result.status,
           headers: {
             "Content-Type": type,
             Vary: "Accept-Encoding",
-            ...(useGzip ? { "Content-Encoding": "gzip" } : {}),
+            ...(encoding ? { "Content-Encoding": encoding } : {}),
           },
         },
       );
@@ -201,7 +206,16 @@ async function proxy(request, context) {
       if (disposition) response.headers.set("Content-Disposition", disposition);
     }
 
-    response.headers.set("Cache-Control", "no-store");
+    const snapshotExpiresAt = result.headers.get("x-nova-snapshot-expires-at");
+    response.headers.set(
+      "Cache-Control",
+      immutableChunkCacheControl(
+        request.method,
+        endpoint,
+        result.status,
+        snapshotExpiresAt,
+      ),
+    );
     const backendKind = result.headers.get("x-nova-backend");
     if (backendKind) response.headers.set("x-nova-backend", backendKind);
     const requestId = result.headers.get("x-request-id");

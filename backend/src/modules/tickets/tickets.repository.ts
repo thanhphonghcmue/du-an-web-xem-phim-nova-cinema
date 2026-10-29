@@ -26,6 +26,18 @@ export type TicketRecord = Prisma.ETicketGetPayload<{
 @Injectable()
 export class TicketsRepository {
   constructor(private readonly prisma: PrismaService) {}
+  issuanceSnapshot(bookingId: string, tx: Prisma.TransactionClient) {
+    return tx.booking.findUnique({
+      where: { id: bookingId },
+      include: { ...ticketRelations.booking.include, ticket: true },
+    });
+  }
+  createRecord(
+    data: Prisma.ETicketUncheckedCreateInput,
+    tx: Prisma.TransactionClient,
+  ) {
+    return tx.eTicket.create({ data });
+  }
   byBooking(bookingId: string, tx: Prisma.TransactionClient) {
     return tx.eTicket.findUnique({
       where: { bookingId },

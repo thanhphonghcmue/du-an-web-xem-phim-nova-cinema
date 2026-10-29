@@ -776,3 +776,55 @@ test("RAM ADMIN reconciliation is exact, private and cannot turn an unpaid order
   assert.equal(retry.data.queued, false);
   assert.equal(retry.data.ticketId, after.data.ticket.id);
 });
+
+test("RAM immutable programme pages preserve records and invalidate only future manifests after Admin edits", async (t) => {
+  const f = await fixture(t);
+  const { decodeProgramme } =
+    await import("../frontend/src/api/programme-transport.js");
+  const before = (await f.call("/showtimes/programme")).data;
+  const manifest = (await f.call("/showtimes/programme/manifest")).data;
+  assert.equal(
+    (await f.call("/showtimes/programme/manifest")).data.snapshotId,
+    manifest.snapshotId,
+  );
+  const pages = [];
+  for (let i = 0; i < manifest.chunks; i++) {
+    const response = await f.call(
+      `/showtimes/programme/chunks/${manifest.snapshotId}/${i}`,
+    );
+    assert.equal(response.status, 200);
+    assert.ok(Buffer.byteLength(JSON.stringify(response.body)) < 15 * 1024);
+    pages.push(response.data);
+  }
+  const decoded = decodeProgramme(manifest, pages);
+  for (const key of ["movies", "cinemas", "rooms", "combos", "showtimes"])
+    assert.deepEqual(decoded[key], before[key]);
+  const admin = await f.login("admin");
+  const movie = f.data.movies[0];
+  const updated = await f.call(
+    `/movies/${movie.id}`,
+    { description: "Đã cập nhật thật" },
+    admin.accessToken,
+    "PATCH",
+  );
+  assert.equal(updated.status, 200);
+  const after = (await f.call("/showtimes/programme/manifest")).data;
+  assert.notEqual(after.snapshotId, manifest.snapshotId);
+  assert.equal(
+    (await f.call(`/showtimes/programme/chunks/${manifest.snapshotId}/0`))
+      .status,
+    200,
+  );
+  assert.equal(
+    (await f.call(`/showtimes/programme/chunks/${randomUUID()}/0`)).status,
+    410,
+  );
+  assert.equal(
+    (
+      await f.call(
+        `/showtimes/programme/chunks/${after.snapshotId}/${after.chunks}`,
+      )
+    ).status,
+    404,
+  );
+});

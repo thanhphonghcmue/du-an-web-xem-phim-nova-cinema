@@ -6,6 +6,8 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
+  ParseIntPipe,
+  Res,
   Patch,
   Post,
   Query,
@@ -35,13 +37,20 @@ import {
   UpdateShowtimeDto,
 } from "./showtime.dto";
 import { ShowtimesService } from "./showtimes.service";
+import { ProgrammeSnapshotService } from "./programme-snapshot.service";
+import { Response } from "express";
+import { Throttle } from "@nestjs/throttler";
+import { programmeChunkKey } from "./programme-throttle";
 
 @ApiTags("Showtimes")
 @ApiBadRequestResponse({ type: ErrorResponseDto })
 @ApiNotFoundResponse({ type: ErrorResponseDto })
 @Controller("showtimes")
 export class ShowtimesController {
-  constructor(private readonly service: ShowtimesService) {}
+  constructor(
+    private readonly service: ShowtimesService,
+    private readonly snapshots: ProgrammeSnapshotService,
+  ) {}
 
   @Get()
   @Public()
@@ -62,7 +71,42 @@ export class ShowtimesController {
   })
   @ApiDataResponse(ProgrammeDto)
   programme(@Query() query: ProgrammeQueryDto) {
-    return this.service.programme(query.days);
+    return this.snapshots.legacy(query.days);
+  }
+
+  @Get("programme/manifest")
+  @Public()
+  @ApiOperation({
+    summary:
+      "Lossless columnar catalogue manifest; shared immutable snapshot, 30-second reuse and 120-second retention.",
+  })
+  manifest(@Query() query: ProgrammeQueryDto) {
+    return this.snapshots.manifest(query.days);
+  }
+
+  @Get("programme/chunks/:snapshotId/:index")
+  @Public()
+  @Throttle({ default: { generateKey: programmeChunkKey } })
+  @ApiOperation({
+    summary:
+      "Read an immutable snapshot chunk; complete JSON envelope is below 15 KiB; 410 asks clients to restart the manifest.",
+  })
+  async chunk(
+    @Param("snapshotId", ParseUUIDPipe) snapshotId: string,
+    @Param("index", ParseIntPipe) index: number,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const { chunk, expiresAt } = await this.snapshots.chunk(snapshotId, index);
+    const remaining = Math.max(
+      0,
+      Math.floor((Date.parse(expiresAt) - Date.now()) / 1000),
+    );
+    response.setHeader("x-nova-snapshot-expires-at", expiresAt);
+    response.setHeader(
+      "Cache-Control",
+      `private, max-age=${String(remaining)}, immutable`,
+    );
+    return chunk;
   }
 
   @Get("capacities")

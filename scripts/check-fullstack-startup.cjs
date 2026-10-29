@@ -67,6 +67,10 @@ async function main() {
     join(directory, "backend/standalone-server.cjs"),
   );
   cpSync(
+    join(root, "backend/programme-codec.cjs"),
+    join(directory, "backend/programme-codec.cjs"),
+  );
+  cpSync(
     join(root, "backend/standalone"),
     join(directory, "backend/standalone"),
     { recursive: true },

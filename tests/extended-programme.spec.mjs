@@ -95,9 +95,15 @@ for (const cinemaIndex of [0, 1])
     page.on("pageerror", (error) => errors.push(error.message));
     const failures = [];
     const snapshots = [];
+    const chunks = [],
+      legacySnapshots = [];
     page.on("request", (request) => {
-      if (new URL(request.url()).pathname === "/api/v1/showtimes/programme")
+      const path = new URL(request.url()).pathname;
+      if (path === "/api/v1/showtimes/programme/manifest")
         snapshots.push(request.url());
+      if (path.startsWith("/api/v1/showtimes/programme/chunks/"))
+        chunks.push(path);
+      if (path === "/api/v1/showtimes/programme") legacySnapshots.push(path);
     });
     page.on("response", (response) => {
       if (
@@ -129,6 +135,8 @@ for (const cinemaIndex of [0, 1])
     expect(errors).toEqual([]);
     expect(failures).toEqual([]);
     expect(snapshots).toHaveLength(1);
+    expect(chunks.length).toBeGreaterThan(0);
+    expect(legacySnapshots).toEqual([]);
   });
 
 test("Vietnam calendar enables every actual screening day through the following month on desktop and mobile", async ({

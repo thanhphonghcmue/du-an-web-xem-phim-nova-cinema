@@ -31,6 +31,7 @@ import {
 } from "./payment.dto";
 import { PaymentSignatureService } from "./payment-signature.service";
 import { PaymentsRepository } from "./payments.repository";
+import { FulfillmentSignal } from "../../queues/outbox/fulfillment-signal";
 
 type Completion = { data: PaymentWebhookResultDto } | { rejection: string };
 @Injectable()
@@ -44,6 +45,7 @@ export class PaymentsService {
     private readonly payments: PaymentsRepository,
     private readonly signatures: PaymentSignatureService,
     private readonly events: OutboxRepository,
+    private readonly fulfillment: FulfillmentSignal,
   ) {
     this.settings = config.getOrThrow<PaymentSettings>("payment");
   }
@@ -235,6 +237,8 @@ export class PaymentsService {
         result.rejection,
         "Payment cannot complete for this booking state.",
       );
+    // Không chờ PNG/SMTP trên response; worker đọc outbox sau transaction commit.
+    if (result.data.bookingStatus === "PAID") this.fulfillment.notify();
     return result.data;
   }
 

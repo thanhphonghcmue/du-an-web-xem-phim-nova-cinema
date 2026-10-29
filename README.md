@@ -292,6 +292,8 @@ Chi tiết Windows, cấu hình native, RTM20 ca kiểm thử và giới hạn n
 
 Kiểm toán SIT/E2E/Concurrency/Security mới: [69 kịch bản truy vết](docs/qa/ultra-expanded-audit.md). Với PostgreSQL/Redis native và database test riêng đã cấu hình, chạy một lệnh:
 
+Bản tối ưu sau kiểm toán: [catalogue chia trang đầy đủ, cache an toàn và phát hành QR nhanh](docs/qa/performance-optimization.md), có số đo riêng cho cache lạnh/nóng, từng response và tổng catalogue.
+
 ```powershell
 npm run qa:native
 ```

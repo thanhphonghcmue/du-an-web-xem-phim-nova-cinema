@@ -1,4 +1,5 @@
 import { chooseOption, chooseDate } from "./ui-choices.mjs";
+import { useLegacyProgramme } from "./programme-routes.mjs";
 import { test, expect } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -798,6 +799,7 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await useLegacyProgramme(page);
   await page.route("**/api/v1/showtimes/programme", (route) =>
     route.fulfill({
       status: 503,

@@ -939,9 +939,17 @@ test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
     .click();
+  const returnJourneyStarted = performance.now();
   await page
     .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
     .click();
+  await expect(
+    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+  ).toBeVisible();
+  const paymentClickToVisibleInlineQrMs =
+    performance.now() - paymentJourneyStarted;
+  const returnClickToVisibleInlineQrMs =
+    performance.now() - returnJourneyStarted;
   await page
     .getByRole("button", { name: "Xem vé trong tài khoản", exact: true })
     .click();
@@ -960,6 +968,8 @@ test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS
           samples: 1,
           paymentClickToVisibleOwnerQrMs:
             performance.now() - paymentJourneyStarted,
+          paymentClickToVisibleInlineQrMs,
+          returnClickToVisibleInlineQrMs,
           layer:
             "production browser; includes Sandbox navigation and owner QR rendering; healthy loopback SMTP",
         },

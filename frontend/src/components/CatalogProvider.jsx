@@ -28,7 +28,7 @@ import { useI18n } from "@/i18n.js";
 import { createCatalogIndex } from "@/catalogIndex.js";
 import { CatalogContext, dayKey, timeLabel } from "@/catalog.js";
 import { movies as artwork } from "@/data.js";
-import { read } from "@/api/client.js";
+import { readProgramme } from "@/api/client.js";
 import { uniqueRecords } from "@/uniqueRecords.js";
 import { calendarLabel } from "@/bookingDates.js";
 import Link from "next/link";
@@ -60,7 +60,7 @@ export default function CatalogProvider({ children }) {
           showtimes,
           rooms,
           combos,
-        } = await read("/showtimes/programme").then((snapshot) =>
+        } = await readProgramme().then((snapshot) =>
           Object.fromEntries(
             ["movies", "cinemas", "showtimes", "rooms", "combos"].map((key) => {
               if (!Array.isArray(snapshot?.[key]))

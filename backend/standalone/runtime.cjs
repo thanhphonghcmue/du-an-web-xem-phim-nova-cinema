@@ -11,6 +11,11 @@ const {
 } = require("node:crypto");
 const { promisify } = require("node:util");
 const { toDataURL } = require("qrcode");
+const {
+  encodeProgramme,
+  REUSE_SECONDS,
+  ProgrammeTransportTooLarge,
+} = require("../programme-codec.cjs");
 const derive = promisify(scrypt);
 const HOLD_MS = 300000;
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
@@ -91,6 +96,25 @@ function createMemoryServer(input) {
     payments = new Map(),
     layouts = new Map(),
     audit = [];
+  const programmeSnapshots = new Map(),
+    programmePointers = new Map();
+  function programme(days) {
+    const stamp = now();
+    return {
+      movies: [...maps.movies.values()].filter((m) => m.status !== "ENDED"),
+      cinemas: [...maps.cinemas.values()],
+      rooms: [...maps.rooms.values()],
+      combos: [...maps.combos.values()].filter((c) => c.isActive),
+      showtimes: [...maps.showtimes.values()].filter(
+        (s) =>
+          Date.parse(s.startTime) > stamp &&
+          Date.parse(s.startTime) < stamp + days * 86400000 &&
+          maps.movies.get(s.movieId)?.status !== "ENDED",
+      ),
+      asOf: iso(stamp),
+      until: iso(stamp + days * 86400000),
+    };
+  }
   const secret = randomBytes(48),
     now = input.now || Date.now;
   const passwordsReady = Promise.all(
@@ -852,12 +876,22 @@ function createMemoryServer(input) {
     const path = url.pathname.replace(/^\/api\/v1/, "") || "/",
       method = request.method,
       query = url.searchParams;
-    const json = (data, code = 200) =>
-      send(response, code, {
+    const json = (
+      data,
+      code = 200,
+      message = "Yêu cầu được xử lý thành công.",
+    ) => {
+      if (
+        method !== "GET" &&
+        /^\/(movies|cinemas|rooms|seats|showtimes|combos)(\/|$)/.test(path)
+      )
+        programmePointers.clear();
+      return send(response, code, {
         success: true,
         data,
-        message: "Yêu cầu được xử lý thành công.",
+        message,
       });
+    };
     if (path === "/health" || path === "/health/live")
       return json({
         status: "ok",
@@ -1096,23 +1130,72 @@ function createMemoryServer(input) {
           }),
       );
     }
+    if (path === "/showtimes/programme/manifest" && method === "GET") {
+      const days = Number(query.get("days") || 60),
+        stamp = Date.now();
+      assert(Number.isInteger(days) && days >= 1 && days <= 60);
+      for (const [id, snapshot] of programmeSnapshots)
+        if (Date.parse(snapshot.manifest.expiresAt) <= stamp)
+          programmeSnapshots.delete(id);
+      const pointer = programmePointers.get(days);
+      if (pointer?.until > stamp && programmeSnapshots.has(pointer.id))
+        return json(programmeSnapshots.get(pointer.id).manifest);
+      let manifest, pages;
+      try {
+        ({ manifest, pages } = encodeProgramme(programme(days), stamp));
+      } catch (error) {
+        if (error instanceof ProgrammeTransportTooLarge)
+          fail(
+            422,
+            "PROGRAMME_TRANSPORT_TOO_LARGE",
+            "Danh mục vượt giới hạn chia trang; vẫn có thể tải bằng API đầy đủ.",
+          );
+        throw error;
+      }
+      const snapshot = { manifest, pages };
+      while (programmeSnapshots.size >= 16)
+        programmeSnapshots.delete(programmeSnapshots.keys().next().value);
+      programmeSnapshots.set(snapshot.manifest.snapshotId, snapshot);
+      programmePointers.set(days, {
+        id: snapshot.manifest.snapshotId,
+        until: stamp + REUSE_SECONDS * 1000,
+      });
+      return json(snapshot.manifest);
+    }
+    const chunkPath = path.match(
+      /^\/showtimes\/programme\/chunks\/([^/]+)\/(\d+)$/,
+    );
+    if (chunkPath && method === "GET") {
+      assert(uuid.test(chunkPath[1]));
+      const index = Number(chunkPath[2]);
+      assert(Number.isSafeInteger(index) && index >= 0 && index < 4096);
+      const snapshot = programmeSnapshots.get(chunkPath[1].toLowerCase());
+      if (!snapshot || Date.parse(snapshot.manifest.expiresAt) <= Date.now())
+        fail(
+          410,
+          "PROGRAMME_SNAPSHOT_EXPIRED",
+          "Lịch đã được cập nhật. Vui lòng tải lại.",
+        );
+      if (index >= snapshot.pages.length)
+        fail(404, "PROGRAMME_CHUNK_NOT_FOUND", "Không có phần lịch này.");
+      response.setHeader(
+        "x-nova-snapshot-expires-at",
+        snapshot.manifest.expiresAt,
+      );
+      response.setHeader(
+        "cache-control",
+        `private,max-age=${Math.max(0, Math.floor((Date.parse(snapshot.manifest.expiresAt) - Date.now()) / 1000))},immutable`,
+      );
+      return json(
+        snapshot.pages[index],
+        200,
+        "Request completed successfully.",
+      );
+    }
     if (path === "/showtimes/programme") {
       const days = Number(query.get("days") || 60);
       assert(Number.isInteger(days) && days >= 1 && days <= 60);
-      return json({
-        movies: [...maps.movies.values()].filter((m) => m.status !== "ENDED"),
-        cinemas: [...maps.cinemas.values()],
-        rooms: [...maps.rooms.values()],
-        combos: [...maps.combos.values()].filter((c) => c.isActive),
-        showtimes: [...maps.showtimes.values()].filter(
-          (s) =>
-            Date.parse(s.startTime) > now() &&
-            Date.parse(s.startTime) < now() + days * 86400000 &&
-            maps.movies.get(s.movieId)?.status !== "ENDED",
-        ),
-        asOf: iso(now()),
-        until: iso(now() + days * 86400000),
-      });
+      return json(programme(days));
     }
     let match = path.match(
       /^\/showtimes\/([^/]+)\/(seats|group-seat-suggestion)$/,

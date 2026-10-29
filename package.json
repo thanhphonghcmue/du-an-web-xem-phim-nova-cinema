@@ -17,7 +17,7 @@
     "start": "npm run start --workspace frontend",
     "setup:local": "node scripts/setup-local.cjs",
     "dev:full": "node scripts/dev-fullstack.cjs",
-    "test:unit": "node --test scripts/*.test.mjs scripts/memory-contract.test.cjs scripts/development-seed.test.cjs backend/scripts/advance-programme.test.cjs",
+    "test:unit": "node --test scripts/*.test.mjs scripts/memory-contract.test.cjs scripts/development-seed.test.cjs backend/scripts/advance-programme.test.cjs frontend/src/app/api/v1/catalog-compression.test.mjs",
     "test:backend": "npm run check --workspace backend",
     "test:db": "npm run test:db --workspace backend",
     "seed": "node scripts/seed-native.cjs",

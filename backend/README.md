@@ -20,6 +20,8 @@ Bản kiểm toán bổ sung trạng thái tài khoản/đối soát và cấu h
 
 Lệnh kiểm tra tổng hợp native từ root: `npm run qa:native`; yêu cầu TEST_DATABASE_URL khác database ứng dụng và Redis test riêng. Có bài 20 request tranh một ghế, zero-trust giá và hành trình GOLD/VIP/combo/QR/ICS/soát vé. [Ma trận SIT/E2E/CONC/SEC/UI/RES và kết quả đo](../docs/qa/ultra-expanded-audit.md).
 
+Frontend dùng thêm manifest/chunk của programme để mỗi response nhỏ và vẫn giữ đủ dữ liệu. Snapshot dùng chung Redis, Admin ghi qua API làm mới revision; ghế/đơn/thanh toán không dùng cache catalogue. [Chi tiết tối ưu và số đo](../docs/qa/performance-optimization.md).
+
 ## Requirements
 
 Node.js **24 LTS** theo `.nvmrc`, npm, PostgreSQL/Redis và SMTP đã cấu hình. Có thể chạy trực tiếp không dùng Docker; các lệnh Compose bên dưới là tùy chọn riêng. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Nếu chủ động dùng cấu hình Compose, Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập. SMTP local dùng Mailpit; SMTP ngoài cấu hình riêng qua biến môi trường.

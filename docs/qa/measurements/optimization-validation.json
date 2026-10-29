@@ -1,0 +1,35 @@
+{
+  "baselineCommit": "b4d153c",
+  "command": "npm run qa:native",
+  "functionalStatus": "PASSED",
+  "independentPassingTests": {
+    "backendUnit": 112,
+    "nativeHttpSocketPostgres": 248,
+    "schema": 23,
+    "nodeRamConfigCodec": 73,
+    "productionBrowser": 91,
+    "total": 547
+  },
+  "newTestsSinceBaseline": 44,
+  "nativeOnly": true,
+  "fullRunHistory": [
+    {
+      "status": "FAILED",
+      "reason": "New fixture used uppercase email, rejected by existing normalization constraint. Fixed lowercase email and added strict owned-ID teardown guards."
+    },
+    {
+      "status": "FAILED",
+      "reason": "Disposable RAM smoke workspace did not copy newly shared codec module. Fixed isolated packaging copy; complete RAM payment/QR smoke then passed."
+    },
+    {
+      "status": "PASSED",
+      "total": 543,
+      "reason": "Before Brotli/date-memo refinement. Real per-chunk gzip aggregate exceeded legacy gzip; preserved evidence and optimized further."
+    },
+    {
+      "status": "PASSED",
+      "total": 547
+    }
+  ],
+  "performancePolicy": "All cold/warm/aggregate/service/browser measurements retained. Functional passing is not an all-requests SLA; old full catalogue still exceeds15KiB."
+}

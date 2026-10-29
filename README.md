@@ -294,6 +294,8 @@ Kiểm toán SIT/E2E/Concurrency/Security mới: [69 kịch bản truy vết](do
 
 Bản tối ưu sau kiểm toán: [catalogue chia trang đầy đủ, cache an toàn và phát hành QR nhanh](docs/qa/performance-optimization.md), có số đo riêng cho cache lạnh/nóng, từng response và tổng catalogue.
 
+Rà soát frontend tiếp theo: [ổn định đặt vé, giảm tải ảnh/JS và dọn hiệu ứng 3D](docs/qa/frontend-stability-review.md), giữ nguyên backend/API và có kiểm thử hồi quy riêng.
+
 ```powershell
 npm run qa:native
 ```

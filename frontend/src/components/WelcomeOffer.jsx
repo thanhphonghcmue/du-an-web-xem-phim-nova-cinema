@@ -7,17 +7,26 @@ export default function WelcomeOffer({ onClose }) {
   const panel = useRef(null);
   const [hideToday, setHideToday] = useState(false);
   function close() {
-    if (hideToday)
-      localStorage.setItem(
-        "nova-welcome-hidden-day",
-        new Date().toLocaleDateString("en-CA", {
-          timeZone: "Asia/Ho_Chi_Minh",
-        }),
-      );
+    if (hideToday) {
+      try {
+        localStorage.setItem(
+          "nova-welcome-hidden-day",
+          new Date().toLocaleDateString("en-CA", {
+            timeZone: "Asia/Ho_Chi_Minh",
+          }),
+        );
+      } catch {
+        // Tùy chọn lưu trữ bị chặn vẫn phải cho phép đóng ưu đãi.
+      }
+    }
     onClose();
   }
   useEffect(() => {
-    sessionStorage.setItem("nova-welcome-seen", "1");
+    try {
+      sessionStorage.setItem("nova-welcome-seen", "1");
+    } catch {
+      // Phiên duyệt riêng tư vẫn sử dụng được hộp thoại.
+    }
     const previous = document.activeElement;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -155,6 +155,49 @@ function Quantity({ item, count, update, available }) {
   );
 }
 
+// Chỉ thẻ có số lượng hoặc dữ liệu thay đổi mới cần render lại khi cập nhật giỏ.
+const FoodProduct = memo(function FoodProduct({
+  item,
+  count,
+  update,
+  available,
+  onDetail,
+}) {
+  return (
+    <article className="food-product" data-combo-id={item.id}>
+      <button
+        className="food-image"
+        type="button"
+        aria-label={`Xem chi tiết ${item.name}`}
+        onClick={() => onDetail(item.id)}
+      >
+        <MenuImage item={item} />
+        <span className="food-product-badge">{item.badge}</span>
+        <i className="food-detail-arrow">
+          <ArrowUpRight size={18} />
+        </i>
+      </button>
+      <div className="food-product-body">
+        <span className="food-taste">
+          {item.taste}
+          {item.serves && ` · ${item.serves}`}
+        </span>
+        <h3>{item.name}</h3>
+        <p>{item.description}</p>
+        <div className="food-product-bottom">
+          <strong>{money(item.price)}</strong>
+          <Quantity
+            item={item}
+            count={count}
+            update={update}
+            available={available}
+          />
+        </div>
+      </div>
+    </article>
+  );
+});
+
 export default function FoodStore({ compact = false, onBooking }) {
   const { combos, isLive, error } = useCatalog();
   const loading = !isLive && !error;
@@ -163,7 +206,8 @@ export default function FoodStore({ compact = false, onBooking }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("recommended");
   const [cart, setCart] = useState(readFoodCart);
-  const [detail, setDetail] = useState(null);
+  const cartRef = useRef(cart);
+  const [detailId, setDetailId] = useState(null);
   const [draftNotice, setDraftNotice] = useState("");
   const products = useMemo(
     () =>
@@ -177,41 +221,65 @@ export default function FoodStore({ compact = false, onBooking }) {
         ),
     [combos],
   );
-  const filtered = products.filter(
-    (item) =>
-      (category === "all" || item.category === category) &&
-      (flavor === "all" || item.flavor === flavor) &&
-      matchesFood(item, query),
+  const productIds = useMemo(
+    () => new Set(products.map((item) => item.id)),
+    [products],
   );
-  if (sort !== "recommended")
-    filtered.sort(
-      (a, b) =>
-        (Number(a.price) - Number(b.price)) * (sort === "ascending" ? 1 : -1),
+  const categoryCounts = useMemo(() => {
+    const counts = new Map();
+    for (const item of products)
+      counts.set(item.category, (counts.get(item.category) || 0) + 1);
+    return counts;
+  }, [products]);
+  const filtered = useMemo(() => {
+    const result = products.filter(
+      (item) =>
+        (category === "all" || item.category === category) &&
+        (flavor === "all" || item.flavor === flavor) &&
+        matchesFood(item, query),
     );
+    if (sort !== "recommended")
+      result.sort(
+        (a, b) =>
+          (Number(a.price) - Number(b.price)) * (sort === "ascending" ? 1 : -1),
+      );
+    return result;
+  }, [products, category, flavor, query, sort]);
   const visible = compact ? filtered.slice(0, 4) : filtered;
+  const detail = products.find((item) => item.id === detailId);
   const selected = products.filter((item) => cart[item.id] > 0);
   const quantity = selected.reduce((sum, item) => sum + cart[item.id], 0);
   const total = selected.reduce(
     (sum, item) => sum + Number(item.price) * cart[item.id],
     0,
   );
-  function update(id, delta) {
-    if (!products.some((item) => item.id === id) || (delta > 0 && !isLive))
-      return;
-    const next = {
-      ...cart,
-      [id]: Math.min(20, Math.max(0, (cart[id] || 0) + delta)),
-    };
-    setCart(next);
-    setDraftNotice(
-      saveFoodCart(next)
-        ? ""
-        : "Trình duyệt chưa lưu được món đã chọn. Bạn có thể thêm lại ở bước chọn ghế.",
-    );
-  }
+  const update = useCallback(
+    (id, delta) => {
+      if (!productIds.has(id) || (delta > 0 && !isLive)) return;
+      // Cập nhật bản nháp ngay trong sự kiện để các thao tác nhanh không dùng giỏ cũ.
+      const current = cartRef.current;
+      const next = {
+        ...current,
+        [id]: Math.min(20, Math.max(0, (current[id] || 0) + delta)),
+      };
+      cartRef.current = next;
+      setCart(next);
+      setDraftNotice(
+        saveFoodCart(next)
+          ? ""
+          : "Trình duyệt chưa lưu được món đã chọn. Bạn có thể thêm lại ở bước chọn ghế.",
+      );
+    },
+    [isLive, productIds],
+  );
   function clearCart() {
+    cartRef.current = {};
     setCart({});
-    saveFoodCart({});
+    setDraftNotice(
+      saveFoodCart({})
+        ? ""
+        : "Trình duyệt chưa xóa được bản nháp đã lưu. Món cũ có thể xuất hiện lại khi tải lại trang.",
+    );
   }
   function resetFilters() {
     setQuery("");
@@ -370,9 +438,7 @@ export default function FoodStore({ compact = false, onBooking }) {
               >
                 {label}
                 <span>
-                  {id === "all"
-                    ? products.length
-                    : products.filter((item) => item.category === id).length}
+                  {id === "all" ? products.length : categoryCounts.get(id) || 0}
                 </span>
               </button>
             ))}
@@ -441,41 +507,14 @@ export default function FoodStore({ compact = false, onBooking }) {
           )}
           <div className="food-grid">
             {visible.map((item) => (
-              <article
-                className="food-product"
+              <FoodProduct
                 key={item.id}
-                data-combo-id={item.id}
-              >
-                <button
-                  className="food-image"
-                  type="button"
-                  aria-label={`Xem chi tiết ${item.name}`}
-                  onClick={() => setDetail(item)}
-                >
-                  <MenuImage item={item} />
-                  <span className="food-product-badge">{item.badge}</span>
-                  <i className="food-detail-arrow">
-                    <ArrowUpRight size={18} />
-                  </i>
-                </button>
-                <div className="food-product-body">
-                  <span className="food-taste">
-                    {item.taste}
-                    {item.serves && ` · ${item.serves}`}
-                  </span>
-                  <h3>{item.name}</h3>
-                  <p>{item.description}</p>
-                  <div className="food-product-bottom">
-                    <strong>{money(item.price)}</strong>
-                    <Quantity
-                      item={item}
-                      count={cart[item.id]}
-                      update={update}
-                      available={isLive}
-                    />
-                  </div>
-                </div>
-              </article>
+                item={item}
+                count={cart[item.id] || 0}
+                update={update}
+                available={isLive}
+                onDetail={setDetailId}
+              />
             ))}
           </div>
           {visible.length === 0 && (
@@ -553,7 +592,7 @@ export default function FoodStore({ compact = false, onBooking }) {
           title={detail.name}
           className="food-detail"
           wide
-          onClose={() => setDetail(null)}
+          onClose={() => setDetailId(null)}
           image=""
         >
           <div className="food-detail-content">
@@ -588,7 +627,7 @@ export default function FoodStore({ compact = false, onBooking }) {
               </p>
               <button
                 className="button button-primary"
-                onClick={() => setDetail(null)}
+                onClick={() => setDetailId(null)}
               >
                 Xong, tiếp tục chọn món <Check size={17} />
               </button>

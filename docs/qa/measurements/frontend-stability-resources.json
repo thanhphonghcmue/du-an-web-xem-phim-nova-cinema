@@ -1,0 +1,93 @@
+{
+  "baselineCommit": "e48cc673cf2b11e3f9ef6fae418d55caf61fe9fa",
+  "method": "Production Next build/start, Chromium, RAM API with same catalogue; three fresh browser contexts per build; 1440x1000, reduced motion, welcome dismissed. Sample Resource Timing one second after first timeline show appears. Completed initial-window requests only, not a complete-page image download or network-latency benchmark. Counts exclude prefetch/link initiators from images. No API writes.",
+  "before": {
+    "label": "before",
+    "commit": "e48cc67",
+    "viewport": "1440x1000",
+    "reducedMotion": true,
+    "backend": "memory",
+    "samples": [
+      {
+        "scriptCount": 10,
+        "decodedScriptBytes": 928074,
+        "encodedScriptBytes": 283487,
+        "allImageDecodedBytes": 8471379,
+        "movieCards": 24,
+        "runtimeErrors": 0
+      },
+      {
+        "scriptCount": 10,
+        "decodedScriptBytes": 928074,
+        "encodedScriptBytes": 283487,
+        "allImageDecodedBytes": 8471379,
+        "movieCards": 24,
+        "runtimeErrors": 0
+      },
+      {
+        "scriptCount": 10,
+        "decodedScriptBytes": 928074,
+        "encodedScriptBytes": 283487,
+        "allImageDecodedBytes": 8471379,
+        "movieCards": 24,
+        "runtimeErrors": 0
+      }
+    ]
+  },
+  "after": {
+    "label": "after-final",
+    "commit": null,
+    "viewport": "1440x1000",
+    "reducedMotion": true,
+    "backend": "memory",
+    "samples": [
+      {
+        "scriptCount": 10,
+        "decodedScriptBytes": 900353,
+        "encodedScriptBytes": 278937,
+        "allImageDecodedBytes": 1524955,
+        "movieCards": 24,
+        "runtimeErrors": 0
+      },
+      {
+        "scriptCount": 10,
+        "decodedScriptBytes": 900353,
+        "encodedScriptBytes": 278937,
+        "allImageDecodedBytes": 1524955,
+        "movieCards": 24,
+        "runtimeErrors": 0
+      },
+      {
+        "scriptCount": 10,
+        "decodedScriptBytes": 900353,
+        "encodedScriptBytes": 278937,
+        "allImageDecodedBytes": 1524955,
+        "movieCards": 24,
+        "runtimeErrors": 0
+      }
+    ]
+  },
+  "summary": {
+    "decodedScriptBytes": {
+      "before": 928074,
+      "after": 900353,
+      "reductionPercent": 2.99
+    },
+    "encodedScriptBytes": {
+      "before": 283487,
+      "after": 278937,
+      "reductionPercent": 1.61
+    },
+    "allImageDecodedBytes": {
+      "before": 8471379,
+      "after": 1524955,
+      "reductionPercent": 82.0
+    }
+  },
+  "limitations": [
+    "Loopback, one machine and Chromium only.",
+    "Lazy loading intentionally defers images outside the initial viewport.",
+    "Image resizing at Next frontend is cached on the server; optimizer cold CPU/latency is not a reported SLA.",
+    "No FPS, full-page wire total, Safari result or backend latency improvement inferred."
+  ]
+}

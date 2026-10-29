@@ -1,5 +1,11 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+import {
+  createMovieAvailability,
+  normalizeSearchText,
+} from "@/moviePresentation.js";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -29,7 +35,12 @@ import {
   downloadReminder,
 } from "@/commerce.js";
 import PageBanner from "./PageBanner.jsx";
-import FoodStore, { FoodHero } from "./FoodStore.jsx";
+const FoodStore = dynamic(() => import("./FoodStore.jsx"), {
+  loading: () => <p role="status">Đang chuẩn bị thực đơn…</p>,
+});
+const FoodHero = dynamic(() =>
+  import("./FoodStore.jsx").then((module) => module.FoodHero),
+);
 import MenuImage from "./MenuImage.jsx";
 
 const campaigns = [
@@ -158,16 +169,10 @@ function CampaignCard({ campaign, onOpen, large = false }) {
   );
 }
 
-function FilmCard({ movie, onMovie, onBook }) {
+function FilmCard({ movie, onMovie, onBook, presale = false }) {
   const upcoming = movie.status === "soon";
-  const { showtimes } = useCatalog();
-  const presale =
-    upcoming &&
-    showtimes.some(
-      (show) =>
-        show.movieId === movie.id && new Date(show.startTime) > new Date(),
-    );
   const remindOnly = upcoming && !presale;
+  const poster = movie.localPoster || movie.poster || "/images/dune-poster.jpg";
   return (
     <article className="discovery-film" data-movie-id={movie.id}>
       <div className="discovery-poster">
@@ -176,12 +181,15 @@ function FilmCard({ movie, onMovie, onBook }) {
           className="poster-image-button"
           aria-label={`Thông tin ${movie.title}`}
         >
-          <img
-            src={movie.localPoster || movie.poster || "/images/dune-poster.jpg"}
+          <Image
+            src={poster}
             alt={movie.title}
             loading="lazy"
-            width="400"
-            height="600"
+            decoding="async"
+            width={400}
+            height={600}
+            sizes="(max-width: 540px) 45vw, (max-width: 900px) 30vw, (max-width: 1440px) 22vw, 280px"
+            unoptimized={!poster.startsWith("/") || poster.startsWith("//")}
           />
         </Link>
         <div className="film-badges">
@@ -275,26 +283,36 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
   const [age, setAge] = useState("all");
   const [todayOnly, setTodayOnly] = useState(false);
   const [query, setQuery] = useState("");
-  const normalize = (value) =>
-    value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLocaleLowerCase("vi");
+  const availability = useMemo(
+    () => createMovieAvailability(showtimes, vietnamDay),
+    [showtimes],
+  );
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const update = () => {
+      if (!document.hidden) setNow(Date.now());
+    };
+    const timer = setInterval(update, 30000);
+    window.addEventListener("focus", update);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", update);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
+  const today = vietnamDay(now);
+  const normalizedQuery = normalizeSearchText(query);
   const selected = movies.filter(
     (movie) =>
       (tab === "all" ||
         (tab === "now" ? movie.status !== "soon" : movie.status === tab)) &&
       (genre === "Tất cả" || movie.genre?.includes(genre)) &&
       (age === "all" || movie.age === age) &&
-      normalize(movie.title + " " + movie.original).includes(
-        normalize(query),
+      normalizeSearchText(movie.title + " " + movie.original).includes(
+        normalizedQuery,
       ) &&
-      (!todayOnly ||
-        showtimes.some(
-          (show) =>
-            show.movieId === movie.id &&
-            vietnamDay(show.startTime) === vietnamDay(Date.now()),
-        )),
+      (!todayOnly || availability.hasDay(movie.id, today, now)),
   );
   const visible = selected;
   return (
@@ -440,6 +458,9 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
                     <FilmCard
                       key={m.id}
                       movie={m}
+                      presale={
+                        m.status === "soon" && availability.hasFuture(m.id, now)
+                      }
                       onMovie={onMovie}
                       onBook={onBook}
                     />
@@ -452,7 +473,13 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
       ) : (
         <div className="discovery-movies">
           {visible.map((m) => (
-            <FilmCard key={m.id} movie={m} onMovie={onMovie} onBook={onBook} />
+            <FilmCard
+              key={m.id}
+              movie={m}
+              presale={m.status === "soon" && availability.hasFuture(m.id, now)}
+              onMovie={onMovie}
+              onBook={onBook}
+            />
           ))}
         </div>
       )}
@@ -467,6 +494,7 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
               setGenre("Tất cả");
               setAge("all");
               setQuery("");
+              setTodayOnly(false);
             }}
           >
             Xóa bộ lọc
@@ -481,8 +509,8 @@ function MovieLibrary({ upcoming = false, compact = false, onMovie, onBook }) {
         </div>
       )}
       <p className="discovery-footnote">
-        Danh mục tuyển chọn và lịch tái chiếu minh họa của NOVA Cinema. Phim sắp
-        chiếu chưa mở bán.
+        Lịch mở bán theo từng phim và rạp. Phim sắp chiếu có suất mở bán sẽ hiển
+        thị nút đặt vé trước.
       </p>
     </section>
   );

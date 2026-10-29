@@ -12,8 +12,29 @@ import {
   Ticket,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { useState } from "react";
 import { useCatalog } from "@/catalog.js";
 import { useI18n } from "@/i18n.js";
+
+function HeroBackdrop({ source }) {
+  const [failed, setFailed] = useState(false);
+  const src = failed ? "/images/cinema-imax.jpg" : source;
+  return (
+    <Image
+      className="premiere-scene"
+      src={src}
+      alt=""
+      width={1920}
+      height={804}
+      sizes="100vw"
+      fetchPriority="high"
+      loading="eager"
+      unoptimized={!src.startsWith("/") || src.startsWith("//")}
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export default function CinemaHero({
   movie,
@@ -59,18 +80,11 @@ export default function CinemaHero({
       className={`nova-premiere hero-${movie.artId || movie.id}`}
       aria-label="Phim nổi bật"
     >
-      <img
+      <HeroBackdrop
         key={movie.id}
-        className="premiere-scene"
-        src={movie.localBackdrop || movie.backdrop || "/images/cinema-imax.jpg"}
-        alt=""
-        fetchPriority="high"
-        onError={(e) => {
-          if (!e.currentTarget.dataset.fallback) {
-            e.currentTarget.dataset.fallback = "1";
-            e.currentTarget.src = "/images/cinema-imax.jpg";
-          }
-        }}
+        source={
+          movie.localBackdrop || movie.backdrop || "/images/cinema-imax.jpg"
+        }
       />
       <div className="premiere-atmosphere" />
       <div className="content-width premiere-content">
@@ -149,7 +163,17 @@ export default function CinemaHero({
             onClick={() => onMovie(movie)}
             aria-label={`Thông tin ${movie.title}`}
           >
-            <img src={movie.localPoster || movie.poster} alt={movie.title} />
+            <Image
+              src={
+                movie.localPoster || movie.poster || "/images/dune-poster.jpg"
+              }
+              alt={movie.title}
+              width={240}
+              height={360}
+              sizes="160px"
+              loading="lazy"
+              unoptimized={!movie.localPoster}
+            />
             <span>
               KHÁM PHÁ BỘ PHIM <ArrowUpRight size={16} />
             </span>

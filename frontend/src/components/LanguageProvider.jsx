@@ -21,31 +21,40 @@
  * ==============================================================================
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LanguageContext, english } from "@/i18n.js";
 
 export default function LanguageProvider({ children }) {
   // Trạng thái ngôn ngữ hiện tại: "vi" (Tiếng Việt) hoặc "en" (Tiếng Anh)
-  const [language, setLanguage] = useState(() =>
-    localStorage.getItem("nova-language") === "en" ? "en" : "vi",
-  );
+  const [language, setLanguage] = useState(() => {
+    try {
+      return localStorage.getItem("nova-language") === "en" ? "en" : "vi";
+    } catch {
+      return "vi";
+    }
+  });
 
   useEffect(() => {
     document.documentElement.lang = language;
-    localStorage.setItem("nova-language", language);
+    try {
+      localStorage.setItem("nova-language", language);
+    } catch {
+      // Chặn lưu tùy chọn không được ngăn người dùng chuyển ngôn ngữ.
+    }
   }, [language]);
 
   // Hàm dịch nhanh dựa trên từ điển song ngữ
-  const translate = (text) => (language === "en" ? english[text] || text : text);
+  const translate = useCallback(
+    (text) => (language === "en" ? english[text] || text : text),
+    [language],
+  );
+  const value = useMemo(
+    () => ({ language, setLanguage, t: translate }),
+    [language, translate],
+  );
 
   return (
-    <LanguageContext.Provider
-      value={{
-        language,
-        setLanguage,
-        t: translate,
-      }}
-    >
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

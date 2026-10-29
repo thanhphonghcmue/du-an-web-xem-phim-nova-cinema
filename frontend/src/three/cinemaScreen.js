@@ -14,6 +14,7 @@ export function createCinemaScreen(host, THREE, gsap, onLost) {
     context,
     observer,
     resizeObserver,
+    resizeListener,
     frame = 0,
     disposed = false,
     visible = true,
@@ -24,6 +25,7 @@ export function createCinemaScreen(host, THREE, gsap, onLost) {
     cancelAnimationFrame(frame);
     observer?.disconnect();
     resizeObserver?.disconnect();
+    if (resizeListener) window.removeEventListener("resize", resizeListener);
     document.removeEventListener("visibilitychange", update);
     canvas.removeEventListener("webglcontextlost", lost);
     timeline?.kill();
@@ -180,25 +182,39 @@ export function createCinemaScreen(host, THREE, gsap, onLost) {
       if (disposed) return;
       const { width, height } = host.getBoundingClientRect();
       if (!width || !height) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      renderer.setPixelRatio(dpr);
-      renderer.setSize(width, height, false);
-      host.dataset.dpr = String(dpr);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.render(scene, camera);
+      try {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        renderer.setPixelRatio(dpr);
+        renderer.setSize(width, height, false);
+        host.dataset.dpr = String(dpr);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.render(scene, camera);
+      } catch {
+        // ResizeObserver chạy bất đồng bộ: lỗi WebGL phải về nền tĩnh an toàn.
+        dispose();
+        onLost();
+      }
     }
     host.appendChild(canvas);
-    resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(host);
+    if (typeof ResizeObserver === "function") {
+      resizeObserver = new ResizeObserver(resize);
+      resizeObserver.observe(host);
+    } else {
+      resizeListener = resize;
+      window.addEventListener("resize", resizeListener);
+    }
     resize();
+    if (disposed) return () => {};
     canvas.addEventListener("webglcontextlost", lost);
     document.addEventListener("visibilitychange", update);
-    observer = new IntersectionObserver((entries) => {
-      visible = entries[0].isIntersecting;
-      update();
-    });
-    observer.observe(host);
+    if (typeof IntersectionObserver === "function") {
+      observer = new IntersectionObserver((entries) => {
+        visible = entries.some((entry) => entry.isIntersecting);
+        update();
+      });
+      observer.observe(host);
+    }
     update();
     return dispose;
   } catch {

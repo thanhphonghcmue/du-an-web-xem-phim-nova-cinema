@@ -31,6 +31,7 @@ import { movies as artwork } from "@/data.js";
 import { readProgramme } from "@/api/client.js";
 import { uniqueRecords } from "@/uniqueRecords.js";
 import { calendarLabel } from "@/bookingDates.js";
+import { youtubeTrailerId } from "@/moviePresentation.js";
 import Link from "next/link";
 
 function getInitialCatalog() {
@@ -100,9 +101,7 @@ export default function CatalogProvider({ children }) {
                     : "now",
               rating: art?.rating || "—",
               format: art?.format || "2D",
-              trailer: m.trailerUrl
-                ? new URL(m.trailerUrl).searchParams.get("v") || art?.trailer
-                : art?.trailer,
+              trailer: youtubeTrailerId(m.trailerUrl, art?.trailer),
               year: new Date(m.releaseDate).getUTCFullYear(),
             };
           });
@@ -157,49 +156,66 @@ export default function CatalogProvider({ children }) {
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
-  const getDates = (language, cinemaId, movieId) =>
-    index
-      .dates(cinemaId, movieId)
-      .map((id) => ({ id, label: calendarLabel(id, language) }));
-  const getShowtimes = (cinemaId, movieId, date) =>
-    index
-      .at(cinemaId, movieId, date)
-      .filter((s) => index.starts.get(s.id) > Date.now())
-      .map((s) => ({
-        ...s,
-        label: `${timeLabel(s.startTime)} · ${index.rooms.get(s.roomId)?.name || ""}`,
-        displayTime: timeLabel(s.startTime),
-        roomName: index.rooms.get(s.roomId)?.name || "",
-        roomType: index.rooms.get(s.roomId)?.roomType || "",
-      }));
-  const contextFor = (showtimeId) => {
-    const show = index.shows.get(showtimeId);
-    if (!show) return null;
-    const movie = data.movies.find((m) => m.id === show.movieId);
-    const cinema = data.cinemas.find(
-      (c) => c.id === index.rooms.get(show.roomId)?.cinemaId,
-    );
-    if (!movie || !cinema) return null;
-    const id = dayKey(show.startTime);
-    return {
-      showtimeId,
-      movie,
-      cinema,
-      date: { id, label: id },
-      time: { ...show, label: timeLabel(show.startTime) },
-    };
-  };
+  const getDates = useCallback(
+    (language, cinemaId, movieId) =>
+      index
+        .dates(cinemaId, movieId)
+        .map((id) => ({ id, label: calendarLabel(id, language) })),
+    [index],
+  );
+  const getShowtimes = useCallback(
+    (cinemaId, movieId, date) => {
+      const now = Date.now();
+      return index
+        .at(cinemaId, movieId, date)
+        .filter((s) => index.starts.get(s.id) > now)
+        .map((s) => {
+          const displayTime = timeLabel(s.startTime);
+          const room = index.rooms.get(s.roomId);
+          return {
+            ...s,
+            label: `${displayTime} · ${room?.name || ""}`,
+            displayTime,
+            roomName: room?.name || "",
+            roomType: room?.roomType || "",
+          };
+        });
+    },
+    [index],
+  );
+  const contextFor = useCallback(
+    (showtimeId) => {
+      const show = index.shows.get(showtimeId);
+      if (!show) return null;
+      const movie = data.movies.find((m) => m.id === show.movieId);
+      const cinema = data.cinemas.find(
+        (c) => c.id === index.rooms.get(show.roomId)?.cinemaId,
+      );
+      if (!movie || !cinema) return null;
+      const id = dayKey(show.startTime);
+      return {
+        showtimeId,
+        movie,
+        cinema,
+        date: { id, label: id },
+        time: { ...show, label: timeLabel(show.startTime) },
+      };
+    },
+    [data.movies, data.cinemas, index],
+  );
+  const value = useMemo(
+    () => ({
+      ...data,
+      error,
+      getDates,
+      getShowtimes,
+      contextFor,
+      reload: load,
+    }),
+    [data, error, getDates, getShowtimes, contextFor, load],
+  );
   return (
-    <CatalogContext.Provider
-      value={{
-        ...data,
-        error,
-        getDates,
-        getShowtimes,
-        contextFor,
-        reload: load,
-      }}
-    >
+    <CatalogContext.Provider value={value}>
       {error && (
         <div className="catalog-connection-notice">
           <p role="alert">

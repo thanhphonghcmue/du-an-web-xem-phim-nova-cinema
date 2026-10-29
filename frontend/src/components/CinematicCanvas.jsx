@@ -24,6 +24,7 @@
 "use client";
 import {
   Component,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -32,17 +33,20 @@ import {
 } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { AdditiveBlending } from "three";
-function useReducedMotion() {
-  return useSyncExternalStore(
-    (callback) => {
-      const media = matchMedia("(prefers-reduced-motion: reduce)");
-      media.addEventListener("change", callback);
-      return () => media.removeEventListener("change", callback);
-    },
-    () => matchMedia("(prefers-reduced-motion: reduce)").matches,
-    () => true,
-  );
+function subscribeMotion(callback) {
+  const media = matchMedia("(prefers-reduced-motion: reduce)");
+  const connection = navigator.connection;
+  media.addEventListener("change", callback);
+  connection?.addEventListener?.("change", callback);
+  return () => {
+    media.removeEventListener("change", callback);
+    connection?.removeEventListener?.("change", callback);
+  };
 }
+const prefersStaticBackdrop = () =>
+  matchMedia("(prefers-reduced-motion: reduce)").matches ||
+  Boolean(navigator.connection?.saveData);
+const staticServerSnapshot = () => true;
 class CanvasBoundary extends Component {
   state = { failed: false };
   static getDerivedStateFromError() {
@@ -95,10 +99,11 @@ function ProjectorDust({ count }) {
     </points>
   );
 }
-export default function CinematicCanvas() {
-  const reduced = useReducedMotion();
-  const [visible, setVisible] = useState(true);
+function AmbientCanvas() {
+  const [visible, setVisible] = useState(() => !document.hidden);
   const [lost, setLost] = useState(false);
+  const canvasRef = useRef(null);
+  const onLost = useCallback(() => setLost(true), []);
   const [supported] = useState(() => {
     try {
       const probe = document.createElement("canvas");
@@ -113,15 +118,17 @@ export default function CinematicCanvas() {
   useEffect(() => {
     const update = () => setVisible(!document.hidden);
     document.addEventListener("visibilitychange", update);
-    return () => document.removeEventListener("visibilitychange", update);
-  }, []);
-  if (reduced || !supported || lost)
-    return (
-      <div
-        className="canvas-fallback"
-        data-canvas={reduced ? "reduced-motion" : "fallback"}
-      />
-    );
+    // StrictMode chạy lại effect; onCreated có thể đã chạy từ lần setup trước.
+    canvasRef.current?.addEventListener("webglcontextlost", onLost, {
+      once: true,
+    });
+    return () => {
+      document.removeEventListener("visibilitychange", update);
+      canvasRef.current?.removeEventListener("webglcontextlost", onLost);
+    };
+  }, [onLost]);
+  if (!supported || lost)
+    return <div className="canvas-fallback" data-canvas="fallback" />;
   return (
     <CanvasBoundary>
       <div
@@ -135,16 +142,29 @@ export default function CinematicCanvas() {
           gl={{ alpha: true, antialias: false, powerPreference: "low-power" }}
           frameloop={visible ? "always" : "never"}
           onCreated={({ gl }) => {
-            gl.domElement.addEventListener(
-              "webglcontextlost",
-              () => setLost(true),
-              { once: true },
-            );
+            canvasRef.current?.removeEventListener("webglcontextlost", onLost);
+            canvasRef.current = gl.domElement;
+            gl.domElement.addEventListener("webglcontextlost", onLost, {
+              once: true,
+            });
           }}
         >
           <ProjectorDust count={innerWidth < 768 ? 80 : 220} />
         </Canvas>
       </div>
     </CanvasBoundary>
+  );
+}
+export default function CinematicCanvas() {
+  const reduced = useSyncExternalStore(
+    subscribeMotion,
+    prefersStaticBackdrop,
+    staticServerSnapshot,
+  );
+  // Không tạo cả context thăm dò khi hiệu ứng đã bị tắt.
+  return reduced ? (
+    <div className="canvas-fallback" data-canvas="reduced-motion" />
+  ) : (
+    <AmbientCanvas />
   );
 }

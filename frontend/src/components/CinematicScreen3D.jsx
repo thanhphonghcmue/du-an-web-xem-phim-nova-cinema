@@ -8,16 +8,18 @@ export default function CinematicScreen3D({ className = "" }) {
   useEffect(() => {
     const node = host.current;
     const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const connection = navigator.connection;
     let closed = false,
       started = false,
+      visible = typeof IntersectionObserver !== "function",
       epoch = 0,
       dispose = () => {},
       observer;
     async function start() {
-      if (started || closed) return;
+      if (started || closed || !visible || document.hidden) return;
       started = true;
       const version = ++epoch;
-      if (media.matches || navigator.connection?.saveData) {
+      if (media.matches || connection?.saveData) {
         setStatus(media.matches ? "reduced-motion" : "fallback");
         return;
       }
@@ -27,7 +29,17 @@ export default function CinematicScreen3D({ className = "" }) {
           import("three"),
           import("gsap"),
         ]);
-        if (closed || version !== epoch || media.matches) return;
+        if (closed || version !== epoch) return;
+        if (
+          media.matches ||
+          connection?.saveData ||
+          !visible ||
+          document.hidden
+        ) {
+          // Import có thể hoàn tất sau khi tab ẩn; thử lại khi màn hình hiện ra.
+          started = false;
+          return;
+        }
         dispose = createCinemaScreen(node, THREE, gsap, () =>
           setStatus("fallback"),
         );
@@ -39,7 +51,8 @@ export default function CinematicScreen3D({ className = "" }) {
     if (typeof IntersectionObserver === "function") {
       observer = new IntersectionObserver(
         (entries) => {
-          if (entries.some((entry) => entry.isIntersecting)) void start();
+          visible = entries.some((entry) => entry.isIntersecting);
+          if (visible) void start();
         },
         { rootMargin: "80px" },
       );
@@ -48,15 +61,24 @@ export default function CinematicScreen3D({ className = "" }) {
     const reduce = () => {
       epoch++;
       dispose();
+      dispose = () => {};
       started = false;
       if (media.matches) setStatus("reduced-motion");
+      else if (connection?.saveData) setStatus("fallback");
       else void start();
     };
+    const resume = () => {
+      if (!document.hidden) void start();
+    };
     media.addEventListener("change", reduce);
+    connection?.addEventListener?.("change", reduce);
+    document.addEventListener("visibilitychange", resume);
     return () => {
       closed = true;
       observer?.disconnect();
       media.removeEventListener("change", reduce);
+      connection?.removeEventListener?.("change", reduce);
+      document.removeEventListener("visibilitychange", resume);
       dispose();
     };
   }, []);

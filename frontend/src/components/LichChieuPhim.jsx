@@ -13,6 +13,7 @@ import { relativeCinemaDay } from "@/bookingDates.js";
 import CinemaPicker from "./CinemaPicker.jsx";
 import DateSelector from "./DateSelector.jsx";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import {
   ArrowUpRight,
@@ -255,11 +256,14 @@ export default function LichChieuPhim({
                 }}
                 key={m.id}
               >
-                <img
-                  src={m.localPoster || m.poster}
+                <Image
+                  src={m.localPoster || m.poster || "/images/dune-poster.jpg"}
                   alt=""
-                  width="50"
-                  height="75"
+                  width={50}
+                  height={75}
+                  sizes="50px"
+                  loading="lazy"
+                  unoptimized={!m.localPoster}
                 />
                 <span>
                   <strong>{language === "en" ? m.original : m.title}</strong>

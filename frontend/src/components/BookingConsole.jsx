@@ -346,6 +346,8 @@ function LiveBookingConsole({
   const activeOrderId = useRef(booking.orderId);
   const expiryRefresh = useRef(null);
   const snapshotVersion = useRef(0);
+  const orderRevision = useRef(0);
+  const changingOrder = useRef(false);
 
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [showAgeModal, setShowAgeModal] = useState(false);
@@ -363,16 +365,20 @@ function LiveBookingConsole({
 
   useEffect(() => {
     mounted.current = true;
+    let active = true;
     let running = false,
       loaded = false;
     async function update() {
-      if (running || (loaded && document.hidden)) return;
+      if (running || changingOrder.current || (loaded && document.hidden))
+        return;
+      const revision = orderRevision.current;
       running = true;
       try {
         await refresh();
         loaded = true;
         const orders = await apiGetMyBookings();
-        if (!mounted.current) return;
+        // Không để poll cũ bật lại đơn HOLDING sau khi đã hủy/giữ ghế mới.
+        if (!active || revision !== orderRevision.current) return;
         const current =
           orders.find((o) => o.id === activeOrderId.current) ||
           orders.find(
@@ -396,7 +402,8 @@ function LiveBookingConsole({
         }
         setInitialized(true);
       } catch (err) {
-        if (mounted.current) setNotice(err.message);
+        if (active && revision === orderRevision.current)
+          setNotice(err.message);
       } finally {
         running = false;
       }
@@ -405,6 +412,7 @@ function LiveBookingConsole({
     const poll = setInterval(update, 5000);
     window.addEventListener("focus", update);
     return () => {
+      active = false;
       mounted.current = false;
       clearInterval(poll);
       window.removeEventListener("focus", update);
@@ -592,6 +600,8 @@ function LiveBookingConsole({
       ...(appliedCoupon ? { couponCode: appliedCoupon.code } : {}),
     };
     const canonical = JSON.stringify(payload);
+    orderRevision.current++;
+    changingOrder.current = true;
     try {
       if (requestKey.current?.body !== canonical)
         requestKey.current = { body: canonical, key: createRequestKey() };
@@ -617,11 +627,15 @@ function LiveBookingConsole({
       }
       void refresh().catch(() => {});
     } finally {
+      changingOrder.current = false;
+      orderRevision.current++;
       setBusy(false);
     }
   }
 
   async function cancel() {
+    orderRevision.current++;
+    changingOrder.current = true;
     setBusy(true);
     try {
       const result = await apiCancelBooking(order.id);
@@ -636,6 +650,8 @@ function LiveBookingConsole({
     } catch (err) {
       setNotice(err.message);
     } finally {
+      changingOrder.current = false;
+      orderRevision.current++;
       setBusy(false);
     }
   }

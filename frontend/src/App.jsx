@@ -33,8 +33,11 @@ import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import NovaLogo from "./components/NovaLogo.jsx";
 import { notifyApiError } from "./api/notice.js";
+import { normalizeSearchText } from "./moviePresentation.js";
 import Discovery from "./components/Discovery.jsx";
-import PortalPage from "./components/PortalPage.jsx";
+const PortalPage = dynamic(() => import("./components/PortalPage.jsx"), {
+  loading: () => <p role="status">Đang chuẩn bị trang…</p>,
+});
 import CinemaHero from "./components/CinemaHero.jsx";
 import CinemaFooter from "./components/CinemaFooter.jsx";
 import WelcomeOffer from "./components/WelcomeOffer.jsx";
@@ -192,9 +195,14 @@ export default function App() {
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   useEffect(() => {
     // Remove credentials and invented profiles left by the former browser demo.
-    for (const storage of [localStorage, sessionStorage]) {
-      for (const key of ["nova_access_token", "nova-member", "nova-tickets"])
-        storage.removeItem(key);
+    for (const name of ["localStorage", "sessionStorage"]) {
+      try {
+        const storage = window[name];
+        for (const key of ["nova_access_token", "nova-member", "nova-tickets"])
+          storage.removeItem(key);
+      } catch {
+        // Cookie HttpOnly vẫn xác thực được khi trình duyệt chặn storage.
+      }
     }
     let active = true;
     apiGetProfile()
@@ -339,15 +347,14 @@ export default function App() {
       .getElementById("booking")
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
+  const searchQuery = normalizeSearchText(query);
   const results = movies.filter((m) =>
-    `${t(m.title)} ${m.original} ${m.director}`
-      .toLocaleLowerCase("vi")
-      .includes(query.toLocaleLowerCase("vi")),
+    normalizeSearchText(`${t(m.title)} ${m.original} ${m.director}`).includes(
+      searchQuery,
+    ),
   );
   const cinemaResults = cinemas.filter((c) =>
-    `${c.name} ${c.city}`
-      .toLocaleLowerCase("vi")
-      .includes(query.toLocaleLowerCase("vi")),
+    normalizeSearchText(`${c.name} ${c.city}`).includes(searchQuery),
   );
   return (
     <div id="top" className="app-shell">

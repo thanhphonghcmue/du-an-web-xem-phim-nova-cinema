@@ -1,0 +1,47 @@
+{
+  "baselineCommit": "e48cc673cf2b11e3f9ef6fae418d55caf61fe9fa",
+  "scope": "This frontend patch changes no backend, schema, BFF/API client or dependency manifest relative to integration parent 3b93a10.",
+  "checks": [
+    {
+      "command": "npm run test:unit",
+      "status": "PASS",
+      "tests": 81
+    },
+    {
+      "command": "npm run lint",
+      "status": "PASS"
+    },
+    {
+      "command": "npm run build:frontend",
+      "status": "PASS"
+    },
+    {
+      "command": "NOVA_QA_PRODUCTION=1 npm test",
+      "status": "PASS",
+      "tests": 100,
+      "browser": "Chromium production frontend with real NestJS/PostgreSQL/Redis/SMTP fixture; sequential"
+    },
+    {
+      "command": "npm run build (after preserving remote type-only update)",
+      "status": "PASS"
+    }
+  ],
+  "uniquePassingTests": 181,
+  "browserFixtureCleanup": {
+    "remainingMovies": 0,
+    "remainingUsers": 0
+  },
+  "newRegressionCases": {
+    "node": 8,
+    "browser": 9
+  },
+  "initialAttempts": "First full browser attempt: 98 passed, 2 new catalogue tests failed because the injected URL required an absent query and the test targeted a hidden desktop input. Focused correction first passed 1/2; tests then used the actual compact-header search dialog, and modal/header/catalogue search normalization was unified. Focused 2/2 and final full 100/100 passed. Reruns not added to unique test count.",
+  "limits": "No guarantee for all devices, browsers or network conditions. Resource measurements are startup byte counts; not FPS/INP/backend latency or complete-page wire totals.",
+  "integrationParent": "3b93a1035504edeee6c826dce7ed59bebb5f19ce",
+  "remoteSync": {
+    "remoteCommit": "3b93a1035504edeee6c826dce7ed59bebb5f19ce",
+    "preservedFiles": ["backend/src/bootstrap.ts", "frontend/next-env.d.ts"],
+    "bootstrapTranspiledRuntimeIdentical": true,
+    "fullBuildAfterSync": "PASS"
+  }
+}

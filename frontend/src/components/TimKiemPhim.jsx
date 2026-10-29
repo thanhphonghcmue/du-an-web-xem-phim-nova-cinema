@@ -24,6 +24,7 @@
 import { useState } from "react";
 import { Film, MapPin, Search, X } from "lucide-react";
 import { useI18n } from "@/i18n.js";
+import { normalizeSearchText } from "@/moviePresentation.js";
 export default function TimKiemPhim({
   onMovie,
   onCinema,
@@ -34,13 +35,8 @@ export default function TimKiemPhim({
   const { language, t } = useI18n();
   const [query, setQuery] = useState(""),
     [open, setOpen] = useState(false);
-  const normalize = (s) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/đ/g, "d")
-      .toLowerCase();
-  const match = (s) => normalize(s).includes(normalize(query));
+  const normalizedQuery = normalizeSearchText(query);
+  const match = (s) => normalizeSearchText(s).includes(normalizedQuery);
   const films = movies
       .filter((m) => match(`${m.title} ${m.original} ${m.director}`))
       .slice(0, 3),

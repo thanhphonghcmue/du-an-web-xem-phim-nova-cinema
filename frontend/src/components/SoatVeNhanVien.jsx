@@ -17,6 +17,11 @@ import { useCatalog } from "@/catalog.js";
 
 const vietnamDate = (value = new Date()) =>
   new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+const screeningTime = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 const labels = {
   TICKET_NOT_FOUND: "Không tìm thấy định danh vé trong hệ thống.",
   TICKET_SHOWTIME_MISMATCH:
@@ -60,6 +65,23 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     () => (scheduleReady ? uniqueRecords(schedule.items) : []),
     [scheduleReady, schedule.items],
   );
+  // Danh sách có thể chứa hàng trăm suất; không định dạng lại khi nhập từng ký tự QR.
+  const screeningOptions = useMemo(() => {
+    const titles = new Map(movies.map((movie) => [movie.id, movie.title]));
+    const roomNames = new Map(rooms.map((room) => [room.id, room.name]));
+    return screenings.map((show, index) => {
+      const start = new Date(show.startTime);
+      return (
+        <option value={show.id} key={`${show.id}-${index}`}>
+          {Number.isFinite(start.getTime())
+            ? screeningTime.format(start)
+            : "Chưa xác định giờ"}{" "}
+          · {titles.get(show.movieId) || "Phim đã kết thúc"} ·{" "}
+          {roomNames.get(show.roomId)}
+        </option>
+      );
+    });
+  }, [screenings, movies, rooms]);
   useEffect(() => {
     let active = true;
     let running = false;
@@ -313,19 +335,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
             }}
           >
             <option value="">Chọn phim · giờ · phòng</option>
-            {screenings.map((show, index) => (
-              <option value={show.id} key={`${show.id}-${index}`}>
-                {new Date(show.startTime).toLocaleTimeString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                ·{" "}
-                {movies.find((movie) => movie.id === show.movieId)?.title ||
-                  "Phim đã kết thúc"}{" "}
-                · {rooms.find((room) => room.id === show.roomId)?.name}
-              </option>
-            ))}
+            {screeningOptions}
           </select>
         </label>
       </div>

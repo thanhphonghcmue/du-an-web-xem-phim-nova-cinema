@@ -27,11 +27,39 @@ const CinematicCanvas = dynamic(() => import("./CinematicCanvas.jsx"), {
 export default function NenDienAnh() {
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const connection = navigator.connection;
     const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1000));
     const cancel = window.cancelIdleCallback || clearTimeout;
-    const id = idle(() => setReady(true));
-    return () => cancel(id);
+    let id = null,
+      active = false;
+    const update = () => {
+      if (id !== null) cancel(id);
+      id = null;
+      if (media.matches || connection?.saveData) {
+        if (active) setReady(false);
+        active = false;
+        return;
+      }
+      // Không tải Three.js trong tab ẩn hoặc khi người dùng tiết kiệm dữ liệu.
+      if (active || document.hidden) return;
+      id = idle(() => {
+        id = null;
+        if (media.matches || connection?.saveData || document.hidden) return;
+        active = true;
+        setReady(true);
+      });
+    };
+    media.addEventListener("change", update);
+    connection?.addEventListener?.("change", update);
+    document.addEventListener("visibilitychange", update);
+    update();
+    return () => {
+      if (id !== null) cancel(id);
+      media.removeEventListener("change", update);
+      connection?.removeEventListener?.("change", update);
+      document.removeEventListener("visibilitychange", update);
+    };
   }, []);
   return ready ? <CinematicCanvas /> : <div className="canvas-fallback" />;
 }

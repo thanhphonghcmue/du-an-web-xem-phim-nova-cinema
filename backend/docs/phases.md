@@ -161,3 +161,19 @@ Vá conflict IDs sau SQL rollback, tái xác thực giữ context, null member v
 ## Tối ưu catalogue/QR — 29/10/2026
 
 Không thay đổi trạng thái Phase 11–12. Thêm snapshot Redis chia trang lossless, invalidation Admin, cache browser chỉ cho chunk bất biến và nén Brotli/gzip. Giữ đầy đủ API legacy và các kiểm tra ghế/giá/hạn/owner. QR PNG 1-bit được giải mã kiểm chứng; fulfillment được đánh thức sau commit, vẫn có outbox/poll phục hồi. Native `npm run qa:native` chạy hết 547 bài độc lập; lint/typecheck/build và hai smoke đạt. Phân biệt budget đường lịch mới/service QR với cache lạnh, catalogue đầy đủ và browser: [báo cáo/số đo](../../docs/qa/performance-optimization.md).
+
+## Kiểm toán LAB04 native và bố cục — 29/10/2026 UTC
+
+Giữ trạng thái Phase 11–12. Lỗi400 DTO có thêm `details.fieldErrors` an toàn,
+không thay request/route/status/error/message cũ; frontend chỉ ánh xạ trường được
+allowlist. RAM đồng bộ giới hạn đăng ký, vẫn là fallback không bền vững đã được
+người dùng chọn. Launcher PostgreSQL chuẩn bị Prisma/migration/seed và build trước
+readiness; smoke thực chỉ ghi database test riêng. Không Docker, không đổi schema,
+Decimal, thời hạn300 giây, quyền sở hữu vé hoặc policy C'MEMBER.
+
+Sửa snapshot cũ sau Admin mutation và phục hồi chunk429 bằng API legacy thật,
+giữ deadline/quota. Các lần kiểm chứng đạt579 ca độc lập:115 backend unit,
+248 HTTP/Socket.IO/SMTP,23 schema,87 Node/RAM/launcher và106 browser production;
+lint/typecheck/build đạt. `qa:lab04`134 native +4 browser là tập con, không cộng trùng.
+Mục tiêu mọi request30ms/toàn catalogue15KiB chưa đạt; Figma mới có bàn giao capture,
+chưa import/tạo file. [Audit, lịch sử lỗi và số đo](../../docs/qa/lab04-native-figma-audit.md).

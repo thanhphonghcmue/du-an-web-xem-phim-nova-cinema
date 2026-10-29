@@ -180,6 +180,10 @@ describe("Phase 2 HTTP and infrastructure", () => {
     const invalidBody = responseBody(invalid);
     expect(invalidBody.error).toBe("VALIDATION_ERROR");
     expect(arrayValue(invalidBody.message).join(" ")).toMatch(/integer number/);
+    const fieldDetails = recordValue(invalidBody.details);
+    const field = recordValue(arrayValue(fieldDetails.fieldErrors)[0]);
+    expect(field.field).toBe("nested.count");
+    expect(arrayValue(field.messages).join(" ")).toMatch(/integer number/);
     expect(JSON.stringify(invalidBody)).not.toContain("secret");
     expect(JSON.stringify(invalidBody)).not.toContain("private-value");
 

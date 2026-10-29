@@ -181,6 +181,33 @@ test("RAM authentication has real sessions, rejects forged roles and isolates ow
     "CUSTOMER",
   );
 });
+
+test("RAM signup mirrors DTO field limits and rejects malformed profile fields before persisting", async (t) => {
+  const f = await fixture(t);
+  const password = randomBytes(16).toString("hex");
+  const email = `${randomBytes(8).toString("hex")}@fixture.test`;
+  const result = await f.call("/auth/register", {
+    email,
+    password,
+    fullName: "x".repeat(121),
+    phone: { value: "0901234567" },
+  });
+  assert.equal(result.status, 400);
+  assert.deepEqual(
+    result.body.details.fieldErrors.map((item) => item.field),
+    ["fullName", "phone"],
+  );
+  assert.ok(!JSON.stringify(result.body).includes(password));
+  const valid = await f.call("/auth/register", {
+    email,
+    password,
+    fullName: "Valid user",
+    phone: "+84901234567",
+  });
+  assert.equal(valid.status, 201);
+  assert.equal(valid.data.phone, "+84901234567");
+  assert.equal(valid.data.passwordHash, undefined);
+});
 test("RAM validates payloads instead of inventing seats or selecting a fallback screening", async (t) => {
   const f = await fixture(t);
   for (const body of [

@@ -270,11 +270,12 @@ Dùng Node24 theo `.nvmrc`. Từ thư mục gốc repository:
 
 ```bash
 npm install
-npm run seed
 npm run dev
 ```
 
 Web: **http://localhost:3000** · API: **http://127.0.0.1:4000/api/v1**.
+
+Với PostgreSQL/Redis native và `backend/.env` hợp lệ đã có sẵn, `dev` tự chạy Prisma/migration/seed additive rồi build backend trước khi mở web, tránh dùng `dist` cũ sau pull. Hai lệnh npm không cài dịch vụ DB/Redis hoặc tạo bí mật thay bạn. `npm run seed` vẫn có thể chạy riêng; `NOVA_REFRESH_PROGRAMME=false` bỏ seed/migration tự động khi schema đã sẵn sàng.
 
 - Mã giao diện chạy tại **`frontend/src/`**, ảnh tại `frontend/public/`; backend tại `backend/`; tài liệu tại `docs/`. Các lệnh gốc đã trỏ vào đúng workspace mới. Source gốc được giữ tương thích, không dùng làm bản chạy thứ hai.
 - Fresh clone chưa cấu hình PostgreSQL dùng backend RAM native theo lựa chọn của nhóm: có luồng giữ ghế/thanh toán Sandbox/QR thật trong process, dữ liệu reset khi khởi động lại. Không cần Docker. Nếu dùng `.env` cũ, có thể đặt `NOVA_BACKEND_MODE=memory` để chủ động chọn chế độ này.
@@ -295,6 +296,8 @@ Kiểm toán SIT/E2E/Concurrency/Security mới: [69 kịch bản truy vết](do
 Bản tối ưu sau kiểm toán: [catalogue chia trang đầy đủ, cache an toàn và phát hành QR nhanh](docs/qa/performance-optimization.md), có số đo riêng cho cache lạnh/nóng, từng response và tổng catalogue.
 
 Rà soát frontend tiếp theo: [ổn định đặt vé, giảm tải ảnh/JS và dọn hiệu ứng 3D](docs/qa/frontend-stability-review.md), giữ nguyên backend/API và có kiểm thử hồi quy riêng.
+
+Bản kiểm toán LAB04 hiện tại: [lỗi theo từng ô nhập, native startup và chuẩn bị Figma](docs/qa/lab04-native-figma-audit.md). Lệnh tập trung `npm run qa:lab04` kiểm tra tranh ghế20 luồng, thanh toán/QR/ICS, UC14 và hành trình browser; bản đồ capture đủ trang/trạng thái nằm trong báo cáo.
 
 ```powershell
 npm run qa:native

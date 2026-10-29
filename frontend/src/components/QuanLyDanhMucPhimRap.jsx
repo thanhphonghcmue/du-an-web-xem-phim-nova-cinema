@@ -28,6 +28,7 @@
 import { useEffect, useState } from "react";
 import RoomLayoutBuilder from "./RoomLayoutBuilder.jsx";
 import { read, readCommand } from "@/api/client.js";
+import { formFieldErrors } from "@/api/formErrors.js";
 import { useCatalog } from "@/catalog.js";
 const specs = {
   movies: {
@@ -94,6 +95,11 @@ export default function QuanLyDanhMucPhimRap() {
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
     [revision, setRevision] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState({});
+  function updateField(key, value) {
+    setDraft((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: "" }));
+  }
   useEffect(() => {
     let active = true;
     const timer = setTimeout(() => {
@@ -121,6 +127,7 @@ export default function QuanLyDanhMucPhimRap() {
     };
   }, [kind, revision, page, keyword]);
   function select(value) {
+    setFieldErrors({});
     setKind(value);
     setPage(1);
     setMeta(null);
@@ -134,6 +141,7 @@ export default function QuanLyDanhMucPhimRap() {
     e.preventDefault();
     setBusy(true);
     setMessage("");
+    setFieldErrors({});
     try {
       const body = {};
       for (const [key, , type] of specs[kind].fields) {
@@ -161,12 +169,25 @@ export default function QuanLyDanhMucPhimRap() {
       setRevision((v) => v + 1);
       void catalog.reload().catch((error) => setMessage(error.message));
     } catch (err) {
-      setMessage(err.message);
+      const fieldIssues = formFieldErrors(
+        err,
+        specs[kind].fields.map(([key]) => key),
+        {
+          codes: { MOVIE_TITLE_EXISTS: "title" },
+        },
+      );
+      setFieldErrors(fieldIssues);
+      setMessage(
+        err.status === 400 && Object.keys(fieldIssues).length
+          ? "Vui lòng kiểm tra các trường được đánh dấu trong biểu mẫu."
+          : err.message,
+      );
     } finally {
       setBusy(false);
     }
   }
   function edit(item) {
+    setFieldErrors({});
     setEditId(item.id);
     setDraft(
       Object.fromEntries(
@@ -206,6 +227,7 @@ export default function QuanLyDanhMucPhimRap() {
             key={key}
             className="button button-glass"
             aria-pressed={kind === key}
+            disabled={busy}
             onClick={() => select(key)}
           >
             {spec.label}
@@ -234,11 +256,14 @@ export default function QuanLyDanhMucPhimRap() {
                   {choices ? (
                     <select
                       aria-label={label}
+                      disabled={busy}
+                      aria-invalid={Boolean(fieldErrors[key])}
+                      aria-describedby={
+                        fieldErrors[key] ? `catalog-error-${key}` : undefined
+                      }
                       value={draft[key] || ""}
                       required={!editId}
-                      onChange={(e) =>
-                        setDraft({ ...draft, [key]: e.target.value })
-                      }
+                      onChange={(e) => updateField(key, e.target.value)}
                     >
                       <option value="">Chọn…</option>
                       {choices.map((c) => (
@@ -250,16 +275,28 @@ export default function QuanLyDanhMucPhimRap() {
                   ) : (
                     <input
                       aria-label={label}
+                      disabled={busy}
+                      aria-invalid={Boolean(fieldErrors[key])}
+                      aria-describedby={
+                        fieldErrors[key] ? `catalog-error-${key}` : undefined
+                      }
                       type={type}
                       value={draft[key] || ""}
                       min={type === "number" ? 1 : undefined}
                       required={
                         !editId && !["posterUrl", "trailerUrl"].includes(key)
                       }
-                      onChange={(e) =>
-                        setDraft({ ...draft, [key]: e.target.value })
-                      }
+                      onChange={(e) => updateField(key, e.target.value)}
                     />
+                  )}
+                  {fieldErrors[key] && (
+                    <span
+                      id={`catalog-error-${key}`}
+                      className="field-validation-message"
+                      role="alert"
+                    >
+                      {fieldErrors[key]}
+                    </span>
                   )}
                 </label>
               );
@@ -274,6 +311,7 @@ export default function QuanLyDanhMucPhimRap() {
                 onClick={() => {
                   setEditId(null);
                   setDraft({});
+                  setFieldErrors({});
                 }}
               >
                 Hủy chỉnh sửa

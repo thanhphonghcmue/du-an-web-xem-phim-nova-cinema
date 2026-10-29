@@ -19,8 +19,15 @@ const {
 } = require("../backend/scripts/test-database-target.cjs");
 
 async function main() {
-  if (process.argv.slice(2).some((arg) => arg !== "--api-only"))
-    throw new Error("Use npm run qa:native [-- --api-only].");
+  const args = process.argv.slice(2);
+  if (
+    args.some((arg) => !["--api-only", "--lab04"].includes(arg)) ||
+    (args.includes("--api-only") && args.includes("--lab04"))
+  )
+    throw new Error(
+      "Use npm run qa:native [-- --api-only] or npm run qa:lab04.",
+    );
+  const core = args.includes("--lab04");
   testDatabaseTarget(); // Từ chối database ứng dụng trước mọi migration/test.
   if (!process.env.npm_execpath || !existsSync(process.env.npm_execpath))
     throw new Error("Run this script through npm run qa:native.");
@@ -33,6 +40,7 @@ async function main() {
   const report = {
     startedAt: new Date().toISOString(),
     nativeOnly: true,
+    scope: core ? "lab04-core" : "full",
     steps: [],
     functionalStatus: "RUNNING",
     performanceBudgets: "NOT_MEASURED",
@@ -93,23 +101,42 @@ async function main() {
       "--workspace",
       "backend",
     ]);
-    await run("backend", ["run", "test:backend"]);
-    await run("schema", ["run", "test:db"]);
-    await run("node-ram", ["run", "test:unit"]);
+    if (core) {
+      await run("backend-core", ["run", "test:business"]);
+    } else {
+      await run("backend", ["run", "test:backend"]);
+      await run("schema", ["run", "test:db"]);
+      await run("node-ram", ["run", "test:unit"]);
+    }
     await run("lint", ["run", "lint"]);
     if (!process.argv.includes("--api-only")) {
       await run("build", ["run", "build"]);
-      await run(
-        "ram-startup",
-        [join(root, "scripts/check-fullstack-startup.cjs")],
-        true,
-      );
-      await run(
-        "upstream-failure",
-        [join(root, "scripts/check-backend-only.cjs")],
-        true,
-      );
-      await run("browser", ["test"]);
+      if (!core)
+        await run(
+          "ram-startup",
+          [join(root, "scripts/check-fullstack-startup.cjs")],
+          true,
+        );
+      if (!core)
+        await run(
+          "upstream-failure",
+          [join(root, "scripts/check-backend-only.cjs")],
+          true,
+        );
+      if (core) {
+        await run("browser-core", [
+          "exec",
+          "--",
+          "playwright",
+          "test",
+          "tests/business-audit.spec.mjs",
+          "tests/booking.spec.mjs",
+          "tests/creative.spec.mjs",
+          "tests/frontend-booking-resilience.spec.mjs",
+          "--grep",
+          "E2E-01|Sandbox success issues|duplicate catalogue/seat|a late HOLDING",
+        ]);
+      } else await run("browser", ["test"]);
     }
     report.functionalStatus = "PASSED";
     if (existsSync(metricsPath)) {

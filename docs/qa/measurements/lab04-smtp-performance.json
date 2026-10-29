@@ -1,0 +1,15 @@
+{
+  "measuredAt": "2026-10-29T17:19:41.286Z",
+  "samples": 1,
+  "paymentCompletedMs": 48.96869499999957,
+  "qrServiceReadyMs": 60.995928000000276,
+  "ticketServiceMs": 11.777095999999801,
+  "pngEncodingMs": 1.9969169999985752,
+  "pngEncodingCalls": 1,
+  "ticketNonPngMs": 9.780179000001226,
+  "smtpFault": "451 confirmed; durable retry retained",
+  "layer": "native HTTP checkout+webhook then direct post-commit TicketsService inside Jest; PNG component is measured separately; excludes browser rendering and relay polling",
+  "budgets": {
+    "servicePathUnder50ms": false
+  }
+}

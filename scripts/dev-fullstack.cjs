@@ -72,16 +72,25 @@ async function main() {
       "[NOVA] PostgreSQL unavailable/unconfigured; automatic native RAM fallback (data resets on restart).",
     );
 
-  if (
-    hasDb &&
-    process.env.NODE_ENV !== "production" &&
-    process.env.NOVA_REFRESH_PROGRAMME !== "false"
-  ) {
-    for (const script of ["seed-discovery.cjs", "seed-programme.cjs"]) {
-      console.log("Preparing persisted NOVA schedule:", script);
+  if (hasDb && process.env.NODE_ENV !== "production") {
+    const npmCli = process.env.npm_execpath;
+    if (!npmCli) {
+      console.error(
+        "Use npm run dev to prepare the native PostgreSQL backend.",
+      );
+      stop(1);
+      return;
+    }
+    // Pull mới không được chạy dist cũ hoặc seed trước khi có schema/Prisma Client.
+    const tasks = [
+      ...(process.env.NOVA_REFRESH_PROGRAMME !== "false" ? ["seed"] : []),
+      "build:backend",
+    ];
+    for (const task of tasks) {
+      console.log("[NOVA] Preparing native backend:", task);
       const code = await new Promise((resolveCode, reject) => {
-        const seed = spawn(process.execPath, ["scripts/" + script], {
-          cwd: resolve(root, "backend"),
+        const seed = spawn(process.execPath, [npmCli, "run", task], {
+          cwd: root,
           env: process.env,
           stdio: "inherit",
         });
@@ -90,6 +99,10 @@ async function main() {
         seed.once("exit", (code) => resolveCode(code));
       });
       if (code !== 0 || stopping) {
+        if (!stopping)
+          console.error(
+            "[NOVA] Native preparation failed; using the approved disposable RAM fallback.",
+          );
         useStandaloneBackend = true;
         break;
       }

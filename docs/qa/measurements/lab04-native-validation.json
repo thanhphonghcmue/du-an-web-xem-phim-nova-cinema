@@ -1,0 +1,154 @@
+{
+  "recordedAt": "2026-10-29T18:32:52.639273+00:00",
+  "timestampTimezone": "UTC",
+  "screeningDisplayTimezone": "Asia/Ho_Chi_Minh",
+  "baselineCommit": "f755e8346794da65627e1629db7d2f15f1bb8daa",
+  "branch": "feat/nova-discovery-ui",
+  "nativeOnly": true,
+  "dockerUsed": false,
+  "functionalStatus": "PASSED",
+  "uniquePassedCases": {
+    "backendUnit": 115,
+    "nativeHttpSocketPostgresSmtp": 248,
+    "databaseSchema": 23,
+    "nodeRamConfigLauncher": 87,
+    "browserProduction": 106,
+    "total": 579
+  },
+  "verificationSequence": [
+    {
+      "scope": "full qa:native",
+      "run": "1793294346384-859a5914",
+      "passed": 575,
+      "summary": "lab04-summary.json",
+      "note": "Includes backend typecheck/typed lint/build, schema, Node, browser103, RAM startup and upstream failure/timeout smokes."
+    },
+    {
+      "scope": "qa:lab04 core",
+      "run": "1793295048204-edadea58",
+      "nativeBusinessPassed": 134,
+      "browserPassed": 4,
+      "summary": "lab04-core-summary.json",
+      "countedAgainInTotal": false
+    },
+    {
+      "scope": "actual npm dev PostgreSQL startup",
+      "summary": "lab04-native-startup.json",
+      "applicationDatabaseWritten": false,
+      "note": "First private probe failed EBADF during teardown after app checks; fixed probe process/log cleanup and reran exit0."
+    },
+    {
+      "scope": "intermediate expanded-catalogue full browser",
+      "passed": 99,
+      "failed": 5,
+      "failureCauses": [
+        "Two assertions still selected pre-useId fixed error IDs.",
+        "An Admin mutation joined an older catalogue snapshot and missed the new cinema.",
+        "Chunk429 exhausted shared IP quota and prevented a staff screening selection.",
+        "Default Resource Timing250-entry buffer dropped five entries from a200-chunk run."
+      ],
+      "response": "Fixed selectors/accessibility assertions, queued fresh catalogue read, one real legacy recovery on chunk429, and increased test-only timing buffers; no increased timeout/quota or skipped assertions."
+    },
+    {
+      "scope": "current all Node",
+      "passed": 87,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "scope": "new LAB04 targeted browser",
+      "passed": 6,
+      "countedAgainInTotal": false
+    },
+    {
+      "scope": "current full production browser",
+      "passed": 106,
+      "failed": 0,
+      "skipped": 0,
+      "durationFromReporter": "9.7m",
+      "note": "All browser cases rerun on current application sources; backend unchanged after initial full native run."
+    },
+    {
+      "scope": "expanded metrics focused rerun",
+      "passed": 3,
+      "failed": 0,
+      "countedAgainInTotal": false,
+      "note": "After browser106 pass, only legacy metrics test instrumentation changed to retain wire timing entries. Application sources unchanged. Ran concurrently with lint; not a controlled before/after benchmark.",
+      "rawFiles": [
+        "lab04-expanded-performance.json",
+        "lab04-expanded-optimization-performance.json"
+      ]
+    }
+  ],
+  "checks": {
+    "backendTypecheck": true,
+    "backendTypedLint": true,
+    "frontendLint": true,
+    "backendBuild": true,
+    "frontendProductionBuild": true,
+    "nativeRamStartupSmoke": true,
+    "upstreamUnavailableTimeoutSmoke": true,
+    "realNativePostgresDevStartup": true,
+    "finalRootLint": true
+  },
+  "fixtureCleanup": {
+    "database": "dedicated test only",
+    "remainingOwnedBrowserFixtures": {
+      "users": 0,
+      "movies": 0,
+      "cinemas": 0
+    }
+  },
+  "runningDevelopmentServer": {
+    "frontendHttpStatus": 200,
+    "backendHttpStatus": 200,
+    "backendMode": "memory",
+    "persistent": false,
+    "location": "cloud workspace, not the user Windows computer"
+  },
+  "performanceBudgets": "NOT_MET",
+  "expandedMeasuredCatalogue": {
+    "counts": {
+      "movies": 50,
+      "cinemas": 7,
+      "rooms": 260,
+      "combos": 25,
+      "showtimes": 19789
+    },
+    "chunks": 200,
+    "budgets": {
+      "coldManifestUnder30ms": false,
+      "warmManifestP95Under30ms": true,
+      "firstPassChunksP95Under30ms": false,
+      "warmChunkNetworkP95Under30ms": false,
+      "everyChunkHttpJsonUnder15KiB": true,
+      "reconstructedCatalogueJsonUnder15KiB": false,
+      "aggregateHttpJsonUnder15KiB": false
+    },
+    "coldManifestMs": 745.0999999940395,
+    "warmManifestP95Ms": 15.5,
+    "firstPassChunksP95Ms": 31,
+    "warmChunkNetworkP95Ms": 44.400000005960464,
+    "maxChunkHttpJsonBytes": 15348,
+    "reconstructedCatalogueJsonBytes": 6560246,
+    "sizeBudgetInTestsBytes": 15360,
+    "maxChunkHttpJsonUnder15000Bytes": false
+  },
+  "finalFullBrowserDiagnosticTimingLines": [
+    "PERF-OPT chunks=200, warm manifest p95=8.7ms, warm chunk network p95=31.6ms; budgets={\"coldManifestUnder30ms\":false,\"warmManifestP95Under30ms\":true,\"firstPassChunksP95Under30ms\":true,\"warmChunkNetworkP95Under30ms\":false,\"everyChunkHttpJsonUnder15KiB\":true,\"reconstructedCatalogueJsonUnder15KiB\":false,\"aggregateHttpJsonUnder15KiB\":false}",
+    "local choice click-to-DOM p50=45.40ms p95=55.30ms (not network time or INP)",
+    "PERF movies: p95=476.5ms, wire=4776 bytes; budgets={\"lastByteUnder30ms\":false,\"wireUnder15KiB\":true,\"decodedJsonUnder15KiB\":false}",
+    "PERF cinemas: p95=72.9ms, wire=774 bytes; budgets={\"lastByteUnder30ms\":false,\"wireUnder15KiB\":true,\"decodedJsonUnder15KiB\":true}",
+    "PERF programme: p95=787.3ms, wire=null bytes; budgets={\"lastByteUnder30ms\":false,\"wireUnder15KiB\":null,\"decodedJsonUnder15KiB\":false}",
+    "PERF seats: p95=91.3ms, wire=null bytes; budgets={\"lastByteUnder30ms\":false,\"wireUnder15KiB\":null,\"decodedJsonUnder15KiB\":true}"
+  ],
+  "limits": [
+    "Cold/full catalogue/global30ms and15KiB targets are not met; no0ms promise.",
+    "Cmember points-to-cash conversion is not defined in approved policy/API; retain tier discount and once-only earning.",
+    "Figma capture inventory/guide prepared; no Figma file or prototype imported/created.",
+    "Chromium headless evidence does not certify Safari/Firefox or physical camera/Windows machine.",
+    "Sandbox only, no real-money bank integration; SMTP fixtures only, no inbox delivery guarantee.",
+    "RAM fallback is intentionally disposable; npm does not install native PostgreSQL/Redis or generate user secrets."
+  ],
+  "publishedEvidenceContainsCredentialsOrQrPayloads": false
+}

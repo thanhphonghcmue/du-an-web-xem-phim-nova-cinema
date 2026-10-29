@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Armchair, CheckCircle2, Grid2X2, ShieldCheck } from "lucide-react";
 import { apiList, readCommand } from "@/api/client.js";
+import { formFieldErrors } from "@/api/formErrors.js";
 import { useCatalog } from "@/catalog.js";
 const labels = { STANDARD: "Thường", VIP: "VIP", SWEETBOX: "Sweetbox" };
 export default function RoomLayoutBuilder() {
@@ -19,6 +20,7 @@ export default function RoomLayoutBuilder() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState({});
   const rowLabels = Array.from(
     { length: Math.min(15, Math.max(1, Number(rows) || 1)) },
     (_, i) => String.fromCharCode(65 + i),
@@ -67,6 +69,7 @@ export default function RoomLayoutBuilder() {
     setBusy(true);
     setError("");
     setNotice("");
+    setFieldErrors({});
     try {
       const result = await readCommand(`/rooms/${roomId}/seats/generate`, {
         rows: rowLabels,
@@ -79,6 +82,7 @@ export default function RoomLayoutBuilder() {
       setRevision((v) => v + 1);
       void catalog.reload().catch((error) => setError(error.message));
     } catch (err) {
+      setFieldErrors(formFieldErrors(err, ["rows", "columns"]));
       setError(err.message);
     } finally {
       setBusy(false);
@@ -103,12 +107,14 @@ export default function RoomLayoutBuilder() {
             Phòng cần xem / tạo sơ đồ
             <select
               required
+              disabled={busy}
               value={roomId}
               onChange={(e) => {
                 setRoomId(e.target.value);
                 setExisting(null);
                 setError("");
                 setNotice("");
+                setFieldErrors({});
               }}
             >
               <option value="">Chọn phòng chiếu</option>
@@ -126,25 +132,82 @@ export default function RoomLayoutBuilder() {
                 Số hàng
                 <input
                   aria-label="Số hàng ghế"
+                  disabled={busy}
+                  aria-invalid={
+                    Boolean(fieldErrors.rows) ||
+                    !Number.isInteger(Number(rows)) ||
+                    Number(rows) < 1 ||
+                    Number(rows) > 15 ||
+                    count > 300
+                  }
+                  aria-describedby={
+                    fieldErrors.rows
+                      ? "layout-error-rows"
+                      : invalid
+                        ? "layout-capacity-error"
+                        : undefined
+                  }
                   type="number"
                   min="1"
                   max="15"
                   required
                   value={rows}
-                  onChange={(e) => setRows(e.target.value)}
+                  onChange={(e) => {
+                    setRows(e.target.value);
+                    setFieldErrors((current) => ({ ...current, rows: "" }));
+                  }}
                 />
+                {fieldErrors.rows && (
+                  <span
+                    id="layout-error-rows"
+                    className="field-validation-message"
+                    role="alert"
+                  >
+                    {fieldErrors.rows}
+                  </span>
+                )}
               </label>
               <label>
                 Số cột
                 <input
                   aria-label="Số cột ghế"
+                  disabled={busy}
+                  aria-invalid={
+                    Boolean(fieldErrors.columns) ||
+                    !Number.isInteger(Number(columns)) ||
+                    Number(columns) < 1 ||
+                    Number(columns) > 24 ||
+                    count > 300 ||
+                    oddSweetbox
+                  }
+                  aria-describedby={
+                    fieldErrors.columns
+                      ? "layout-error-columns"
+                      : invalid
+                        ? "layout-capacity-error"
+                        : oddSweetbox
+                          ? "layout-sweetbox-error"
+                          : undefined
+                  }
                   type="number"
                   min="1"
                   max="24"
                   required
                   value={columns}
-                  onChange={(e) => setColumns(e.target.value)}
+                  onChange={(e) => {
+                    setColumns(e.target.value);
+                    setFieldErrors((current) => ({ ...current, columns: "" }));
+                  }}
                 />
+                {fieldErrors.columns && (
+                  <span
+                    id="layout-error-columns"
+                    className="field-validation-message"
+                    role="alert"
+                  >
+                    {fieldErrors.columns}
+                  </span>
+                )}
               </label>
             </>
           )}
@@ -165,13 +228,21 @@ export default function RoomLayoutBuilder() {
           <p role="status">Đang đọc sơ đồ phòng…</p>
         )}
         {invalid && !locked && (
-          <p className="workspace-error" role="alert">
+          <p
+            id="layout-capacity-error"
+            className="workspace-error"
+            role="alert"
+          >
             Vượt quá sức chứa cấu trúc vật lý của phòng. Vui lòng chọn tối đa
             300 ghế, 15 hàng và 24 cột.
           </p>
         )}
         {oddSweetbox && !locked && (
-          <p className="workspace-error" role="alert">
+          <p
+            id="layout-sweetbox-error"
+            className="workspace-error"
+            role="alert"
+          >
             Hàng Sweetbox cần số cột chẵn để tạo đủ cặp ghế.
           </p>
         )}

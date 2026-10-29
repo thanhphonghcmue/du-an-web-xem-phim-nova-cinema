@@ -140,8 +140,7 @@ export function decodeProgramme(input, chunks) {
 }
 
 export async function loadProgramme(request, signal) {
-  // Khi rolling deploy gặp backend cũ, chỉ fallback vì endpoint chưa tồn tại.
-  // Lỗi mạng/503 không được biến thành catalogue giả hoặc đổi nguồn dữ liệu.
+  // API legacy vẫn là dữ liệu thật. Không biến lỗi mạng/503 thành catalogue giả.
   for (let attempt = 0; attempt < 2; attempt++) {
     let manifest;
     try {
@@ -175,6 +174,10 @@ export async function loadProgramme(request, signal) {
       return decodeProgramme(manifest, chunks);
     } catch (error) {
       controller.abort();
+      // Nhiều tab/IP dùng chung có thể hết quota chunk; đọc snapshot legacy thật một lần.
+      // Dùng ngân sách thời gian gốc, không tăng quota hay ghép kết quả tải dở.
+      if (error.status === 429 && !signal.aborted)
+        return request("/showtimes/programme", { signal });
       if (error.status !== 410 || attempt !== 0) throw error;
     }
   }

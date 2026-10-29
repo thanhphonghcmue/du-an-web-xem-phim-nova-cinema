@@ -8,6 +8,7 @@ import {
 import { Prisma } from "@prisma/client";
 import { Response } from "express";
 import { ApiException } from "../exceptions/api.exception";
+import { InputValidationException } from "../exceptions/input-validation.exception";
 import { publicErrorMessages } from "./public-error-messages";
 import { RequestContext } from "../utils/request-context";
 interface ErrorPayload {
@@ -60,6 +61,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       details =
         safeServiceFailure ||
         safeAdmission ||
+        (exception instanceof InputValidationException && statusCode === 400) ||
         (exception instanceof ApiException &&
           statusCode === 409 &&
           error === "SEAT_UNAVAILABLE")

@@ -2844,14 +2844,17 @@ button:focus-visible {
 .auth-input-container {
   position: relative;
   width: 100%;
-  display: flex;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
+  background: #111726;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 .auth-input-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
+  padding-left: 10px;
   color: #64748b;
   pointer-events: none;
   display: flex;
@@ -2862,19 +2865,29 @@ button:focus-visible {
 .auth-input-container:focus-within .auth-input-icon {
   color: #e50914;
 }
+.auth-input-container:focus-within {
+  border-color: #e50914;
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.22);
+}
+.auth-input-container:has(.is-invalid) {
+  border-color: #ef4444;
+  background: #1a1622;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
 
 /* Text Input Styling - High contrast dark slate */
 .auth-text-input {
   width: 100% !important;
-  background: #111726 !important;
+  min-width: 0;
+  background: transparent !important;
   color: #ffffff !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+  border: 0 !important;
   border-radius: 10px !important;
-  padding: 13px 44px 13px 42px !important;
+  padding: 13px 8px !important;
   font-size: 14.5px !important;
   font-family: inherit !important;
   outline: none !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: none !important;
   transition: all 0.2s ease !important;
 }
 .auth-text-input::placeholder {
@@ -2887,12 +2900,12 @@ button:focus-visible {
 .auth-text-input:focus {
   border-color: #e50914 !important;
   background: #151d30 !important;
-  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.22), 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: none !important;
 }
 .auth-text-input.is-invalid {
   border-color: #ef4444 !important;
   background: #1a1622 !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+  box-shadow: none !important;
 }
 
 /* Chrome / Safari / Edge Autofill Fix - eliminate white backgrounds completely */
@@ -2909,10 +2922,8 @@ button:focus-visible {
 
 /* Password Eye Button */
 .auth-password-toggle {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: static;
+  margin-right: 6px;
   background: transparent;
   border: none;
   color: #64748b;

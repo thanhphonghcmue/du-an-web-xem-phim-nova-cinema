@@ -22,6 +22,8 @@ Lệnh kiểm tra tổng hợp native từ root: `npm run qa:native`; yêu cầu
 
 Frontend dùng thêm manifest/chunk của programme để mỗi response nhỏ và vẫn giữ đủ dữ liệu. Snapshot dùng chung Redis, Admin ghi qua API làm mới revision; ghế/đơn/thanh toán không dùng cache catalogue. [Chi tiết tối ưu và số đo](../docs/qa/performance-optimization.md).
 
+Kiểm toán LAB04 mới: [validation theo từng trường, native startup, QA core và bàn giao Figma](../docs/qa/lab04-native-figma-audit.md). `details.fieldErrors` là chi tiết bổ sung cho lỗi400 DTO; status/error/message cũ vẫn giữ. Từ root dùng `npm run qa:lab04` cho bộ nghiệp vụ tập trung hoặc `npm run qa:native` cho toàn bộ kiểm tra.
+
 ## Requirements
 
 Node.js **24 LTS** theo `.nvmrc`, npm, PostgreSQL/Redis và SMTP đã cấu hình. Có thể chạy trực tiếp không dùng Docker; các lệnh Compose bên dưới là tùy chọn riêng. Dùng NestJS 11, TypeScript 5 strict, Prisma 6.19, PostgreSQL 17 và Redis 7.4. Database/Redis images được pin digest. Nếu chủ động dùng cấu hình Compose, Docker phải đang chạy; các container chỉ bind `127.0.0.1`. Runtime cần hai JWT signing secrets và PAYMENT_SANDBOX_SECRET độc lập. SMTP local dùng Mailpit; SMTP ngoài cấu hình riêng qua biến môi trường.
@@ -30,11 +32,11 @@ Nếu đã có PostgreSQL/Redis riêng, điền connection settings vào `.env` 
 
 ## Chạy native theo cấu trúc monorepo (28/10/2026)
 
-Từ root: `npm install`, `npm run seed`, `npm run dev`. Frontend ở `frontend/`, backend ở đây. PostgreSQL mode cần database UTF8 và locale Unicode hỗ trợ chữ Việt, Redis native và backend/.env; dùng `npm run setup:local` sau khi cấu hình. Khi chưa cấu hình/không kết nối được PostgreSQL ở startup, giữ RAM fallback đã được yêu cầu; dữ liệu RAM không bền sau restart.
+Từ root: `npm install`, `npm run dev`. Frontend ở `frontend/`, backend ở đây. PostgreSQL mode cần database UTF8 và locale Unicode hỗ trợ chữ Việt, Redis native và backend/.env hợp lệ sẵn; launcher tự chuẩn bị Prisma/migration/seed additive rồi build backend. `npm run setup:local` vẫn là helper cấu hình riêng, không bắt buộc chạy lại khi môi trường đã hợp lệ. Khi chưa cấu hình/không kết nối được PostgreSQL ở startup, giữ RAM fallback đã được yêu cầu; dữ liệu RAM không bền sau restart. Npm không cài các dịch vụ DB/Redis hay cung cấp secrets. Nếu đặt `NOVA_REFRESH_PROGRAMME=false`, schema phải sẵn sàng vì startup bỏ seed/migration và chỉ build.
 
 [Hướng dẫn native và kiểm chứng STLC mới](../docs/qa/backend-native-audit.md). Các lệnh hạ tầng Compose trong hướng dẫn lịch sử bên dưới là cấu hình cũ được giữ lại; setup/seed/dev mới không gọi các lệnh đó.
 
-## Cài và chạy từ đầu
+## Thiết lập Compose cũ (lịch sử, không thuộc workflow native)
 
 Từ root repository:
 

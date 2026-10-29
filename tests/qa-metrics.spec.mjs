@@ -12,6 +12,10 @@ test("PERF-02 measures actual BFF catalogue/seat responses and reports unmet bud
     ),
   );
   expect(fixture.prefix).toMatch(/^web-e2e-[a-f0-9]+$/);
+  // Danh mục nhiều chunk + ảnh có thể vượt buffer mặc định trước khi đo wire bytes.
+  await page.addInitScript(() =>
+    performance.setResourceTimingBufferSize(16384),
+  );
   await page.addInitScript(() =>
     sessionStorage.setItem("nova-welcome-seen", "1"),
   );

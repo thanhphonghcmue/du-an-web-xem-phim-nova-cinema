@@ -156,6 +156,12 @@ export default function CatalogProvider({ children }) {
   useEffect(() => {
     void Promise.resolve().then(load);
   }, [load]);
+  const reload = useCallback(async () => {
+    // Mutation có thể xong trong lúc snapshot cũ vẫn đang tải. Phải đọc lại sau nó.
+    const pending = inFlight.current;
+    if (pending) await pending;
+    return load();
+  }, [load]);
   const getDates = useCallback(
     (language, cinemaId, movieId) =>
       index
@@ -210,9 +216,9 @@ export default function CatalogProvider({ children }) {
       getDates,
       getShowtimes,
       contextFor,
-      reload: load,
+      reload,
     }),
-    [data, error, getDates, getShowtimes, contextFor, load],
+    [data, error, getDates, getShowtimes, contextFor, reload],
   );
   return (
     <CatalogContext.Provider value={value}>
@@ -222,7 +228,7 @@ export default function CatalogProvider({ children }) {
             {t("Không thể kết nối đến máy chủ Backend. Hãy thử kết nối lại.")}{" "}
             <span>{error}</span>
           </p>
-          <button onClick={load}>{t("Thử kết nối lại")}</button>
+          <button onClick={reload}>{t("Thử kết nối lại")}</button>
           <Link href="/xem-truoc">Xem trước giao diện (chỉ đọc)</Link>
         </div>
       )}

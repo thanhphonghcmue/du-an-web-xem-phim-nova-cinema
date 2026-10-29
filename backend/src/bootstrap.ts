@@ -1,6 +1,5 @@
 import "reflect-metadata";
 import {
-  BadRequestException,
   INestApplication,
   Logger,
   NestApplicationOptions,
@@ -16,21 +15,14 @@ import compression from "compression";
 import { AppModule } from "./app.module";
 import { AppSettings } from "./config/app.config";
 import { ApiExceptionFilter } from "./common/filters/api-exception.filter";
+import { InputValidationException } from "./common/exceptions/input-validation.exception";
 import { RequestContext } from "./common/utils/request-context";
 import {
   ErrorResponseDto,
   SuccessResponseDto,
 } from "./common/dto/api-response.dto";
-import { ValidationError } from "class-validator";
 import { SeatSocketAdapter } from "./realtime/seat-socket.adapter";
 import { SeatSocketPolicy } from "./realtime/seat-socket-policy.service";
-
-function validationMessages(errors: ValidationError[]): string[] {
-  return errors.flatMap((error) => [
-    ...Object.values(error.constraints || {}),
-    ...validationMessages(error.children || []),
-  ]);
-}
 
 export function configureApplication(app: INestApplication): void {
   const settings = app.get(ConfigService).getOrThrow<AppSettings>("app");
@@ -110,8 +102,7 @@ export function configureApplication(app: INestApplication): void {
       transform: true,
       forbidUnknownValues: true,
       validationError: { target: false, value: false },
-      exceptionFactory: (errors) =>
-        new BadRequestException(validationMessages(errors)),
+      exceptionFactory: (errors) => new InputValidationException(errors),
     }),
   );
   const swagger = new DocumentBuilder()

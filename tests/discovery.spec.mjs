@@ -595,6 +595,12 @@ test("admin seat builder validates capacity and persists the displayed row types
   await builder.getByRole("spinbutton", { name: "Số cột ghế" }).fill("24");
   await expect(builder.getByRole("alert")).toContainText("Vượt quá sức chứa");
   await expect(
+    builder.getByRole("spinbutton", { name: "Số hàng ghế" }),
+  ).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    builder.getByRole("spinbutton", { name: "Số cột ghế" }),
+  ).toHaveAttribute("aria-invalid", "true");
+  await expect(
     builder.getByRole("button", { name: "Lưu sơ đồ ghế" }),
   ).toBeDisabled();
   await builder.getByRole("spinbutton", { name: "Số hàng ghế" }).fill("2");

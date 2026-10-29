@@ -1,0 +1,54 @@
+{
+  "startedAt": "2026-10-29T17:30:48.205Z",
+  "nativeOnly": true,
+  "scope": "lab04-core",
+  "steps": [
+    {
+      "name": "generate",
+      "passed": true,
+      "durationMs": 1175,
+      "log": "generate.log"
+    },
+    {
+      "name": "migrate-test",
+      "passed": true,
+      "durationMs": 1151,
+      "log": "migrate-test.log"
+    },
+    {
+      "name": "backend-core",
+      "passed": true,
+      "durationMs": 23562,
+      "log": "backend-core.log"
+    },
+    {
+      "name": "lint",
+      "passed": true,
+      "durationMs": 6329,
+      "log": "lint.log"
+    },
+    {
+      "name": "build",
+      "passed": true,
+      "durationMs": 25914,
+      "log": "build.log"
+    },
+    {
+      "name": "browser-core",
+      "passed": true,
+      "durationMs": 47228,
+      "log": "browser-core.log"
+    }
+  ],
+  "functionalStatus": "PASSED",
+  "performanceBudgets": "NOT_MEASURED",
+  "optimizedPathBudgets": "NOT_MEASURED",
+  "completedAt": "2026-10-29T17:32:33.568Z",
+  "sourceRun": "1793295048204-edadea58",
+  "counts": {
+    "nativeBusiness": 134,
+    "browserJourneys": 4,
+    "subsetOfFullSuite": true,
+    "countedAgainInUniqueTotal": false
+  }
+}

@@ -302,3 +302,15 @@
     justify-content: center;
   }
 }
+/* Thông báo nằm trong luồng Grid/Flex để giữ bố cục khi capture sang Figma. */
+.field-validation-message {
+  display: block;
+  color: #fda4af;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+[aria-invalid="true"] {
+  border-color: #fb7185;
+}

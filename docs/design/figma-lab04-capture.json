@@ -1,0 +1,315 @@
+{
+  "version": 1,
+  "status": "web-layout-checked-not-imported-to-figma",
+  "originExample": "http://localhost:3000",
+  "viewports": [
+    {
+      "width": 375,
+      "height": 812
+    },
+    {
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "width": 1440,
+      "height": 1000
+    }
+  ],
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "movies",
+      "path": "/phim",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "movie-detail",
+      "path": "/phim/:movieId",
+      "role": "PUBLIC",
+      "resolve": "Use an existing movie UUID from the live catalogue."
+    },
+    {
+      "id": "coming-soon",
+      "path": "/sap-chieu",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "booking",
+      "path": "/dat-ve",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "cinemas",
+      "path": "/rap",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "offers",
+      "path": "/uu-dai",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "food",
+      "path": "/bap-nuoc",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "membership",
+      "path": "/hoi-vien",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "about",
+      "path": "/gioi-thieu",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "support",
+      "path": "/ho-tro",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "guide",
+      "path": "/huong-dan",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "policy",
+      "path": "/chinh-sach",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "payment-info",
+      "path": "/thanh-toan",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "contact",
+      "path": "/lien-he",
+      "role": "PUBLIC"
+    },
+    {
+      "id": "account",
+      "path": "/tai-khoan",
+      "role": "GUEST_OR_OWNER",
+      "states": [
+        "sign-in",
+        "sign-up",
+        "member-profile",
+        "pending-bookings",
+        "ticket-wallet"
+      ]
+    },
+    {
+      "id": "sign-in",
+      "path": "/dang-nhap",
+      "role": "GUEST_OR_OWNER",
+      "note": "Existing dedicated authentication route; capture sign-in and sign-up tabs."
+    },
+    {
+      "id": "admin",
+      "path": "/quan-tri",
+      "role": "ADMIN",
+      "states": [
+        "dashboard",
+        "catalogue",
+        "room-builder",
+        "reconciliation",
+        "audit"
+      ]
+    },
+    {
+      "id": "staff",
+      "path": "/soat-ve",
+      "role": "STAFF_OR_ADMIN"
+    },
+    {
+      "id": "preview",
+      "path": "/xem-truoc",
+      "role": "PUBLIC",
+      "note": "Labelled read-only preview. Cannot hold seats, pay or issue tickets."
+    }
+  ],
+  "states": [
+    {
+      "id": "cinema-picker",
+      "page": "booking",
+      "entry": "Open Chọn cụm rạp; capture region, search and selected cinema."
+    },
+    {
+      "id": "calendar",
+      "page": "booking",
+      "entry": "Select an actual movie and cinema, then open Chọn ngày chiếu."
+    },
+    {
+      "id": "seat-select",
+      "page": "booking",
+      "entry": "Sign in and select a real future showtime; open the seat dialog."
+    },
+    {
+      "id": "seat-holding",
+      "page": "booking",
+      "entry": "Hold an available test seat. Use the server expiry; do not reset the countdown."
+    },
+    {
+      "id": "payment-methods",
+      "page": "booking",
+      "entry": "Capture the four gateway controls inside the real held-order card."
+    },
+    {
+      "id": "sandbox",
+      "page": "booking",
+      "entry": "Follow the server-created signed Sandbox URL. Do not invent or commit the signed query."
+    },
+    {
+      "id": "paid-qr",
+      "page": "booking",
+      "entry": "Complete Sandbox on an owned disposable test order and wait for the server-issued ticket."
+    },
+    {
+      "id": "expired",
+      "page": "booking",
+      "entry": "Use the expiry test fixture or an actually expired hold."
+    },
+    {
+      "id": "cancelled",
+      "page": "booking",
+      "entry": "Cancel an owned test hold; confirm the seat is available again."
+    },
+    {
+      "id": "food-detail",
+      "page": "food",
+      "entry": "Open Xem chi tiết on a current combo."
+    },
+    {
+      "id": "food-cart",
+      "page": "food",
+      "entry": "Add current menu items; capture the basket and transfer-to-booking action."
+    },
+    {
+      "id": "form-errors",
+      "page": "account",
+      "entry": "Capture actual 400 field validation and a duplicate-email 409."
+    },
+    {
+      "id": "staff-valid",
+      "page": "staff",
+      "entry": "Verify an unused owned test ticket without consuming it."
+    },
+    {
+      "id": "staff-used",
+      "page": "staff",
+      "entry": "Confirm check-in, then verify the same test ticket again."
+    },
+    {
+      "id": "staff-mismatch",
+      "page": "staff",
+      "entry": "Verify an unused test ticket with a different real showtime selected."
+    },
+    {
+      "id": "staff-unknown",
+      "page": "staff",
+      "entry": "Enter a well-formed nonexistent test ticket hash."
+    }
+  ],
+  "prototypeLinks": [
+    {
+      "from": "home",
+      "to": "movies",
+      "action": "Phim navigation link"
+    },
+    {
+      "from": "movies",
+      "to": "movie-detail",
+      "action": "Movie poster link"
+    },
+    {
+      "from": "movie-detail",
+      "to": "booking",
+      "action": "Book an on-sale screening"
+    },
+    {
+      "from": "booking",
+      "to": "cinema-picker",
+      "action": "Chọn cụm rạp"
+    },
+    {
+      "from": "cinema-picker",
+      "to": "calendar",
+      "action": "Select cinema and film, then date"
+    },
+    {
+      "from": "calendar",
+      "to": "seat-select",
+      "action": "Select a real showtime and Đặt ngay; guest signs in first"
+    },
+    {
+      "from": "seat-select",
+      "to": "seat-holding",
+      "action": "Giữ ghế 5 phút"
+    },
+    {
+      "from": "seat-holding",
+      "to": "payment-methods",
+      "action": "Choose gateway"
+    },
+    {
+      "from": "payment-methods",
+      "to": "sandbox",
+      "action": "Thanh toán Sandbox"
+    },
+    {
+      "from": "sandbox",
+      "to": "paid-qr",
+      "action": "Success and Quay lại ứng dụng"
+    },
+    {
+      "from": "seat-holding",
+      "to": "cancelled",
+      "action": "Hủy đơn & trả ghế"
+    },
+    {
+      "from": "seat-holding",
+      "to": "expired",
+      "action": "Server expiry reaches 00:00"
+    },
+    {
+      "from": "paid-qr",
+      "to": "account",
+      "action": "Xem vé trong tài khoản"
+    },
+    {
+      "from": "food",
+      "to": "food-detail",
+      "action": "Xem chi tiết combo"
+    },
+    {
+      "from": "food-cart",
+      "to": "booking",
+      "action": "Chọn suất & thêm vào vé"
+    },
+    {
+      "from": "staff-valid",
+      "to": "staff-used",
+      "action": "Confirm check-in once"
+    }
+  ],
+  "notes": [
+    "React handlers, authentication, timers and backend actions are not transferred into a working Figma prototype by an HTML capture. Wire the listed frame links explicitly.",
+    "Decorative absolute layers (backdrops, poster badges, SVG and WebGL) are intentional. Data forms, gateway grid and summary flow are the layout focus.",
+    "Use a labelled disposable test session for private/payment frames; prototype links represent state transitions and do not execute payments."
+  ],
+  "aliases": {
+    "/movies": "/phim",
+    "/booking": "/dat-ve",
+    "/checkout": "/dat-ve",
+    "/tickets": "/tai-khoan#ve-cua-toi",
+    "/admin": "/quan-tri",
+    "/staff": "/soat-ve"
+  }
+}

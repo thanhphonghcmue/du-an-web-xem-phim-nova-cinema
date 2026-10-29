@@ -909,15 +909,44 @@ function createMemoryServer(input) {
       assert(
         Object.keys(body).every((key) =>
           ["email", "password", "fullName", "phone"].includes(key),
-        ) &&
-          typeof body.email === "string" &&
-          /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email) &&
-          typeof body.password === "string" &&
-          body.password.length >= 12 &&
-          body.password.length <= 128 &&
-          typeof body.fullName === "string" &&
-          body.fullName.trim().length > 0,
+        ),
       );
+      const fieldErrors = [];
+      const invalidField = (field, valid, message) => {
+        if (!valid) fieldErrors.push({ field, messages: [message] });
+      };
+      invalidField(
+        "email",
+        typeof body.email === "string" &&
+          body.email.trim().length <= 254 &&
+          /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email.trim()),
+        "Nhập email đúng định dạng, tối đa 254 ký tự.",
+      );
+      invalidField(
+        "password",
+        typeof body.password === "string" &&
+          body.password.length >= 12 &&
+          body.password.length <= 128,
+        "Mật khẩu cần từ 12 đến 128 ký tự.",
+      );
+      invalidField(
+        "fullName",
+        typeof body.fullName === "string" &&
+          body.fullName.trim().length >= 2 &&
+          body.fullName.trim().length <= 120,
+        "Họ tên cần từ 2 đến 120 ký tự.",
+      );
+      invalidField(
+        "phone",
+        body.phone == null ||
+          (typeof body.phone === "string" &&
+            /^\+?[0-9][0-9 -]{5,18}$/.test(body.phone)),
+        "Số điện thoại chưa đúng định dạng.",
+      );
+      if (fieldErrors.length)
+        fail(400, "VALIDATION_ERROR", "Dữ liệu đăng ký chưa hợp lệ.", {
+          fieldErrors,
+        });
       await passwordsReady;
       const email = body.email.trim().toLowerCase();
       assert(

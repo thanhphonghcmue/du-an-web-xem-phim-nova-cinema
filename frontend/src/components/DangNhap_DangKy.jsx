@@ -7,7 +7,7 @@
  * ==============================================================================
  */
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -25,8 +25,10 @@ import {
 } from "lucide-react";
 import { useI18n } from "@/i18n.js";
 import { apiLogin, apiRegister } from "@/api/client.js";
+import { formFieldErrors } from "@/api/formErrors.js";
 
 export default function DangNhap_DangKy({ onSuccess }) {
+  const formId = `auth-${useId().replace(/:/g, "")}`;
   const { language, t } = useI18n();
   const [tab, setTab] = useState("signin");
   const [visiblePasswords, setVisiblePasswords] = useState({
@@ -45,8 +47,9 @@ export default function DangNhap_DangKy({ onSuccess }) {
   const [touched, setTouched] = useState({});
   const [notice, setNotice] = useState("");
   const [noticeType, setNoticeType] = useState("error"); // "error" | "info"
+  const [serverErrors, setServerErrors] = useState({});
 
-  const error = {
+  const clientErrors = {
     phone:
       fields.phone && !/^0[0-9]{9}$/.test(fields.phone)
         ? "Số điện thoại cần 10 chữ số, bắt đầu bằng 0."
@@ -75,6 +78,12 @@ export default function DangNhap_DangKy({ onSuccess }) {
           : "Mật khẩu xác nhận chưa khớp."
         : " ",
   };
+  const error = Object.fromEntries(
+    Object.entries(clientErrors).map(([field, message]) => [
+      field,
+      serverErrors[field] || message,
+    ]),
+  );
 
   function translateNotice(raw) {
     if (!raw) return "";
@@ -103,11 +112,15 @@ export default function DangNhap_DangKy({ onSuccess }) {
       confirm: true,
     });
     setNotice("");
+    setServerErrors({});
 
     if (
-      error.email ||
-      error.password ||
-      (tab === "signup" && (error.name || error.phone || error.confirm.trim()))
+      clientErrors.email ||
+      clientErrors.password ||
+      (tab === "signup" &&
+        (clientErrors.name ||
+          clientErrors.phone ||
+          clientErrors.confirm.trim()))
     )
       return;
 
@@ -145,9 +158,24 @@ export default function DangNhap_DangKy({ onSuccess }) {
         onSuccess(member);
       }
     } catch (err) {
+      const fieldIssues = formFieldErrors(
+        err,
+        ["name", "email", "phone", "password"],
+        {
+          aliases: { fullName: "name" },
+          codes: { EMAIL_ALREADY_EXISTS: "email" },
+          language,
+        },
+      );
+      setServerErrors(fieldIssues);
       setNoticeType("error");
       setNotice(
-        err.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
+        err.status === 400 && Object.keys(fieldIssues).length
+          ? language === "en"
+            ? "Please check the highlighted fields."
+            : "Vui lòng kiểm tra các ô được đánh dấu bên dưới."
+          : err.message ||
+              "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
       );
     } finally {
       setLoading(false);
@@ -200,9 +228,11 @@ export default function DangNhap_DangKy({ onSuccess }) {
               aria-selected={tab === id}
               key={id}
               className={tab === id ? "active" : ""}
+              disabled={loading}
               onClick={() => {
                 setTab(id);
                 setNotice("");
+                setServerErrors({});
               }}
             >
               {t(label)}
@@ -233,7 +263,10 @@ export default function DangNhap_DangKy({ onSuccess }) {
             .map(([id, label, type, placeholder]) => (
               <div key={id} className="auth-field-group">
                 <div className="auth-field-header">
-                  <label htmlFor={`field-${id}`} className="auth-field-label">
+                  <label
+                    htmlFor={`${formId}-field-${id}`}
+                    className="auth-field-label"
+                  >
                     {t(label)}
                   </label>
                   {id === "password" && tab === "signup" && (
@@ -251,7 +284,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     )}
                   </span>
                   <input
-                    id={`field-${id}`}
+                    id={`${formId}-field-${id}`}
                     name={id}
                     type={
                       id === "password" || id === "confirm"
@@ -262,9 +295,11 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     }
                     placeholder={placeholder}
                     value={fields[id]}
-                    onChange={(e) =>
-                      setFields({ ...fields, [id]: e.target.value })
-                    }
+                    disabled={loading}
+                    onChange={(e) => {
+                      setFields({ ...fields, [id]: e.target.value });
+                      setServerErrors((current) => ({ ...current, [id]: "" }));
+                    }}
                     onBlur={() => setTouched({ ...touched, [id]: true })}
                     autoComplete={
                       id === "name"
@@ -280,7 +315,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     aria-invalid={Boolean(touched[id] && error[id]?.trim())}
                     aria-describedby={
                       touched[id] && error[id]?.trim()
-                        ? `error-${id}`
+                        ? `${formId}-error-${id}`
                         : undefined
                     }
                     className={`auth-text-input ${
@@ -292,7 +327,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                       type="button"
                       className="auth-password-toggle"
                       aria-label={`${visiblePasswords[id] ? "Ẩn" : "Hiện"} ${id === "confirm" ? "mật khẩu xác nhận" : "mật khẩu"}`}
-                      aria-controls={`field-${id}`}
+                      aria-controls={`${formId}-field-${id}`}
                       aria-pressed={visiblePasswords[id]}
                       onClick={() =>
                         setVisiblePasswords((current) => ({
@@ -312,7 +347,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
 
                 {touched[id] && error[id]?.trim() && (
                   <div
-                    id={`error-${id}`}
+                    id={`${formId}-error-${id}`}
                     className="auth-error-message"
                     role="alert"
                   >

@@ -1,0 +1,5242 @@
+{
+  "measuredAt": "2026-10-29T18:29:32.849Z",
+  "structuredTransport": {
+    "layer": "production browser -> Next BFF -> native Nest/PostgreSQL/Redis; loopback, not WAN/SLA",
+    "encoding": "columnar-v1",
+    "coldDefinition": "first manifest immediately after owned Admin description write; prior revision was read and new snapshot ID asserted",
+    "counts": {
+      "movies": 50,
+      "cinemas": 7,
+      "rooms": 260,
+      "combos": 25,
+      "showtimes": 19789
+    },
+    "chunks": 200,
+    "coldManifest": {
+      "ttfbMs": 744.5,
+      "lastByteMs": 745.0999999940395,
+      "decodedHttpJsonBytes": 356,
+      "wireBytes": 356,
+      "transferBytes": 656,
+      "cacheControl": "no-store",
+      "contentEncoding": "identity"
+    },
+    "warmManifest": [
+      {
+        "ttfbMs": 13,
+        "lastByteMs": 13.400000005960464,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 10.5,
+        "lastByteMs": 10.900000005960464,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 13.5,
+        "lastByteMs": 15.5,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 13.5,
+        "lastByteMs": 14.199999988079071,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 11.199999988079071,
+        "lastByteMs": 11.899999976158142,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 11.699999988079071,
+        "lastByteMs": 12.099999994039536,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 9,
+        "lastByteMs": 9.400000005960464,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 10.300000011920929,
+        "lastByteMs": 11.100000023841858,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 10.5,
+        "lastByteMs": 10.799999982118607,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      },
+      {
+        "ttfbMs": 11.099999994039536,
+        "lastByteMs": 11.599999994039536,
+        "decodedHttpJsonBytes": 356,
+        "wireBytes": 356,
+        "transferBytes": 656,
+        "cacheControl": "no-store",
+        "contentEncoding": "identity"
+      }
+    ],
+    "firstPassChunkSamples": [
+      {
+        "ttfbMs": 26.5,
+        "lastByteMs": 29.899999976158142,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 25.700000017881393,
+        "lastByteMs": 27.200000017881393,
+        "decodedHttpJsonBytes": 1236,
+        "wireBytes": 794,
+        "transferBytes": 1094,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 25.799999982118607,
+        "lastByteMs": 27.599999994039536,
+        "decodedHttpJsonBytes": 14163,
+        "wireBytes": 4817,
+        "transferBytes": 5117,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 25.900000005960464,
+        "lastByteMs": 29.900000005960464,
+        "decodedHttpJsonBytes": 13259,
+        "wireBytes": 5082,
+        "transferBytes": 5382,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.69999998807907,
+        "lastByteMs": 21,
+        "decodedHttpJsonBytes": 4106,
+        "wireBytes": 2045,
+        "transferBytes": 2345,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.5,
+        "lastByteMs": 28.899999976158142,
+        "decodedHttpJsonBytes": 15159,
+        "wireBytes": 7019,
+        "transferBytes": 7319,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 27.69999998807907,
+        "lastByteMs": 30.30000001192093,
+        "decodedHttpJsonBytes": 14216,
+        "wireBytes": 6197,
+        "transferBytes": 6497,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 27.200000017881393,
+        "lastByteMs": 31.80000001192093,
+        "decodedHttpJsonBytes": 15151,
+        "wireBytes": 6964,
+        "transferBytes": 7264,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 12.099999994039536,
+        "lastByteMs": 12.5,
+        "decodedHttpJsonBytes": 14475,
+        "wireBytes": 6303,
+        "transferBytes": 6603,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 11.699999988079071,
+        "lastByteMs": 12.400000005960464,
+        "decodedHttpJsonBytes": 14299,
+        "wireBytes": 6611,
+        "transferBytes": 6911,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 11.100000023841858,
+        "lastByteMs": 14.200000017881393,
+        "decodedHttpJsonBytes": 14480,
+        "wireBytes": 6411,
+        "transferBytes": 6711,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 10.600000023841858,
+        "lastByteMs": 11.700000017881393,
+        "decodedHttpJsonBytes": 14322,
+        "wireBytes": 6573,
+        "transferBytes": 6873,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.200000017881393,
+        "lastByteMs": 26.700000017881393,
+        "decodedHttpJsonBytes": 14545,
+        "wireBytes": 6542,
+        "transferBytes": 6842,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.899999976158142,
+        "lastByteMs": 21.19999998807907,
+        "decodedHttpJsonBytes": 14390,
+        "wireBytes": 6621,
+        "transferBytes": 6921,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.599999994039536,
+        "lastByteMs": 21.900000005960464,
+        "decodedHttpJsonBytes": 14423,
+        "wireBytes": 6555,
+        "transferBytes": 6855,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.599999994039536,
+        "lastByteMs": 20,
+        "decodedHttpJsonBytes": 14352,
+        "wireBytes": 6565,
+        "transferBytes": 6865,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 27.19999998807907,
+        "lastByteMs": 27.80000001192093,
+        "decodedHttpJsonBytes": 14512,
+        "wireBytes": 6528,
+        "transferBytes": 6828,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 27,
+        "lastByteMs": 30.69999998807907,
+        "decodedHttpJsonBytes": 14329,
+        "wireBytes": 6592,
+        "transferBytes": 6892,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.5,
+        "lastByteMs": 28.700000017881393,
+        "decodedHttpJsonBytes": 14540,
+        "wireBytes": 6445,
+        "transferBytes": 6745,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 27.799999982118607,
+        "lastByteMs": 31,
+        "decodedHttpJsonBytes": 14394,
+        "wireBytes": 6489,
+        "transferBytes": 6789,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.19999998807907,
+        "lastByteMs": 21.599999994039536,
+        "decodedHttpJsonBytes": 14556,
+        "wireBytes": 6589,
+        "transferBytes": 6889,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.69999998807907,
+        "lastByteMs": 23.400000005960464,
+        "decodedHttpJsonBytes": 14371,
+        "wireBytes": 6637,
+        "transferBytes": 6937,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.399999976158142,
+        "lastByteMs": 24.799999982118607,
+        "decodedHttpJsonBytes": 14592,
+        "wireBytes": 6624,
+        "transferBytes": 6924,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.100000023841858,
+        "lastByteMs": 26.600000023841858,
+        "decodedHttpJsonBytes": 14292,
+        "wireBytes": 6475,
+        "transferBytes": 6775,
+        "cacheControl": "private, max-age=119, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.799999982118607,
+        "lastByteMs": 19.099999994039536,
+        "decodedHttpJsonBytes": 14513,
+        "wireBytes": 6628,
+        "transferBytes": 6928,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.69999998807907,
+        "lastByteMs": 23.19999998807907,
+        "decodedHttpJsonBytes": 14537,
+        "wireBytes": 6517,
+        "transferBytes": 6817,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.099999994039536,
+        "lastByteMs": 21.5,
+        "decodedHttpJsonBytes": 14515,
+        "wireBytes": 6654,
+        "transferBytes": 6954,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.5,
+        "lastByteMs": 22.400000005960464,
+        "decodedHttpJsonBytes": 14372,
+        "wireBytes": 6394,
+        "transferBytes": 6694,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.699999988079071,
+        "lastByteMs": 16.599999994039536,
+        "decodedHttpJsonBytes": 15299,
+        "wireBytes": 7033,
+        "transferBytes": 7333,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.400000005960464,
+        "lastByteMs": 17.80000001192093,
+        "decodedHttpJsonBytes": 14157,
+        "wireBytes": 6184,
+        "transferBytes": 6484,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.599999994039536,
+        "lastByteMs": 17.299999982118607,
+        "decodedHttpJsonBytes": 14942,
+        "wireBytes": 6957,
+        "transferBytes": 7257,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.599999994039536,
+        "lastByteMs": 17.19999998807907,
+        "decodedHttpJsonBytes": 14436,
+        "wireBytes": 6270,
+        "transferBytes": 6570,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.800000011920929,
+        "lastByteMs": 16.400000005960464,
+        "decodedHttpJsonBytes": 14299,
+        "wireBytes": 6616,
+        "transferBytes": 6916,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.099999994039536,
+        "lastByteMs": 22,
+        "decodedHttpJsonBytes": 14464,
+        "wireBytes": 6366,
+        "transferBytes": 6666,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.199999988079071,
+        "lastByteMs": 17.19999998807907,
+        "decodedHttpJsonBytes": 14336,
+        "wireBytes": 6599,
+        "transferBytes": 6899,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.599999994039536,
+        "lastByteMs": 22.399999976158142,
+        "decodedHttpJsonBytes": 14498,
+        "wireBytes": 6504,
+        "transferBytes": 6804,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.700000017881393,
+        "lastByteMs": 21.30000001192093,
+        "decodedHttpJsonBytes": 14432,
+        "wireBytes": 6534,
+        "transferBytes": 6834,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.399999976158142,
+        "lastByteMs": 19,
+        "decodedHttpJsonBytes": 14475,
+        "wireBytes": 6499,
+        "transferBytes": 6799,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16,
+        "lastByteMs": 16.600000023841858,
+        "decodedHttpJsonBytes": 14357,
+        "wireBytes": 6491,
+        "transferBytes": 6791,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.5,
+        "lastByteMs": 21.19999998807907,
+        "decodedHttpJsonBytes": 14486,
+        "wireBytes": 6622,
+        "transferBytes": 6922,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.30000001192093,
+        "lastByteMs": 18.099999994039536,
+        "decodedHttpJsonBytes": 14488,
+        "wireBytes": 6562,
+        "transferBytes": 6862,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 25.100000023841858,
+        "lastByteMs": 26.30000001192093,
+        "decodedHttpJsonBytes": 14455,
+        "wireBytes": 6688,
+        "transferBytes": 6988,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.400000005960464,
+        "lastByteMs": 26.80000001192093,
+        "decodedHttpJsonBytes": 14429,
+        "wireBytes": 6395,
+        "transferBytes": 6695,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.099999994039536,
+        "lastByteMs": 28.400000005960464,
+        "decodedHttpJsonBytes": 15048,
+        "wireBytes": 6974,
+        "transferBytes": 7274,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.900000005960464,
+        "lastByteMs": 28.099999994039536,
+        "decodedHttpJsonBytes": 14226,
+        "wireBytes": 6230,
+        "transferBytes": 6530,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.69999998807907,
+        "lastByteMs": 25.69999998807907,
+        "decodedHttpJsonBytes": 15329,
+        "wireBytes": 7076,
+        "transferBytes": 7376,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.19999998807907,
+        "lastByteMs": 19.299999982118607,
+        "decodedHttpJsonBytes": 14426,
+        "wireBytes": 6315,
+        "transferBytes": 6615,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.5,
+        "lastByteMs": 26.900000005960464,
+        "decodedHttpJsonBytes": 14317,
+        "wireBytes": 6563,
+        "transferBytes": 6863,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.299999982118607,
+        "lastByteMs": 19.099999994039536,
+        "decodedHttpJsonBytes": 14409,
+        "wireBytes": 6412,
+        "transferBytes": 6712,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.5,
+        "lastByteMs": 16.599999994039536,
+        "decodedHttpJsonBytes": 14117,
+        "wireBytes": 6493,
+        "transferBytes": 6793,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.399999976158142,
+        "lastByteMs": 18.899999976158142,
+        "decodedHttpJsonBytes": 14472,
+        "wireBytes": 6604,
+        "transferBytes": 6904,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.900000005960464,
+        "lastByteMs": 19,
+        "decodedHttpJsonBytes": 14745,
+        "wireBytes": 6587,
+        "transferBytes": 6887,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.100000023841858,
+        "lastByteMs": 18.600000023841858,
+        "decodedHttpJsonBytes": 14441,
+        "wireBytes": 6612,
+        "transferBytes": 6912,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.80000001192093,
+        "lastByteMs": 20.700000017881393,
+        "decodedHttpJsonBytes": 14466,
+        "wireBytes": 6329,
+        "transferBytes": 6629,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.80000001192093,
+        "lastByteMs": 21.599999994039536,
+        "decodedHttpJsonBytes": 15093,
+        "wireBytes": 6985,
+        "transferBytes": 7285,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.5,
+        "lastByteMs": 23.799999982118607,
+        "decodedHttpJsonBytes": 14365,
+        "wireBytes": 6271,
+        "transferBytes": 6571,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.400000005960464,
+        "lastByteMs": 16.799999982118607,
+        "decodedHttpJsonBytes": 15232,
+        "wireBytes": 7065,
+        "transferBytes": 7365,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.599999994039536,
+        "lastByteMs": 21.299999982118607,
+        "decodedHttpJsonBytes": 14611,
+        "wireBytes": 6702,
+        "transferBytes": 7002,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.799999982118607,
+        "lastByteMs": 21.299999982118607,
+        "decodedHttpJsonBytes": 14550,
+        "wireBytes": 6631,
+        "transferBytes": 6931,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.400000005960464,
+        "lastByteMs": 27.100000023841858,
+        "decodedHttpJsonBytes": 14225,
+        "wireBytes": 6643,
+        "transferBytes": 6943,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.400000005960464,
+        "lastByteMs": 18.5,
+        "decodedHttpJsonBytes": 14501,
+        "wireBytes": 6619,
+        "transferBytes": 6919,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.199999988079071,
+        "lastByteMs": 15.699999988079071,
+        "decodedHttpJsonBytes": 14475,
+        "wireBytes": 6540,
+        "transferBytes": 6840,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 14.5,
+        "lastByteMs": 15.599999994039536,
+        "decodedHttpJsonBytes": 14263,
+        "wireBytes": 6599,
+        "transferBytes": 6899,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.099999994039536,
+        "lastByteMs": 15.799999982118607,
+        "decodedHttpJsonBytes": 14456,
+        "wireBytes": 6640,
+        "transferBytes": 6940,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 14.199999988079071,
+        "lastByteMs": 14.5,
+        "decodedHttpJsonBytes": 14553,
+        "wireBytes": 6678,
+        "transferBytes": 6978,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.099999994039536,
+        "lastByteMs": 15.599999994039536,
+        "decodedHttpJsonBytes": 14532,
+        "wireBytes": 6657,
+        "transferBytes": 6957,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 11.699999988079071,
+        "lastByteMs": 12.800000011920929,
+        "decodedHttpJsonBytes": 14120,
+        "wireBytes": 6678,
+        "transferBytes": 6978,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 12.199999988079071,
+        "lastByteMs": 12.599999994039536,
+        "decodedHttpJsonBytes": 14365,
+        "wireBytes": 6531,
+        "transferBytes": 6831,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18,
+        "lastByteMs": 19.200000017881393,
+        "decodedHttpJsonBytes": 14507,
+        "wireBytes": 6606,
+        "transferBytes": 6906,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.900000005960464,
+        "lastByteMs": 20.700000017881393,
+        "decodedHttpJsonBytes": 14115,
+        "wireBytes": 6563,
+        "transferBytes": 6863,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.69999998807907,
+        "lastByteMs": 21.599999994039536,
+        "decodedHttpJsonBytes": 14492,
+        "wireBytes": 6614,
+        "transferBytes": 6914,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22,
+        "lastByteMs": 23.19999998807907,
+        "decodedHttpJsonBytes": 14530,
+        "wireBytes": 6593,
+        "transferBytes": 6893,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 23.19999998807907,
+        "lastByteMs": 24.5,
+        "decodedHttpJsonBytes": 14348,
+        "wireBytes": 6616,
+        "transferBytes": 6916,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.100000023841858,
+        "lastByteMs": 24.700000017881393,
+        "decodedHttpJsonBytes": 14422,
+        "wireBytes": 6676,
+        "transferBytes": 6976,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.69999998807907,
+        "lastByteMs": 25.400000005960464,
+        "decodedHttpJsonBytes": 14587,
+        "wireBytes": 6557,
+        "transferBytes": 6857,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.19999998807907,
+        "lastByteMs": 24.099999994039536,
+        "decodedHttpJsonBytes": 14576,
+        "wireBytes": 6700,
+        "transferBytes": 7000,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.799999982118607,
+        "lastByteMs": 16.599999994039536,
+        "decodedHttpJsonBytes": 14285,
+        "wireBytes": 6666,
+        "transferBytes": 6966,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.30000001192093,
+        "lastByteMs": 18,
+        "decodedHttpJsonBytes": 14517,
+        "wireBytes": 6563,
+        "transferBytes": 6863,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.299999982118607,
+        "lastByteMs": 18.69999998807907,
+        "decodedHttpJsonBytes": 14426,
+        "wireBytes": 6639,
+        "transferBytes": 6939,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.599999994039536,
+        "lastByteMs": 18,
+        "decodedHttpJsonBytes": 14042,
+        "wireBytes": 6557,
+        "transferBytes": 6857,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.69999998807907,
+        "lastByteMs": 23.19999998807907,
+        "decodedHttpJsonBytes": 14462,
+        "wireBytes": 6664,
+        "transferBytes": 6964,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.400000005960464,
+        "lastByteMs": 24.099999994039536,
+        "decodedHttpJsonBytes": 14549,
+        "wireBytes": 6533,
+        "transferBytes": 6833,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.5,
+        "lastByteMs": 25.099999994039536,
+        "decodedHttpJsonBytes": 14395,
+        "wireBytes": 6647,
+        "transferBytes": 6947,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.900000005960464,
+        "lastByteMs": 24.5,
+        "decodedHttpJsonBytes": 14267,
+        "wireBytes": 6596,
+        "transferBytes": 6896,
+        "cacheControl": "private, max-age=118, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 12.599999994039536,
+        "lastByteMs": 13.5,
+        "decodedHttpJsonBytes": 14541,
+        "wireBytes": 6542,
+        "transferBytes": 6842,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.099999994039536,
+        "lastByteMs": 24.799999982118607,
+        "decodedHttpJsonBytes": 14408,
+        "wireBytes": 6598,
+        "transferBytes": 6898,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24,
+        "lastByteMs": 25.5,
+        "decodedHttpJsonBytes": 14346,
+        "wireBytes": 6669,
+        "transferBytes": 6969,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 32.099999994039536,
+        "lastByteMs": 32.599999994039536,
+        "decodedHttpJsonBytes": 14566,
+        "wireBytes": 6666,
+        "transferBytes": 6966,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 14.099999994039536,
+        "lastByteMs": 14.599999994039536,
+        "decodedHttpJsonBytes": 14609,
+        "wireBytes": 6668,
+        "transferBytes": 6968,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.400000005960464,
+        "lastByteMs": 19.80000001192093,
+        "decodedHttpJsonBytes": 14367,
+        "wireBytes": 6680,
+        "transferBytes": 6980,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 23.900000005960464,
+        "lastByteMs": 26.599999994039536,
+        "decodedHttpJsonBytes": 14449,
+        "wireBytes": 6669,
+        "transferBytes": 6969,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.69999998807907,
+        "lastByteMs": 26.899999976158142,
+        "decodedHttpJsonBytes": 14396,
+        "wireBytes": 6537,
+        "transferBytes": 6837,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.899999976158142,
+        "lastByteMs": 18.69999998807907,
+        "decodedHttpJsonBytes": 14524,
+        "wireBytes": 6614,
+        "transferBytes": 6914,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 12.5,
+        "lastByteMs": 12.900000005960464,
+        "decodedHttpJsonBytes": 15342,
+        "wireBytes": 7112,
+        "transferBytes": 7412,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.700000017881393,
+        "lastByteMs": 18.200000017881393,
+        "decodedHttpJsonBytes": 14490,
+        "wireBytes": 6662,
+        "transferBytes": 6962,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.5,
+        "lastByteMs": 19.69999998807907,
+        "decodedHttpJsonBytes": 14603,
+        "wireBytes": 6597,
+        "transferBytes": 6897,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 9.299999982118607,
+        "lastByteMs": 12.400000005960464,
+        "decodedHttpJsonBytes": 14181,
+        "wireBytes": 6601,
+        "transferBytes": 6901,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.900000005960464,
+        "lastByteMs": 18.30000001192093,
+        "decodedHttpJsonBytes": 14485,
+        "wireBytes": 6711,
+        "transferBytes": 7011,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 14.5,
+        "lastByteMs": 15,
+        "decodedHttpJsonBytes": 14518,
+        "wireBytes": 6580,
+        "transferBytes": 6880,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 10,
+        "lastByteMs": 11.400000005960464,
+        "decodedHttpJsonBytes": 14429,
+        "wireBytes": 6609,
+        "transferBytes": 6909,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 12.199999988079071,
+        "lastByteMs": 13.199999988079071,
+        "decodedHttpJsonBytes": 14077,
+        "wireBytes": 6596,
+        "transferBytes": 6896,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 13.699999988079071,
+        "lastByteMs": 14.099999994039536,
+        "decodedHttpJsonBytes": 14487,
+        "wireBytes": 6586,
+        "transferBytes": 6886,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.099999994039536,
+        "lastByteMs": 18.599999994039536,
+        "decodedHttpJsonBytes": 14523,
+        "wireBytes": 6626,
+        "transferBytes": 6926,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.599999994039536,
+        "lastByteMs": 23.900000005960464,
+        "decodedHttpJsonBytes": 14107,
+        "wireBytes": 6548,
+        "transferBytes": 6848,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 14.699999988079071,
+        "lastByteMs": 17.299999982118607,
+        "decodedHttpJsonBytes": 14403,
+        "wireBytes": 6594,
+        "transferBytes": 6894,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 14.799999982118607,
+        "lastByteMs": 15.400000005960464,
+        "decodedHttpJsonBytes": 14475,
+        "wireBytes": 6560,
+        "transferBytes": 6860,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.5,
+        "lastByteMs": 16.299999982118607,
+        "decodedHttpJsonBytes": 14470,
+        "wireBytes": 6657,
+        "transferBytes": 6957,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.400000005960464,
+        "lastByteMs": 17.900000005960464,
+        "decodedHttpJsonBytes": 15344,
+        "wireBytes": 7092,
+        "transferBytes": 7392,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.5,
+        "lastByteMs": 18.30000001192093,
+        "decodedHttpJsonBytes": 14525,
+        "wireBytes": 6573,
+        "transferBytes": 6873,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.30000001192093,
+        "lastByteMs": 19.099999994039536,
+        "decodedHttpJsonBytes": 14544,
+        "wireBytes": 6578,
+        "transferBytes": 6878,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 27.299999982118607,
+        "lastByteMs": 29,
+        "decodedHttpJsonBytes": 14102,
+        "wireBytes": 6550,
+        "transferBytes": 6850,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 27.099999994039536,
+        "lastByteMs": 29.5,
+        "decodedHttpJsonBytes": 14515,
+        "wireBytes": 6649,
+        "transferBytes": 6949,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 28.5,
+        "lastByteMs": 30.30000001192093,
+        "decodedHttpJsonBytes": 14524,
+        "wireBytes": 6549,
+        "transferBytes": 6849,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 28.400000005960464,
+        "lastByteMs": 30.69999998807907,
+        "decodedHttpJsonBytes": 14325,
+        "wireBytes": 6648,
+        "transferBytes": 6948,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 31.900000005960464,
+        "lastByteMs": 35.69999998807907,
+        "decodedHttpJsonBytes": 14428,
+        "wireBytes": 6646,
+        "transferBytes": 6946,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 29.899999976158142,
+        "lastByteMs": 35,
+        "decodedHttpJsonBytes": 14582,
+        "wireBytes": 6607,
+        "transferBytes": 6907,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 29.69999998807907,
+        "lastByteMs": 35.5,
+        "decodedHttpJsonBytes": 14464,
+        "wireBytes": 6630,
+        "transferBytes": 6930,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 28.099999994039536,
+        "lastByteMs": 32.30000001192093,
+        "decodedHttpJsonBytes": 14222,
+        "wireBytes": 6687,
+        "transferBytes": 6987,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.199999988079071,
+        "lastByteMs": 17.599999994039536,
+        "decodedHttpJsonBytes": 14524,
+        "wireBytes": 6595,
+        "transferBytes": 6895,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 14,
+        "lastByteMs": 14.800000011920929,
+        "decodedHttpJsonBytes": 14530,
+        "wireBytes": 6640,
+        "transferBytes": 6940,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16,
+        "lastByteMs": 17.69999998807907,
+        "decodedHttpJsonBytes": 14088,
+        "wireBytes": 6487,
+        "transferBytes": 6787,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16,
+        "lastByteMs": 18.19999998807907,
+        "decodedHttpJsonBytes": 14489,
+        "wireBytes": 6640,
+        "transferBytes": 6940,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.700000017881393,
+        "lastByteMs": 19.600000023841858,
+        "decodedHttpJsonBytes": 14555,
+        "wireBytes": 6629,
+        "transferBytes": 6929,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.5,
+        "lastByteMs": 20.5,
+        "decodedHttpJsonBytes": 14480,
+        "wireBytes": 6639,
+        "transferBytes": 6939,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.599999994039536,
+        "lastByteMs": 21.599999994039536,
+        "decodedHttpJsonBytes": 15344,
+        "wireBytes": 7083,
+        "transferBytes": 7383,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.400000005960464,
+        "lastByteMs": 22.400000005960464,
+        "decodedHttpJsonBytes": 14443,
+        "wireBytes": 6482,
+        "transferBytes": 6782,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 13.5,
+        "lastByteMs": 15.799999982118607,
+        "decodedHttpJsonBytes": 14397,
+        "wireBytes": 6546,
+        "transferBytes": 6846,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 13.300000011920929,
+        "lastByteMs": 14.400000005960464,
+        "decodedHttpJsonBytes": 14121,
+        "wireBytes": 6571,
+        "transferBytes": 6871,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 13.5,
+        "lastByteMs": 16,
+        "decodedHttpJsonBytes": 14469,
+        "wireBytes": 6563,
+        "transferBytes": 6863,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.799999982118607,
+        "lastByteMs": 21.299999982118607,
+        "decodedHttpJsonBytes": 14533,
+        "wireBytes": 6574,
+        "transferBytes": 6874,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 13.5,
+        "lastByteMs": 14.099999994039536,
+        "decodedHttpJsonBytes": 14341,
+        "wireBytes": 6627,
+        "transferBytes": 6927,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.400000005960464,
+        "lastByteMs": 15.900000005960464,
+        "decodedHttpJsonBytes": 15348,
+        "wireBytes": 7047,
+        "transferBytes": 7347,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.5,
+        "lastByteMs": 16.200000017881393,
+        "decodedHttpJsonBytes": 14468,
+        "wireBytes": 6604,
+        "transferBytes": 6904,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15,
+        "lastByteMs": 16.899999976158142,
+        "decodedHttpJsonBytes": 14604,
+        "wireBytes": 6579,
+        "transferBytes": 6879,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.599999994039536,
+        "lastByteMs": 26.80000001192093,
+        "decodedHttpJsonBytes": 14092,
+        "wireBytes": 6535,
+        "transferBytes": 6835,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 23.099999994039536,
+        "lastByteMs": 27.80000001192093,
+        "decodedHttpJsonBytes": 14360,
+        "wireBytes": 6557,
+        "transferBytes": 6857,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.5,
+        "lastByteMs": 25.69999998807907,
+        "decodedHttpJsonBytes": 14561,
+        "wireBytes": 6583,
+        "transferBytes": 6883,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.400000005960464,
+        "lastByteMs": 22.5,
+        "decodedHttpJsonBytes": 14330,
+        "wireBytes": 6614,
+        "transferBytes": 6914,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.099999994039536,
+        "lastByteMs": 25,
+        "decodedHttpJsonBytes": 14428,
+        "wireBytes": 6686,
+        "transferBytes": 6986,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19,
+        "lastByteMs": 20.69999998807907,
+        "decodedHttpJsonBytes": 14410,
+        "wireBytes": 6601,
+        "transferBytes": 6901,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.19999998807907,
+        "lastByteMs": 22.099999994039536,
+        "decodedHttpJsonBytes": 14415,
+        "wireBytes": 6609,
+        "transferBytes": 6909,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.80000001192093,
+        "lastByteMs": 24.400000005960464,
+        "decodedHttpJsonBytes": 15287,
+        "wireBytes": 7161,
+        "transferBytes": 7461,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.799999982118607,
+        "lastByteMs": 19.899999976158142,
+        "decodedHttpJsonBytes": 14544,
+        "wireBytes": 6625,
+        "transferBytes": 6925,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.100000023841858,
+        "lastByteMs": 17.900000005960464,
+        "decodedHttpJsonBytes": 14487,
+        "wireBytes": 6596,
+        "transferBytes": 6896,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15,
+        "lastByteMs": 15.699999988079071,
+        "decodedHttpJsonBytes": 14178,
+        "wireBytes": 6598,
+        "transferBytes": 6898,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.900000005960464,
+        "lastByteMs": 19.299999982118607,
+        "decodedHttpJsonBytes": 14440,
+        "wireBytes": 6633,
+        "transferBytes": 6933,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.900000005960464,
+        "lastByteMs": 19.100000023841858,
+        "decodedHttpJsonBytes": 14617,
+        "wireBytes": 6587,
+        "transferBytes": 6887,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.200000017881393,
+        "lastByteMs": 21.600000023841858,
+        "decodedHttpJsonBytes": 14486,
+        "wireBytes": 6565,
+        "transferBytes": 6865,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.400000005960464,
+        "lastByteMs": 23.30000001192093,
+        "decodedHttpJsonBytes": 15334,
+        "wireBytes": 7131,
+        "transferBytes": 7431,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22.69999998807907,
+        "lastByteMs": 24.599999994039536,
+        "decodedHttpJsonBytes": 14484,
+        "wireBytes": 6675,
+        "transferBytes": 6975,
+        "cacheControl": "private, max-age=117, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.299999982118607,
+        "lastByteMs": 18.19999998807907,
+        "decodedHttpJsonBytes": 14638,
+        "wireBytes": 6576,
+        "transferBytes": 6876,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 25,
+        "lastByteMs": 26.100000023841858,
+        "decodedHttpJsonBytes": 14058,
+        "wireBytes": 6499,
+        "transferBytes": 6799,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22,
+        "lastByteMs": 22.900000005960464,
+        "decodedHttpJsonBytes": 14374,
+        "wireBytes": 6688,
+        "transferBytes": 6988,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.30000001192093,
+        "lastByteMs": 26.200000017881393,
+        "decodedHttpJsonBytes": 14438,
+        "wireBytes": 6557,
+        "transferBytes": 6857,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.799999982118607,
+        "lastByteMs": 19.400000005960464,
+        "decodedHttpJsonBytes": 14434,
+        "wireBytes": 6641,
+        "transferBytes": 6941,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 25.299999982118607,
+        "lastByteMs": 26.69999998807907,
+        "decodedHttpJsonBytes": 14356,
+        "wireBytes": 6645,
+        "transferBytes": 6945,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.200000017881393,
+        "lastByteMs": 20.700000017881393,
+        "decodedHttpJsonBytes": 14439,
+        "wireBytes": 6511,
+        "transferBytes": 6811,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.400000005960464,
+        "lastByteMs": 27.80000001192093,
+        "decodedHttpJsonBytes": 14622,
+        "wireBytes": 6647,
+        "transferBytes": 6947,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.30000001192093,
+        "lastByteMs": 17.600000023841858,
+        "decodedHttpJsonBytes": 14340,
+        "wireBytes": 6727,
+        "transferBytes": 7027,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 11.5,
+        "lastByteMs": 11.900000005960464,
+        "decodedHttpJsonBytes": 14523,
+        "wireBytes": 6638,
+        "transferBytes": 6938,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 14.399999976158142,
+        "lastByteMs": 15.5,
+        "decodedHttpJsonBytes": 14618,
+        "wireBytes": 6641,
+        "transferBytes": 6941,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 10.699999988079071,
+        "lastByteMs": 11.900000005960464,
+        "decodedHttpJsonBytes": 14243,
+        "wireBytes": 6640,
+        "transferBytes": 6940,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 11.700000017881393,
+        "lastByteMs": 14.599999994039536,
+        "decodedHttpJsonBytes": 14369,
+        "wireBytes": 6604,
+        "transferBytes": 6904,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.400000005960464,
+        "lastByteMs": 27,
+        "decodedHttpJsonBytes": 14484,
+        "wireBytes": 6542,
+        "transferBytes": 6842,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.69999998807907,
+        "lastByteMs": 25.5,
+        "decodedHttpJsonBytes": 14442,
+        "wireBytes": 6621,
+        "transferBytes": 6921,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.400000005960464,
+        "lastByteMs": 20.30000001192093,
+        "decodedHttpJsonBytes": 14040,
+        "wireBytes": 6579,
+        "transferBytes": 6879,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.399999976158142,
+        "lastByteMs": 19.19999998807907,
+        "decodedHttpJsonBytes": 14532,
+        "wireBytes": 6662,
+        "transferBytes": 6962,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.19999998807907,
+        "lastByteMs": 26,
+        "decodedHttpJsonBytes": 14395,
+        "wireBytes": 6639,
+        "transferBytes": 6939,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.19999998807907,
+        "lastByteMs": 23.80000001192093,
+        "decodedHttpJsonBytes": 14190,
+        "wireBytes": 6592,
+        "transferBytes": 6892,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.5,
+        "lastByteMs": 27.399999976158142,
+        "decodedHttpJsonBytes": 14404,
+        "wireBytes": 6561,
+        "transferBytes": 6861,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 22,
+        "lastByteMs": 25.599999994039536,
+        "decodedHttpJsonBytes": 14395,
+        "wireBytes": 6509,
+        "transferBytes": 6809,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.699999988079071,
+        "lastByteMs": 19.69999998807907,
+        "decodedHttpJsonBytes": 14387,
+        "wireBytes": 6604,
+        "transferBytes": 6904,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 15.5,
+        "lastByteMs": 17.900000005960464,
+        "decodedHttpJsonBytes": 14506,
+        "wireBytes": 6712,
+        "transferBytes": 7012,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 17.399999976158142,
+        "lastByteMs": 20.5,
+        "decodedHttpJsonBytes": 14616,
+        "wireBytes": 6579,
+        "transferBytes": 6879,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.5,
+        "lastByteMs": 20.099999994039536,
+        "decodedHttpJsonBytes": 14481,
+        "wireBytes": 6604,
+        "transferBytes": 6904,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.200000017881393,
+        "lastByteMs": 28.30000001192093,
+        "decodedHttpJsonBytes": 14243,
+        "wireBytes": 6697,
+        "transferBytes": 6997,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.899999976158142,
+        "lastByteMs": 26.5,
+        "decodedHttpJsonBytes": 14501,
+        "wireBytes": 6611,
+        "transferBytes": 6911,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 25.400000005960464,
+        "lastByteMs": 28.400000005960464,
+        "decodedHttpJsonBytes": 14448,
+        "wireBytes": 6570,
+        "transferBytes": 6870,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 29.200000017881393,
+        "lastByteMs": 29.5,
+        "decodedHttpJsonBytes": 14054,
+        "wireBytes": 6530,
+        "transferBytes": 6830,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 19.30000001192093,
+        "lastByteMs": 19.80000001192093,
+        "decodedHttpJsonBytes": 14505,
+        "wireBytes": 6580,
+        "transferBytes": 6880,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 23.19999998807907,
+        "lastByteMs": 25.69999998807907,
+        "decodedHttpJsonBytes": 14496,
+        "wireBytes": 6645,
+        "transferBytes": 6945,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.5,
+        "lastByteMs": 22.80000001192093,
+        "decodedHttpJsonBytes": 14293,
+        "wireBytes": 6566,
+        "transferBytes": 6866,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.30000001192093,
+        "lastByteMs": 25.80000001192093,
+        "decodedHttpJsonBytes": 14425,
+        "wireBytes": 6618,
+        "transferBytes": 6918,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.799999982118607,
+        "lastByteMs": 26.299999982118607,
+        "decodedHttpJsonBytes": 14636,
+        "wireBytes": 6628,
+        "transferBytes": 6928,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16.69999998807907,
+        "lastByteMs": 24.799999982118607,
+        "decodedHttpJsonBytes": 14533,
+        "wireBytes": 6643,
+        "transferBytes": 6943,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 20.900000005960464,
+        "lastByteMs": 27.30000001192093,
+        "decodedHttpJsonBytes": 14275,
+        "wireBytes": 6652,
+        "transferBytes": 6952,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 23.400000005960464,
+        "lastByteMs": 28.099999994039536,
+        "decodedHttpJsonBytes": 14399,
+        "wireBytes": 6591,
+        "transferBytes": 6891,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.200000017881393,
+        "lastByteMs": 26.80000001192093,
+        "decodedHttpJsonBytes": 14520,
+        "wireBytes": 6498,
+        "transferBytes": 6798,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 70.60000002384186,
+        "lastByteMs": 71.60000002384186,
+        "decodedHttpJsonBytes": 14135,
+        "wireBytes": 6555,
+        "transferBytes": 6855,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 70.39999997615814,
+        "lastByteMs": 70.7999999821186,
+        "decodedHttpJsonBytes": 14408,
+        "wireBytes": 6617,
+        "transferBytes": 6917,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 62.5,
+        "lastByteMs": 67.2000000178814,
+        "decodedHttpJsonBytes": 14660,
+        "wireBytes": 6675,
+        "transferBytes": 6975,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21.200000017881393,
+        "lastByteMs": 23.400000005960464,
+        "decodedHttpJsonBytes": 14482,
+        "wireBytes": 6634,
+        "transferBytes": 6934,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 25.69999998807907,
+        "lastByteMs": 30.299999982118607,
+        "decodedHttpJsonBytes": 14362,
+        "wireBytes": 6695,
+        "transferBytes": 6995,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 23,
+        "lastByteMs": 25.599999994039536,
+        "decodedHttpJsonBytes": 14458,
+        "wireBytes": 6555,
+        "transferBytes": 6855,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 26.099999994039536,
+        "lastByteMs": 32.900000005960464,
+        "decodedHttpJsonBytes": 14451,
+        "wireBytes": 6577,
+        "transferBytes": 6877,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 21,
+        "lastByteMs": 24.900000005960464,
+        "decodedHttpJsonBytes": 14303,
+        "wireBytes": 6644,
+        "transferBytes": 6944,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 24.19999998807907,
+        "lastByteMs": 26.099999994039536,
+        "decodedHttpJsonBytes": 14534,
+        "wireBytes": 6685,
+        "transferBytes": 6985,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 23.69999998807907,
+        "lastByteMs": 25.69999998807907,
+        "decodedHttpJsonBytes": 14498,
+        "wireBytes": 6562,
+        "transferBytes": 6862,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 23.200000017881393,
+        "lastByteMs": 23.80000001192093,
+        "decodedHttpJsonBytes": 14294,
+        "wireBytes": 6627,
+        "transferBytes": 6927,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 18.599999994039536,
+        "lastByteMs": 20.19999998807907,
+        "decodedHttpJsonBytes": 2679,
+        "wireBytes": 1377,
+        "transferBytes": 1677,
+        "cacheControl": "private, max-age=116, immutable",
+        "contentEncoding": "br"
+      }
+    ],
+    "warmChunkNetworkSamples": [
+      {
+        "ttfbMs": 28,
+        "lastByteMs": 44.400000005960464,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 16,
+        "lastByteMs": 16.30000001192093,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 13,
+        "lastByteMs": 13.400000005960464,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 9.199999988079071,
+        "lastByteMs": 9.799999982118607,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 8.599999994039536,
+        "lastByteMs": 9.299999982118607,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 9.100000023841858,
+        "lastByteMs": 9.400000005960464,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 7.9000000059604645,
+        "lastByteMs": 8.5,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 12.299999982118607,
+        "lastByteMs": 12.900000005960464,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 9.400000005960464,
+        "lastByteMs": 9.900000005960464,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      },
+      {
+        "ttfbMs": 9,
+        "lastByteMs": 9.5,
+        "decodedHttpJsonBytes": 13148,
+        "wireBytes": 4102,
+        "transferBytes": 4402,
+        "cacheControl": "private, max-age=113, immutable",
+        "contentEncoding": "br"
+      }
+    ],
+    "warmManifestP95Ms": 15.5,
+    "firstPassChunksP95Ms": 31,
+    "warmChunkNetworkP95Ms": 44.400000005960464,
+    "allChunksCompletedMs": 3377.8878449999997,
+    "reconstructedCatalogueJsonBytes": 6560246,
+    "legacyDecodedHttpJsonBytes": 6560314,
+    "aggregateDecodedHttpJsonBytes": 2857487,
+    "aggregateWireBytes": 1301876,
+    "maxChunkDecodedHttpJsonBytes": 15348,
+    "budgets": {
+      "coldManifestUnder30ms": false,
+      "warmManifestP95Under30ms": true,
+      "firstPassChunksP95Under30ms": false,
+      "warmChunkNetworkP95Under30ms": false,
+      "everyChunkHttpJsonUnder15KiB": true,
+      "reconstructedCatalogueJsonUnder15KiB": false,
+      "aggregateHttpJsonUnder15KiB": false
+    },
+    "note": "Per-chunk HTTP JSON budget is separate from the full reconstructed catalogue and total transfer. Existing legacy endpoint metrics remain unchanged in qa-metrics.spec.mjs."
+  },
+  "activeFrontend": {
+    "displayedMovies": 50,
+    "expectedMovies": 50,
+    "chunks": 200,
+    "reloadedChunkResources": [
+      {
+        "durationMs": 9.599999994039536,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 13118,
+        "wireBytes": 4062
+      },
+      {
+        "durationMs": 9.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 1236,
+        "wireBytes": 794
+      },
+      {
+        "durationMs": 9.599999994039536,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14163,
+        "wireBytes": 4817
+      },
+      {
+        "durationMs": 9.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 13259,
+        "wireBytes": 5080
+      },
+      {
+        "durationMs": 13.199999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 4106,
+        "wireBytes": 2046
+      },
+      {
+        "durationMs": 12.900000005960464,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15159,
+        "wireBytes": 7017
+      },
+      {
+        "durationMs": 12.799999982118607,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14216,
+        "wireBytes": 6196
+      },
+      {
+        "durationMs": 12.599999994039536,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15151,
+        "wireBytes": 6963
+      },
+      {
+        "durationMs": 1.699999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14475,
+        "wireBytes": 6303
+      },
+      {
+        "durationMs": 2.2000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14299,
+        "wireBytes": 6609
+      },
+      {
+        "durationMs": 2,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14480,
+        "wireBytes": 6410
+      },
+      {
+        "durationMs": 1.800000011920929,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14322,
+        "wireBytes": 6578
+      },
+      {
+        "durationMs": 1.2000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14545,
+        "wireBytes": 6542
+      },
+      {
+        "durationMs": 1.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14390,
+        "wireBytes": 6621
+      },
+      {
+        "durationMs": 3,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14423,
+        "wireBytes": 6555
+      },
+      {
+        "durationMs": 2.600000023841858,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14352,
+        "wireBytes": 6565
+      },
+      {
+        "durationMs": 2.2000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14512,
+        "wireBytes": 6532
+      },
+      {
+        "durationMs": 1.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14329,
+        "wireBytes": 6588
+      },
+      {
+        "durationMs": 3.9000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14540,
+        "wireBytes": 6445
+      },
+      {
+        "durationMs": 3.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14394,
+        "wireBytes": 6489
+      },
+      {
+        "durationMs": 6.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14556,
+        "wireBytes": 6588
+      },
+      {
+        "durationMs": 9,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14371,
+        "wireBytes": 6635
+      },
+      {
+        "durationMs": 5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14592,
+        "wireBytes": 6621
+      },
+      {
+        "durationMs": 5.0999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14292,
+        "wireBytes": 6473
+      },
+      {
+        "durationMs": 5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14513,
+        "wireBytes": 6628
+      },
+      {
+        "durationMs": 5.199999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14537,
+        "wireBytes": 6515
+      },
+      {
+        "durationMs": 0.800000011920929,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14515,
+        "wireBytes": 6653
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14372,
+        "wireBytes": 6394
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15299,
+        "wireBytes": 7032
+      },
+      {
+        "durationMs": 0.8999999761581421,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14157,
+        "wireBytes": 6184
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14942,
+        "wireBytes": 6956
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14436,
+        "wireBytes": 6270
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14299,
+        "wireBytes": 6616
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14464,
+        "wireBytes": 6366
+      },
+      {
+        "durationMs": 0.800000011920929,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14336,
+        "wireBytes": 6599
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14498,
+        "wireBytes": 6504
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14432,
+        "wireBytes": 6534
+      },
+      {
+        "durationMs": 0.699999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14475,
+        "wireBytes": 6498
+      },
+      {
+        "durationMs": 2.0999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14357,
+        "wireBytes": 6491
+      },
+      {
+        "durationMs": 3.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14486,
+        "wireBytes": 6621
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14488,
+        "wireBytes": 6560
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14455,
+        "wireBytes": 6690
+      },
+      {
+        "durationMs": 0.7999999821186066,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14429,
+        "wireBytes": 6395
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15048,
+        "wireBytes": 6974
+      },
+      {
+        "durationMs": 0.9000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14226,
+        "wireBytes": 6230
+      },
+      {
+        "durationMs": 0.699999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15329,
+        "wireBytes": 7074
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14426,
+        "wireBytes": 6315
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14317,
+        "wireBytes": 6562
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14409,
+        "wireBytes": 6412
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14117,
+        "wireBytes": 6492
+      },
+      {
+        "durationMs": 0.9000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14472,
+        "wireBytes": 6604
+      },
+      {
+        "durationMs": 0.800000011920929,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14745,
+        "wireBytes": 6587
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14441,
+        "wireBytes": 6612
+      },
+      {
+        "durationMs": 1.199999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14466,
+        "wireBytes": 6328
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15093,
+        "wireBytes": 6985
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14365,
+        "wireBytes": 6271
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15232,
+        "wireBytes": 7064
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14611,
+        "wireBytes": 6703
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14550,
+        "wireBytes": 6631
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14225,
+        "wireBytes": 6642
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14501,
+        "wireBytes": 6619
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14475,
+        "wireBytes": 6542
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14263,
+        "wireBytes": 6599
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14456,
+        "wireBytes": 6639
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14553,
+        "wireBytes": 6679
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14532,
+        "wireBytes": 6657
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14120,
+        "wireBytes": 6678
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14365,
+        "wireBytes": 6530
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14507,
+        "wireBytes": 6606
+      },
+      {
+        "durationMs": 0.699999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14115,
+        "wireBytes": 6564
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14492,
+        "wireBytes": 6613
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14530,
+        "wireBytes": 6593
+      },
+      {
+        "durationMs": 0.800000011920929,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14348,
+        "wireBytes": 6616
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14422,
+        "wireBytes": 6676
+      },
+      {
+        "durationMs": 0.7999999821186066,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14587,
+        "wireBytes": 6556
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14576,
+        "wireBytes": 6700
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14285,
+        "wireBytes": 6671
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14517,
+        "wireBytes": 6564
+      },
+      {
+        "durationMs": 1.2000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14426,
+        "wireBytes": 6637
+      },
+      {
+        "durationMs": 1.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14042,
+        "wireBytes": 6557
+      },
+      {
+        "durationMs": 1.300000011920929,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14462,
+        "wireBytes": 6665
+      },
+      {
+        "durationMs": 1.2999999821186066,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14549,
+        "wireBytes": 6534
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14395,
+        "wireBytes": 6645
+      },
+      {
+        "durationMs": 1.2000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14267,
+        "wireBytes": 6601
+      },
+      {
+        "durationMs": 1.199999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14541,
+        "wireBytes": 6542
+      },
+      {
+        "durationMs": 1.199999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14408,
+        "wireBytes": 6597
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14346,
+        "wireBytes": 6674
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14566,
+        "wireBytes": 6666
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14609,
+        "wireBytes": 6667
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14367,
+        "wireBytes": 6680
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14449,
+        "wireBytes": 6676
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14396,
+        "wireBytes": 6537
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14524,
+        "wireBytes": 6613
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15342,
+        "wireBytes": 7113
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14490,
+        "wireBytes": 6659
+      },
+      {
+        "durationMs": 1.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14603,
+        "wireBytes": 6598
+      },
+      {
+        "durationMs": 1.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14181,
+        "wireBytes": 6600
+      },
+      {
+        "durationMs": 1.600000023841858,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14485,
+        "wireBytes": 6709
+      },
+      {
+        "durationMs": 1.100000023841858,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14518,
+        "wireBytes": 6578
+      },
+      {
+        "durationMs": 0.7999999821186066,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14429,
+        "wireBytes": 6610
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14077,
+        "wireBytes": 6596
+      },
+      {
+        "durationMs": 0.800000011920929,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14487,
+        "wireBytes": 6586
+      },
+      {
+        "durationMs": 0.9000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14523,
+        "wireBytes": 6626
+      },
+      {
+        "durationMs": 1.0999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14107,
+        "wireBytes": 6549
+      },
+      {
+        "durationMs": 1.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14403,
+        "wireBytes": 6592
+      },
+      {
+        "durationMs": 1.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14475,
+        "wireBytes": 6560
+      },
+      {
+        "durationMs": 1.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14470,
+        "wireBytes": 6655
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15344,
+        "wireBytes": 7092
+      },
+      {
+        "durationMs": 0.800000011920929,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14525,
+        "wireBytes": 6573
+      },
+      {
+        "durationMs": 1.100000023841858,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14544,
+        "wireBytes": 6578
+      },
+      {
+        "durationMs": 0.699999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14102,
+        "wireBytes": 6551
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14515,
+        "wireBytes": 6648
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14524,
+        "wireBytes": 6549
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14325,
+        "wireBytes": 6647
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14428,
+        "wireBytes": 6644
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14582,
+        "wireBytes": 6609
+      },
+      {
+        "durationMs": 0.699999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14464,
+        "wireBytes": 6630
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14222,
+        "wireBytes": 6685
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14524,
+        "wireBytes": 6596
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14530,
+        "wireBytes": 6639
+      },
+      {
+        "durationMs": 0.7999999821186066,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14088,
+        "wireBytes": 6486
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14489,
+        "wireBytes": 6641
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14555,
+        "wireBytes": 6627
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14480,
+        "wireBytes": 6634
+      },
+      {
+        "durationMs": 2.199999988079071,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15344,
+        "wireBytes": 7081
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14443,
+        "wireBytes": 6482
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14397,
+        "wireBytes": 6545
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14121,
+        "wireBytes": 6571
+      },
+      {
+        "durationMs": 0.9000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14469,
+        "wireBytes": 6561
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14533,
+        "wireBytes": 6574
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14341,
+        "wireBytes": 6627
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15348,
+        "wireBytes": 7049
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14468,
+        "wireBytes": 6603
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14604,
+        "wireBytes": 6579
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14092,
+        "wireBytes": 6535
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14360,
+        "wireBytes": 6558
+      },
+      {
+        "durationMs": 2.2000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14561,
+        "wireBytes": 6581
+      },
+      {
+        "durationMs": 1.9000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14330,
+        "wireBytes": 6614
+      },
+      {
+        "durationMs": 1.899999976158142,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14428,
+        "wireBytes": 6685
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14410,
+        "wireBytes": 6599
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14415,
+        "wireBytes": 6605
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15287,
+        "wireBytes": 7162
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14544,
+        "wireBytes": 6625
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14487,
+        "wireBytes": 6595
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14178,
+        "wireBytes": 6598
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14440,
+        "wireBytes": 6633
+      },
+      {
+        "durationMs": 0.3999999761581421,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14617,
+        "wireBytes": 6588
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14486,
+        "wireBytes": 6564
+      },
+      {
+        "durationMs": 0.8999999761581421,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 15334,
+        "wireBytes": 7127
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14484,
+        "wireBytes": 6675
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14638,
+        "wireBytes": 6575
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14058,
+        "wireBytes": 6496
+      },
+      {
+        "durationMs": 0.3999999761581421,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14374,
+        "wireBytes": 6688
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14438,
+        "wireBytes": 6558
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14434,
+        "wireBytes": 6640
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14356,
+        "wireBytes": 6651
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14439,
+        "wireBytes": 6512
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14622,
+        "wireBytes": 6646
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14340,
+        "wireBytes": 6727
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14523,
+        "wireBytes": 6635
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14618,
+        "wireBytes": 6638
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14243,
+        "wireBytes": 6637
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14369,
+        "wireBytes": 6604
+      },
+      {
+        "durationMs": 0.3999999761581421,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14484,
+        "wireBytes": 6543
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14442,
+        "wireBytes": 6621
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14040,
+        "wireBytes": 6578
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14532,
+        "wireBytes": 6662
+      },
+      {
+        "durationMs": 1,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14395,
+        "wireBytes": 6639
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14190,
+        "wireBytes": 6592
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14404,
+        "wireBytes": 6564
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14395,
+        "wireBytes": 6506
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14387,
+        "wireBytes": 6604
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14506,
+        "wireBytes": 6726
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14616,
+        "wireBytes": 6585
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14481,
+        "wireBytes": 6602
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14243,
+        "wireBytes": 6698
+      },
+      {
+        "durationMs": 0.9000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14501,
+        "wireBytes": 6610
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14448,
+        "wireBytes": 6567
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14054,
+        "wireBytes": 6529
+      },
+      {
+        "durationMs": 0.6000000238418579,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14505,
+        "wireBytes": 6580
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14496,
+        "wireBytes": 6644
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14293,
+        "wireBytes": 6565
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14425,
+        "wireBytes": 6619
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14636,
+        "wireBytes": 6626
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14533,
+        "wireBytes": 6643
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14275,
+        "wireBytes": 6656
+      },
+      {
+        "durationMs": 0.5999999940395355,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14399,
+        "wireBytes": 6593
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14520,
+        "wireBytes": 6497
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14135,
+        "wireBytes": 6553
+      },
+      {
+        "durationMs": 0.4000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14408,
+        "wireBytes": 6615
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14660,
+        "wireBytes": 6676
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14482,
+        "wireBytes": 6631
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14362,
+        "wireBytes": 6695
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14458,
+        "wireBytes": 6555
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14451,
+        "wireBytes": 6575
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14303,
+        "wireBytes": 6642
+      },
+      {
+        "durationMs": 0.9000000059604645,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14534,
+        "wireBytes": 6685
+      },
+      {
+        "durationMs": 0.30000001192092896,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14498,
+        "wireBytes": 6563
+      },
+      {
+        "durationMs": 0.5,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 14294,
+        "wireBytes": 6626
+      },
+      {
+        "durationMs": 0.7000000178813934,
+        "transferBytes": 0,
+        "decodedHttpJsonBytes": 2679,
+        "wireBytes": 1377
+      }
+    ],
+    "browserCacheHits": 200,
+    "contentNegotiation": [
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 1236
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14163
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 13118
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 13259
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 4106
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15159
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14216
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15151
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14475
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14299
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14480
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14322
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14545
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14390
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14352
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14423
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14512
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14329
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14540
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14394
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14556
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14371
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14592
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14292
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14513
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14537
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14515
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14372
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15299
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14157
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14942
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14299
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14464
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14436
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14336
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14498
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14432
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14357
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14475
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14486
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14488
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14455
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14429
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15048
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14226
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15329
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14317
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14426
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14409
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14117
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14472
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14745
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14441
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15093
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14466
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14365
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15232
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14611
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14550
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14225
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14501
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14475
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14263
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14456
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14553
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14532
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14365
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14120
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14507
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14115
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14492
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14530
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14348
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14422
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14587
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14576
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14285
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14517
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14426
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14042
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14395
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14549
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14462
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14267
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14541
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14408
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14346
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14566
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14367
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14609
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14449
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14396
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14524
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15342
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14603
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14490
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14181
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14485
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14518
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14429
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14077
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14487
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14523
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14107
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14403
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14475
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14470
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15344
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14525
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14102
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14544
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14515
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14524
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14325
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14582
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14428
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14464
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14222
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14524
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14088
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14530
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14489
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14555
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14480
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15344
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14443
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14121
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14397
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14469
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14533
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15348
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14341
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14468
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14092
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14360
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14604
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14561
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14330
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14410
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14428
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14415
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15287
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14544
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14178
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14487
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14440
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14617
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14486
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14484
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 15334
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14638
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14058
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14374
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14438
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14434
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14356
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14439
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14340
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14622
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14523
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14243
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14369
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14618
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14484
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14442
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14040
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14532
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14395
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14190
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14404
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14395
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14387
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14506
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14616
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14481
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14243
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14501
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14448
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14505
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14054
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14496
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14293
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14425
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14636
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14533
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14275
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14399
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14408
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14520
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14135
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14660
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14482
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14362
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14458
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14451
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14534
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14498
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14294
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 14303
+      },
+      {
+        "offered": "gzip, deflate, br, zstd",
+        "selected": "br",
+        "decodedBytes": 2679
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 13118
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 1236
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14163
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 13259
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 4106
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15159
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14216
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15151
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14475
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14299
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14480
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14322
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14545
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14390
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14423
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14352
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14512
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14329
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14540
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14394
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14556
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14371
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14592
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14292
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14513
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14537
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14515
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14372
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15299
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14157
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14942
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14436
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14299
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14464
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14336
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14498
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14432
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14475
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14357
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14486
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14488
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14455
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14429
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15048
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14226
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15329
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14426
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14317
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14409
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14117
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14472
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14745
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14441
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14466
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15093
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14365
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15232
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14611
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14550
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14225
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14501
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14475
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14263
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14456
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14553
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14532
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14120
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14365
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14507
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14115
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14492
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14530
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14348
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14422
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14587
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14576
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14285
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14517
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14426
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14042
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14462
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14549
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14395
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14267
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14541
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14408
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14346
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14566
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14609
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14367
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14449
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14396
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14524
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15342
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14490
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14603
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14181
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14485
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14518
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14429
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14077
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14487
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14523
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14107
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14403
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14475
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14470
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15344
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14525
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14544
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14102
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14515
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14524
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14325
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14428
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14582
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14464
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14222
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14524
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14530
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14088
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14489
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14555
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14480
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15344
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14443
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14397
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14121
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14469
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14533
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14341
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15348
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14468
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14604
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14092
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14360
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14561
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14330
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14428
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14410
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14415
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15287
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14544
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14487
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14178
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14440
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14617
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14486
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 15334
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14484
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14638
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14058
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14374
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14438
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14434
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14356
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14439
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14622
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14340
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14523
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14618
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14243
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14369
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14484
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14442
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14040
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14532
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14395
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14190
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14404
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14395
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14387
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14506
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14616
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14481
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14243
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14501
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14448
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14054
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14505
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14496
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14293
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14425
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14636
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14533
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14275
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14399
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14520
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14135
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14408
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14660
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14482
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14362
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14458
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14451
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14303
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14534
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14498
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 14294
+      },
+      {
+        "offered": "",
+        "selected": "br",
+        "decodedBytes": 2679
+      }
+    ],
+    "eligibleBrowserBrotliResponses": 200,
+    "note": "transferSize=0 verifies browser HTTP cache, not a sub-30ms backend roundtrip; manifest remains network/no-store."
+  }
+}

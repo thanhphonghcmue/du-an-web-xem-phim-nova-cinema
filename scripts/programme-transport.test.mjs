@@ -165,3 +165,32 @@ test("expired immutable snapshot is retried once without mixing old/new rows", a
   assert.equal(manifests, 2);
   assert.deepEqual(result, original);
 });
+
+test("chunk throttling aborts partial reads and uses one real legacy snapshot without masking outages", async () => {
+  const original = fixture(40),
+    { manifest } = codec.encodeProgramme(original);
+  for (const status of [429, 503]) {
+    const caller = new AbortController();
+    let legacy = 0;
+    const chunkSignals = [];
+    const task = loadProgramme(async (path, options) => {
+      if (path.endsWith("/manifest")) return manifest;
+      if (path === "/showtimes/programme") {
+        legacy++;
+        assert.equal(options.signal, caller.signal);
+        return original;
+      }
+      chunkSignals.push(options.signal);
+      throw Object.assign(new Error("transport error"), { status });
+    }, caller.signal);
+    if (status === 429) {
+      assert.deepEqual(await task, original);
+      assert.equal(legacy, 1);
+    } else {
+      await assert.rejects(task, { status: 503 });
+      assert.equal(legacy, 0);
+    }
+    assert.ok(chunkSignals.length > 0 && chunkSignals.every((s) => s.aborted));
+    assert.equal(caller.signal.aborted, false);
+  }
+});

@@ -1,0 +1,416 @@
+{
+  "measuredAt": "2026-10-29T18:29:40.264Z",
+  "frontend": "Next BFF",
+  "network": "loopback; includes first potentially cold sample; not WAN/SLA",
+  "samplesPerResource": 10,
+  "measurements": [
+    {
+      "resource": "movies",
+      "samples": [
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 58.30000001192093,
+          "lastByteMs": 152.30000001192093,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 45.60000002384186,
+          "lastByteMs": 47.30000001192093,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 54.099999994039536,
+          "lastByteMs": 71.90000000596046,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 19.19999998807907,
+          "lastByteMs": 22.099999994039536,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 35.30000001192093,
+          "lastByteMs": 38.19999998807907,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 17.69999998807907,
+          "lastByteMs": 18.69999998807907,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 24.19999998807907,
+          "lastByteMs": 25.399999976158142,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 21.299999982118607,
+          "lastByteMs": 21.599999994039536,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 115.40000000596046,
+          "lastByteMs": 136.90000000596046,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 24.5,
+          "lastByteMs": 29.400000005960464,
+          "decodedBytes": 32950,
+          "wireBytes": 4782,
+          "seatsEmbeddedInCatalogue": false
+        }
+      ],
+      "p50LastByteMs": 29.400000005960464,
+      "p95LastByteMs": 152.30000001192093,
+      "budgets": {
+        "lastByteUnder30ms": false,
+        "wireUnder15KiB": true,
+        "decodedJsonUnder15KiB": false
+      }
+    },
+    {
+      "resource": "cinemas",
+      "samples": [
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 34.19999998807907,
+          "lastByteMs": 34.599999994039536,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 15.900000005960464,
+          "lastByteMs": 18.200000017881393,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 23.799999982118607,
+          "lastByteMs": 33.599999994039536,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 26.299999982118607,
+          "lastByteMs": 29.799999982118607,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 28.099999994039536,
+          "lastByteMs": 28.69999998807907,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 17.200000017881393,
+          "lastByteMs": 32.20000001788139,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 27.400000005960464,
+          "lastByteMs": 29.69999998807907,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 25.5,
+          "lastByteMs": 27.400000005960464,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 27.69999998807907,
+          "lastByteMs": 34.099999994039536,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 21.400000005960464,
+          "lastByteMs": 22.299999982118607,
+          "decodedBytes": 1700,
+          "wireBytes": 724,
+          "seatsEmbeddedInCatalogue": false
+        }
+      ],
+      "p50LastByteMs": 29.69999998807907,
+      "p95LastByteMs": 34.599999994039536,
+      "budgets": {
+        "lastByteUnder30ms": false,
+        "wireUnder15KiB": true,
+        "decodedJsonUnder15KiB": true
+      }
+    },
+    {
+      "resource": "programme",
+      "samples": [
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 616.7000000178814,
+          "lastByteMs": 762.2000000178814,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 137.09999999403954,
+          "lastByteMs": 181.40000000596046,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 138.69999998807907,
+          "lastByteMs": 184.5,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 125.90000000596046,
+          "lastByteMs": 181.40000000596046,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 119.2000000178814,
+          "lastByteMs": 161.2000000178814,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 87.80000001192093,
+          "lastByteMs": 153.2000000178814,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 138.19999998807907,
+          "lastByteMs": 191.09999999403954,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 114.09999999403954,
+          "lastByteMs": 166.5,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 107.19999998807907,
+          "lastByteMs": 151.59999999403954,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 118.7000000178814,
+          "lastByteMs": 158.60000002384186,
+          "decodedBytes": 6560284,
+          "wireBytes": 709336,
+          "seatsEmbeddedInCatalogue": false
+        }
+      ],
+      "p50LastByteMs": 166.5,
+      "p95LastByteMs": 762.2000000178814,
+      "budgets": {
+        "lastByteUnder30ms": false,
+        "wireUnder15KiB": false,
+        "decodedJsonUnder15KiB": false
+      }
+    },
+    {
+      "resource": "seats",
+      "samples": [
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 43.39999997615814,
+          "lastByteMs": 44.19999998807907,
+          "decodedBytes": 9060,
+          "wireBytes": 1808,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 22.100000023841858,
+          "lastByteMs": 32.900000005960464,
+          "decodedBytes": 9060,
+          "wireBytes": 1808,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 20.69999998807907,
+          "lastByteMs": 21.19999998807907,
+          "decodedBytes": 9060,
+          "wireBytes": 1809,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 24.69999998807907,
+          "lastByteMs": 25.30000001192093,
+          "decodedBytes": 9060,
+          "wireBytes": 1808,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 23.69999998807907,
+          "lastByteMs": 24.19999998807907,
+          "decodedBytes": 9060,
+          "wireBytes": 1808,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 22.799999982118607,
+          "lastByteMs": 23.299999982118607,
+          "decodedBytes": 9060,
+          "wireBytes": 1809,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 25.700000017881393,
+          "lastByteMs": 26.80000001192093,
+          "decodedBytes": 9060,
+          "wireBytes": 1808,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 22.69999998807907,
+          "lastByteMs": 23.19999998807907,
+          "decodedBytes": 9060,
+          "wireBytes": 1809,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 24.80000001192093,
+          "lastByteMs": 25.30000001192093,
+          "decodedBytes": 9060,
+          "wireBytes": 1808,
+          "seatsEmbeddedInCatalogue": false
+        },
+        {
+          "status": 200,
+          "success": true,
+          "ttfbMs": 24.299999982118607,
+          "lastByteMs": 24.900000005960464,
+          "decodedBytes": 9060,
+          "wireBytes": 1809,
+          "seatsEmbeddedInCatalogue": false
+        }
+      ],
+      "p50LastByteMs": 24.900000005960464,
+      "p95LastByteMs": 44.19999998807907,
+      "budgets": {
+        "lastByteUnder30ms": false,
+        "wireUnder15KiB": true,
+        "decodedJsonUnder15KiB": true
+      }
+    }
+  ]
+}

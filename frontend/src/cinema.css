@@ -1473,10 +1473,17 @@ select:focus-visible {
   width: 100%;
   max-width: none;
   max-height: none;
-  padding: 0 25px 25px;
+  display: grid;
+  grid-template-columns: 25px minmax(0, 1fr) 25px;
+  padding: 0 0 25px;
+}
+.embedded-dialog .modal-panel > * {
+  grid-column: 2;
+  min-width: 0;
 }
 .embedded-dialog .modal-header {
-  margin: 0 -25px 25px;
+  grid-column: 1 / -1;
+  margin: 0 0 25px;
 }
 .admin-embedded {
   position: relative !important;

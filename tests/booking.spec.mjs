@@ -202,7 +202,9 @@ test("registration creates a real account, profile and session; logout revokes r
   await page.getByLabel("Họ và tên", { exact: true }).fill("Khách kiểm thử");
   await page.getByLabel("Số điện thoại (không bắt buộc)").fill("123");
   await page.getByLabel("Số điện thoại (không bắt buộc)").blur();
-  await expect(page.locator("#error-phone")).toContainText("10 chữ số");
+  await expect(
+    page.getByLabel("Số điện thoại (không bắt buộc)"),
+  ).toHaveAccessibleDescription(/10 chữ số/);
   await page.getByLabel("Số điện thoại (không bắt buộc)").fill("0901234567");
   const email =
     fixture().prefix + "-" + randomUUID().slice(0, 8) + "@example.test";
@@ -245,7 +247,9 @@ test("signup validates 12 characters and invalid credentials never create a sess
   await page.getByRole("tab", { name: "Đăng ký thành viên" }).click();
   await page.getByLabel("Mật khẩu", { exact: true }).fill("short");
   await page.getByLabel("Mật khẩu", { exact: true }).blur();
-  await expect(page.locator("#error-password")).toContainText("12");
+  await expect(
+    page.getByLabel("Mật khẩu", { exact: true }),
+  ).toHaveAccessibleDescription(/12/);
   const bad = await command(page, "/auth/login", {
     email: fixture().accounts.customer.email,
     password: "incorrect",

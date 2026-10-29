@@ -35,6 +35,10 @@ function saveMetric(name, data) {
 }
 
 test.beforeEach(async ({ page }) => {
+  // Một catalogue lớn có hàng trăm chunk + ảnh; buffer mặc định250 mất mẫu đầu.
+  await page.addInitScript(() =>
+    performance.setResourceTimingBufferSize(16384),
+  );
   await page.addInitScript(() =>
     sessionStorage.setItem("nova-welcome-seen", "1"),
   );

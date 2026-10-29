@@ -1,0 +1,21 @@
+{
+  "mode": "postgres",
+  "database": "dedicated existing test database; no application database writes",
+  "startupPath": "npm run dev; actual Prisma generate/migration/seed and native build, no stub",
+  "seedPreparation": true,
+  "backendBuild": true,
+  "backendKind": "postgres",
+  "healthStatus": 200,
+  "postgres": "up",
+  "redis": "up",
+  "catalogueCounts": {
+    "movies": 24,
+    "cinemas": 4,
+    "rooms": 160,
+    "combos": 24,
+    "showtimes": 13519
+  },
+  "nativeRegistrationValidationStatus": 400,
+  "runtimeErrors": 0,
+  "startupAndUiCheckMs": 40054
+}

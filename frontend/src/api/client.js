@@ -222,7 +222,7 @@ export function readProgramme() {
   const key = "programme:transport";
   if (reads.has(key)) return reads.get(key);
   const epoch = catalogueEpoch;
-  const budget = requestBudget();
+  const budget = requestBudget(undefined, 25000);
   const task = abortable(
     loadProgramme(
       (path, options) =>
@@ -233,7 +233,7 @@ export function readProgramme() {
   )
     .then((data) => {
       if (epoch === catalogueEpoch) {
-        programmeCache = { data, until: Date.now() + 30000 };
+        programmeCache = { data, until: Date.now() + 120000 };
         if (typeof window !== "undefined") {
           try {
             sessionStorage.setItem("nova:programme:raw", JSON.stringify(programmeCache));

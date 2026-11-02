@@ -32,6 +32,7 @@ import { apiErrorMessage } from "./errorMessage.js";
 import { notifyApiError } from "./notice.js";
 import { uniqueRecords } from "../uniqueRecords.js";
 import { requestBudget, abortable } from "./budget.js";
+import { loadProgramme } from "./programme-transport.js";
 let refreshing;
 let programmeCache,
   catalogueEpoch = 0,
@@ -63,10 +64,25 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
           sessionStorage.removeItem("nova:programme:raw");
         } catch {}
       }
+      if (
+        typeof window !== "undefined" &&
+        /^\/(bookings|payments)(\/|$)/.test(endpoint)
+      ) {
+        window.dispatchEvent(new Event("nova-seat-capacity-change"));
+      }
     }
     return result;
   } catch (cause) {
-    if (cause.status) throw cause;
+    if (cause.status) {
+      if (
+        cause.status === 401 &&
+        !endpoint.startsWith("/auth/") &&
+        endpoint !== "/users/me" &&
+        typeof window !== "undefined"
+      )
+        window.dispatchEvent(new Event("nova-session-expired"));
+      throw cause;
+    }
     const timedOut = budget.signal.reason?.name === "TimeoutError";
     const message = timedOut
       ? "Máy chủ chưa phản hồi trong 8 giây. Vui lòng thử lại; đơn đang giữ có thể kiểm tra trong tài khoản."
@@ -87,7 +103,11 @@ async function requestWithinBudget(endpoint, options, retry, signal) {
   const response = await fetch(API_BASE + endpoint, {
     ...options,
     credentials: "same-origin",
-    cache: "no-store",
+    cache:
+      /^\/showtimes\/programme\/chunks\/[a-f\d-]+\/\d+$/i.test(endpoint) &&
+      options.cache === "force-cache"
+        ? "force-cache"
+        : "no-store",
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
       ...options.headers,
@@ -180,6 +200,53 @@ export function read(path) {
       if (reads.get(path) === task) reads.delete(path);
     });
   reads.set(path, task);
+  return task;
+}
+
+/** Giữ nguyên catalogue trong bộ nhớ; chỉ chia nhỏ cách truyền qua mạng. */
+export function readProgramme() {
+  if (programmeCache?.until > Date.now())
+    return Promise.resolve(programmeCache.data);
+  if (typeof window !== "undefined") {
+    try {
+      const stored = sessionStorage.getItem("nova:programme:raw");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.until > Date.now() && parsed?.data) {
+          programmeCache = parsed;
+          return Promise.resolve(parsed.data);
+        }
+      }
+    } catch {}
+  }
+  const key = "programme:transport";
+  if (reads.has(key)) return reads.get(key);
+  const epoch = catalogueEpoch;
+  const budget = requestBudget(undefined, 25000);
+  const task = abortable(
+    loadProgramme(
+      (path, options) =>
+        apiRequest(path, options).then((result) => result.data),
+      budget.signal,
+    ),
+    budget.signal,
+  )
+    .then((data) => {
+      if (epoch === catalogueEpoch) {
+        programmeCache = { data, until: Date.now() + 120000 };
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem("nova:programme:raw", JSON.stringify(programmeCache));
+          } catch {}
+        }
+      }
+      return data;
+    })
+    .finally(() => {
+      budget.dispose();
+      if (reads.get(key) === task) reads.delete(key);
+    });
+  reads.set(key, task);
   return task;
 }
 

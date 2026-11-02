@@ -226,6 +226,7 @@ export default function CatalogProvider({ children }) {
     if (typeof window !== "undefined") {
       try {
         sessionStorage.removeItem("nova_catalogue_snapshot");
+        sessionStorage.removeItem("nova:programme:raw");
       } catch {}
     }
     const pending = inFlight.current;

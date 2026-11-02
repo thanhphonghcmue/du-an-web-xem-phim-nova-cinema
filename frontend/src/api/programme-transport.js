@@ -15,7 +15,7 @@ export function validateManifest(manifest) {
     !Number.isFinite(Date.parse(manifest.until)) ||
     !Number.isFinite(Date.parse(manifest.expiresAt)) ||
     !collections.every((name) =>
-      integer(manifest.counts?.[name], 0, name === "showtimes" ? 20000 : 2000),
+      integer(manifest.counts?.[name], 0, name === "showtimes" ? 50000 : 5000),
     )
   )
     throw invalid();

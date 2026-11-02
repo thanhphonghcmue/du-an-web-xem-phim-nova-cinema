@@ -810,13 +810,17 @@ function createMemoryServer(input) {
   const html = (title, content) =>
     `<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>*{box-sizing:border-box}body{margin:0;padding:24px;background:#080d18;color:#eef3ff;font:16px/1.6 system-ui}main{max-width:900px;margin:auto;background:#142039;border:1px solid #687aa4;border-radius:20px;padding:32px}button,a{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;padding:15px;border-radius:9px;background:#d5ef95;color:#18220e;border:0;font:inherit;margin:12px 0;text-decoration:none}button{width:100%;cursor:pointer}input{max-width:100%}.secondary-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sandbox-choice{min-width:0}h1{font-size:clamp(24px,5vw,38px)}small{color:#afc1df}</style><main>${content}</main></html>`;
   function admission(body, user, consume) {
+    const rawKey = typeof body.ticketHash === "string" ? body.ticketHash.trim() : "";
     assert(
-      typeof body.ticketHash === "string" &&
-        /^[a-f\d]{64}$/.test(body.ticketHash) &&
+      rawKey &&
+        (/^[a-f\d]{64}$/i.test(rawKey) || /^NOVA-[a-f0-9]{32}$/i.test(rawKey) || uuid.test(rawKey)) &&
         uuid.test(body.showtimeId),
     );
     const ticket = [...tickets.values()].find(
-      (t) => t.ticketHash === body.ticketHash,
+      (t) =>
+        t.ticketHash.toLowerCase() === rawKey.toLowerCase() ||
+        t.id.toLowerCase() === rawKey.toLowerCase() ||
+        orders.get(t.bookingId)?.orderCode?.toLowerCase() === rawKey.toLowerCase(),
     );
     assert(ticket, "TICKET_NOT_FOUND", "Không tìm thấy vé.", 404);
     const order = orders.get(ticket.bookingId);
@@ -826,12 +830,12 @@ function createMemoryServer(input) {
       "Vé chưa được thanh toán.",
       409,
     );
-    assert(
-      order.showtimeId === body.showtimeId,
-      "TICKET_SHOWTIME_MISMATCH",
-      "Vé thuộc suất chiếu khác.",
-      409,
-    );
+    if (order.showtimeId !== body.showtimeId) {
+      fail(409, "TICKET_SHOWTIME_MISMATCH", "Vé không khớp với suất chiếu đang kiểm tra.", {
+        actualShowtimeId: order.showtimeId,
+        startTime: model("showtimes", order.showtimeId)?.startTime,
+      });
+    }
     const start = Date.parse(model("showtimes", order.showtimeId).startTime);
     assert(
       now() >= start - 3600000 && now() <= start + 1800000,

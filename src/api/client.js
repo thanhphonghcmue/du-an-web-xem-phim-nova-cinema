@@ -57,6 +57,12 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
       reads.clear();
       programmeCache = null;
       catalogueEpoch++;
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("nova_catalogue_snapshot");
+          sessionStorage.removeItem("nova:programme:raw");
+        } catch {}
+      }
     }
     return result;
   } catch (cause) {

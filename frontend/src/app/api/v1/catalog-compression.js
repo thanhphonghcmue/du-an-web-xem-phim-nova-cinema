@@ -31,9 +31,9 @@ export function createCatalogueCompressor({
     encoding === "br"
       ? brotliBytes(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 4 } })
       : gzipBytes(bytes, { level: 4 }),
-  maxEntries = 64,
-  maxBytes = 8 * 1024 * 1024,
-  ttlMs = 60_000,
+  maxEntries = 512,
+  maxBytes = 32 * 1024 * 1024,
+  ttlMs = 120_000,
   now = Date.now,
 } = {}) {
   const entries = new Map();

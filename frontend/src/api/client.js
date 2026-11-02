@@ -58,6 +58,12 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
       reads.clear();
       programmeCache = null;
       catalogueEpoch++;
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("nova_catalogue_snapshot");
+          sessionStorage.removeItem("nova:programme:raw");
+        } catch {}
+      }
       if (
         typeof window !== "undefined" &&
         /^\/(bookings|payments)(\/|$)/.test(endpoint)
@@ -201,6 +207,18 @@ export function read(path) {
 export function readProgramme() {
   if (programmeCache?.until > Date.now())
     return Promise.resolve(programmeCache.data);
+  if (typeof window !== "undefined") {
+    try {
+      const stored = sessionStorage.getItem("nova:programme:raw");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.until > Date.now() && parsed?.data) {
+          programmeCache = parsed;
+          return Promise.resolve(parsed.data);
+        }
+      }
+    } catch {}
+  }
   const key = "programme:transport";
   if (reads.has(key)) return reads.get(key);
   const epoch = catalogueEpoch;
@@ -214,8 +232,14 @@ export function readProgramme() {
     budget.signal,
   )
     .then((data) => {
-      if (epoch === catalogueEpoch)
+      if (epoch === catalogueEpoch) {
         programmeCache = { data, until: Date.now() + 30000 };
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem("nova:programme:raw", JSON.stringify(programmeCache));
+          } catch {}
+        }
+      }
       return data;
     })
     .finally(() => {

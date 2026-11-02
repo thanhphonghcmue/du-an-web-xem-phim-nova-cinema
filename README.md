@@ -3,6 +3,19 @@
 **BÁO CÁO ĐỒ ÁN HỌC PHẦN: NHẬP MÔN KỸ NGHỆ PHẦN MỀM (LAB04)**  
 **TRƯỜNG ĐẠI HỌC SƯ PHẠM THÀNH PHỐ HỒ CHÍ MINH — KHOA CÔNG NGHỆ THÔNG TIN**
 
+## Tải và chạy bản chính thức của nhóm
+
+Nhánh dùng chung là **[`main`](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/tree/main)**. [Tải ZIP bản chính thức](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip), giải nén vào thư mục mới và mở terminal tại thư mục có `package.json`. Dùng Node.js24 theo `.nvmrc`, dừng server cũ bằng `Ctrl+C`, rồi chạy:
+
+```powershell
+npm install
+npm run dev
+```
+
+Mở **http://localhost:3000**. Lệnh gốc khởi chạy giao diện trong `frontend/` cùng API trong `backend/`. Antigravity hoặc Git clone mặc định cần lấy nhánh `main`. Khi chưa cấu hình PostgreSQL, launcher dùng RAM theo lựa chọn của dự án; dữ liệu chế độ này reset khi restart.
+
+[Kết quả kiểm tra bản phát hành main](docs/qa/main-release-verification.md).
+
 ---
 
 ### 👨‍🏫 GIẢNG VIÊN HƯỚNG DẪN

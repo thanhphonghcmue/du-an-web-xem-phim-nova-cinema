@@ -1,0 +1,101 @@
+{
+  "releaseDate": "2026-11-02",
+  "userTimezone": "Asia/Ho_Chi_Minh",
+  "targetBranch": "main",
+  "previousMain": "06a22898c6cc2150efd014bd659e5c6a37d7fcd0",
+  "testedRuntimeCommit": "22f2293f6f2fe7987db1498304d1f8dd13d06bb9",
+  "includesPreviouslyDeliveredCommit": "38b84901841fb617223f1bc81d09e11f09bd6b07",
+  "integrationMethod": "fast-forward; no history rewrite",
+  "nativeOnly": true,
+  "uniquePassedCases": {
+    "nativeBusiness": 134,
+    "browserProduction": 4,
+    "cleanArchiveNodeRam": 87,
+    "total": 225
+  },
+  "mainCheckoutQa": {
+    "startedAt": "2026-11-02T15:20:59.727Z",
+    "nativeOnly": true,
+    "scope": "lab04-core",
+    "steps": [
+      {
+        "name": "generate",
+        "passed": true,
+        "durationMs": 1962,
+        "log": "generate.log"
+      },
+      {
+        "name": "migrate-test",
+        "passed": true,
+        "durationMs": 1345,
+        "log": "migrate-test.log"
+      },
+      {
+        "name": "backend-core",
+        "passed": true,
+        "durationMs": 30184,
+        "log": "backend-core.log"
+      },
+      {
+        "name": "lint",
+        "passed": true,
+        "durationMs": 7222,
+        "log": "lint.log"
+      },
+      {
+        "name": "build",
+        "passed": true,
+        "durationMs": 29332,
+        "log": "build.log"
+      },
+      {
+        "name": "browser-core",
+        "passed": true,
+        "durationMs": 64938,
+        "log": "browser-core.log"
+      }
+    ],
+    "functionalStatus": "PASSED",
+    "performanceBudgets": "NOT_MEASURED",
+    "optimizedPathBudgets": "NOT_MEASURED",
+    "completedAt": "2026-11-02T15:23:14.716Z"
+  },
+  "cleanArchive": {
+    "source": "git archive of tested runtime commit; no preexisting .env, node_modules or .next",
+    "installCommand": "npm ci --cache /workspace/.npm-cache",
+    "installPassed": true,
+    "frontendProductionBuildPassed": true,
+    "standardRamStartupSmokePassed": true,
+    "smokeCoverage": [
+      "24 food items",
+      "HttpOnly register/login",
+      "real RAM seat IDs",
+      "300-second hold",
+      "signed Sandbox payment success",
+      "SVG QR"
+    ],
+    "persistent": false
+  },
+  "manifestBoundaryAssertions": {
+    "passed": 4,
+    "inputs": [50000, 50001, -1, 1.5],
+    "expected": ["accept", "reject", "reject", "reject"],
+    "includedInCaseTotal": false
+  },
+  "intermediateFailures": [
+    {
+      "scope": "fresh archive Prisma generation",
+      "result": "403 from engine download host under cloud network policy",
+      "resolution": "Native checkout verification used configured existing engines. No TLS/checksum bypass. Fresh frontend/RAM checks do not need this download."
+    },
+    {
+      "scope": "RAM startup smoke parallel with frontend build",
+      "result": "24 menu cards not ready within5-second assertion",
+      "resolution": "Private diagnostic and unchanged standard smoke both passed when run separately. Application code/timeouts unchanged."
+    }
+  ],
+  "verificationScopes": "Native wrapper ran in main checkout; clean-archive Node/frontend build/RAM smoke ran using independently installed dependencies.",
+  "physicalWindowsMachineTested": false,
+  "newPerformanceSlaClaimed": false,
+  "sourceCodeChangedDuringRelease": "No runtime edits beyond feature branch; release commit adds download/run documentation only."
+}

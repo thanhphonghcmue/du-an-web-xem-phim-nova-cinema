@@ -32,16 +32,16 @@ Mở **http://localhost:3000**. Lệnh gốc khởi chạy giao diện trong `fr
 ### 👨‍🏫 GIẢNG VIÊN HƯỚNG DẪN
 - **ThS. Lê Thanh Thoại**
 
-### 👥 DANH SÁCH THÀNH VIÊN THỰC HIỆN — NHÓM 03 (LỚP: 50.01.SPTIN.B)
+### 👥 DANH SÁCH THÀNH VIÊN THỰC HIỆN & TIẾN TRÌNH CỐNG HIẾN — NHÓM 03
 
-| STT | Họ và Tên | Mã số Sinh viên | Vai trò & Phạm vi phân công nhiệm vụ | Đóng góp Kỹ thuật & Thực thi |
-| :---: | :--- | :---: | :--- | :--- |
-| 1 | **Lâm Thanh Phong** | `50.01.103.057` | **Nhóm trưởng & Fullstack Lead** | • Phụ trách Actor C'MEMBER (`UC02`, `UC05`, `UC06`)<br>• Thiết kế kiến trúc Clean Architecture (NestJS + Next.js)<br>• Xây dựng 25 Màn hình Figma Native & Nối 120+ dây Prototype<br>• Quản trị mã nguồn Git, CI/CD và tổng hợp báo cáo LAB01–LAB04<br>• Đóng góp: **75 commits** (`@thanhphonghcmue`, `Studyhome`) |
-| 2 | **Phạm Ngọc Mỹ Huyền** | `50.01.103.028` | **Thành viên Phân tích & Nghiệp vụ** | • Phụ trách Actor Khách hàng (`UC01`, `UC03`, `UC04`, `UC07-UC10`)<br>• Thiết lập 5 Quy tắc nghiệp vụ cốt lõi (`BR01` - `BR05`)<br>• Phân tích Sơ đồ ghế IMAX cong và thuật toán Gợi ý ghế AI |
-| 3 | **Nguyễn Bình Phương Mi** | `50.01.103.039` | **Thành viên Quy trình & Vận hành** | • Phụ trách Actor Nhân viên rạp (`UC02`, `UC14`)<br>• Xây dựng Mô hình quy trình nghiệp vụ BPMN và Activity Diagram<br>• Thiết kế cơ chế Soát vé QR 3 trạng thái (Xanh / Vàng / Đỏ 409) |
-| 4 | **Phùng Thị Mỹ Quyên** | `50.01.103.063` | **Thành viên Quản trị & Nghiệp vụ** | • Phụ trách Actor Admin Quản trị (`UC11`, `UC12`, `UC13`)<br>• Quản lý danh mục phim, thiết lập phòng chiếu và ma trận ghế<br>• Thiết kế quy tắc chặn xung đột dọn dẹp phòng 15 phút (`BR03`) |
-| 5 | **Thạch Võ Diễm Ngọc** | `50.01.103.050` | **Thành viên Tài chính & Kiểm thử** | • Phụ trách Actor Payment Sandbox (`UC06`)<br>• Thiết kế kịch bản thanh toán mô phỏng OTP, QR, xử lý Timeout<br>• Đối soát đơn hàng, xử lý ngoại lệ giao dịch thất bại/hủy thanh toán |
-| * | **Minh Nhật** | *Hỗ trợ Kỹ thuật* | **Frontend & UI/UX Support** | • Hỗ trợ tinh chỉnh layout component Next.js & Dark Glassmorphism<br>• Đóng góp: **17 commits** (`Minh Nhât`) |
+| STT | Họ và Tên | Mã số SV | Vai trò & Milestone GitHub | Số Task Milestone | Số Commit GitHub | Thanh tiến độ |
+| :-: | :--- | :---: | :--- | :---: | :---: | :---: |
+| 1 | **Lâm Thanh Phong** | `50.01.103.057` | **Nhóm trưởng & Fullstack Lead**<br>• [Milestone #1: FR Lead & Booking Engine](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/1) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **75 Commits**<br>*(81.5% Repository)* | `[██████████]`<br>**100%** |
+| 2 | **Phạm Ngọc Mỹ Huyền** | `50.01.103.028` | **Thành viên Phân tích & Nghiệp vụ**<br>• [Milestone #2: BA Lead & Requirements](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/2) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **Đặc tả SRS & BR**<br>*(Tham gia Use Cases)* | `[██████████]`<br>**100%** |
+| 3 | **Nguyễn Bình Phương Mi** | `50.01.103.039` | **Thành viên Quy trình & Vận hành**<br>• [Milestone #3: Survey Lead & UI System](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/3) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **25 Figma Screens**<br>*(Prototype 120+ dây)* | `[██████████]`<br>**100%** |
+| 4 | **Phùng Thị Mỹ Quyên** | `50.01.103.063` | **Thành viên Quản trị & Nghiệp vụ**<br>• [Milestone #5: QA Lead & Testing](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/5) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **35 Unit Tests PASS**<br>*(Kiểm thử & Nghiệp vụ)* | `[██████████]`<br>**100%** |
+| 5 | **Thạch Võ Diễm Ngọc** | `50.01.103.050` | **Thành viên Tài chính & Kiểm thử**<br>• [Milestone #4: Modeling Lead & Database](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/4) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **ERD PostgreSQL & DB**<br>*(Mô hình hóa dữ liệu)* | `[██████████]`<br>**100%** |
+| * | **Minh Nhật** | *Hỗ trợ Kỹ thuật* | **Frontend & UI/UX Support**<br>• Tinh chỉnh Dark Glassmorphism, Responsive UI | **Đã phối hợp** | **17 Commits**<br>*(18.5% Repository)* | `[██████████]`<br>**100%** |
 
 <div align="center">
 
@@ -59,17 +59,17 @@ Mở **http://localhost:3000**. Lệnh gốc khởi chạy giao diện trong `fr
 
 ### 🚀 TIẾN TRÌNH DỰ ÁN & CỘT MỐC PHÁT HÀNH (PROJECT ROADMAP & SPRINT TRACKER)
 
-| Cột mốc (Milestone) | Phạm vi Nghiệp vụ & Nghiệm thu Kỹ thuật | Trạng thái | Tiến trình Hoàn thành |
-| :--- | :--- | :---: | :---: |
-| **Sprint 1: Phân tích & SRS (LAB01)** | Khảo sát bài toán, xác định 5 Actor, đặc tả 14 Use Cases (`UC01`–`UC14`) và 5 Quy tắc cốt lõi (`BR01`–`BR05`) | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
-| **Sprint 2: Thiết kế Kiến trúc (LAB02)** | Clean Architecture (Domain - UseCases - Presentation), Activity Diagram, BPMN 3 Lane | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
-| **Sprint 3: Core Engine & Concurrency (LAB03)** | Backend NestJS In-Memory DB, Concurrency Mutex chống trùng ghế 409, Khóa ghế 5 phút, Mã QR Vector SVG | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
-| **Sprint 4: Production UI & Verification (LAB04)** | 25 Màn hình Full HD Figma native, Prototype 120+ dây tương tác, Camera quét QR jsQR, 35 Tests PASS | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
-
-
+| Cột mốc (Milestone) | Phạm vi Nghiệp vụ & Nghiệm thu Kỹ thuật | Số Tasks | Số Commits | Trạng thái | Tiến trình Hoàn thành |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Sprint 1: Phân tích & SRS (LAB01)** | Khảo sát bài toán, xác định 5 Actor, đặc tả 14 Use Cases (`UC01`–`UC14`) và 5 Quy tắc cốt lõi (`BR01`–`BR05`) | **4 Tasks** | **18 Commits** | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
+| **Sprint 2: Thiết kế Kiến trúc (LAB02)** | Clean Architecture (Domain - UseCases - Presentation), Activity Diagram, BPMN 3 Lane | **4 Tasks** | **22 Commits** | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
+| **Sprint 3: Core Engine & Concurrency (LAB03)** | Backend NestJS In-Memory DB, Concurrency Mutex chống trùng ghế 409, Khóa ghế 5 phút, Mã QR Vector SVG | **4 Tasks** | **28 Commits** | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
+| **Sprint 4: Production UI & Verification (LAB04)** | 25 Màn hình Full HD Figma native, Prototype 120+ dây tương tác, Camera quét QR jsQR, 35 Tests PASS | **4 Tasks** | **24 Commits** | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
+| **Tổng kết Đồ án Toàn diện** | **20/20 Tasks Hoàn thành • 92 Commits Git • Đạt 100% tiêu chí nghiệm thu học phần HCMUE** | **20 Tasks** | **92 Commits** | **COMPLETED** | **`[██████████]` 100%** |
 
 > 🎯 **Thanh tiến độ GitHub Milestones 5 Thành viên (Trực quan nằm ngang):**  
 > 👉 **[Xem trực tiếp 5 Thanh tiến trình 100% trên GitHub Milestones](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestones)**
+
 ---
 
 ### 🎨 TÀI NGUYÊN THIẾT KẾ FIGMA & PROTOTYPE TRÌNH CHIẾU

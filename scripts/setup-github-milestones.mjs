@@ -73,7 +73,7 @@ function ghApi(endpoint, method = 'GET', data = null) {
 const MILESTONE_DEFINITIONS = [
   {
     number: 1,
-    title: '[Lâm Thanh Phong] Progress Bar - FR Lead & Booking Engine',
+    title: '[Lâm Thanh Phong] FR Lead & Booking Engine — 4/4 Tasks • 75 Commits [100%]',
     description: 'Tiến độ phân hệ Booking Engine, Khóa ghế 5 phút (CR-01), Chống trùng ghế Concurrency Mutex & Kiến trúc Monorepo - Phụ trách: Lâm Thanh Phong',
     assignee: 'thanhphonghcmue',
     fallbackAssignee: 'thanhphonghcmue',
@@ -130,7 +130,7 @@ const MILESTONE_DEFINITIONS = [
   },
   {
     number: 2,
-    title: '[Phạm Ngọc Mỹ Huyền] Progress Bar - BA Lead & Requirements',
+    title: '[Phạm Ngọc Mỹ Huyền] BA Lead & Requirements — 4/4 Tasks • Đặc tả SRS & BR01-BR05 [100%]',
     description: 'Tiến độ phân tích yêu cầu nghiệp vụ, Đặc tả Ca sử dụng CR-01 & Ma trận Business Rules BR01-BR05 - Phụ trách: Phạm Ngọc Mỹ Huyền',
     assignee: 'huij3n',
     fallbackAssignee: 'thanhphonghcmue',
@@ -192,7 +192,7 @@ const MILESTONE_DEFINITIONS = [
   },
   {
     number: 3,
-    title: '[Nguyễn Bình Phương Mi] Progress Bar - Survey Lead & UI System',
+    title: '[Nguyễn Bình Phương Mi] Survey Lead & UI System — 4/4 Tasks • 25 Figma Screens & BPMN [100%]',
     description: 'Tiến độ khảo sát hành vi người dùng, Design System Obsidian Dark UI & Prototype 25 Màn hình Figma - Phụ trách: Nguyễn Bình Phương Mi',
     assignee: 'nbpm06',
     fallbackAssignee: 'thanhphonghcmue',
@@ -249,7 +249,7 @@ const MILESTONE_DEFINITIONS = [
   },
   {
     number: 4,
-    title: '[Thạch Võ Diễm Ngọc] Progress Bar - Modeling Lead & Database',
+    title: '[Thạch Võ Diễm Ngọc] Modeling Lead & Database — 4/4 Tasks • ERD PostgreSQL & Prisma [100%]',
     description: 'Tiến độ Mô hình hóa ERD PostgreSQL, Cấu hình Prisma Schema & Sơ đồ Activity Diagram luồng thanh toán - Phụ trách: Thạch Võ Diễm Ngọc',
     assignee: 'thanhphonghcmue', // Fallback to repo owner with clear member credit in issue body
     fallbackAssignee: 'thanhphonghcmue',
@@ -306,7 +306,7 @@ const MILESTONE_DEFINITIONS = [
   },
   {
     number: 5,
-    title: '[Phùng Thị Mỹ Quyên] Progress Bar - QA Lead & Testing',
+    title: '[Phùng Thị Mỹ Quyên] QA Lead & Testing — 4/4 Tasks • 35 Unit Tests PASS & UAT [100%]',
     description: 'Tiến độ Đảm bảo chất lượng (QA), Viết Test Cases TC-01 đến TC-05 & Kế hoạch nghiệm thu UAT - Phụ trách: Phùng Thị Mỹ Quyên',
     assignee: 'Ptmq-sptinB',
     fallbackAssignee: 'thanhphonghcmue',

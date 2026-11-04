@@ -158,7 +158,7 @@ Hệ thống NOVA Cinema xác định rõ ràng 5 Actor tương tác qua ranh gi
   - Thực hiện xác thực và soát vé điện tử bằng máy quét mã QR hoặc nhập mã thủ công (UC14).
   - Đối chiếu thông tin phim, suất chiếu, phòng chiếu và số ghế hiển thị trên màn hình soát vé.
   - Ghi nhận trạng thái vé thành **ĐÃ SỬ DỤNG** (chỉ cho phép check-in 1 lần duy nhất).
-  - Từ chối vé không hợp lệ, vé sai suất chiếu hoặc vé đã sử dụng trước đó.
+  - Từ chối xác nhận vé không hợp lệ, vé sai suất chiếu hoặc vé đã sử dụng trước đó.
 
 ### 4. Quản trị viên (Admin)
 

@@ -28,7 +28,8 @@
     "pretest:business": "npm run prisma:generate --workspace backend",
     "test:business": "npm run test:e2e --workspace backend -- --runTestsByPath test/booking-concurrency.e2e-spec.ts test/showtime-conflict.e2e-spec.ts test/payments.e2e-spec.ts test/tickets.e2e-spec.ts",
     "qa:native": "node scripts/qa-native.cjs",
-    "qa:lab04": "node scripts/qa-native.cjs --lab04"
+    "qa:lab04": "node scripts/qa-native.cjs --lab04",
+    "milestones:setup": "node scripts/setup-github-milestones.mjs"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",

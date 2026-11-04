@@ -66,6 +66,10 @@ Mở **http://localhost:3000**. Lệnh gốc khởi chạy giao diện trong `fr
 | **Sprint 3: Core Engine & Concurrency (LAB03)** | Backend NestJS In-Memory DB, Concurrency Mutex chống trùng ghế 409, Khóa ghế 5 phút, Mã QR Vector SVG | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
 | **Sprint 4: Production UI & Verification (LAB04)** | 25 Màn hình Full HD Figma native, Prototype 120+ dây tương tác, Camera quét QR jsQR, 35 Tests PASS | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
 
+
+
+> 🎯 **Thanh tiến độ GitHub Milestones 5 Thành viên (Trực quan nằm ngang):**  
+> 👉 **[Xem trực tiếp 5 Thanh tiến trình 100% trên GitHub Milestones](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestones)**
 ---
 
 ### 🎨 TÀI NGUYÊN THIẾT KẾ FIGMA & PROTOTYPE TRÌNH CHIẾU

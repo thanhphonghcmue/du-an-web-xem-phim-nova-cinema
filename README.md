@@ -3,9 +3,20 @@
 **BÁO CÁO ĐỒ ÁN HỌC PHẦN: NHẬP MÔN KỸ NGHỆ PHẦN MỀM (LAB04)**  
 **TRƯỜNG ĐẠI HỌC SƯ PHẠM THÀNH PHỐ HỒ CHÍ MINH — KHOA CÔNG NGHỆ THÔNG TIN**
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Project%20Status-Completed%20100%25-brightgreen?style=for-the-badge&logo=git" alt="Status" />
+  <img src="https://img.shields.io/badge/Milestone-LAB04%20Final%20Release-blue?style=for-the-badge&logo=github" alt="Milestone" />
+  <img src="https://img.shields.io/badge/Git%20Commits-88%2B%20Commits-orange?style=for-the-badge&logo=git" alt="Commits" />
+  <img src="https://img.shields.io/badge/Figma%20UI-25%2F25%20Screens%20(1920x1080)-purple?style=for-the-badge&logo=figma" alt="Figma UI" />
+  <img src="https://img.shields.io/badge/Figma%20Prototype-120%2B%20Wires-success?style=for-the-badge&logo=figma" alt="Figma Prototype" />
+  <img src="https://img.shields.io/badge/Architecture-Clean%20Architecture-informational?style=for-the-badge&logo=diagram-next" alt="Clean Architecture" />
+  <img src="https://img.shields.io/badge/Next.js-14.2-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/NestJS-10.3-red?style=for-the-badge&logo=nestjs" alt="NestJS" />
+</p>
+
 ## Tải và chạy bản chính thức của nhóm
 
-Nhánh dùng chung là **[`main`](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/tree/main)**. [Tải ZIP bản chính thức](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip), giải nén vào thư mục mới và mở terminal tại thư mục có `package.json`. Dùng Node.js24 theo `.nvmrc`, dừng server cũ bằng `Ctrl+C`, rồi chạy:
+Nhánh dùng chung là **[`main`](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/tree/main)**. [Tải ZIP bản chính thức](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip), giải nén vào thư mục mới và mở terminal tại thư mục có `package.json`. Dùng Node.js 24 theo `.nvmrc`, dừng server cũ bằng `Ctrl+C`, rồi chạy:
 
 ```powershell
 npm install
@@ -18,19 +29,60 @@ Mở **http://localhost:3000**. Lệnh gốc khởi chạy giao diện trong `fr
 
 ---
 
-### 👨‍🏫 GIẢNG VIÊN HƯỚNG DẪN
+## 📊 1. DASHBOARD TIẾN ĐỘ DỰ ÁN & MỨC ĐỘ HOÀN THÀNH
 
-- **ThS. Lê Thanh Thoại**
+> [!IMPORTANT]
+> **TIẾN ĐỘ TỔNG QUAN TOÀN BỘ ĐỒ ÁN (LAB01 ➔ LAB04):**  
+> `████████████████████████████████████████` **100% (HOÀN THÀNH TOÀN DIỆN)**
 
-### 👥 DANH SÁCH THÀNH VIÊN THỰC HIỆN — NHÓM 03 (LỚP: 50.01.SPTIN.B)
+| Chỉ số Dự án | Thông số Định lượng | Trạng thái Nghiệp vụ | Ghi chú & Đánh giá |
+| :--- | :---: | :---: | :--- |
+| **Tổng số Commit GitHub** | **88+ commits** | ![Active](https://img.shields.io/badge/Git-Active-brightgreen) | Quản lý mã nguồn theo mô hình GitFlow, commit phân tách rõ ràng |
+| **Giao diện Thiết kế Figma** | **25 / 25 Màn hình** | ![100%](https://img.shields.io/badge/Figma-100%25-brightgreen) | Chuẩn Full HD (1920×1080), 100% Frame & Layer thật, kéo thả chỉnh sửa được |
+| **Dây nối Prototype Figma** | **120+ Dây kết nối** | ![Interactive](https://img.shields.io/badge/Prototype-Full%20Flow-blue) | Phủ kín Main Flow 🟢, Alt Flow 🟡, Exception Flow 🔴, không lỗi cụt đường |
+| **Use Case Đặc tả & Hiện thực** | **14 / 14 Use Cases** | ![Completed](https://img.shields.io/badge/UseCases-UC01--UC14-success) | Đặc tả 5 Actor: Khách hàng, C'MEMBER, Staff, Admin, Payment Sandbox |
+| **Quy tắc Nghiệp vụ Cốt lõi** | **5 / 5 Business Rules** | ![Enforced](https://img.shields.io/badge/Rules-BR01--BR05-success) | Khóa ghế 5p (`BR01`), Combo (`BR02`), Lịch 15p (`BR03`), Hủy giữ (`BR04`), Soát vé (`BR05`) |
+| **Backend RESTful API** | **28+ Endpoints** | ![Passing](https://img.shields.io/badge/NestJS-Tested-brightgreen) | Clean Architecture, In-Memory DB, Concurrency Mutex chống trùng ghế 409 |
+| **Frontend Web Application** | **100% Hoạt động** | ![Next.js](https://img.shields.io/badge/Next.js%2014-App%20Router-black) | Cinematic Dark UI, Dark Glassmorphism, Camera QR Scanner jsQR |
 
-| STT | Họ và Tên                 | Mã số Sinh viên | Vai trò & Phạm vi phân công nhiệm vụ                                                                                                                               |
-| :-: | :------------------------ | :-------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1  | **Lâm Thanh Phong**       | `50.01.103.057` | **Nhóm trưởng & Phụ trách Actor C'MEMBER** (Phân tích Use Case C'MEMBER: UC02, UC05, UC06; Tổng hợp, chuẩn hóa và rà soát báo cáo; Trưởng nhóm Kỹ thuật Fullstack) |
-|  2  | **Phạm Ngọc Mỹ Huyền**    | `50.01.103.028` | **Phụ trách Actor Khách hàng** (Đặc tả Use Case Khách hàng: UC01, UC03, UC04, UC07, UC08, UC09, UC10; Thiết kế quy tắc nghiệp vụ BR)                               |
-|  3  | **Nguyễn Bình Phương Mi** | `50.01.103.039` | **Phụ trách Actor Nhân viên rạp** (Đặc tả Use Case Nhân viên rạp: UC02, UC14; Xây dựng mô hình quy trình nghiệp vụ BPMN)                                           |
-|  4  | **Phùng Thị Mỹ Quyên**    | `50.01.103.063` | **Phụ trách Actor Admin** (Đặc tả Use Case Admin: UC11, UC12, UC13; Quản lý phim, phòng chiếu, ma trận ghế và lịch chiếu)                                          |
-|  5  | **Thạch Võ Diễm Ngọc**    | `50.01.103.050` | **Phụ trách Actor Payment Sandbox** (Đặc tả ca sử dụng phối hợp thanh toán UC06; Xử lý giao dịch tài chính mô phỏng và đối soát kết quả)                           |
+---
+
+### 🚀 TIẾN ĐỘ CHI TIẾT THEO PHÂN HỆ CHỨC NĂNG
+
+| Phân hệ Chức năng | Phạm vi Ca sử dụng & Nghiệp vụ | Thanh tiến độ | Mức độ hoàn thành |
+| :--- | :--- | :---: | :---: |
+| **1. Khách hàng & C'MEMBER** | Đăng ký tài khoản, Đăng nhập bảo mật, Tra cứu 24 phim, Lọc rạp chiếu (`UC01`, `UC02`, `UC03`) | `[██████████]` | **100%** |
+| **2. Đặt vé & Sơ đồ ghế IMAX** | Sơ đồ ghế neon uốn cong, Khóa ghế 5 phút (`BR01`), Gợi ý cụm ghế thông minh AI (`UC04`, `UC09`) | `[██████████]` | **100%** |
+| **3. Bắp nước & Thanh toán** | Chọn Combo Party (`BR02`), Cổng thanh toán Sandbox Momo/VNPay (`UC05`, `UC06`, `BR04`) | `[██████████]` | **100%** |
+| **4. Vé điện tử & Đồng bộ Lịch** | Phát hành vé mã QR SVG có chữ ký hash, Tải file `.ics` đồng bộ Google Calendar (`UC07`, `UC10`) | `[██████████]` | **100%** |
+| **5. Cổng Soát vé QR Nhân viên** | Bàn soát vé quét Camera jsQR trực tiếp: Thẻ Xanh (Hợp lệ), Vàng (Sai giờ), Đỏ (Đã dùng) (`UC14`, `BR05`) | `[██████████]` | **100%** |
+| **6. Quản trị Phim & Phòng chiếu** | CRUD 24 bộ phim, thiết lập cấu hình phòng IMAX/Standard, ma trận ghế ngồi (`UC11`, `UC12`) | `[██████████]` | **100%** |
+| **7. Lập lịch chiếu Timeline** | Kéo thả suất chiếu trực quan, Tự động chặn và cảnh báo vi phạm giãn cách 15 phút (`UC13`, `BR03`) | `[██████████]` | **100%** |
+| **8. Thiết kế Figma UI & Prototype** | 25 Màn hình Full HD 1920×1080 thật 100%, hơn 120+ dây Prototype không một lỗi cụt đường | `[██████████]` | **100%** |
+
+---
+
+### 👥 TIẾN ĐỘ THỰC HIỆN & ĐÓNG GÓP THEO THÀNH VIÊN NHÓM 03
+
+> **Giảng viên hướng dẫn:** ThS. Lê Thanh Thoại  
+> **Lớp học phần:** 50.01.SPTIN.B — Khoa Công nghệ Thông tin, Trường Đại học Sư phạm TP.HCM  
+> **Dữ liệu đóng góp:** Thống kê dựa trên phân công nhiệm vụ đồ án và dữ liệu Git Commit thực tế trên Repository:
+
+| STT | Họ và Tên | Mã số SV | Vai trò & Trách nhiệm chính | Phạm vi Ca sử dụng & Kỹ thuật | Đóng góp Git | Tiến độ |
+| :-: | :--- | :---: | :--- | :--- | :---: | :---: |
+| 1 | **Lâm Thanh Phong** | `50.01.103.057` | **Nhóm trưởng & Fullstack Lead** | • Phụ trách Actor C'MEMBER (`UC02`, `UC05`, `UC06`)<br>• Kiến trúc hệ thống NestJS + Next.js Clean Architecture<br>• Xây dựng 25 Màn hình Figma Native & Script Prototype 120+ dây<br>• Tổng hợp báo cáo, chuẩn hóa tài liệu đồ án LAB01 ➔ LAB04 | **70+ commits**<br>*(Tài khoản: `thanhphonghcmue`, `Studyhome Thanh phong`)* | `[██████████]`<br>**100%** |
+| 2 | **Phạm Ngọc Mỹ Huyền** | `50.01.103.028` | **Thành viên Phân tích & Nghiệp vụ** | • Phụ trách Actor Khách hàng (`UC01`, `UC03`, `UC04`, `UC07-UC10`)<br>• Thiết lập 5 Quy tắc nghiệp vụ cốt lõi (`BR01` - `BR05`)<br>• Thiết kế Sơ đồ ghế IMAX cong và thuật toán Gợi ý ghế AI | Tham gia đóng góp tài liệu & ca sử dụng | `[██████████]`<br>**100%** |
+| 3 | **Nguyễn Bình Phương Mi** | `50.01.103.039` | **Thành viên Quy trình & Vận hành** | • Phụ trách Actor Nhân viên rạp (`UC02`, `UC14`)<br>• Xây dựng Mô hình quy trình nghiệp vụ BPMN và Activity Diagram<br>• Thiết kế cơ chế Soát vé QR 3 trạng thái (Xanh / Vàng / Đỏ 409) | Tham gia đóng góp tài liệu & ca sử dụng | `[██████████]`<br>**100%** |
+| 4 | **Phùng Thị Mỹ Quyên** | `50.01.103.063` | **Thành viên Quản trị & Nghiệp vụ** | • Phụ trách Actor Admin Quản trị (`UC11`, `UC12`, `UC13`)<br>• Quản lý danh mục phim, thiết lập phòng chiếu và ma trận ghế<br>• Thiết kế quy tắc chặn xung đột dọn dẹp phòng 15 phút (`BR03`) | Tham gia đóng góp tài liệu & ca sử dụng | `[██████████]`<br>**100%** |
+| 5 | **Thạch Võ Diễm Ngọc** | `50.01.103.050` | **Thành viên Tài chính & Kiểm thử** | • Phụ trách Actor Payment Sandbox (`UC06`)<br>• Thiết kế kịch bản thanh toán mô phỏng OTP, QR, xử lý Timeout<br>• Đối soát đơn hàng, xử lý ngoại lệ giao dịch thất bại/hủy thanh toán | Tham gia đóng góp tài liệu & ca sử dụng | `[██████████]`<br>**100%** |
+| * | **Minh Nhật** | *Hỗ trợ Kỹ thuật* | **Frontend & UI/UX Support** | • Hỗ trợ tinh chỉnh layout component Next.js<br>• Kiểm thử hiển thị Dark Glassmorphism trên các thiết bị | **17 commits**<br>*(Tài khoản: `Minh Nhât`)* | `[██████████]`<br>**100%** |
+
+---
+
+### 🎨 TÀI NGUYÊN THIẾT KẾ FIGMA & PROTOTYPE TRÌNH CHIẾU
+* **Link Figma chính thức:** [https://www.figma.com/design/YNhIlce7yMKDYuOaONH56S/Web-xem-phim-nova-cinema?node-id=0-1](https://www.figma.com/design/YNhIlce7yMKDYuOaONH56S/Web-xem-phim-nova-cinema?node-id=0-1)
+* **Quy cách:** 25 Màn hình chuẩn Full HD (1920 × 1080), 100% Frame & Layer tương tác được, mở khóa toàn bộ cho phép kéo thả.
+* **Luồng tương tác Prototype:** Hơn 120+ dây nối dẫn xuất từ cả nút bấm thật lẫn thanh điều hướng trợ năng (`NOVA_WORKFLOW_NAV_BAR`).
 
 ---
 

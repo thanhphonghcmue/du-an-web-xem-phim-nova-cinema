@@ -12,7 +12,7 @@ import { useCatalog } from "@/catalog.js";
 import { nextScreeningDate, downloadReminder } from "@/commerce.js";
 export default function MoviePage({ id, onMovie, onBook }) {
   const { movies, cinemas, rooms, showtimes, isLive, error } = useCatalog();
-  const movie = movies.find((movie) => movie.id === id);
+  const movie = movies.find((movie) => movie.id === id || movie.artId === id);
   if (!movie)
     return (
       <section className="content-width movie-unavailable">

@@ -17,3 +17,9 @@ out/
 
 .runtime/
 nova-web/
+
+*.zip
+**/figma-screens*/
+**/figma-lab04-screens/
+**/figma-bundle.css
+**/figma-native-builder.js

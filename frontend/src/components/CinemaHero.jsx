@@ -21,16 +21,12 @@ function HeroBackdrop({ source }) {
   const [failed, setFailed] = useState(false);
   const src = failed ? "/images/cinema-imax.jpg" : source;
   return (
-    <Image
+    <img
       className="premiere-scene"
       src={src}
       alt=""
-      width={1920}
-      height={804}
-      sizes="100vw"
       fetchPriority="high"
       loading="eager"
-      unoptimized={!src.startsWith("/") || src.startsWith("//")}
       onError={() => setFailed(true)}
     />
   );
@@ -163,16 +159,14 @@ export default function CinemaHero({
             onClick={() => onMovie(movie)}
             aria-label={`Thông tin ${movie.title}`}
           >
-            <Image
+            <img
               src={
                 movie.localPoster || movie.poster || "/images/dune-poster.jpg"
               }
               alt={movie.title}
               width={240}
               height={360}
-              sizes="160px"
-              loading="lazy"
-              unoptimized={!movie.localPoster}
+              loading="eager"
             />
             <span>
               KHÁM PHÁ BỘ PHIM <ArrowUpRight size={16} />

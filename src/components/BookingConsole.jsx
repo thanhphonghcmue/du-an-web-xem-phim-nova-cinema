@@ -93,6 +93,47 @@ function getAgeRestriction(ageRating) {
   return null;
 }
 
+function SeatConflictModal({ conflictInfo, onClose }) {
+  if (!conflictInfo) return null;
+  const seatNames = conflictInfo.seatNames || "vừa chọn";
+  return (
+    <div
+      className="seat-conflict-backdrop"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="seat-conflict-dialog"
+        onClick={(e) => e.stopPropagation()}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="conflict-dialog-title"
+        aria-describedby="conflict-dialog-desc"
+      >
+        <div className="seat-conflict-icon-wrap">
+          <AlertTriangle size={28} />
+        </div>
+        <h3 id="conflict-dialog-title" className="seat-conflict-title">
+          Xung đột giữ ghế (Lỗi 409 Conflict)
+        </h3>
+        <p id="conflict-dialog-desc" className="seat-conflict-message">
+          Ghế <strong>{seatNames}</strong> vừa được một khách hàng khác giữ chỗ nhanh hơn trong tích tắc. Sơ đồ ghế đã tự động cập nhật trạng thái mới nhất.
+          <span className="seat-conflict-sub">
+            Vui lòng chọn ghế khác!
+          </span>
+        </p>
+        <button
+          type="button"
+          className="seat-conflict-btn"
+          onClick={onClose}
+        >
+          Đã hiểu · Chọn ghế khác
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AgeRatingModal({ ageInfo, movieTitle, onConfirm, onCancel }) {
   const [agreed, setAgreed] = useState(false);
   return (
@@ -312,6 +353,11 @@ function LiveBookingConsole({
   const showtimeId = booking.showtimeId || booking.time.id;
   const [snapshot, setSnapshot] = useState(null);
   const [selected, setSelected] = useState([]);
+  const [conflictInfo, setConflictInfo] = useState(null);
+  const selectedRef = useRef(selected);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
   const [order, setOrder] = useState(null);
   const [busy, setBusy] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -356,6 +402,27 @@ function LiveBookingConsole({
     if (!mounted.current || version !== snapshotVersion.current) return;
     if (!Array.isArray(map?.seats) || typeof map.canBook !== "boolean")
       throw new Error("Chưa nhận được sơ đồ ghế hợp lệ. Hãy thử lại.");
+
+    // Kiểm tra xung đột giữ ghế khi cập nhật sơ đồ thời gian thực (SSE / Polling / Resync):
+    if (!activeOrderId.current && selectedRef.current.length > 0) {
+      const taken = map.seats.filter(
+        (s) =>
+          selectedRef.current.includes(s.seatId) && s.status !== "AVAILABLE",
+      );
+      if (taken.length > 0) {
+        const takenNames = taken.map((s) => `${s.row}${s.column}`).join(", ");
+        const takenIds = new Set(taken.map((s) => s.seatId));
+        setConflictInfo({
+          seatNames: takenNames,
+          seatIds: Array.from(takenIds),
+        });
+        setSelected((curr) => curr.filter((id) => !takenIds.has(id)));
+        setNotice(
+          `Ghế ${takenNames} vừa được người khác chọn. Vui lòng chọn ghế khác!`,
+        );
+      }
+    }
+
     setSnapshot(map);
     setInitialized(true);
     setOffset(new Date(map.asOf).getTime() - Date.now());
@@ -502,7 +569,14 @@ function LiveBookingConsole({
           )
         : [seat];
     if (pair.some((s) => s.status !== "AVAILABLE")) {
-      setNotice("Ghế đã bán hoặc đang được giữ. Hãy chọn vị trí khác.");
+      const conflictNames = pair.map((s) => `${s.row}${s.column}`).join(", ");
+      setConflictInfo({
+        seatNames: conflictNames,
+        seatIds: pair.map((s) => s.seatId),
+      });
+      setNotice(
+        `Ghế ${conflictNames} vừa được người khác chọn. Vui lòng chọn ghế khác!`,
+      );
       return;
     }
     const ids = pair.map((s) => s.seatId);
@@ -1216,6 +1290,18 @@ function LiveBookingConsole({
             void checkout();
           }}
           onCancel={() => setShowAgeModal(false)}
+        />
+      )}
+
+      {conflictInfo && (
+        <SeatConflictModal
+          conflictInfo={conflictInfo}
+          onClose={() => {
+            const blocked = new Set(conflictInfo.seatIds || []);
+            setSelected((curr) => curr.filter((id) => !blocked.has(id)));
+            setConflictInfo(null);
+            void refresh().catch(() => {});
+          }}
         />
       )}
     </Modal>

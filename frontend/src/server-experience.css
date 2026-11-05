@@ -282,6 +282,105 @@
   padding: 16px;
   text-align: center;
 }
+.ticket-success {
+  width: min(620px, 100%);
+  margin: 18px auto 24px;
+  padding: 30px 28px 26px;
+  border: 2px solid #23b8ed;
+  border-radius: 16px;
+  background: #121523;
+  box-shadow: 0 18px 58px #00b9f322, 0 0 34px #00b9f31c;
+  text-align: center;
+}
+.payment-success-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  color: #31bce9;
+}
+.payment-success-brand span {
+  padding: 5px 13px;
+  border-radius: 20px;
+  background: #27b9e9;
+  color: #08131c;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+}
+.payment-success-brand small {
+  font-size: 11px;
+  font-weight: 650;
+}
+.ticket-success .success-icon-wrap {
+  margin: 0 auto 13px;
+}
+.ticket-success h3 {
+  margin: 0 0 10px;
+  font-size: 23px;
+  line-height: 1.35;
+}
+.ticket-success .payment-success-order {
+  margin: 0 auto 8px;
+  color: #aeb6c8;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.payment-success-order b {
+  color: #e5e9f2;
+}
+.payment-success-order strong {
+  color: #28b9e8;
+  font-size: 15px;
+}
+.ticket-success .payment-success-copy {
+  margin: 0 auto 16px;
+  color: #aeb6c8;
+  font-size: 12px;
+}
+.ticket-success .booking-issued-ticket {
+  width: min(230px, 100%);
+  margin: 0 auto;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fff;
+}
+.ticket-success .ticket-qr-svg {
+  width: 100%;
+  max-width: 206px;
+  height: auto;
+  margin: 0 auto;
+}
+.ticket-success .ticket-qr-placeholder {
+  min-height: 180px;
+  border: 0;
+  color: #283246;
+}
+.ticket-success .payment-success-action {
+  width: min(300px, 100%);
+  min-height: 50px;
+  justify-content: center;
+  margin: 18px auto 0;
+  border-color: #13bd62;
+  background: #19c967;
+  color: #07170d;
+  box-shadow: 0 7px 20px #17c96840;
+}
+@media (max-width: 520px) {
+  .ticket-success {
+    padding: 24px 16px 20px;
+  }
+  .ticket-success h3 {
+    font-size: 20px;
+  }
+  .payment-success-brand {
+    gap: 8px;
+  }
+  .payment-success-brand small {
+    font-size: 10px;
+  }
+}
 .admin-users-toolbar {
   display: flex;
   align-items: end;

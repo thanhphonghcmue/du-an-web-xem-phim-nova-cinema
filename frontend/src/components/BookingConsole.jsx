@@ -898,20 +898,26 @@ function LiveBookingConsole({
 
       {order?.status === "PAID" ? (
         <div className="ticket-success">
+          <div className="payment-success-brand">
+            <span>NOVA TICKET</span>
+            <small>Thanh toán Sandbox đã hoàn tất</small>
+          </div>
           <div className="success-icon-wrap">
             <Check size={36} />
           </div>
           <h3>Thanh toán đã được xác nhận thành công!</h3>
-          <p>
-            Mã đơn hàng: <b>{order.orderCode}</b>
+          <p className="payment-success-order">
+            Đơn hàng: <b>{order.orderCode}</b>
+            <span aria-hidden="true"> · </span>
+            Số tiền: <strong>{money(order.finalAmount)}</strong>
           </p>
-          <p>
-            Mở ví vé để xem mã QR. Nếu hệ thống đang phát hành vé, trạng thái sẽ
-            tự cập nhật tại đó.
+          <p className="payment-success-copy">
+            Mã QR vé điện tử của bạn. Mở ví vé để xem chi tiết và sử dụng vé tại
+            rạp.
           </p>
           <BookingTicket key={order.id} orderId={order.id} />
           <button
-            className="button button-primary"
+            className="button button-primary payment-success-action"
             disabled={busy}
             onClick={handleMockPaymentSuccess}
           >

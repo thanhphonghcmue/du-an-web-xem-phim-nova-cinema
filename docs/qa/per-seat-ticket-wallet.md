@@ -84,5 +84,38 @@ không dùng PASS RAM để chứng minh tính bền vững SQL.
 | Browser                   | Chọn hai ghế → giữ → popup xác nhận → Sandbox thật → hai card QR → tìm/lọc/phóng to → ICS → tra công khai → staff dùng từng code |
 | Hồi quy                   | Auth, holds/expiry/cancel, payment signatures/pricing, catalog/admin/report, camera cleanup và layout mobile                     |
 
-Kết quả cuối cùng được cập nhật sau lượt chạy trên bản đã ghép `main`. Những
-con số/timing ở báo cáo trước là lịch sử, không phải bằng chứng cho bản per-seat.
+## Kết quả xác minh trên bản đã ghép main
+
+| Bộ kiểm chứng                                | Kết quả                                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Backend unit                                 | 116 đạt                                                                                     |
+| Native HTTP/Socket.IO/SMTP                   | 254 đạt                                                                                     |
+| Database constraints và migration            | 26 đạt                                                                                      |
+| Node/RAM/planner/config                      | 97 đạt                                                                                      |
+| Chromium production                          | 107 ca riêng biệt đạt qua các lượt dưới đây                                                 |
+| Typecheck, lint hai workspace, build hai đầu | Đạt                                                                                         |
+| Native compiled smoke                        | Đạt; khởi động tiến trình mới vẫn giữ PAID/SOLD/QR/check-in trong SQL; hai vé có code riêng |
+| RAM fallback smoke                           | Đạt; 24 món, đăng nhập qua BFF, xung đột ghế, giữ ghế, Sandbox ký thật và QR                |
+
+Tổng **600 ca riêng biệt**, không cộng trùng các lần chạy lại hoặc cộng hai smoke
+vào số này. Backend checks chạy tuần tự với database test riêng; không dùng RAM
+để xác nhận tính bền vững SQL. Không chạy Docker hoặc migrate database ứng dụng.
+
+Lịch sử browser được giữ rõ: lượt đầu 98/107; 9 ca sau vá/đồng bộ thao tác đều đạt.
+Lượt hồi quy tiếp theo 106/107, còn ca đo số lần format giờ chạy trùng lúc snapshot
+danh mục đang hydrate. Bổ sung chờ API ngày và snapshot thật hoàn tất, giữ nguyên
+assertion gõ 64 ký tự không format lại option; ca này đạt **3/3 lần lặp**. Không
+bỏ qua test, tăng quota, sửa giá hoặc tạo vé giả để đạt kết quả.
+
+Các lỗi thực được sửa gồm: chỉ hiện vé đầu tiên của đơn, tự bỏ qua cảnh báo sai
+suất, dữ liệu vé thiếu gây crash, highlight ghế bị giữ còn tồn tại, popup xung đột
+nhận nhầm ghế PAID của chính khách, popup thanh toán tràn ở 320px và phòng mới
+không có trong cache lịch công khai. Các kiểm thử cũ được cập nhật theo popup
+xác nhận và chính sách cho chọn ghế lẻ vừa được nhóm merge vào main.
+
+Đây là kết quả chức năng, không phải cam kết mọi API dưới 30ms hoặc toàn lịch
+dưới 15KiB. Lượt đo browser/BFF cho programme đầy đủ có p95 khoảng 167ms và payload
+nén khoảng 307KiB; các budget đó **chưa đạt**. Quyền camera bị từ chối được mô
+phỏng có kiểm soát; QR PNG/SVG được giải mã bằng jsQR, chưa kiểm tra phần cứng
+camera thực của máy khách. Những con số ở báo cáo trước là lịch sử, không cộng
+thành bằng chứng cho phiên bản per-seat.

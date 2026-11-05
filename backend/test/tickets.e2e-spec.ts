@@ -655,7 +655,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         .cMemberPoints,
     ).toBe(pointsBefore + 15);
   });
-  it("decodes the generated PNG to only the opaque hash and creates different hashes for different bookings", async () => {
+  it("decodes the generated PNG to its read-only ticket URL and keeps booking hashes distinct", async () => {
     const first = await fixture();
     const second = await fixture();
     await pay(first);

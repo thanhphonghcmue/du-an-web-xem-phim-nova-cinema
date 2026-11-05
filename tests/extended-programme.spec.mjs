@@ -221,7 +221,7 @@ test("Vietnam calendar enables every actual screening day through the following 
   }
 });
 
-test("movie 20 can be booked 15 days ahead: D10/D12 warns about D11, then valid seats pay and issue one QR", async ({
+test("movie 20 can be booked 15 days ahead with separated seats and three independent QR tickets", async ({
   page,
 }) => {
   const data = fixture(),

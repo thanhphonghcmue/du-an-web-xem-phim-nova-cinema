@@ -154,11 +154,33 @@ test("typing a manual QR does not reformat every screening option", async ({
       })
     ).status(),
   ).toBe(200);
+  const screeningDay = new Date(
+    f.admissionShowtime.startTime,
+  ).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  const dayLoaded = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/api/v1/showtimes" &&
+      url.searchParams.get("date") === screeningDay &&
+      response.status() === 200
+    );
+  });
   await page.goto("/soat-ve");
-  await page.getByLabel("Ngày đang soát", { exact: true }).fill(
-    new Date(f.admissionShowtime.startTime).toLocaleDateString("en-CA", {
-      timeZone: "Asia/Ho_Chi_Minh",
-    }),
+  await page.getByLabel("Ngày đang soát", { exact: true }).fill(screeningDay);
+  await (await dayLoaded).finished();
+  // Không đếm format của snapshot đang hydrate vào thao tác gõ mã của nhân viên.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Boolean(sessionStorage.getItem("nova:programme:raw")),
+      ),
+    )
+    .toBe(true);
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
   );
   const select = page.getByRole("combobox", {
     name: "Suất chiếu đang soát",

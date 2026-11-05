@@ -1,31 +1,4 @@
 /* Practical booking, owner email and staff admission states. */
-.orphan-warning-banner {
-  border: 1px solid #eba34f80;
-  background: #f1a14312;
-  color: #ffd59f;
-  line-height: 1.8;
-  border-radius: 9px;
-  padding: 15px 18px;
-  margin: 16px 0;
-  font-size: 12px;
-  align-items: flex-start;
-}
-.orphan-warning-banner svg {
-  flex-shrink: 0;
-  margin-top: 3px;
-}
-.seat.orphan-seat {
-  outline: 2px solid #ffaf47;
-  outline-offset: 3px;
-  box-shadow: 0 0 18px #ffae4745;
-  animation: orphan-attention 1.5s ease-in-out infinite;
-}
-@keyframes orphan-attention {
-  50% {
-    outline-color: #ffe3b3;
-    box-shadow: 0 0 23px #ffc97770;
-  }
-}
 .group-picker {
   flex-wrap: wrap;
 }
@@ -290,13 +263,6 @@
     height: 780px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .seat.orphan-seat {
-    animation: none;
-  }
-}
-
-
 /* Modal Thông Báo Xung Đột Giữ Ghế (Lỗi 409 Conflict) */
 .seat-conflict-backdrop {
   position: fixed;

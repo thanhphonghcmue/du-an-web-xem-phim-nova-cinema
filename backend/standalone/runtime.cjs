@@ -295,70 +295,11 @@ function createMemoryServer(input) {
       seats,
     };
   }
-  function orphan(map, ids) {
-    const chosen = new Set(ids),
-      rows = new Map();
-    for (const s of map.seats) {
-      if (!rows.has(s.row)) rows.set(s.row, []);
-      rows.get(s.row).push(s);
-    }
-    for (const row of rows.values()) {
-      let run = [];
-      const check = () => {
-        if (run.length > 1) {
-          let free = [];
-          for (const s of [...run, null]) {
-            if (s && !chosen.has(s.seatId)) free.push(s);
-            else {
-              if (free.length === 1) return free[0];
-              free = [];
-            }
-          }
-        }
-        return null;
-      };
-      for (const s of [...row, null]) {
-        if (
-          s &&
-          s.status === "AVAILABLE" &&
-          (!run.length || run.at(-1).column + 1 === s.column)
-        )
-          run.push(s);
-        else {
-          const bad = check();
-          if (bad) return bad;
-          run = s && s.status === "AVAILABLE" ? [s] : [];
-        }
-      }
-    }
-    return null;
-  }
   function group(map, quantity, type) {
     assert(Number.isInteger(quantity) && quantity >= 1 && quantity <= 20);
     assert(map.canBook, "SHOWTIME_STARTED", "Suất đã bắt đầu.", 409);
     assert(!type || ["STANDARD", "VIP", "SWEETBOX"].includes(type));
-    const seats = map.seats,
-      left = [],
-      right = [];
-    for (let i = 0; i < seats.length; i++)
-      left[i] =
-        seats[i].status === "AVAILABLE"
-          ? 1 +
-            (i &&
-            seats[i - 1].row === seats[i].row &&
-            seats[i - 1].column + 1 === seats[i].column
-              ? left[i - 1]
-              : 0)
-          : 0;
-    for (let i = seats.length - 1; i >= 0; i--)
-      right[i] =
-        seats[i].status === "AVAILABLE"
-          ? 1 +
-            (seats[i + 1]?.row === seats[i].row &&
-            seats[i + 1]?.column === seats[i].column + 1
-              ? right[i + 1]
-              : 0)
-          : 0;
+    const seats = map.seats;
     let run = 0,
       best = null;
     for (let i = 0; i < seats.length; i++) {
@@ -377,18 +318,6 @@ function createMemoryServer(input) {
       if (run < quantity) continue;
       const start = i - quantity + 1,
         first = seats[start];
-      if (
-        seats[start - 1]?.row === first.row &&
-        seats[start - 1]?.column === first.column - 1 &&
-        left[start - 1] === 1
-      )
-        continue;
-      if (
-        seats[i + 1]?.row === seat.row &&
-        seats[i + 1]?.column === seat.column + 1 &&
-        right[i + 1] === 1
-      )
-        continue;
       if (
         (first.type === "SWEETBOX" && first.column % 2 === 0) ||
         (seat.type === "SWEETBOX" && seat.column % 2 === 1)
@@ -467,11 +396,6 @@ function createMemoryServer(input) {
         "Ghế vừa được người khác giữ. Hãy chọn lại.",
         { seatIds: conflictingIds },
       );
-    const bad = orphan(map, [...ids]);
-    if (bad)
-      fail(409, "ORPHAN_SEAT", "Không để lại một ghế trống lẻ.", {
-        seatId: bad.seatId,
-      });
     const combos = body.comboItems || [];
     assert(
       Array.isArray(combos) &&

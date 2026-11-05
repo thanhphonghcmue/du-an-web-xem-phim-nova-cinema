@@ -6639,25 +6639,6 @@ button:focus-visible {
    CAMERA QR SCANNER, MOVIE REVIEWS, REVENUE CSV EXPORT
    ============================================================ */
 
-/* Orphan Seat Warning */
-.orphan-warning-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-size: 13.5px;
-  margin: 10px 0;
-  animation: pulseWarning 2s infinite ease-in-out;
-}
-@keyframes pulseWarning {
-  0%, 100% { border-color: rgba(239, 68, 68, 0.4); }
-  50% { border-color: rgba(239, 68, 68, 0.8); }
-}
-
 /* Weekend Pricing Badge */
 .booking-badges-row {
   display: flex;

@@ -34,30 +34,6 @@ export function findGroupSeats(
     const last = row[row.length - 1];
     if (!first || !last) continue;
     const center = (first.column + last.column) / 2;
-    // Counts use physical availability, even when the caller filters by seat type.
-    // A contiguous choice can only create a new singleton immediately to its sides.
-    const left: number[] = [],
-      right: number[] = [];
-    for (let i = 0; i < row.length; i++) {
-      const current = row[i];
-      left[i] =
-        current?.status === "AVAILABLE"
-          ? 1 +
-            (i > 0 && row[i - 1]?.column === current.column - 1
-              ? (left[i - 1] ?? 0)
-              : 0)
-          : 0;
-    }
-    for (let i = row.length - 1; i >= 0; i--) {
-      const current = row[i];
-      right[i] =
-        current?.status === "AVAILABLE"
-          ? 1 +
-            (row[i + 1]?.column === current.column + 1
-              ? (right[i + 1] ?? 0)
-              : 0)
-          : 0;
-    }
     const byColumn = new Map(row.map((seat) => [seat.column, seat]));
     const invalidPairs: number[] = [0];
     for (let i = 0; i < row.length; i++) {
@@ -75,10 +51,7 @@ export function findGroupSeats(
     for (let index = 0; index < row.length; index++) {
       const seat = row[index];
       if (!seat) continue;
-      if (
-        seat.status !== "AVAILABLE" ||
-        (type !== undefined && seat.type !== type)
-      ) {
+      if (seat.status !== "AVAILABLE" || (type !== undefined && seat.type !== type)) {
         run = 0;
         previous = undefined;
         continue;
@@ -90,12 +63,6 @@ export function findGroupSeats(
       const start = index - quantity + 1;
       const beginning = row[start];
       if (!beginning) continue;
-      if (
-        (row[start - 1]?.column === beginning.column - 1 &&
-          left[start - 1] === 1) ||
-        (row[index + 1]?.column === seat.column + 1 && right[index + 1] === 1)
-      )
-        continue;
       if (
         (beginning.type === "SWEETBOX" && beginning.column % 2 === 0) ||
         (seat.type === "SWEETBOX" && seat.column % 2 === 1) ||

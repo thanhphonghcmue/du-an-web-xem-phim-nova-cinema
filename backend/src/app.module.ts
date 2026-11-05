@@ -9,7 +9,7 @@
  *     3. RedisModule & RateLimitModule: Bộ đệm phân tán và bảo vệ chống brute-force / DDoS.
  *     4. AuthModule: Đăng ký, đăng nhập JWT, giải mã phiên, băm mật khẩu Argon2id.
  *     5. Movies, Cinemas, Rooms, Seats, Showtimes: Quản lý danh mục rạp, phim, phòng chiếu, ghế và suất chiếu.
- *     6. BookingsModule: Khóa giữ ghế 5 phút, kiểm tra Orphan Seat, tính giá vé, mã coupon, chiết khấu hạng và cộng điểm C'MEMBER.
+ *     6. BookingsModule: Khóa giữ ghế 5 phút, tính giá vé, mã coupon, chiết khấu hạng và cộng điểm C'MEMBER.
  *     7. RealtimeModule: Cổng Socket.IO phát sự kiện ghế thời gian thực (`/seats namespace`).
  *     8. PaymentsModule: Tạo liên kết Sandbox thanh toán có chữ ký số HMAC-SHA512 chống gian lận.
  *     9. NotificationsModule: Hàng đợi BullMQ gửi email vé xem phim có mã QR qua SMTP Mailpit.

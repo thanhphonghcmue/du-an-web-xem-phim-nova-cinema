@@ -278,7 +278,7 @@ test("guests can browse but must sign in before seat booking", async ({
   ).toBe(401);
 });
 
-test("orphan warnings identify the real gap, block submission and match backend validation", async ({
+test("allows booking a seat even when it leaves one empty seat", async ({
   page,
 }) => {
   await login(page);
@@ -286,40 +286,20 @@ test("orphan warnings identify the real gap, block submission and match backend 
   await page
     .getByRole("button", { name: "Ghế A2, còn trống", exact: true })
     .click();
-  await expect(page.locator(".orphan-warning-banner")).toContainText("A1");
-  await page.locator(".orphan-warning-banner").scrollIntoViewIfNeeded();
-  await capture(page, "orphan-seat-warning");
-  await expect(page.locator(".seat.orphan-seat")).toHaveAttribute(
-    "aria-label",
-    "Ghế A1, còn trống",
-  );
+  await expect(page.locator(".orphan-warning-banner")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Giữ ghế 5 phút", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   const map = (await read(page, `/showtimes/${fixture().showtime.id}/seats`))
     .body.data;
-  const invalid = await command(page, "/bookings/hold", {
+  const held = await command(page, "/bookings/hold", {
     showtimeId: fixture().showtime.id,
     seatIds: [
       map.seats.find((seat) => seat.row === "A" && seat.column === 2).seatId,
     ],
   });
-  expect(invalid.status).toBe(400);
-  expect(invalid.body.error).toBe("ORPHAN_SEAT_DETECTED");
-  await page
-    .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
-    .click();
-  await expect(page.locator(".orphan-warning-banner")).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Giữ ghế 5 phút", exact: true }),
-  ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "Ghế A2, đang chọn", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Ghế A3, còn trống", exact: true })
-    .click();
-  await expect(page.locator(".orphan-warning-banner")).toContainText("A2");
+  expect(held.status).toBe(201);
+  expect(held.body.data.seats).toHaveLength(1);
   await page
     .getByRole("combobox", { name: "Loại ghế gợi ý", exact: true })
     .selectOption("VIP");
@@ -527,7 +507,7 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
   // A second active order must not replace the just-paid result when points refresh.
   const map = (await read(page, `/showtimes/${fixture().showtime.id}/seats`))
     .body.data;
-  // Use an edge seat so the second booking respects the existing orphan-seat rule.
+  // Use an edge seat so the independent second booking cannot overlap the first.
   const anotherSeat = map.seats.find((s) => s.row === "A" && s.column === 1);
   expect(
     (

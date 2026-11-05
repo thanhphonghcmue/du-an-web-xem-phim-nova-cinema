@@ -177,3 +177,12 @@ giữ deadline/quota. Các lần kiểm chứng đạt579 ca độc lập:115 ba
 lint/typecheck/build đạt. `qa:lab04`134 native +4 browser là tập con, không cộng trùng.
 Mục tiêu mọi request30ms/toàn catalogue15KiB chưa đạt; Figma mới có bàn giao capture,
 chưa import/tạo file. [Audit, lịch sử lỗi và số đo](../../docs/qa/lab04-native-figma-audit.md).
+
+
+## Bổ sung ví vé/check-in theo từng ghế — 05/11/2026
+
+Không đổi trạng thái Phase 11–12. Yêu cầu bổ sung dùng migration additive để mỗi
+ghế SOLD của đơn mới có mã chữ/QR/check-in riêng; giữ nguyên vé nhóm cũ. Tái sử dụng
+owner ticket/calendar/email và STAFF preview/check-in; thêm tìm kiếm/ngày/trạng
+thái, QR phóng to và trang tra cứu công khai chỉ đọc.
+[Báo cáo, contract và kết quả kiểm chứng](../../docs/qa/per-seat-ticket-wallet.md).

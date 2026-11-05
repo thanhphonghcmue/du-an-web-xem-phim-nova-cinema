@@ -412,7 +412,7 @@ describe("Phase 1 PostgreSQL constraints (not API TC01–TC05)", () => {
       }),
     ).rejects.toMatchObject({ code: "P2002" });
   });
-  it("allows one ticket per booking and globally unique random hashes", async () => {
+  it("preserves one legacy group ticket per booking and globally unique random hashes", async () => {
     const f = await fixture();
     const a = await booking(f.showtime.id, "PAID");
     const b = await booking(f.showtime.id, "PAID");
@@ -435,6 +435,61 @@ describe("Phase 1 PostgreSQL constraints (not API TC01–TC05)", () => {
         },
       }),
     ).rejects.toMatchObject({ code: "P2002" });
+  });
+  it("enforces one ticket per booking seat and globally unique short codes", async () => {
+    const f = await fixture();
+    const a = await booking(f.showtime.id, "PAID");
+    const line = await prisma.bookingSeat.create({
+      data: seatRow(f, a.id, "SOLD"),
+    });
+    const ticket = await prisma.eTicket.create({
+      data: {
+        bookingId: a.id,
+        bookingSeatId: line.id,
+        ticketHash: randomBytes(32).toString("hex"),
+        qrCodeBase64: "owned-fixture",
+      },
+    });
+    expect(ticket.ticketCode).toMatch(/^[A-HJ-NP-Z2-9]{8}$/);
+    await expect(
+      prisma.eTicket.create({
+        data: {
+          bookingId: a.id,
+          bookingSeatId: line.id,
+          ticketHash: randomBytes(32).toString("hex"),
+          qrCodeBase64: "owned-fixture",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2002" });
+    const b = await booking(f.showtime.id, "PAID");
+    await expect(
+      prisma.eTicket.create({
+        data: {
+          bookingId: b.id,
+          ticketCode: ticket.ticketCode,
+          ticketHash: randomBytes(32).toString("hex"),
+          qrCodeBase64: "owned-fixture",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2002" });
+  });
+  it("rejects a ticket whose seat belongs to a different booking", async () => {
+    const f = await fixture();
+    const a = await booking(f.showtime.id, "PAID"),
+      b = await booking(f.showtime.id, "PAID");
+    const line = await prisma.bookingSeat.create({
+      data: seatRow(f, a.id, "SOLD"),
+    });
+    await expect(
+      prisma.eTicket.create({
+        data: {
+          bookingId: b.id,
+          bookingSeatId: line.id,
+          ticketHash: randomBytes(32).toString("hex"),
+          qrCodeBase64: "owned-fixture",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2003" });
   });
   it("supports an atomic single-winner check-in update", async () => {
     const f = await fixture();

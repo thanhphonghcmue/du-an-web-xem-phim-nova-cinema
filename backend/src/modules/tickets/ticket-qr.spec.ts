@@ -3,6 +3,15 @@ import jsQR from "jsqr";
 import { ticketQrPng } from "./ticket-qr";
 
 describe("ticket QR PNG", () => {
+  it("decodes the new per-seat read-only URL with its full opaque fragment", () => {
+    const value = `https://nova.example/ve#${"a".repeat(64)}`;
+    const png = PNG.sync.read(
+      Buffer.from(ticketQrPng(value).split(",")[1] ?? "", "base64"),
+    );
+    expect(
+      jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data,
+    ).toBe(value);
+  });
   it.each(["0".repeat(64), "f".repeat(64), "0123456789abcdef".repeat(4)])(
     "decodes a grayscale PNG320 to its original opaque identifier",
     (hash) => {

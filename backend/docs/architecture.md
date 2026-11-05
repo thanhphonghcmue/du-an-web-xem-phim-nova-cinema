@@ -311,3 +311,17 @@ Sweetbox nguyên cặp. Không thay ranh giới transaction booking/payment/outb
 Native nén gzip cấp4 cho GET/HEAD public movies/cinemas/rooms/combos/showtimes từ1024 byte. BFF chuyển bytes JSON thành công, không parse/stringify lại, nén gzip bất đồng bộ nếu browser chấp nhận; giữ `no-store` và `Vary: Accept-Encoding`. Các route auth/private/SSE không đi qua lớp nén này. Không đổi cấu hình pool, schema, giá, HMAC thanh toán hoặc outbox.
 
 SSE trên Next production dùng `socket.io-client` như server external để giữ Node WebSocket transport. Stream gửi comment mở đầu ngay; socket/ack có timeout5 giây, heartbeat và socket được dọn khi client hủy. Stream reconnect vẫn yêu cầu client lấy lại snapshot; không cam kết ordered/exactly-once delivery. Adapter RAM giữ polling và tự fallback như lựa chọn đã có.
+
+
+## Vé theo từng ghế — 05/11/2026
+
+Booking 1:N ETicket; mỗi vé mới tham chiếu đúng BookingSeat bằng FK kép và unique
+booking_seat_id. Migration backfill mã chữ 8 ký tự cho vé cũ, giữ nguyên hash, PNG
+và USED. Vé nhóm legacy có booking_seat_id NULL; không phát thêm quyền vào rạp
+cho các ghế đã được đại diện bằng QR nhóm. QR mới trỏ `/ve#token`, lookup công khai
+chỉ đọc projection không PII. Owner/STAFF APIs, PAID/SOLD, DB-clock và conditional
+check-in giữ nguyên. Issuance chuẩn bị QR ngoài lock, khóa booking rồi re-read
+PAID/SOLD, tạo toàn bộ vé thiếu và email outbox cùng transaction; replay không
+nhân đôi. Mã ngắn nhập tay đi qua cùng dịch vụ/transaction check-in.
+
+[Bằng chứng, contract và hướng dẫn kiểm chứng](../../docs/qa/per-seat-ticket-wallet.md).

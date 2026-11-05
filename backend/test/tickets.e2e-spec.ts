@@ -98,7 +98,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
   let comboId: string;
   const prefix = `p9-${randomUUID()}`;
   const namespace = () => process.env.BULLMQ_PREFIX || "invalid";
-  async function fixture(offset = 30 * 60000) {
+  async function fixture(offset = 30 * 60000, seatCount = 1) {
     const room = await prisma.room.create({
       data: {
         cinemaId,
@@ -136,7 +136,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         .auth(token, { type: "bearer" })
         .send({
           showtimeId: showtime.id,
-          seatIds: seats.slice(0, 2).map((seat) => seat.id),
+          seatIds: seats.slice(0, seatCount).map((seat) => seat.id),
           comboItems: [{ comboId, quantity: 1 }],
         })
         .expect(201),
@@ -367,11 +367,261 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     await smtp.close();
   });
 
+  it("issues independent seat QR/code pairs, preserves the second admission and accepts short-code entry", async () => {
+    const f = await fixture(30 * 60000, 2);
+    await pay(f);
+    await Promise.all([
+      generate(f),
+      other.get(TicketsService).generateETicket(f.booking.id),
+    ]);
+    const rows = await prisma.eTicket.findMany({
+      where: { bookingId: f.booking.id },
+    });
+    expect(rows).toHaveLength(2);
+    expect(new Set(rows.map((t) => t.ticketCode)).size).toBe(2);
+    expect(new Set(rows.map((t) => t.ticketHash)).size).toBe(2);
+    const first = required(rows[0]);
+    const second = required(rows[1]);
+    for (const row of rows) {
+      expect(row.ticketCode).toMatch(/^[A-HJ-NP-Z2-9]{8}$/);
+      const dto = data(await get(row.id).expect(200)) as Ticket;
+      expect(dto.seats).toHaveLength(1);
+      await get(row.id, foreignToken).expect(404);
+    }
+    await check(first.ticketCode.toLowerCase()).expect(200);
+    await check(first.ticketHash).expect(409);
+    expect(
+      (await prisma.eTicket.findUniqueOrThrow({ where: { id: second.id } }))
+        .isCheckedIn,
+    ).toBe(false);
+    await check(second.ticketCode).expect(200);
+    await check(second.ticketHash).expect(409);
+    expect(
+      await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(2);
+  });
+  it("rolls back every seat ticket if the second email outbox insert fails", async () => {
+    const f = await fixture(30 * 60000, 2);
+    await pay(f);
+    const events = app.get(OutboxRepository);
+    const original = events.add.bind(events);
+    let calls = 0;
+    const spy = jest
+      .spyOn(events, "add")
+      .mockImplementation(async (...args) => {
+        if (args[0] === EMAIL_REQUESTED && ++calls === 2)
+          throw new Error("owned-second-ticket-failure");
+        return original(...args);
+      });
+    try {
+      await expect(generate(f)).rejects.toThrow();
+      expect(
+        await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+      ).toBe(0);
+      expect(
+        await prisma.outboxEvent.count({
+          where: { aggregateId: f.booking.id, eventType: EMAIL_REQUESTED },
+        }),
+      ).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+    await generate(f);
+    expect(
+      await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(2);
+  });
+  it("short-code admission has one winner across two SQL API instances", async () => {
+    const f = await fixture(30 * 60000, 2);
+    await pay(f);
+    await generate(f);
+    const rows = await prisma.eTicket.findMany({
+      where: { bookingId: f.booking.id },
+    });
+    const first = required(rows[0]),
+      second = required(rows[1]);
+    const outcomes = await Promise.all([
+      check(first.ticketCode, server, staffToken),
+      check(first.ticketCode, remote, secondStaffToken),
+    ]);
+    expect(outcomes.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect(
+      (await prisma.eTicket.findUniqueOrThrow({ where: { id: second.id } }))
+        .isCheckedIn,
+    ).toBe(false);
+    const preview = await request(server)
+      .post("/api/v1/staff/verify")
+      .auth(staffToken, { type: "bearer" })
+      .send({ ticketHash: second.ticketCode, showtimeId: randomUUID() })
+      .expect(409);
+    expect(error(preview)).toBe("TICKET_SHOWTIME_MISMATCH");
+    await request(server)
+      .post("/api/v1/staff/verify")
+      .auth(staffToken, { type: "bearer" })
+      .send({ ticketHash: second.ticketCode, showtimeId: f.showtime.id })
+      .expect(200);
+    expect(
+      (await prisma.eTicket.findUniqueOrThrow({ where: { id: second.id } }))
+        .isCheckedIn,
+    ).toBe(false);
+  });
+  it("public QR lookup is read-only, returns no customer/capability and never admits by short code", async () => {
+    const f = await fixture();
+    await pay(f);
+    const row = await generate(f);
+    const lookup = () =>
+      request(server)
+        .post("/api/v1/tickets/lookup")
+        .send({ ticketHash: row.ticketHash });
+    const response = await lookup().expect(200);
+    expect(response.headers["cache-control"]).toContain("no-store");
+    const publicData = data(response);
+    expect(publicData).toEqual(
+      expect.objectContaining({
+        ticketCode: row.ticketCode,
+        status: "VALID",
+        seats: [{ label: "A1", type: "STANDARD" }],
+      }),
+    );
+    expect(Object.keys(publicData as object).sort()).toEqual(
+      [
+        "ticketCode",
+        "movie",
+        "posterUrl",
+        "cinema",
+        "room",
+        "startTime",
+        "endTime",
+        "seats",
+        "status",
+      ].sort(),
+    );
+    expect(
+      (await prisma.eTicket.findUniqueOrThrow({ where: { id: row.id } }))
+        .isCheckedIn,
+    ).toBe(false);
+    await request(server)
+      .post("/api/v1/tickets/lookup")
+      .send({ ticketHash: row.ticketCode })
+      .expect(400);
+    await request(server)
+      .post("/api/v1/staff/check-in")
+      .send({ ticketHash: row.ticketHash })
+      .expect(401);
+    await check(row.ticketCode).expect(200);
+    expect(data(await lookup().expect(200))).toEqual(
+      expect.objectContaining({ status: "USED" }),
+    );
+  });
+  it("wallet filters real SQL tickets by short code, cinema, viewing date, booking date and owner", async () => {
+    const f = await fixture();
+    await pay(f);
+    const row = await generate(f);
+    const page = (r: Response) => data(r) as { items: Ticket[]; total: number };
+    expect(
+      page(
+        await list(token, {
+          search: row.ticketCode.toLowerCase(),
+          status: "unused",
+        }).expect(200),
+      ).items.map((t) => t.id),
+    ).toEqual([row.id]);
+    expect(
+      page(await list(foreignToken, { search: row.ticketCode }).expect(200))
+        .items,
+    ).toEqual([]);
+    expect(
+      page(
+        await list(token, { search: prefix, sort: "showtime" }).expect(200),
+      ).items.some((t) => t.id === row.id),
+    ).toBe(true);
+    const day = f.showtime.startTime.toLocaleDateString("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+    expect(
+      page(await list(token, { search: row.ticketCode, date: day }).expect(200))
+        .items,
+    ).toHaveLength(1);
+    // Ngày đặt khác ngày xem: xác minh hai bộ lọc không dùng nhầm timestamp.
+    await prisma.booking.update({
+      where: { id: f.booking.id },
+      data: { createdAt: new Date("2026-01-01T18:00:00Z") },
+    });
+    expect(
+      page(
+        await list(token, {
+          search: row.ticketCode,
+          date: "2026-01-02",
+          dateBasis: "booked",
+        }).expect(200),
+      ).items,
+    ).toHaveLength(1);
+    expect(
+      page(
+        await list(token, {
+          search: row.ticketCode,
+          date: "2026-01-01",
+          dateBasis: "booked",
+        }).expect(200),
+      ).items,
+    ).toEqual([]);
+    await list(token, { dateFrom: "2026-11-06", dateTo: "2026-11-05" }).expect(
+      400,
+    );
+    await list(token, { date: "2026-02-30" }).expect(400);
+    await check(row.ticketCode).expect(200);
+    expect(
+      page(
+        await list(token, { search: row.ticketCode, status: "used" }).expect(
+          200,
+        ),
+      ).items,
+    ).toHaveLength(1);
+    expect(
+      page(
+        await list(token, { search: row.ticketCode, status: "unused" }).expect(
+          200,
+        ),
+      ).items,
+    ).toEqual([]);
+  });
+  it("keeps the legacy group QR and check-in state without creating duplicate seat admissions", async () => {
+    const f = await fixture(30 * 60000, 2);
+    await pay(f);
+    const hash = randomBytes(32).toString("hex");
+    const legacy = await prisma.eTicket.create({
+      data: {
+        bookingId: f.booking.id,
+        ticketHash: hash,
+        qrCodeBase64: ticketQr.ticketQrPng(hash),
+      },
+    });
+    expect((await generate(f)).id).toBe(legacy.id);
+    expect(
+      await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(1);
+    const dto = data(await get(legacy.id).expect(200)) as Ticket & {
+      legacyGroup: boolean;
+      qrPayload: string;
+    };
+    expect(dto.legacyGroup).toBe(true);
+    expect(dto.qrPayload).toBe(hash);
+    expect(dto.seats).toHaveLength(2);
+    await check(hash).expect(200);
+    await generate(f);
+    await check(legacy.ticketCode).expect(409);
+    expect(
+      await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(1);
+  });
   it("TC-03 completes committed payment into one QR and one actual SMTP email; duplicate webhook has no new effects", async () => {
     const f = await fixture();
+    const pointsBefore = (
+      await prisma.user.findUniqueOrThrow({ where: { id: userId } })
+    ).cMemberPoints;
     const callback = await pay(f);
     await app.get(FulfillmentRelay).flush();
-    const ticket = await prisma.eTicket.findUniqueOrThrow({
+    const ticket = await prisma.eTicket.findFirstOrThrow({
       where: { bookingId: f.booking.id },
     });
     const event = await emailEvent(f.booking.id);
@@ -403,7 +653,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     expect(
       (await prisma.user.findUniqueOrThrow({ where: { id: userId } }))
         .cMemberPoints,
-    ).toBe(23);
+    ).toBe(pointsBefore + 15);
   });
   it("decodes the generated PNG to only the opaque hash and creates different hashes for different bookings", async () => {
     const first = await fixture();
@@ -420,7 +670,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     );
     expect(
       jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data,
-    ).toBe(a.ticketHash);
+    ).toBe(`http://localhost:3000/ve#${a.ticketHash}`);
     expect(a.ticketHash).not.toBe(b.ticketHash);
     expect(a.ticketHash).not.toContain(first.booking.id);
   });
@@ -442,7 +692,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
             where: { bookingId: f.booking.id },
           })) === 1,
       );
-      const ticket = await prisma.eTicket.findUniqueOrThrow({
+      const ticket = await prisma.eTicket.findFirstOrThrow({
         where: { bookingId: f.booking.id },
         include: { booking: { include: { seats: true } } },
       });
@@ -455,7 +705,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
       );
       expect(
         jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data,
-      ).toBe(ticket.ticketHash);
+      ).toBe(`http://localhost:3000/ve#${ticket.ticketHash}`);
       await request(server)
         .post("/api/v1/payments/webhook")
         .send(callback)
@@ -471,7 +721,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
       ).toBe(1);
       expect(
         (
-          await prisma.eTicket.findUniqueOrThrow({
+          await prisma.eTicket.findFirstOrThrow({
             where: { bookingId: f.booking.id },
           })
         ).ticketHash,
@@ -566,10 +816,10 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     const result = data(response) as Ticket;
     expect(result).toMatchObject({
       bookingId: f.booking.id,
-      amount: "236550.00",
+      amount: "151050.00",
       isCheckedIn: false,
     });
-    expect(result.seats.map((seat) => seat.label)).toEqual(["A1", "A2"]);
+    expect(result.seats.map((seat) => seat.label)).toEqual(["A1"]);
     expect(result.combos).toEqual([
       { name: "Party Combo 69K", quantity: 1, unitPrice: "69000.00" },
     ]);
@@ -761,7 +1011,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
       movie: prefix,
       cinema: prefix,
       isCheckedIn: true,
-      seats: [{ label: "A1" }, { label: "A2" }],
+      seats: [{ label: "A1" }],
       combos: [{ name: "Party Combo 69K", quantity: 1 }],
     });
     expect(response.text).not.toMatch(/ticketHash|qrCodeBase64|email|userId/);
@@ -1132,7 +1382,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         return original(...args);
       });
     await app.get(FulfillmentRelay).flush();
-    const ticket = await prisma.eTicket.findUniqueOrThrow({
+    const ticket = await prisma.eTicket.findFirstOrThrow({
       where: { bookingId: f.booking.id },
     });
     const event = await prisma.outboxEvent.findFirstOrThrow({
@@ -1143,7 +1393,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     await retryEvent(event.id);
     expect(
       (
-        await prisma.eTicket.findUniqueOrThrow({
+        await prisma.eTicket.findFirstOrThrow({
           where: { bookingId: f.booking.id },
         })
       ).id,
@@ -1228,7 +1478,7 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     ).toBe(true);
     expect(
       (
-        await prisma.eTicket.findUniqueOrThrow({
+        await prisma.eTicket.findFirstOrThrow({
           where: { bookingId: f.booking.id },
         })
       ).ticketHash,

@@ -309,17 +309,23 @@ test("lazy RAM expiration frees read availability and old cancellation cannot re
     1,
   );
 });
-test("RAM Sweetbox pricing, member discount and coupons follow fixed2 contracts", async (t) => {
+test("RAM permits isolated seats and preserves Sweetbox pricing, member discounts and fixed2 contracts", async (t) => {
   const f = await fixture(t);
+  const single = await f.call(
+    "/bookings/hold",
+    { showtimeId: f.showtimeId, seatIds: [f.seat("A2")] },
+    f.customer.accessToken,
+  );
+  assert.equal(single.status, 201);
   assert.equal(
     (
       await f.call(
-        "/bookings/hold",
-        { showtimeId: f.showtimeId, seatIds: [f.seat("A2")] },
+        `/bookings/${single.data.id}/cancel`,
+        {},
         f.customer.accessToken,
       )
     ).status,
-    409,
+    200,
   );
   const r = await f.call(
     "/bookings/hold",
@@ -344,11 +350,11 @@ test("RAM Sweetbox pricing, member discount and coupons follow fixed2 contracts"
   assert.equal(group.status, 200);
   assert.equal(group.data.seatIds.length, 2);
 });
-async function paidFixture(t) {
+async function paidFixture(t, labels = ["A1"]) {
   const f = await fixture(t);
   const r = await f.call(
     "/bookings/hold",
-    { showtimeId: f.showtimeId, seatIds: [f.seat("A1")] },
+    { showtimeId: f.showtimeId, seatIds: labels.map(f.seat) },
     f.customer.accessToken,
   );
   assert.equal(r.status, 201);
@@ -365,6 +371,64 @@ async function paidFixture(t) {
   const fields = Object.fromEntries(new URL(create.data.url).searchParams);
   return { ...f, order, fields };
 }
+test("RAM two-seat payment issues independent codes/QRs and read-only lookup cannot consume admission", async (t) => {
+  const f = await paidFixture(t, ["A1", "A2"]);
+  await f.call("/payments/sandbox/complete", {
+    ...f.fields,
+    result: "SUCCESS",
+  });
+  const list = (
+    await f.call("/tickets/me?limit=100", undefined, f.customer.accessToken)
+  ).data.items;
+  assert.equal(list.length, 2);
+  assert.equal(new Set(list.map((row) => row.ticketCode)).size, 2);
+  assert.equal(new Set(list.map((row) => row.ticketHash)).size, 2);
+  assert.deepEqual(
+    list.map((row) => row.seats.length),
+    [1, 1],
+  );
+  const [first, second] = list;
+  const publicTicket = await f.call("/tickets/lookup", {
+    ticketHash: first.ticketHash,
+  });
+  assert.equal(publicTicket.status, 200);
+  assert.equal(publicTicket.data.status, "VALID");
+  for (const key of [
+    "customerName",
+    "customerPhone",
+    "ticketHash",
+    "orderCode",
+    "bookingId",
+  ])
+    assert.equal(key in publicTicket.data, false);
+  f.advance(3 * 3600000 - 1000);
+  const owner = await f.login("customer");
+  const staff = await f.login("staff");
+  const body = { ticketHash: first.ticketCode, showtimeId: f.showtimeId };
+  assert.equal(
+    (await f.call("/staff/check-in", body, staff.accessToken)).status,
+    200,
+  );
+  assert.equal(
+    (await f.call("/staff/check-in", body, staff.accessToken)).status,
+    409,
+  );
+  assert.equal(
+    (await f.call(`/tickets/${second.id}`, undefined, owner.accessToken)).data
+      .isCheckedIn,
+    false,
+  );
+  assert.equal(
+    (
+      await f.call(
+        "/staff/check-in",
+        { ...body, ticketHash: second.ticketCode },
+        staff.accessToken,
+      )
+    ).status,
+    200,
+  );
+});
 test("RAM checkout is signed, does not fake PAID and issues one real QR after success", async (t) => {
   const f = await paidFixture(t);
   assert.equal(
@@ -440,8 +504,9 @@ test("RAM checkout is signed, does not fake PAID and issues one real QR after su
   const png = PNG.sync.read(Buffer.from(image.split(",")[1], "base64"));
   const decoded = jsQR(new Uint8ClampedArray(png.data), png.width, png.height);
   assert.ok(
-    decoded?.data === list[0].ticketHash,
-    "actual PNG encodes its own opaque ticket hash",
+    decoded?.data === list[0].qrPayload &&
+      new URL(decoded.data).hash === `#${list[0].ticketHash}`,
+    "actual PNG opens the read-only ticket page with its own opaque token",
   );
 
   assert.ok(

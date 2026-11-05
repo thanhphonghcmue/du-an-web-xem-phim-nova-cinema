@@ -1,5 +1,9 @@
 # Khảo sát Vé của tôi → QR → check-in
 
+Đây là khảo sát trước triển khai. Bản sửa và bằng chứng kiểm chứng sau đó nằm tại
+[vé theo từng ghế và ví vé](per-seat-ticket-wallet.md); các giới hạn mô tả bên
+dưới phản ánh thời điểm khảo sát, không phải schema hiện tại.
+
 Yêu cầu nguồn: phần NOVA Cinema trong `Pasted text.txt` gửi ngày05/11/2026. Các đoạn mô phỏng quản lý bộ nhớ và kết quả commit của dự án khác là lịch sử tham khảo, không áp dụng vào NOVA.
 
 ## Hiện trạng xác định từ code

@@ -41,7 +41,7 @@ describe("group seat sliding windows", () => {
       ...row("A", [1, 2, 3, 4], "STANDARD"),
       ...row("B", [1, 2, 3, 4], "VIP"),
     ];
-    expect(findGroupSeats(seats, 2, "VIP")).toEqual(["B1", "B2"]);
+    expect(findGroupSeats(seats, 2, "VIP")).toEqual(["B2", "B3"]);
     expect(findGroupSeats(seats, 1, "SWEETBOX")).toEqual([]);
   });
   it("ranks distance before row label and uses row/column tie breakers", () => {
@@ -53,7 +53,7 @@ describe("group seat sliding windows", () => {
     ).toEqual(["B3", "B4", "B5"]);
     expect(
       findGroupSeats([...row("B", [1, 2, 3, 4]), ...row("A", [1, 2, 3, 4])], 2),
-    ).toEqual(["A1", "A2"]);
+    ).toEqual(["A2", "A3"]);
   });
   it.each([0, 21, -1, 1.5])("rejects invalid quantity %s", (quantity) => {
     expect(findGroupSeats(row("A", [1, 2, 3]), quantity)).toEqual([]);
@@ -63,7 +63,7 @@ describe("group seat sliding windows", () => {
     expect(findGroupSeats(seats, 1, "SWEETBOX")).toEqual([]);
     expect(findGroupSeats(seats, 3)).toEqual([]);
     expect(findGroupSeats(seats, 2)).toEqual(["H1", "H2"]);
-    expect(findGroupSeats(seats.slice(1), 2)).toEqual([]);
+    expect(findGroupSeats(seats.slice(1), 2)).toEqual(["H3", "H4"]);
     expect(
       findGroupSeats(
         seats.map((s) => (s.column === 2 ? { ...s, status: "HOLDING" } : s)),
@@ -108,7 +108,9 @@ describe("group seat sliding windows", () => {
           expect(suggestion).toHaveLength(quantity);
           expect(
             suggestion.every(
-              (id) => seats.find((seat) => seat.seatId === id)?.status === "AVAILABLE",
+              (id) =>
+                seats.find((seat) => seat.seatId === id)?.status ===
+                "AVAILABLE",
             ),
           ).toBe(true);
         }

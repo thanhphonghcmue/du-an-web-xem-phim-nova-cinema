@@ -1,8 +1,49 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsBoolean, IsOptional, IsUUID, Matches } from "class-validator";
+import {
+  IsBoolean,
+  IsOptional,
+  IsUUID,
+  Matches,
+  IsString,
+  MaxLength,
+  IsIn,
+  IsDateString,
+} from "class-validator";
 import { PaginationDto } from "../../common/dto/pagination.dto";
 import { Transform } from "class-transformer";
 export class ListTicketsDto extends PaginationDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  search?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsIn(["all", "unused", "used", "past", "cancelled"])
+  status?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsDateString({ strict: true })
+  date?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsDateString({ strict: true })
+  dateFrom?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsDateString({ strict: true })
+  dateTo?: string;
+  @ApiPropertyOptional({ enum: ["viewing", "booked"] })
+  @IsOptional()
+  @IsIn(["viewing", "booked"])
+  dateBasis?: string;
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsIn(["newest", "showtime"])
+  sort?: string;
   @ApiPropertyOptional({
     type: Boolean,
     description: "Exact true/false query values; omit to include both states.",
@@ -24,14 +65,16 @@ export class CheckInDto {
   showtimeId?: string;
   @ApiProperty({
     description:
-      "The opaque64 lowercase hex characters decoded from the QR PNG.",
+      "Opaque64 lowercase QR token or the seat's case-insensitive 8-character ticket code.",
   })
-  @Matches(/^[a-f0-9]{64}$/)
+  @Matches(/^(?:[a-f0-9]{64}|[A-HJ-NP-Z2-9a-hj-np-z]{8})$/)
   ticketHash!: string;
 }
 export class VerifyTicketDto {
-  @ApiProperty({ description: "Opaque lowercase QR hash." })
-  @Matches(/^[a-f0-9]{64}$/)
+  @ApiProperty({
+    description: "Opaque QR token or 8-character seat ticket code.",
+  })
+  @Matches(/^(?:[a-f0-9]{64}|[A-HJ-NP-Z2-9a-hj-np-z]{8})$/)
   ticketHash!: string;
   @ApiProperty({ format: "uuid" })
   @IsUUID()
@@ -58,6 +101,15 @@ export class TicketComboDto {
   @ApiProperty() unitPrice!: string;
 }
 export class TicketDetailsDto {
+  @ApiProperty() ticketCode!: string;
+  @ApiProperty({ format: "date-time" }) createdAt!: Date;
+  @ApiProperty({ format: "date-time" }) bookedAt!: Date;
+  @ApiProperty({ nullable: true }) posterUrl!: string | null;
+  @ApiProperty() customerName!: string;
+  @ApiProperty({ nullable: true }) customerPhone!: string | null;
+  @ApiProperty() paymentStatus!: string;
+  @ApiProperty() ticketCount!: number;
+  @ApiProperty() legacyGroup!: boolean;
   @ApiProperty({ format: "uuid" }) showtimeId!: string;
   @ApiProperty({ format: "uuid" }) id!: string;
   @ApiProperty({ format: "uuid" }) bookingId!: string;
@@ -75,10 +127,16 @@ export class TicketDetailsDto {
   @ApiPropertyOptional({ format: "date-time", nullable: true, type: String })
   checkedInAt!: Date | null;
 }
+export class LookupTicketDto {
+  @Matches(/^[a-f0-9]{64}$/) ticketHash!: string;
+}
 export class TicketDto extends TicketDetailsDto {
+  @ApiProperty() qrPayload!: string;
+  @ApiProperty() ticketQrToken!: string;
   @ApiProperty() ticketHash!: string;
   @ApiProperty({
-    description: "data:image/png;base64 QR encoding only the opaque hash.",
+    description:
+      "data:image/png;base64 QR encoding the read-only ticket URL (opaque hash for legacy tickets).",
   })
   qrCodeBase64!: string;
 }

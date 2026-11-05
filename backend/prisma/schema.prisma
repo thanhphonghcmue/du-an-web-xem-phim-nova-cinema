@@ -229,7 +229,7 @@ model Booking {
   seats             BookingSeat[]
   combos            BookingCombo[]
   payments          Payment[]
-  ticket            ETicket?
+  tickets           ETicket[]
 
   @@unique([id, showtimeId])
   @@unique([userId, idempotencyKey])
@@ -254,6 +254,9 @@ model BookingSeat {
   seat       Seat              @relation(fields: [seatId, roomId], references: [id, roomId], onDelete: Restrict, onUpdate: Restrict)
   showtime   Showtime          @relation(fields: [showtimeId, roomId], references: [id, roomId], onDelete: Restrict, onUpdate: Restrict)
 
+  tickets ETicket[]
+
+  @@unique([bookingId, id])
   @@index([bookingId])
   @@index([showtimeId])
   @@index([seatId])
@@ -279,7 +282,9 @@ model BookingCombo {
 
 model ETicket {
   id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  bookingId          String    @unique @map("booking_id") @db.Uuid
+  bookingId          String    @map("booking_id") @db.Uuid
+  bookingSeatId      String?   @unique @map("booking_seat_id") @db.Uuid
+  ticketCode         String    @unique @default(dbgenerated("nova_short_ticket_code()")) @map("ticket_code") @db.VarChar(8)
   ticketHash         String    @unique @map("ticket_hash") @db.VarChar(64)
   qrCodeBase64       String    @map("qr_code_base64") @db.Text
   isCheckedIn        Boolean   @default(false) @map("is_checked_in")
@@ -287,8 +292,10 @@ model ETicket {
   checkedInByStaffId String?   @map("checked_in_by_staff_id") @db.Uuid
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   booking            Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  bookingSeat        BookingSeat? @relation(fields: [bookingId, bookingSeatId], references: [bookingId, id], onDelete: Restrict, onUpdate: Restrict)
   checkedInByStaff   User?     @relation("StaffCheckIn", fields: [checkedInByStaffId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
+  @@index([bookingId])
   @@index([checkedInByStaffId])
   @@map("e_tickets")
 }

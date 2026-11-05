@@ -41,11 +41,11 @@ export class ReconciliationService {
           ...p,
           amount: p.amount.toFixed(2),
         })),
-        ticket: row.ticket,
+        ticket: row.tickets[0],
         delivery,
         canRecoverTicket:
           row.status === "PAID" &&
-          !row.ticket &&
+          !row.tickets[0] &&
           row.seats.length > 0 &&
           row.seats.every((s) => s.status === "SOLD") &&
           row.payments.some(
@@ -77,8 +77,8 @@ export class ReconciliationService {
           "PAYMENT_NOT_CONFIRMED",
           "Chỉ khôi phục vé khi thanh toán đã xác nhận thành công và ghế đã bán.",
         );
-      if (row.ticket)
-        return { bookingId: id, queued: false, ticketId: row.ticket.id };
+      if (row.tickets[0])
+        return { bookingId: id, queued: false, ticketId: row.tickets[0].id };
       const delivery = await this.records.delivery(id, tx);
       if (!delivery.some((e) => e.eventType === TICKET_REQUESTED))
         await this.events.add(TICKET_REQUESTED, id, { bookingId: id }, tx);

@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { ApiException } from "../../common/exceptions/api.exception";
 import { pageOf } from "../../common/dto/pagination.dto";
+import { AppSettings } from "../../config/app.config";
 import { NotificationSettings } from "../../config/notification.settings";
 import { UnitOfWork } from "../../database/unit-of-work";
 import {
@@ -28,6 +29,7 @@ import { ticketQrPng } from "./ticket-qr";
 @Injectable()
 export class TicketsService {
   private readonly settings: NotificationSettings;
+  private readonly webOrigin: string;
   constructor(
     config: ConfigService,
     private readonly database: UnitOfWork,
@@ -36,42 +38,107 @@ export class TicketsService {
     private readonly events: OutboxRepository,
   ) {
     this.settings = config.getOrThrow<NotificationSettings>("notification");
+    this.webOrigin =
+      config.getOrThrow<AppSettings>("app").corsOrigins[0] ||
+      "http://localhost:3000";
   }
   async generateETicket(bookingId: string): Promise<TicketRecord> {
-    // Encode before acquiring any booking/row lock. Payment itself only enqueues
-    // durable fulfillment; duplicate workers still converge under the lock below.
-    const ticketHash = randomBytes(32).toString("hex");
-    const qrCodeBase64 = ticketQrPng(ticketHash);
-    return this.database.transaction(async (tx) => {
-      await this.bookings.lockBooking(bookingId, tx);
-      const snapshot = await this.tickets.issuanceSnapshot(bookingId, tx);
-      if (!snapshot) throw missing();
-      // Một snapshot chứa cả dữ liệu kiểm tra và chi tiết vé; không include lại
-      // toàn bộ phim/rạp/ghế/combo sau INSERT hoặc khi phát lại cùng booking.
-      const { ticket: existing, ...booking } = snapshot;
-      if (
-        booking.status !== "PAID" ||
-        !booking.seats.length ||
-        booking.seats.some((seat) => seat.status !== "SOLD")
-      )
-        throw new ApiException(
-          409,
-          "TICKET_BOOKING_NOT_PAID",
-          "Only a paid booking with sold seats can issue a ticket.",
-        );
-      if (existing) return { ...existing, booking };
-      const ticket = await this.tickets.createRecord(
-        { bookingId, ticketHash, qrCodeBase64 },
-        tx,
-      );
-      await this.events.add(
-        EMAIL_REQUESTED,
-        bookingId,
-        { bookingId, ticketId: ticket.id },
-        tx,
-      );
-      return { ...ticket, booking };
-    });
+    // Chuẩn bị QR ngoài lock; dữ liệu PAID/SOLD vẫn được kiểm tra lại trong transaction.
+    const initial = await this.tickets.issuanceSnapshot(bookingId);
+    if (!initial) throw missing();
+    const prepared = new Map(
+      initial.seats.map((seat) => {
+        const ticketHash = randomBytes(32).toString("hex");
+        return [
+          seat.id,
+          { ticketHash, qrCodeBase64: ticketQrPng(this.qrUrl(ticketHash)) },
+        ];
+      }),
+    );
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.database.transaction(async (tx) => {
+          await this.bookings.lockBooking(bookingId, tx);
+          const snapshot = await this.tickets.issuanceSnapshot(bookingId, tx);
+          if (!snapshot) throw missing();
+          const { tickets: existing, ...booking } = snapshot;
+          if (
+            booking.status !== "PAID" ||
+            !booking.seats.length ||
+            booking.seats.some((seat) => seat.status !== "SOLD")
+          )
+            throw new ApiException(
+              409,
+              "TICKET_BOOKING_NOT_PAID",
+              "Only a paid booking with sold seats can issue a ticket.",
+            );
+          // QR nhóm cũ tiếp tục đại diện đơn cũ, không phát thêm vé trùng quyền vào rạp.
+          const legacy = existing.find((ticket) => !ticket.bookingSeatId);
+          if (legacy) return { ...legacy, booking };
+          const issued = [...existing];
+          for (const seat of booking.seats) {
+            if (existing.some((ticket) => ticket.bookingSeatId === seat.id))
+              continue;
+            const candidate = prepared.get(seat.id);
+            if (!candidate)
+              throw new ApiException(
+                409,
+                "TICKET_SNAPSHOT_CHANGED",
+                "Dữ liệu ghế đã thay đổi. Vui lòng thử phát hành lại vé.",
+              );
+            const ticket = await this.tickets.createRecord(
+              { bookingId, bookingSeatId: seat.id, ...candidate },
+              tx,
+            );
+            issued.push(ticket);
+            await this.events.add(
+              EMAIL_REQUESTED,
+              bookingId,
+              { bookingId, ticketId: ticket.id },
+              tx,
+            );
+          }
+          const first = issued[0];
+          if (!first) throw missing();
+          return { ...first, booking };
+        });
+      } catch (error) {
+        // Unique code/hash là ràng buộc cuối; retry toàn transaction, không để SQL abort dở.
+        if (
+          attempt >= 3 ||
+          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          error.code !== "P2002"
+        )
+          throw error;
+      }
+    }
+  }
+  private qrUrl(hash: string): string {
+    return `${this.webOrigin}/ve#${hash}`;
+  }
+  async publicLookup(hash: string) {
+    const row = await this.database.transaction((tx) =>
+      this.tickets.byHash(hash, tx),
+    );
+    if (!row) throw missing();
+    const d = ticketDetails(row);
+    // Không trả tên/số điện thoại/email, mã đơn, QR token hoặc quyền check-in cho khách ẩn danh.
+    return {
+      ticketCode: d.ticketCode,
+      movie: d.movie,
+      posterUrl: d.posterUrl,
+      cinema: d.cinema,
+      room: d.room,
+      startTime: d.startTime,
+      endTime: d.endTime,
+      seats: d.seats.map((seat) => ({ label: seat.label, type: seat.type })),
+      status:
+        row.booking.status !== "PAID"
+          ? "INVALID"
+          : row.isCheckedIn
+            ? "USED"
+            : "VALID",
+    };
   }
   async get(id: string, userId: string): Promise<TicketDto> {
     return this.serialize(await this.requireOwned(id, userId));
@@ -94,7 +161,7 @@ export class TicketsService {
     userId: string,
   ): Promise<TicketConfirmationDto> {
     const row = await this.requireOwned(id, userId);
-    const event = await this.tickets.emailStatus(row.bookingId);
+    const event = await this.tickets.emailStatus(row.bookingId, row.id);
     const message = ticketEmail(row, event?.id ?? row.id, this.settings.from);
     return {
       subject: message.subject,
@@ -216,6 +283,10 @@ export class TicketsService {
     return {
       ...ticketDetails(row),
       ticketHash: row.ticketHash,
+      ticketQrToken: row.ticketHash,
+      qrPayload: row.bookingSeatId
+        ? this.qrUrl(row.ticketHash)
+        : row.ticketHash,
       qrCodeBase64: row.qrCodeBase64,
     };
   }

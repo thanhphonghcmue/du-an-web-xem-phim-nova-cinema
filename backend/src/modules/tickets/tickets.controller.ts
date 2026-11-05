@@ -1,5 +1,8 @@
 import {
   Controller,
+  Post,
+  Body,
+  HttpCode,
   Get,
   Header,
   Param,
@@ -23,6 +26,8 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { UserProfileDto } from "../users/dto/user-profile.dto";
 import { ListTicketsDto, TicketDto, TicketConfirmationDto } from "./ticket.dto";
+import { Public } from "../../common/decorators/public.decorator";
+import { LookupTicketDto } from "./ticket.dto";
 import { TicketsService } from "./tickets.service";
 @ApiTags("Tickets")
 @ApiBearerAuth()
@@ -32,6 +37,13 @@ import { TicketsService } from "./tickets.service";
 @Controller("tickets")
 export class TicketsController {
   constructor(private readonly service: TicketsService) {}
+  @Post("lookup")
+  @Public()
+  @HttpCode(200)
+  @Header("Cache-Control", "no-store")
+  lookup(@Body() dto: LookupTicketDto) {
+    return this.service.publicLookup(dto.ticketHash);
+  }
   @Get("me")
   @ApiPageResponse(TicketDto)
   @ApiOperation({

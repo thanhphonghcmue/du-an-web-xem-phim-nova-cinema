@@ -27,7 +27,11 @@ export class ReconciliationRepository {
           },
           orderBy: { createdAt: "asc" },
         },
-        ticket: { select: { id: true, isCheckedIn: true, createdAt: true } },
+        tickets: {
+          take: 1,
+          orderBy: { createdAt: "asc" },
+          select: { id: true, isCheckedIn: true, createdAt: true },
+        },
       },
     });
   }
@@ -62,7 +66,11 @@ export class ReconciliationRepository {
         finalAmount: true,
         payments: { select: { status: true, amount: true } },
         seats: { select: { status: true } },
-        ticket: { select: { id: true } },
+        tickets: {
+          take: 1,
+          orderBy: { createdAt: "asc" },
+          select: { id: true },
+        },
       },
     });
   }

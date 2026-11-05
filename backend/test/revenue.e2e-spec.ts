@@ -617,7 +617,7 @@ describe("Phase10 ADMIN revenue on real PostgreSQL snapshots", () => {
       /bookings_status_created_at_showtime_id_idx|bookings_showtime_id_idx/,
     );
     expect(JSON.stringify(plan)).toMatch(
-      /booking_seats_booking_id_idx|uq_active_showtime_seat/,
+      /booking_seats_booking_id_idx|booking_seats_booking_id_id_key|uq_active_showtime_seat/,
     );
   });
   it("masks database failures without returning sensitive diagnostic details", async () => {

@@ -533,6 +533,15 @@ function createMemoryServer(input) {
       byId = new Map(physical(room.id).map((s) => [s.id, s]));
     return {
       id: ticket.id,
+      ticketCode: ticket.ticketCode,
+      createdAt: ticket.createdAt,
+      bookedAt: order.createdAt,
+      posterUrl: movie.posterUrl,
+      customerName: users.get(order.userId)?.fullName || "",
+      customerPhone: users.get(order.userId)?.phone || null,
+      paymentStatus: order.status,
+      ticketCount: order.seats.length,
+      legacyGroup: !ticket.bookingSeatId,
       bookingId: order.id,
       showtimeId: show.id,
       orderCode: order.orderCode,
@@ -543,11 +552,15 @@ function createMemoryServer(input) {
       endTime: show.endTime,
       amount: order.finalAmount,
       currency: "VND",
-      seats: order.seats.map((s) => ({
-        label: `${byId.get(s.seatId).seatRow}${byId.get(s.seatId).seatColumn}`,
-        type: byId.get(s.seatId).seatType,
-        price: s.price,
-      })),
+      seats: order.seats
+        .filter(
+          (s) => !ticket.bookingSeatId || s.seatId === ticket.bookingSeatId,
+        )
+        .map((s) => ({
+          label: `${byId.get(s.seatId).seatRow}${byId.get(s.seatId).seatColumn}`,
+          type: byId.get(s.seatId).seatType,
+          price: s.price,
+        })),
       combos: order.combos.map((c) => ({
         name: model("combos", c.comboId).name,
         quantity: c.quantity,
@@ -556,38 +569,59 @@ function createMemoryServer(input) {
       isCheckedIn: ticket.isCheckedIn,
       checkedInAt: ticket.checkedInAt,
       ...(privateFields
-        ? { ticketHash: ticket.ticketHash, qrCodeBase64: ticket.qrCodeBase64 }
+        ? {
+            ticketHash: ticket.ticketHash,
+            ticketQrToken: ticket.ticketHash,
+            qrPayload: ticket.qrPayload,
+            qrCodeBase64: ticket.qrCodeBase64,
+          }
         : {}),
     };
   }
   function issue(order) {
     if ([...tickets.values()].some((t) => t.bookingId === order.id)) return;
-    const ticket = {
-      id: randomUUID(),
-      bookingId: order.id,
-      ticketHash: randomBytes(32).toString("hex"),
-      qrCodeBase64: "",
-      isCheckedIn: false,
-      createdAt: iso(now()),
-      checkedInAt: null,
-    };
-    tickets.set(ticket.id, ticket);
-    setImmediate(() => {
-      toDataURL(ticket.ticketHash, {
-        type: "image/png",
-        width: 320,
-        margin: 4,
-        errorCorrectionLevel: "M",
-      })
-        .then((png) => {
-          ticket.qrCodeBase64 = png;
+    for (const seat of order.seats) {
+      const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let ticketCode;
+      do {
+        ticketCode = [...randomBytes(8)]
+          .map((byte) => alphabet[byte & 31])
+          .join("");
+      } while ([...tickets.values()].some((t) => t.ticketCode === ticketCode));
+      const ticket = {
+        ticketCode,
+        bookingSeatId: seat.seatId,
+        id: randomUUID(),
+        bookingId: order.id,
+        ticketHash: randomBytes(32).toString("hex"),
+        qrCodeBase64: "",
+        isCheckedIn: false,
+        createdAt: iso(now()),
+        checkedInAt: null,
+      };
+      const origin = (
+        process.env.CORS_ORIGINS ||
+        `http://localhost:${process.env.NOVA_WEB_PORT || 3000}`
+      ).split(",")[0];
+      ticket.qrPayload = `${origin}/ve#${ticket.ticketHash}`;
+      tickets.set(ticket.id, ticket);
+      setImmediate(() => {
+        toDataURL(ticket.qrPayload, {
+          type: "image/png",
+          width: 320,
+          margin: 4,
+          errorCorrectionLevel: "M",
         })
-        .catch(() => {
-          console.warn(
-            "[NOVA RAM] PNG encoding failed; the issued opaque QR remains valid.",
-          );
-        });
-    });
+          .then((png) => {
+            ticket.qrCodeBase64 = png;
+          })
+          .catch(() => {
+            console.warn(
+              "[NOVA RAM] PNG encoding failed; the issued opaque QR remains valid.",
+            );
+          });
+      });
+    }
   }
   function digest(domain, fields) {
     return createHmac("sha512", secret)
@@ -734,17 +768,34 @@ function createMemoryServer(input) {
   const html = (title, content) =>
     `<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>*{box-sizing:border-box}body{margin:0;padding:24px;background:#080d18;color:#eef3ff;font:16px/1.6 system-ui}main{max-width:900px;margin:auto;background:#142039;border:1px solid #687aa4;border-radius:20px;padding:32px}button,a{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;padding:15px;border-radius:9px;background:#d5ef95;color:#18220e;border:0;font:inherit;margin:12px 0;text-decoration:none}button{width:100%;cursor:pointer}input{max-width:100%}.secondary-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sandbox-choice{min-width:0}h1{font-size:clamp(24px,5vw,38px)}small{color:#afc1df}</style><main>${content}</main></html>`;
   function admission(body, user, consume) {
-    const rawKey = typeof body.ticketHash === "string" ? body.ticketHash.trim() : "";
+    const rawKey =
+      typeof body.ticketHash === "string" ? body.ticketHash.trim() : "";
     assert(
       rawKey &&
-        (/^[a-f\d]{64}$/i.test(rawKey) || /^NOVA-[a-f0-9]{32}$/i.test(rawKey) || uuid.test(rawKey)) &&
+        (/^[A-HJ-NP-Z2-9]{8}$/i.test(rawKey) ||
+          /^[a-f\d]{64}$/i.test(rawKey) ||
+          /^NOVA-[a-f0-9]{32}$/i.test(rawKey) ||
+          uuid.test(rawKey)) &&
         uuid.test(body.showtimeId),
+    );
+    const group = [...tickets.values()].filter(
+      (t) =>
+        orders.get(t.bookingId)?.orderCode?.toLowerCase() ===
+        rawKey.toLowerCase(),
+    );
+    assert(
+      group.length <= 1,
+      "TICKET_REFERENCE_AMBIGUOUS",
+      "Đơn có nhiều ghế. Hãy nhập mã vé riêng của từng ghế.",
+      409,
     );
     const ticket = [...tickets.values()].find(
       (t) =>
+        t.ticketCode?.toLowerCase() === rawKey.toLowerCase() ||
         t.ticketHash.toLowerCase() === rawKey.toLowerCase() ||
         t.id.toLowerCase() === rawKey.toLowerCase() ||
-        orders.get(t.bookingId)?.orderCode?.toLowerCase() === rawKey.toLowerCase(),
+        orders.get(t.bookingId)?.orderCode?.toLowerCase() ===
+          rawKey.toLowerCase(),
     );
     assert(ticket, "TICKET_NOT_FOUND", "Không tìm thấy vé.", 404);
     const order = orders.get(ticket.bookingId);
@@ -755,10 +806,15 @@ function createMemoryServer(input) {
       409,
     );
     if (order.showtimeId !== body.showtimeId) {
-      fail(409, "TICKET_SHOWTIME_MISMATCH", "Vé không khớp với suất chiếu đang kiểm tra.", {
-        actualShowtimeId: order.showtimeId,
-        startTime: model("showtimes", order.showtimeId)?.startTime,
-      });
+      fail(
+        409,
+        "TICKET_SHOWTIME_MISMATCH",
+        "Vé không khớp với suất chiếu đang kiểm tra.",
+        {
+          actualShowtimeId: order.showtimeId,
+          startTime: model("showtimes", order.showtimeId)?.startTime,
+        },
+      );
     }
     const start = Date.parse(model("showtimes", order.showtimeId).startTime);
     assert(
@@ -820,6 +876,33 @@ function createMemoryServer(input) {
         message,
       });
     };
+    if (path === "/tickets/lookup" && method === "POST") {
+      assert(
+        typeof body.ticketHash === "string" &&
+          /^[a-f0-9]{64}$/.test(body.ticketHash),
+      );
+      const ticket = [...tickets.values()].find(
+        (t) => t.ticketHash === body.ticketHash,
+      );
+      assert(ticket, "TICKET_NOT_FOUND", "Không tìm thấy vé.", 404);
+      const d = ticketData(ticket, false);
+      return json({
+        ticketCode: d.ticketCode,
+        movie: d.movie,
+        posterUrl: d.posterUrl,
+        cinema: d.cinema,
+        room: d.room,
+        startTime: d.startTime,
+        endTime: d.endTime,
+        seats: d.seats.map((seat) => ({ label: seat.label, type: seat.type })),
+        status:
+          d.paymentStatus !== "PAID"
+            ? "INVALID"
+            : d.isCheckedIn
+              ? "USED"
+              : "VALID",
+      });
+    }
     if (path === "/health" || path === "/health/live")
       return json({
         status: "ok",
@@ -1255,6 +1338,32 @@ function createMemoryServer(input) {
     }
     if (path === "/tickets/me") {
       const user = auth(request);
+      const status = query.get("status") || "all";
+      const basis = query.get("dateBasis") || "viewing";
+      const sort = query.get("sort") || "newest";
+      const from = query.get("date") || query.get("dateFrom") || "";
+      const to = query.get("date") || query.get("dateTo") || "";
+      const search = (query.get("search") || "").trim().toLowerCase();
+      assert(
+        ["all", "unused", "used", "past", "cancelled"].includes(status) &&
+          ["viewing", "booked"].includes(basis) &&
+          ["newest", "showtime"].includes(sort),
+      );
+      for (const day of [from, to])
+        if (day)
+          assert(
+            /^\d{4}-\d{2}-\d{2}$/.test(day) &&
+              Number.isFinite(Date.parse(day)) &&
+              new Date(day).toISOString().slice(0, 10) === day,
+          );
+      assert(!from || !to || from <= to);
+      assert(
+        !query.has("isCheckedIn") ||
+          ["true", "false"].includes(query.get("isCheckedIn")),
+      );
+      const dayFormat = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      });
       return json(
         pageOf(
           [...tickets.values()]
@@ -1265,7 +1374,35 @@ function createMemoryServer(input) {
                 String(t.isCheckedIn) === query.get("isCheckedIn"),
             )
             .map((t) => ticketData(t))
-            .reverse(),
+            .filter((t) => {
+              const day = dayFormat.format(
+                new Date(basis === "booked" ? t.bookedAt : t.startTime),
+              );
+              return (
+                (!search ||
+                  [t.ticketCode, t.orderCode, t.movie, t.cinema].some((value) =>
+                    value.toLowerCase().includes(search),
+                  )) &&
+                (!from || day >= from) &&
+                (!to || day <= to) &&
+                (status === "all" ||
+                  (status === "used" && t.isCheckedIn) ||
+                  (status === "unused" &&
+                    !t.isCheckedIn &&
+                    t.paymentStatus === "PAID" &&
+                    Date.parse(t.endTime) >= now()) ||
+                  (status === "past" && Date.parse(t.endTime) < now()) ||
+                  (status === "cancelled" &&
+                    ["CANCELLED", "EXPIRED"].includes(t.paymentStatus)))
+              );
+            })
+            .sort((a, b) =>
+              sort === "showtime"
+                ? Date.parse(a.startTime) - Date.parse(b.startTime) ||
+                  a.id.localeCompare(b.id)
+                : Date.parse(b.createdAt) - Date.parse(a.createdAt) ||
+                  a.id.localeCompare(b.id),
+            ),
           query,
         ),
       );

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
+import { ApiException } from "../../common/exceptions/api.exception";
 import { ListTicketsDto } from "./ticket.dto";
 export const ticketRelations = {
   booking: {
@@ -16,7 +17,7 @@ export const ticketRelations = {
         ],
       },
       combos: { include: { combo: true }, orderBy: { comboId: "asc" } },
-      user: { select: { email: true } },
+      user: { select: { email: true, fullName: true, phone: true } },
     },
   },
 } satisfies Prisma.ETicketInclude;
@@ -26,10 +27,16 @@ export type TicketRecord = Prisma.ETicketGetPayload<{
 @Injectable()
 export class TicketsRepository {
   constructor(private readonly prisma: PrismaService) {}
-  issuanceSnapshot(bookingId: string, tx: Prisma.TransactionClient) {
+  issuanceSnapshot(
+    bookingId: string,
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
     return tx.booking.findUnique({
       where: { id: bookingId },
-      include: { ...ticketRelations.booking.include, ticket: true },
+      include: {
+        ...ticketRelations.booking.include,
+        tickets: { orderBy: { createdAt: "asc" } },
+      },
     });
   }
   createRecord(
@@ -39,7 +46,7 @@ export class TicketsRepository {
     return tx.eTicket.create({ data });
   }
   byBooking(bookingId: string, tx: Prisma.TransactionClient) {
-    return tx.eTicket.findUnique({
+    return tx.eTicket.findFirst({
       where: { bookingId },
       include: ticketRelations,
     });
@@ -48,8 +55,10 @@ export class TicketsRepository {
     return tx.eTicket.findUnique({ where: { id }, include: ticketRelations });
   }
   byHash(ticketHash: string, tx: Prisma.TransactionClient) {
-    return tx.eTicket.findUnique({
-      where: { ticketHash },
+    return tx.eTicket.findFirst({
+      where: /^[a-f0-9]{64}$/i.test(ticketHash)
+        ? { ticketHash: ticketHash.toLowerCase() }
+        : { ticketCode: ticketHash.toUpperCase() },
       include: ticketRelations,
     });
   }
@@ -70,8 +79,79 @@ export class TicketsRepository {
     });
   }
   page(userId: string, query: ListTicketsDto, tx: Prisma.TransactionClient) {
+    const from = query.date || query.dateFrom;
+    const to = query.date || query.dateTo;
+    if (from && to && from > to)
+      throw new ApiException(
+        400,
+        "VALIDATION_ERROR",
+        "Ngày kết thúc phải từ ngày bắt đầu trở đi.",
+      );
+    const dateRange = {
+      ...(from ? { gte: new Date(`${from}T00:00:00+07:00`) } : {}),
+      ...(to
+        ? {
+            lt: new Date(new Date(`${to}T00:00:00+07:00`).getTime() + 86400000),
+          }
+        : {}),
+    };
+    const search = query.search?.trim();
+    const filterViewingDate = (from || to) && query.dateBasis !== "booked";
+    const showtime = {
+      ...(query.status === "past" ? { endTime: { lt: new Date() } } : {}),
+      ...(query.status === "unused" ? { endTime: { gte: new Date() } } : {}),
+      ...(filterViewingDate ? { startTime: dateRange } : {}),
+    };
     const where: Prisma.ETicketWhereInput = {
-      booking: { userId },
+      booking: {
+        userId,
+        ...(query.status === "cancelled"
+          ? { status: { in: ["CANCELLED", "EXPIRED"] } }
+          : query.status === "unused"
+            ? { status: "PAID" }
+            : {}),
+        ...(Object.keys(showtime).length ? { showtime } : {}),
+        ...((from || to) && query.dateBasis === "booked"
+          ? { createdAt: dateRange }
+          : {}),
+      },
+      ...(query.status === "used"
+        ? { isCheckedIn: true }
+        : query.status === "unused"
+          ? {
+              isCheckedIn: false,
+            }
+          : {}),
+      ...(search
+        ? {
+            OR: [
+              { ticketCode: { contains: search, mode: "insensitive" } },
+              {
+                booking: {
+                  orderCode: { contains: search, mode: "insensitive" },
+                },
+              },
+              {
+                booking: {
+                  showtime: {
+                    movie: { title: { contains: search, mode: "insensitive" } },
+                  },
+                },
+              },
+              {
+                booking: {
+                  showtime: {
+                    room: {
+                      cinema: {
+                        name: { contains: search, mode: "insensitive" },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
       ...(query.isCheckedIn === undefined
         ? {}
         : { isCheckedIn: query.isCheckedIn }),
@@ -80,16 +160,25 @@ export class TicketsRepository {
       tx.eTicket.findMany({
         where,
         include: ticketRelations,
-        orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+        orderBy:
+          query.sort === "showtime"
+            ? [{ booking: { showtime: { startTime: "asc" } } }, { id: "asc" }]
+            : [{ createdAt: "desc" }, { id: "asc" }],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
       tx.eTicket.count({ where }),
     ]);
   }
-  emailStatus(bookingId: string) {
+  emailStatus(bookingId: string, ticketId?: string) {
     return this.prisma.outboxEvent.findFirst({
-      where: { aggregateId: bookingId, eventType: "ticket.email.requested" },
+      where: {
+        aggregateId: bookingId,
+        eventType: "ticket.email.requested",
+        ...(ticketId
+          ? { payload: { path: ["ticketId"], equals: ticketId } }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
       select: { id: true, processedAt: true, attempts: true, lastError: true },
     });

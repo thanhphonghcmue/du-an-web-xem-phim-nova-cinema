@@ -18,7 +18,10 @@ function chunk(type: string, data: Buffer): Buffer {
 // QR vẫn do thư viện qrcode mã hóa. PNG đen/trắng 1-bit tránh raster RGBA
 // 4 byte/pixel và chỉ dựng mỗi hàng module một lần; vẫn giữ 320px/M/quiet zone4.
 export function ticketQrPng(ticketHash: string): string {
-  if (!/^[a-f0-9]{64}$/.test(ticketHash))
+  if (
+    !/^[a-f0-9]{64}$/.test(ticketHash) &&
+    !/^https?:\/\/[^\s#]+\/ve#[a-f0-9]{64}$/.test(ticketHash)
+  )
     throw new Error("Invalid opaque ticket identifier.");
   const { modules } = create(ticketHash, { errorCorrectionLevel: "M" });
   const scale = WIDTH / (modules.size + QUIET_ZONE * 2);

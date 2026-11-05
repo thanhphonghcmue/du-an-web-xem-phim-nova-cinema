@@ -4,6 +4,15 @@ export function ticketDetails(row: TicketRecord) {
   const showtime = booking.showtime;
   return {
     id: row.id,
+    ticketCode: row.ticketCode,
+    createdAt: row.createdAt,
+    bookedAt: booking.createdAt,
+    posterUrl: showtime.movie.posterUrl,
+    customerName: booking.user.fullName,
+    customerPhone: booking.user.phone,
+    paymentStatus: booking.status,
+    ticketCount: booking.seats.length,
+    legacyGroup: !row.bookingSeatId,
     showtimeId: booking.showtimeId,
     bookingId: booking.id,
     orderCode: booking.orderCode,
@@ -14,11 +23,13 @@ export function ticketDetails(row: TicketRecord) {
     endTime: showtime.endTime,
     amount: booking.finalAmount.toFixed(2),
     currency: "VND" as const,
-    seats: booking.seats.map((line) => ({
-      label: `${line.seat.seatRow}${String(line.seat.seatColumn)}`,
-      type: line.seat.seatType,
-      price: line.price.toFixed(2),
-    })),
+    seats: booking.seats
+      .filter((line) => !row.bookingSeatId || line.id === row.bookingSeatId)
+      .map((line) => ({
+        label: `${line.seat.seatRow}${String(line.seat.seatColumn)}`,
+        type: line.seat.seatType,
+        price: line.price.toFixed(2),
+      })),
     combos: booking.combos.map((line) => ({
       name: line.combo.name,
       quantity: line.quantity,

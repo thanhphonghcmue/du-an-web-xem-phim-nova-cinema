@@ -542,10 +542,10 @@ async function main() {
   });
   stage = "automatic QR ticket issuance and actual SMTP delivery";
   await eventually(async () => {
-    const ticket = await prisma.eTicket.findUnique({
+    const ticket = await prisma.eTicket.findFirst({
       where: { bookingId: paidBooking.id },
     });
-    const email = await prisma.outboxEvent.findFirst({
+    const emails = await prisma.outboxEvent.findMany({
       where: {
         aggregateId: paidBooking.id,
         eventType: "ticket.email.requested",
@@ -557,7 +557,12 @@ async function main() {
         eventType: "booking.ticket.requested",
       },
     });
-    return Boolean(ticket && email?.processedAt && request?.processedAt);
+    return Boolean(
+      ticket &&
+      emails.length === 2 &&
+      emails.every((email) => email.processedAt) &&
+      request?.processedAt,
+    );
   });
   const ticketRequests = await prisma.outboxEvent.findMany({
     where: {
@@ -569,9 +574,9 @@ async function main() {
   assert(ticketRequests[0].processedAt);
   assert.equal(
     await prisma.eTicket.count({ where: { bookingId: paidBooking.id } }),
-    1,
+    2,
   );
-  const ticket = await prisma.eTicket.findUniqueOrThrow({
+  const ticket = await prisma.eTicket.findFirstOrThrow({
     where: { bookingId: paidBooking.id },
   });
   const png = PNG.sync.read(
@@ -581,8 +586,9 @@ async function main() {
     ),
   );
   assert.equal(
-    jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data,
-    ticket.ticketHash,
+    new URL(jsQR(new Uint8ClampedArray(png.data), png.width, png.height)?.data)
+      .hash,
+    `#${ticket.ticketHash}`,
   );
   const email = await prisma.outboxEvent.findFirstOrThrow({
     where: { aggregateId: paidBooking.id, eventType: "ticket.email.requested" },
@@ -599,7 +605,25 @@ async function main() {
     await api("GET", `/api/v1/tickets/${ticket.id}`, 200, undefined, tokens[1])
   ).data;
   assert.equal(ownTicket.ticketHash, ticket.ticketHash);
-  assert.equal(ownTicket.seats.length, 2);
+  assert.equal(ownTicket.seats.length, 1);
+  const seatTickets = (
+    await api("GET", "/api/v1/tickets/me?limit=100", 200, undefined, tokens[1])
+  ).data.items.filter((item) => item.bookingId === paidBooking.id);
+  assert.equal(seatTickets.length, 2);
+  assert.equal(new Set(seatTickets.map((item) => item.ticketCode)).size, 2);
+  assert.equal(new Set(seatTickets.map((item) => item.ticketHash)).size, 2);
+  for (const item of seatTickets) {
+    assert.equal(item.seats.length, 1);
+    assert.match(item.ticketCode, /^[A-HJ-NP-Z2-9]{8}$/);
+    const pixels = PNG.sync.read(
+      Buffer.from(item.qrCodeBase64.split(",")[1], "base64"),
+    );
+    assert.equal(
+      jsQR(new Uint8ClampedArray(pixels.data), pixels.width, pixels.height)
+        ?.data,
+      item.qrPayload,
+    );
+  }
   assert(
     (
       await api("GET", "/api/v1/tickets/me", 200, undefined, tokens[1])
@@ -662,7 +686,7 @@ async function main() {
   );
   assert.equal(
     await prisma.eTicket.count({ where: { bookingId: paidBooking.id } }),
-    1,
+    2,
   );
   await api("POST", "/api/v1/staff/check-in", 401, {
     ticketHash: ticket.ticketHash,
@@ -695,6 +719,26 @@ async function main() {
   });
   assert.equal(admitted.isCheckedIn, true);
   assert([users[2].id, users[3].id].includes(admitted.checkedInByStaffId));
+  const secondSeatTicket = seatTickets.find((item) => item.id !== ticket.id);
+  assert.equal(
+    (await prisma.eTicket.findUniqueOrThrow({ where: { id: secondSeatTicket.id } }))
+      .isCheckedIn,
+    false,
+  );
+  await api(
+    "POST",
+    "/api/v1/staff/check-in",
+    200,
+    { ticketHash: secondSeatTicket.ticketCode, showtimeId: showtime.id },
+    tokens[2],
+  );
+  await api(
+    "POST",
+    "/api/v1/staff/check-in",
+    409,
+    { ticketHash: secondSeatTicket.ticketCode, showtimeId: showtime.id },
+    tokens[3],
+  );
   const paidJob = await queue.add(
     "expire-booking-hold",
     { bookingId: paidBooking.id },

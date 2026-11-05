@@ -367,9 +367,66 @@
   color: #07170d;
   box-shadow: 0 7px 20px #17c96840;
 }
+.booking-expired-modal {
+  width: min(510px, 100%);
+  padding: 0;
+  border: 2px solid #ff7418;
+  border-radius: 16px;
+  background: #191314;
+  box-shadow: 0 18px 58px #f56b172e, 0 0 38px #f56b1724;
+}
+.booking-expired-modal > .modal-header {
+  display: none;
+}
+.booking-expired-content {
+  padding: 34px 34px 30px;
+  text-align: center;
+}
+.booking-expired-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 15px;
+  place-items: center;
+  border: 1px solid #ff74185c;
+  border-radius: 50%;
+  background: #ff74181b;
+  color: #ff842e;
+}
+.booking-expired-content h3 {
+  margin: 0 0 10px;
+  color: #ff7418;
+  font-size: 20px;
+  line-height: 1.35;
+}
+.booking-expired-content p {
+  max-width: 390px;
+  margin: 0 auto 22px;
+  color: #c0c1ca;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.booking-expired-action {
+  display: inline-flex;
+  width: min(250px, 100%);
+  min-height: 48px;
+  justify-content: center;
+  gap: 8px;
+  border-color: #ff7418;
+  background: #ff7418;
+  color: #180d06;
+  font-size: 14px;
+  font-weight: 800;
+}
+.booking-expired-action:hover {
+  background: #ff8c3f;
+}
 @media (max-width: 520px) {
   .ticket-success {
     padding: 24px 16px 20px;
+  }
+  .booking-expired-content {
+    padding: 28px 20px 24px;
   }
   .ticket-success h3 {
     font-size: 20px;

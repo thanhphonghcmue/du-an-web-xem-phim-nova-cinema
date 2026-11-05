@@ -911,6 +911,7 @@ export default function App() {
           member={member}
           onMemberUpdate={setMember}
           onClose={() => setBooking(null)}
+          onTimeout={() => window.location.assign("/dat-ve")}
           onViewTickets={(orderId) => {
             setBooking(null);
             setModal(null);

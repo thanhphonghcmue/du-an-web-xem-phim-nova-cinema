@@ -276,6 +276,7 @@ function LiveBookingConsole({
   booking,
   member,
   onClose,
+  onTimeout,
   onViewTickets,
   onMemberUpdate,
 }) {
@@ -317,6 +318,7 @@ function LiveBookingConsole({
   const [zoom, setZoom] = useState(100);
   const [count, setCount] = useState(3);
   const [expiredOrderId, setExpiredOrderId] = useState(null);
+  const [showExpiredNotice, setShowExpiredNotice] = useState(false);
   const [offset, setOffset] = useState(0);
   const requestKey = useRef(null);
   const mounted = useRef(true);
@@ -462,6 +464,11 @@ function LiveBookingConsole({
     () => setExpiredOrderId(order?.id),
     [order?.id],
   );
+  const exitExpiredBooking = useCallback(() => {
+    setShowExpiredNotice(false);
+    if (onTimeout) onTimeout();
+    else onClose();
+  }, [onClose, onTimeout]);
   useEffect(() => {
     if (!holding || !expired || expiryRefresh.current === order?.id) return;
     expiryRefresh.current = order.id;
@@ -474,6 +481,8 @@ function LiveBookingConsole({
           activeOrderId.current = undefined;
           requestKey.current = null;
           setSelected([]);
+          setShowPaymentReview(false);
+          if (latest.status === "EXPIRED") setShowExpiredNotice(true);
         }
         return refresh();
       })
@@ -1330,6 +1339,42 @@ function LiveBookingConsole({
               <p className="payment-review-secure">Giao dịch được mã hóa và xử lý an toàn.</p>
               <button className="text-button payment-review-back" onClick={() => setShowPaymentReview(false)}>Quay lại chọn combo, ưu đãi</button>
             </section>
+          </div>
+        </Modal>
+      )}
+
+      {showExpiredNotice && (
+        <Modal
+          className="booking-expired-modal"
+          title="Hết thời gian giữ ghế (Timeout 5 phút)"
+          onClose={exitExpiredBooking}
+          image={
+            booking.movie.localBackdrop ||
+            booking.movie.backdrop ||
+            "/images/cinema-imax.jpg"
+          }
+        >
+          <div className="booking-expired-content">
+            <div className="booking-expired-icon">
+              <Clock3 size={24} />
+            </div>
+            <h3>Hết thời gian giữ ghế</h3>
+            <p>
+              Thời gian giữ chỗ ưu tiên của bạn đã kết thúc. Ghế
+              {order?.seats?.length
+                ? ` ${order.seats
+                    .map((seat) => `${seat.row}${seat.column}`)
+                    .join(", ")} `
+                : " đã chọn "}
+              đã được trả lại sơ đồ để khách khác lựa chọn. Hãy đặt lại vé để
+              chọn ghế và giữ chỗ mới.
+            </p>
+            <button
+              className="button button-primary booking-expired-action"
+              onClick={exitExpiredBooking}
+            >
+              Đặt lại vé ngay <span aria-hidden="true">→</span>
+            </button>
           </div>
         </Modal>
       )}

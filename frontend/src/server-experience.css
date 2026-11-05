@@ -64,6 +64,200 @@
   word-break: normal;
   border-radius: 10px;
 }
+.payment-review-modal {
+  width: min(940px, 100%);
+  padding: 0;
+  border-color: #263047;
+  background: #10121e;
+}
+.payment-review-modal .modal-header {
+  margin: 0;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid #242a3b;
+  background-size: cover;
+  background-position: center 42%;
+}
+.payment-review-modal .modal-header .eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+.payment-review-modal .modal-header h2 {
+  margin-top: 5px;
+  font-size: 21px;
+}
+.payment-review-grid {
+  display: grid;
+  grid-template-columns: 1.08fr 0.92fr;
+}
+.payment-review-summary,
+.payment-review-methods {
+  min-width: 0;
+  padding: 24px 28px;
+}
+.payment-review-summary {
+  border-right: 1px solid #242a3b;
+}
+.payment-review-grid h3 {
+  margin: 0 0 16px;
+  color: #f5f6fb;
+  font-size: 17px;
+}
+.payment-review-order {
+  padding: 18px;
+  border: 1px solid #252c40;
+  border-radius: 10px;
+  background: #171a29;
+}
+.payment-review-kicker {
+  color: #ff4455;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.payment-review-order h4 {
+  margin: 8px 0 4px;
+  font-size: 15px;
+}
+.payment-review-order > p:not(.payment-review-total) {
+  color: #aab2c5;
+  font-size: 12px;
+}
+.payment-review-order dl {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed #30374a;
+  font-size: 13px;
+}
+.payment-review-order dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.payment-review-order dt {
+  color: #bac2d3;
+}
+.payment-review-order dd {
+  margin: 0;
+  color: #f2f3f8;
+  font-weight: 650;
+  text-align: right;
+}
+.payment-review-order .payment-review-combo {
+  color: #9da7bb;
+  font-size: 11px;
+}
+.payment-review-order .payment-review-discount,
+.payment-review-order .payment-review-discount dd {
+  color: #ffc31b;
+}
+.payment-review-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 15px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #30374a;
+  font-size: 12px;
+}
+.payment-review-total strong {
+  color: #ff2638;
+  font-size: 21px;
+}
+.payment-review-hold {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 11px 12px;
+  border: 1px solid #16723f;
+  border-radius: 8px;
+  background: #10221a;
+  color: #48d181;
+  font-size: 11px;
+}
+.payment-review-hold svg {
+  flex: 0 0 auto;
+}
+.payment-review-methods .payment-provider-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.payment-review-methods .payment-provider-tabs button {
+  min-height: 52px;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 10px 13px;
+  text-align: left;
+  border-color: #2b3247;
+  background: #171a29;
+}
+.payment-review-methods .payment-provider-tabs button[aria-pressed="true"] {
+  border: 2px solid #f32132;
+  background: #1c1c2c;
+}
+.payment-review-methods .payment-provider-tabs button small {
+  margin-left: auto;
+}
+.payment-review-selected {
+  padding: 4px 7px;
+  border-radius: 20px;
+  background: #ef1020;
+  color: white;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.payment-review-note,
+.payment-review-secure {
+  color: #96a0b5;
+  font-size: 10px;
+  line-height: 1.6;
+  text-align: center;
+}
+.payment-review-note {
+  margin: 12px 0 16px;
+}
+.payment-review-submit {
+  width: 100%;
+  min-height: 50px;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 8px 22px #ef10204d;
+}
+.payment-review-secure {
+  margin: 10px 0 0;
+}
+.payment-review-back {
+  display: block;
+  margin: 14px auto 0;
+  font-size: 11px;
+}
+@media (max-width: 680px) {
+  .payment-review-modal {
+    max-height: calc(100dvh - 24px);
+  }
+  .payment-review-modal .modal-header {
+    padding: 18px 18px 14px;
+  }
+  .payment-review-modal .modal-header h2 {
+    font-size: 18px;
+  }
+  .payment-review-grid {
+    grid-template-columns: 1fr;
+  }
+  .payment-review-summary,
+  .payment-review-methods {
+    padding: 18px;
+  }
+  .payment-review-summary {
+    border-right: 0;
+    border-bottom: 1px solid #242a3b;
+  }
+}
 @container (min-width: 380px) {
   .payment-provider-tabs {
     grid-template-columns: repeat(4, minmax(0, 1fr));

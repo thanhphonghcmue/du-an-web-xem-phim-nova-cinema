@@ -397,6 +397,7 @@ function LiveBookingConsole({
 
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [showAgeModal, setShowAgeModal] = useState(false);
+  const [showPaymentReview, setShowPaymentReview] = useState(false);
   const ageInfo = getAgeRestriction(booking.movie?.age);
   const refresh = useCallback(async () => {
     const version = ++snapshotVersion.current;
@@ -781,7 +782,7 @@ function LiveBookingConsole({
       setShowAgeModal(true);
       return;
     }
-    void checkout();
+    setShowPaymentReview(true);
   }
 
   // The signed Sandbox form performs payment on NestJS. This handler only
@@ -1268,76 +1269,10 @@ function LiveBookingConsole({
 
               {holding ? (
                 <>
-                  <p>
-                    Mã đơn: <small>{order.orderCode}</small>
+                  <p className="muted">
+                    Đơn <b>{order.orderCode}</b> đã được xác nhận. Mở phần thanh
+                    toán để kiểm tra lại thông tin trước khi tiếp tục.
                   </p>
-                  <p>
-                    Tiền vé <b>{money(order.totalTicketAmount)}</b>
-                  </p>
-                  <p>
-                    Combo <b>{money(order.totalComboAmount)}</b>
-                  </p>
-                  <p>
-                    Ưu đãi {order.membershipTier}{" "}
-                    <b>−{money(order.discountAmount)}</b>
-                  </p>
-                  <p className="summary-total">
-                    Tổng thanh toán{" "}
-                    <strong data-testid="server-total">
-                      {money(order.finalAmount)}
-                    </strong>
-                  </p>
-                  <div className="payment-sandbox-card">
-                    <div className="payment-secure-icon">
-                      <ShieldCheck size={26} />
-                    </div>
-                    <h4>Một bước nữa tới màn ảnh lớn.</h4>
-                    <div
-                      className="payment-provider-tabs grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full min-w-0"
-                      role="group"
-                      aria-label="Chọn cổng thanh toán mô phỏng"
-                    >
-                      {paymentGateways.map((method, index) => (
-                        <button
-                          key={`${method.id}-${index}`}
-                          className="leading-tight break-normal min-w-0"
-                          type="button"
-                          aria-pressed={gateway === method.id}
-                          disabled={busy}
-                          onClick={() => setGateway(method.id)}
-                        >
-                          <span className="whitespace-nowrap">
-                            {method.title}
-                          </span>
-                          <small className="whitespace-nowrap">
-                            {method.detail}
-                          </small>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="payment-provider-notice" role="status">
-                      {
-                        paymentGateways.find((method) => method.id === gateway)
-                          .title
-                      }{" "}
-                      · Mô phỏng qua Sandbox. Không kết nối ngân hàng hoặc ví
-                      thật.
-                    </p>
-                    <p>
-                      Đơn hàng và giá đã được xác nhận. Tiếp tục sang Sandbox để
-                      chọn kết quả thanh toán mô phỏng.
-                    </p>
-                    <div className="payment-assurances">
-                      <span>
-                        <Check size={14} />
-                        Không thu tiền thật
-                      </span>
-                      <span>
-                        <Clock3 size={14} />
-                        Giữ nguyên hạn giữ ghế
-                      </span>
-                    </div>
-                  </div>
                   <button
                     className="text-button"
                     disabled={busy}
@@ -1403,7 +1338,7 @@ function LiveBookingConsole({
               onClick={holding ? handlePaymentClick : hold}
             >
               {holding
-                ? t("Thanh toán Sandbox")
+                ? "Xem lại đơn & thanh toán"
                 : busy
                   ? "Đang xử lý…"
                   : "Giữ ghế 5 phút"}
@@ -1419,10 +1354,71 @@ function LiveBookingConsole({
           onConfirm={() => {
             setAgeConfirmed(true);
             setShowAgeModal(false);
-            void checkout();
+            setShowPaymentReview(true);
           }}
           onCancel={() => setShowAgeModal(false)}
         />
+      )}
+
+      {showPaymentReview && holding && (
+        <Modal
+          className="payment-review-modal"
+          title="Xác nhận đơn hàng & thanh toán"
+          onClose={() => setShowPaymentReview(false)}
+          image={booking.movie.localBackdrop || booking.movie.backdrop || "/images/cinema-imax.jpg"}
+        >
+          <div className="payment-review-grid">
+            <section className="payment-review-summary" aria-labelledby="payment-review-title">
+              <h3 id="payment-review-title">🧾 Tóm tắt đơn hàng</h3>
+              <div className="payment-review-order">
+                <small className="payment-review-kicker">{booking.movie.title}</small>
+                <h4>{booking.cinema.name}</h4>
+                <p>{booking.time.label} · {booking.date.label}</p>
+                <dl>
+                  <div>
+                    <dt>Ghế</dt>
+                    <dd>
+                      {(order.seats || [])
+                        .map((seat) => `${seat.row}${seat.column}`)
+                        .join(", ") || selected.join(", ")}
+                    </dd>
+                  </div>
+                  <div><dt>Tiền vé</dt><dd>{money(order.totalTicketAmount)}</dd></div>
+                  {order.totalComboAmount > 0 && Object.values(comboItems).every((quantity) => quantity === 0) && (
+                    <div><dt>Combo</dt><dd>{money(order.totalComboAmount)}</dd></div>
+                  )}
+                  {Object.entries(comboItems).filter(([, quantity]) => quantity > 0).map(([id, quantity]) => {
+                    const combo = combos.find((item) => String(item.id) === String(id));
+                    return combo ? <div className="payment-review-combo" key={id}><dt>{quantity} × {combo.name}</dt><dd>{money(Number(combo.price) * quantity)}</dd></div> : null;
+                  })}
+                  {(order.couponCode || appliedCoupon?.code) && (
+                    <div className="payment-review-discount"><dt>Voucher {order.couponCode || appliedCoupon.code}</dt><dd>Đã áp dụng</dd></div>
+                  )}
+                  <div className="payment-review-discount"><dt>Ưu đãi {order.membershipTier || "thành viên"}</dt><dd>−{money(order.discountAmount)}</dd></div>
+                </dl>
+                <p className="payment-review-total"><b>TỔNG THANH TOÁN</b><strong data-testid="server-total">{money(order.finalAmount)}</strong></p>
+              </div>
+              <div className="payment-review-hold"><ShieldCheck size={16} /> <span>Ghế đang được giữ:</span><HoldCountdown expiresAt={order.expiredAt} offset={offset} onExpire={notifyExpiry} /></div>
+            </section>
+            <section className="payment-review-methods" aria-labelledby="payment-method-title">
+              <h3 id="payment-method-title">Chọn phương thức thanh toán</h3>
+              <div className="payment-provider-tabs" role="group" aria-label="Chọn cổng thanh toán mô phỏng">
+                {paymentGateways.map((method) => (
+                  <button key={method.id} type="button" aria-pressed={gateway === method.id} disabled={busy} onClick={() => setGateway(method.id)}>
+                    <span>{method.id === "sandbox" ? "Cổng Sandbox" : method.title}</span><small>{method.id === "sandbox" ? "Mô phỏng tức thì" : method.detail}</small>
+                    {gateway === method.id && <b className="payment-review-selected">Đã chọn</b>}
+                  </button>
+                ))}
+              </div>
+              <p className="payment-review-note">{paymentGateways.find((method) => method.id === gateway)?.title} · Thanh toán mô phỏng, không kết nối ngân hàng hoặc ví thật.</p>
+              <button className="button button-primary payment-review-submit" disabled={busy || expired} onClick={() => { setShowPaymentReview(false); void checkout(); }}>
+                {busy ? "Đang chuyển…" : `Thanh toán ngay: ${money(order.finalAmount)} →`}
+              </button>
+              <p className="payment-review-secure">Giao dịch được mã hóa và xử lý an toàn.</p>
+              <button className="text-button payment-review-back" onClick={() => setShowPaymentReview(false)}>Quay lại chọn combo, ưu đãi</button>
+            </section>
+          </div>
+        </Modal>
       )}
 
       {conflictInfo && (

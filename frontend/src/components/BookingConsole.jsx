@@ -272,75 +272,6 @@ const paymentGateways = [
   { id: "sandbox", title: "Sandbox", detail: "Môi trường thử" },
 ];
 
-function checkClientOrphanSeats(selectedIds, allSeats) {
-  if (!selectedIds || !selectedIds.length || !allSeats || !allSeats.length)
-    return null;
-  const byRow = new Map();
-  for (const s of allSeats) {
-    const list = byRow.get(s.row) ?? [];
-    list.push(s);
-    byRow.set(s.row, list);
-  }
-  for (const [, rowSeats] of byRow.entries()) {
-    rowSeats.sort((a, b) => a.column - b.column);
-    const origAvail = new Set();
-    for (const s of rowSeats) {
-      if (s.status === "AVAILABLE") origAvail.add(s.seatId);
-    }
-    const origRunSize = new Map();
-    let curOrigRun = [];
-    for (const s of rowSeats) {
-      const isAvail = origAvail.has(s.seatId);
-      const last = curOrigRun[curOrigRun.length - 1];
-      const isContig = !last || s.column === last.column + 1;
-      if (isAvail && isContig) {
-        curOrigRun.push(s);
-      } else {
-        if (curOrigRun.length > 0) {
-          for (const item of curOrigRun)
-            origRunSize.set(item.seatId, curOrigRun.length);
-        }
-        curOrigRun = isAvail ? [s] : [];
-      }
-    }
-    if (curOrigRun.length > 0) {
-      for (const item of curOrigRun)
-        origRunSize.set(item.seatId, curOrigRun.length);
-    }
-
-    const newAvail = new Set();
-    for (const s of rowSeats) {
-      if (origAvail.has(s.seatId) && !selectedIds.includes(s.seatId)) {
-        newAvail.add(s.seatId);
-      }
-    }
-    let curNewRun = [];
-    for (const s of rowSeats) {
-      const isAvail = newAvail.has(s.seatId);
-      const last = curNewRun[curNewRun.length - 1];
-      const isContig = !last || s.column === last.column + 1;
-      if (isAvail && isContig) {
-        curNewRun.push(s);
-      } else {
-        if (curNewRun.length === 1) {
-          const orphan = curNewRun[0];
-          if (orphan && (origRunSize.get(orphan.seatId) ?? 0) >= 2) {
-            return orphan;
-          }
-        }
-        curNewRun = isAvail ? [s] : [];
-      }
-    }
-    if (curNewRun.length === 1) {
-      const orphan = curNewRun[0];
-      if (orphan && (origRunSize.get(orphan.seatId) ?? 0) >= 2) {
-        return orphan;
-      }
-    }
-  }
-  return null;
-}
-
 function LiveBookingConsole({
   booking,
   member,
@@ -348,7 +279,7 @@ function LiveBookingConsole({
   onViewTickets,
   onMemberUpdate,
 }) {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const { combos } = useCatalog();
   const showtimeId = booking.showtimeId || booking.time.id;
   const [snapshot, setSnapshot] = useState(null);
@@ -523,16 +454,6 @@ function LiveBookingConsole({
     [seats, selected, combos, comboItems],
   );
   const holding = order && ["PENDING", "HOLDING"].includes(order.status);
-  // Derive from each fresh snapshot so another viewer's hold cannot leave a stale warning.
-  const orphanSeat = useMemo(
-    () => (!holding ? checkClientOrphanSeats(selected, seats) : null),
-    [holding, selected, seats],
-  );
-  const orphanWarning = orphanSeat
-    ? language === "en"
-      ? `Do not leave a single empty seat at ${orphanSeat.row}${orphanSeat.column}. Select that seat or leave at least two adjacent seats free.`
-      : `Không để trống 1 ghế lẻ tại ${orphanSeat.row}${orphanSeat.column}. Hãy chọn ghế này hoặc đổi vị trí để chừa ít nhất 2 ghế liền nhau.`
-    : null;
   const expired = Boolean(
     holding &&
     (expiredOrderId === order.id || !holdSeconds(order.expiredAt, offset)),
@@ -592,14 +513,23 @@ function LiveBookingConsole({
           )
         : [seat];
     if (pair.some((s) => s.status !== "AVAILABLE")) {
-      const conflictNames = pair.map((s) => `${s.row}${s.column}`).join(", ");
-      setConflictInfo({
-        seatNames: conflictNames,
-        seatIds: pair.map((s) => s.seatId),
-      });
-      setNotice(
-        `Ghế ${conflictNames} vừa được người khác chọn. Vui lòng chọn ghế khác!`,
-      );
+      const unavailableSeats = pair.filter((s) => s.status !== "AVAILABLE");
+      const unavailableNames = unavailableSeats
+        .map((s) => `${s.row}${s.column}`)
+        .join(", ");
+      if (seat.type === "SWEETBOX") {
+        setNotice(
+          `Cặp Sweetbox có ghế ${unavailableNames} đã được giữ hoặc bán. Hãy chọn cặp khác.`,
+        );
+      } else {
+        setConflictInfo({
+          seatNames: unavailableNames,
+          seatIds: unavailableSeats.map((s) => s.seatId),
+        });
+        setNotice(
+          `Ghế ${unavailableNames} vừa được người khác chọn. Vui lòng chọn ghế khác!`,
+        );
+      }
       return;
     }
     const ids = pair.map((s) => s.seatId);
@@ -657,15 +587,6 @@ function LiveBookingConsole({
     setBusy(true);
     setNotice("");
 
-    const orphan = checkClientOrphanSeats(selected, seats);
-    if (orphan) {
-      setBusy(false);
-      setNotice(
-        `Quy tắc rạp chiếu phim: Không được để lại 1 ghế trống đơn lẻ (Orphan Seat) tại vị trí ${orphan.row}${orphan.column}. Vui lòng chọn ghế liền kề!`,
-      );
-      return;
-    }
-
     const payload = {
       showtimeId,
       seatIds: [...selected].sort(),
@@ -693,18 +614,18 @@ function LiveBookingConsole({
       });
     } catch (err) {
       setNotice(err.message);
-      if (
-        err.code === "SEAT_UNAVAILABLE" ||
-        err.status === 409 ||
-        err.message?.includes("SEAT_UNAVAILABLE") ||
-        err.message?.includes("vừa được người khác giữ") ||
-        err.message?.includes("vừa được người khác chọn")
-      ) {
-        const blocked = new Set(
-          Array.isArray(err.details?.seatIds) && err.details.seatIds.length
-            ? err.details.seatIds
-            : selected,
-        );
+      if (err.code === "SEAT_UNAVAILABLE") {
+        const blockedIds = Array.isArray(err.details?.seatIds)
+          ? err.details.seatIds
+          : [];
+        if (blockedIds.length === 0) {
+          setNotice(
+            "Trạng thái ghế vừa thay đổi trong lúc giữ chỗ. Sơ đồ sẽ được cập nhật; bạn có thể thử giữ ghế lại.",
+          );
+          void refresh().catch(() => {});
+          return;
+        }
+        const blocked = new Set(blockedIds);
         const conflictSeats = seats
           .filter((s) => blocked.has(s.seatId))
           .map((s) => `${s.row}${s.column}`);
@@ -883,13 +804,6 @@ function LiveBookingConsole({
         </p>
       )}
 
-      {orphanWarning && !holding && (
-        <div className="orphan-warning-banner" id="orphan-warning" role="alert">
-          <AlertTriangle size={16} />
-          <span>{orphanWarning}</span>
-        </div>
-      )}
-
       {notice && (
         <p role="alert" className="auth-notice">
           {notice}
@@ -898,20 +812,26 @@ function LiveBookingConsole({
 
       {order?.status === "PAID" ? (
         <div className="ticket-success">
+          <div className="payment-success-brand">
+            <span>NOVA TICKET</span>
+            <small>Thanh toán Sandbox đã hoàn tất</small>
+          </div>
           <div className="success-icon-wrap">
             <Check size={36} />
           </div>
           <h3>Thanh toán đã được xác nhận thành công!</h3>
-          <p>
-            Mã đơn hàng: <b>{order.orderCode}</b>
+          <p className="payment-success-order">
+            Đơn hàng: <b>{order.orderCode}</b>
+            <span aria-hidden="true"> · </span>
+            Số tiền: <strong>{money(order.finalAmount)}</strong>
           </p>
-          <p>
-            Mở ví vé để xem mã QR. Nếu hệ thống đang phát hành vé, trạng thái sẽ
-            tự cập nhật tại đó.
+          <p className="payment-success-copy">
+            Mã QR vé điện tử của bạn. Mở ví vé để xem chi tiết và sử dụng vé tại
+            rạp.
           </p>
           <BookingTicket key={order.id} orderId={order.id} />
           <button
-            className="button button-primary"
+            className="button button-primary payment-success-action"
             disabled={busy}
             onClick={handleMockPaymentSuccess}
           >
@@ -1048,18 +968,12 @@ function LiveBookingConsole({
                           return (
                             <button
                               key={`${seat.seatId}-${index}`}
-                              className={`seat ${state}${orphanSeat?.seatId === seat.seatId ? " orphan-seat" : ""}`}
+                              className={`seat ${state}`}
                               aria-pressed={chosen}
-                              aria-describedby={
-                                orphanSeat?.seatId === seat.seatId
-                                  ? "orphan-warning"
-                                  : undefined
-                              }
                               disabled={
                                 busy ||
                                 Boolean(holding) ||
-                                (seat.status !== "AVAILABLE" &&
-                                  seat.status !== "HOLDING")
+                                seat.status !== "AVAILABLE"
                               }
                               aria-label={`Ghế ${seat.row}${seat.column}, ${chosen ? "đang chọn" : seat.status === "AVAILABLE" ? "còn trống" : seat.status === "SOLD" ? "đã bán" : "đang giữ"}`}
                               onClick={() => toggle(seat)}
@@ -1332,7 +1246,6 @@ function LiveBookingConsole({
                   : busy ||
                     !initialized ||
                     !selected.length ||
-                    Boolean(orphanWarning) ||
                     !snapshot?.canBook
               }
               onClick={holding ? handlePaymentClick : hold}

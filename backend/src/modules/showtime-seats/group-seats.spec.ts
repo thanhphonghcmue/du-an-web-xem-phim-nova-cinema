@@ -1,4 +1,3 @@
-import { validateNoOrphanSeats } from "../bookings/orphan-seats";
 import { SeatType } from "@prisma/client";
 import { findGroupSeats, GroupCandidate } from "./group-seats";
 function row(
@@ -90,44 +89,28 @@ describe("group seat sliding windows", () => {
       ),
     ).toHaveLength(20);
   });
-  it("never recommends a newly orphaned seat across all 256 occupancy patterns of an eight-seat row", () => {
+  it("recommends available contiguous seats even when a single gap remains", () => {
     for (let mask = 0; mask < 256; mask++) {
       const seats = row("A", [1, 2, 3, 4, 5, 6, 7, 8]).map((seat, index) => ({
         ...seat,
         status: mask & (1 << index) ? "HOLDING" : "AVAILABLE",
       }));
-      const physical = seats.map((seat) => ({
-        id: seat.seatId,
-        seatRow: seat.row,
-        seatColumn: seat.column,
-      }));
-      const occupied = new Set(
-        seats
-          .filter((seat) => seat.status !== "AVAILABLE")
-          .map((seat) => seat.seatId),
-      );
       for (let quantity = 1; quantity <= 8; quantity++) {
         const suggestion = findGroupSeats(seats, quantity);
         const candidates = seats
           .slice(0, 9 - quantity)
           .map((_, start) => seats.slice(start, start + quantity))
-          .filter(
-            (window) =>
-              window.every((seat) => seat.status === "AVAILABLE") &&
-              !validateNoOrphanSeats(
-                physical,
-                occupied,
-                new Set(window.map((seat) => seat.seatId)),
-              ).hasOrphan,
+          .filter((window) =>
+            window.every((seat) => seat.status === "AVAILABLE"),
           );
         expect(suggestion.length > 0).toBe(candidates.length > 0);
         if (suggestion.length) {
           expect(suggestion).toHaveLength(quantity);
           expect(
-            validateNoOrphanSeats(physical, occupied, new Set(suggestion))
-              .hasOrphan,
-          ).toBe(false);
-          expect(suggestion.every((id) => !occupied.has(id))).toBe(true);
+            suggestion.every(
+              (id) => seats.find((seat) => seat.seatId === id)?.status === "AVAILABLE",
+            ),
+          ).toBe(true);
         }
       }
     }

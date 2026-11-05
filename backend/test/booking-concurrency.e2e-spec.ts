@@ -668,8 +668,7 @@ describe("Phase 6 BR01/02/04/05 and TC-01, two real API instances", () => {
     const f = await fixture();
     const responses = await Promise.all([
       hold(f, customerA, [seat(f), seat(f, 1)]),
-      // Both competing inputs must be valid on an empty row. Omitting A1 here
-      // makes the second request an orphan-seat violation before any conflict.
+      // The second selection includes the contested seats and one extra seat.
       hold(f, customerB, [seat(f), seat(f, 1), seat(f, 2)], otherServer),
     ]);
     expect(responses.map((row) => row.status).sort()).toEqual([201, 409]);

@@ -15,7 +15,23 @@ export function ticketQrData(ticket) {
     !/^[a-f0-9]{64}$/.test(ticket.ticketHash || "")
   )
     return null;
-  return { value: ticket.ticketHash, label: `QR vé ${ticket.orderCode}` };
+  let value = ticket.ticketHash;
+  if (typeof ticket.qrPayload === "string") {
+    try {
+      const url = new URL(ticket.qrPayload);
+      if (
+        ["http:", "https:"].includes(url.protocol) &&
+        !url.username &&
+        !url.password &&
+        url.pathname === "/ve" &&
+        url.hash === `#${ticket.ticketHash}`
+      )
+        value = url.href;
+    } catch {
+      /* Vé cũ vẫn dùng hash trực tiếp. */
+    }
+  }
+  return { value, label: `QR vé ${ticket.ticketCode || ticket.orderCode}` };
 }
 
 export function ticketPng(ticket) {

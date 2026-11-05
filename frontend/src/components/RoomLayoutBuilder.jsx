@@ -1,12 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Armchair, CheckCircle2, Grid2X2, ShieldCheck } from "lucide-react";
 import { apiList, readCommand } from "@/api/client.js";
 import { formFieldErrors } from "@/api/formErrors.js";
 import { useCatalog } from "@/catalog.js";
+import { uniqueRecords } from "@/uniqueRecords.js";
 const labels = { STANDARD: "Thường", VIP: "VIP", SWEETBOX: "Sweetbox" };
 export default function RoomLayoutBuilder() {
   const catalog = useCatalog();
   const [roomId, setRoomId] = useState("");
+  const [roomRows, setRoomRows] = useState(null);
+  const roomOptions = useMemo(
+    () => uniqueRecords(roomRows ?? catalog.rooms),
+    [roomRows, catalog.rooms],
+  );
   const [existing, setExisting] = useState(null);
   const [rows, setRows] = useState(8),
     [columns, setColumns] = useState(20);
@@ -20,6 +26,20 @@ export default function RoomLayoutBuilder() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    let active = true;
+    // Phòng mới chưa có suất vẫn cần hiện trong quản trị, không chờ cache lịch công khai.
+    apiList("/rooms")
+      .then((rooms) => {
+        if (active) setRoomRows(rooms);
+      })
+      .catch((cause) => {
+        if (active) setError(cause.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [catalog.rooms, revision]);
   const [fieldErrors, setFieldErrors] = useState({});
   const rowLabels = Array.from(
     { length: Math.min(15, Math.max(1, Number(rows) || 1)) },
@@ -118,7 +138,7 @@ export default function RoomLayoutBuilder() {
               }}
             >
               <option value="">Chọn phòng chiếu</option>
-              {catalog.rooms.map((room) => (
+              {roomOptions.map((room) => (
                 <option key={room.id} value={room.id}>
                   {catalog.cinemas.find((c) => c.id === room.cinemaId)?.name} ·{" "}
                   {room.name} · {room.totalSeats} ghế

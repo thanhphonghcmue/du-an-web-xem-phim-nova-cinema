@@ -70,6 +70,17 @@ async function openScreening(page, show, cinemaId = fixture().cinema.id) {
 }
 const holdButton = (page) =>
   page.getByRole("button", { name: "Giữ ghế 5 phút", exact: true });
+test.afterEach(async ({ page }) => {
+  const response = await page.request.get("/api/v1/bookings/me?limit=100");
+  if (!response.ok()) return;
+  const { data } = await response.json();
+  for (const order of data.items.filter((row) =>
+    ["HOLDING", "PENDING"].includes(row.status),
+  ))
+    expect(
+      (await page.request.post(`/api/v1/bookings/${order.id}/cancel`)).status(),
+    ).toBe(200);
+});
 async function cancel(page) {
   await page
     .getByRole("button", { name: "Hủy đơn & trả ghế", exact: true })
@@ -201,16 +212,23 @@ test("payment gateways and signed Sandbox actions fit their cards on narrow and 
   );
   await holdButton(page).click();
   expect((await response).status()).toBe(201);
-  const card = page.locator(".payment-sandbox-card");
+  const age = page.getByRole("checkbox", {
+    name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
+  });
+  if (await age.count()) await age.check();
+  await page
+    .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+    .click();
+  const card = page.locator(".payment-review-modal");
   const tabs = card.getByRole("group", {
     name: "Chọn cổng thanh toán mô phỏng",
   });
   await expect(tabs.getByRole("button")).toHaveCount(4);
   for (const label of ["VietQR", "MoMo", "VNPAY", "Sandbox"]) {
-    const button = tabs.getByRole("button", { name: new RegExp("^" + label) });
+    const button = tabs.getByRole("button", { name: new RegExp(label) });
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
-    await expect(card.locator(".payment-provider-notice")).toContainText(label);
+    await expect(card.locator(".payment-review-note")).toContainText(label);
   }
   for (const width of [320, 375, 390, 768, 820, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
@@ -241,12 +259,12 @@ test("payment gateways and signed Sandbox actions fit their cards on narrow and 
       });
     }
   }
-  const age = page.getByRole("checkbox", {
-    name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
-  });
-  if (await age.count()) await age.check();
   await page
-    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .getByRole("dialog", {
+      name: "Xác nhận đơn hàng & thanh toán",
+      exact: true,
+    })
+    .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await expect(
     page.getByRole("heading", { name: "Thanh toán mô phỏng", exact: true }),
@@ -501,7 +519,14 @@ test("ADMIN operates a real cinema/room/screening, buys a ticket, opens own QR a
   });
   if (await age.count()) await age.check();
   await page
-    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", {
+      name: "Xác nhận đơn hàng & thanh toán",
+      exact: true,
+    })
+    .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
@@ -515,10 +540,11 @@ test("ADMIN operates a real cinema/room/screening, buys a ticket, opens own QR a
   await expect(page).toHaveURL(
     new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
   );
-  const qr = page.getByRole("img", {
-    name: `QR vé ${order.orderCode}`,
-    exact: true,
-  });
+  const qr = page
+    .locator(".cinema-ticket")
+    .filter({ hasText: order.orderCode })
+    .locator(".ticket-qr-svg")
+    .first();
   await expect(qr).toBeVisible({ timeout: 15000 });
   await expect(qr).toBeInViewport({ ratio: 1 });
   const ticket = (
@@ -531,7 +557,7 @@ test("ADMIN operates a real cinema/room/screening, buys a ticket, opens own QR a
     png.width,
     png.height,
   );
-  expect(decoded?.data === ticket.ticketHash).toBe(true);
+  expect(decoded?.data === ticket.qrPayload).toBe(true);
   await page.reload();
   await expect(qr).toBeVisible();
 
@@ -601,10 +627,7 @@ test("ADMIN operates a real cinema/room/screening, buys a ticket, opens own QR a
     await customer.goto("/tai-khoan#ve-cua-toi");
     await expect(customer.locator(".history-list")).toBeVisible();
     await expect(
-      customer.getByRole("img", {
-        name: `QR vé ${order.orderCode}`,
-        exact: true,
-      }),
+      customer.locator(".cinema-ticket").filter({ hasText: order.orderCode }),
     ).toHaveCount(0);
   } finally {
     await other.close();
@@ -934,7 +957,14 @@ test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS
     .check();
   const paymentJourneyStarted = performance.now();
   await page
-    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", {
+      name: "Xác nhận đơn hàng & thanh toán",
+      exact: true,
+    })
+    .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
@@ -944,7 +974,7 @@ test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS
     .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
     .click();
   await expect(
-    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+    page.locator(".booking-issued-ticket .ticket-qr-svg").first(),
   ).toBeVisible();
   const paymentClickToVisibleInlineQrMs =
     performance.now() - paymentJourneyStarted;
@@ -954,7 +984,11 @@ test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS
     .getByRole("button", { name: "Xem vé trong tài khoản", exact: true })
     .click();
   await expect(
-    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+    page
+      .locator(".cinema-ticket")
+      .filter({ hasText: order.orderCode })
+      .locator(".ticket-qr-svg")
+      .first(),
   ).toBeVisible();
   if (process.env.NOVA_QA_JOURNEY_METRICS_FILE) {
     mkdirSync(dirname(process.env.NOVA_QA_JOURNEY_METRICS_FILE), {
@@ -982,7 +1016,9 @@ test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS
   const items = (
     await page.request.get("/api/v1/tickets/me?limit=100").then((r) => r.json())
   ).data.items.filter((ticket) => ticket.bookingId === order.id);
-  expect(items).toHaveLength(1);
+  expect(items).toHaveLength(2);
+  expect(new Set(items.map((item) => item.ticketCode)).size).toBe(2);
+  expect(items.every((item) => item.seats.length === 1)).toBe(true);
   const ticket = items[0];
   const calendar = await page.request.get(
     `/api/v1/tickets/${ticket.id}/calendar`,

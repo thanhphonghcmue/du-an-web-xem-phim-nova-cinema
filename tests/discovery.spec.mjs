@@ -385,7 +385,14 @@ test("a coming-soon film with a real schedule can be prebooked, paid and issued 
     })
     .check();
   await page
-    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", {
+      name: "Xác nhận đơn hàng & thanh toán",
+      exact: true,
+    })
+    .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
@@ -403,7 +410,10 @@ test("a coming-soon film with a real schedule can be prebooked, paid and issued 
     new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
   );
   await expect(
-    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+    page
+      .locator(".cinema-ticket")
+      .filter({ hasText: order.orderCode })
+      .locator(".ticket-qr-svg"),
   ).toBeVisible();
   const result = await page.request.get("/api/v1/tickets/me?limit=100");
   const tickets = (await result.json()).data.items.filter(

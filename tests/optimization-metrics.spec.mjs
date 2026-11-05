@@ -323,6 +323,21 @@ test("PERF-OPT active frontend uses complete structured snapshots and reload reu
   await expect(page.locator("#movies .discovery-film").first()).toBeVisible({
     timeout: 30000,
   });
+  // Artwork appears before the real catalogue finishes loading; wait for the actual transport.
+  await expect
+    .poll(() =>
+      requests.some((path) =>
+        path.startsWith("/api/v1/showtimes/programme/chunks/"),
+      ),
+    )
+    .toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Boolean(sessionStorage.getItem("nova:programme:raw")),
+      ),
+    )
+    .toBe(true);
   expect(requests).toContain("/api/v1/showtimes/programme/manifest");
   expect(
     requests.some((path) =>
@@ -330,14 +345,28 @@ test("PERF-OPT active frontend uses complete structured snapshots and reload reu
     ),
   ).toBe(true);
   expect(requests).not.toContain("/api/v1/showtimes/programme");
-  const displayedMovies = await page.locator("#movies .discovery-film").count();
   const before = await page.request.get(
     "/api/v1/showtimes/programme/manifest?days=60",
   );
   expect(before.status()).toBe(200);
   const manifest = (await before.json()).data;
-  expect(displayedMovies).toBe(manifest.counts.movies);
+  await expect(page.locator("#movies .discovery-film")).toHaveCount(
+    manifest.counts.movies,
+  );
+  const displayedMovies = manifest.counts.movies;
+  // Exercise the immutable HTTP cache separately from the newer whole-snapshot session cache.
+  await page.evaluate(() => {
+    sessionStorage.removeItem("nova:programme:raw");
+    sessionStorage.removeItem("nova_catalogue_snapshot");
+  });
   await page.reload();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Boolean(sessionStorage.getItem("nova:programme:raw")),
+      ),
+    )
+    .toBe(true);
   await expect(page.locator("#movies .discovery-film")).toHaveCount(
     displayedMovies,
   );

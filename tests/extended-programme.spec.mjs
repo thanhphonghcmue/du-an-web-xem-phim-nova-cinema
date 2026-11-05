@@ -281,7 +281,14 @@ test("movie 20 can be booked 15 days ahead: D10/D12 warns about D11, then valid 
     })
     .check();
   await page
-    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", {
+      name: "Xác nhận đơn hàng & thanh toán",
+      exact: true,
+    })
+    .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
@@ -296,12 +303,18 @@ test("movie 20 can be booked 15 days ahead: D10/D12 warns about D11, then valid 
     new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
   );
   await expect(
-    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
+    page
+      .locator(".cinema-ticket")
+      .filter({ hasText: order.orderCode })
+      .locator(".ticket-qr-svg")
+      .first(),
   ).toBeVisible();
   const tickets = (
     await (await page.request.get("/api/v1/tickets/me?limit=100")).json()
   ).data.items.filter((ticket) => ticket.bookingId === order.id);
-  expect(tickets).toHaveLength(1);
+  expect(tickets).toHaveLength(3);
+  expect(new Set(tickets.map((ticket) => ticket.ticketCode)).size).toBe(3);
+  expect(tickets.every((ticket) => ticket.seats.length === 1)).toBe(true);
   expect(tickets[0].startTime).toBe(target.startTime);
   expect(tickets[0].movie).toBe(movie.title);
 });

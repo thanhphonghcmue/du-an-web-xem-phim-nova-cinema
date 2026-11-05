@@ -127,7 +127,10 @@ test("a late HOLDING poll cannot resurrect a cancelled booking or its payment bu
     );
     await expect(dialog.getByTestId("hold-timer")).toHaveCount(0);
     await expect(
-      dialog.getByRole("button", { name: "Thanh toán Sandbox", exact: true }),
+      dialog.getByRole("button", {
+        name: "Xem lại đơn & thanh toán",
+        exact: true,
+      }),
     ).toHaveCount(0);
     await expect(seat).toBeEnabled();
     const persisted = await page.request.get(`/api/v1/bookings/${order.id}`);

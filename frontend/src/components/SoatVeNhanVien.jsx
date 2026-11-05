@@ -23,6 +23,7 @@ import Modal from "./Modal.jsx";
 import { apiGetShowtimes, readCommand } from "@/api/client.js";
 import { useCatalog, dayKey } from "@/catalog.js";
 import jsQR from "jsqr";
+import { extractCode, admissionTicket } from "@/admission.js";
 
 const vietnamDate = (value = new Date()) =>
   new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
@@ -60,31 +61,19 @@ function playSuccessBeep() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.16);
+    const closeAudio = () => void ctx.close().catch(() => {});
+    const fallback = setTimeout(closeAudio, 500);
+    osc.onended = () => {
+      clearTimeout(fallback);
+      closeAudio();
+    };
   } catch {
     // Audio autoplay might be restricted by browser policy
   }
 }
 
-export function extractCode(input) {
-  if (!input || typeof input !== "string") return "";
-  const trimmed = input.trim();
-  // 1. Tìm chuỗi 64 ký tự hex (QR hash của vé)
-  const hex64 = trimmed.match(/[a-f0-9]{64}/i);
-  if (hex64) return hex64[0].toLowerCase();
-  // 2. Tìm mã đơn hàng NOVA-xxxxxxxx...
-  const orderCode = trimmed.match(/NOVA-[a-f0-9]{16,32}/i);
-  if (orderCode) return orderCode[0].toUpperCase();
-  // 3. Tìm định dạng UUID
-  const uuidMatch = trimmed.match(
-    /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i,
-  );
-  if (uuidMatch) return uuidMatch[0].toLowerCase();
-  return trimmed;
-}
-
 export default function SoatVeNhanVien({ onClose, embedded = false }) {
-  const { cinemas, rooms, movies, showtimes: catalogShowtimes, isLive } =
-    useCatalog();
+  const { cinemas, rooms, movies, showtimes: catalogShowtimes } = useCatalog();
   const [mode, setMode] = useState("manual");
   const [cinemaId, setCinemaId] = useState("");
   const [day, setDay] = useState(vietnamDate);
@@ -127,9 +116,10 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     schedule.day === day && schedule.cinemaId === cinemaId && !schedule.error;
 
   const screenings = useMemo(() => {
-    const list = scheduleReady && schedule.items?.length
-      ? schedule.items
-      : fallbackScreenings;
+    const list =
+      scheduleReady && schedule.items?.length
+        ? schedule.items
+        : fallbackScreenings;
     return uniqueRecords(list);
   }, [scheduleReady, schedule.items, fallbackScreenings]);
 
@@ -198,7 +188,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     setError(null);
   }
 
-  function stopCamera() {
+  const stopCamera = useCallback(() => {
     cameraEpoch.current++;
     if (loopRef.current) {
       cancelAnimationFrame(loopRef.current);
@@ -212,17 +202,9 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
       videoRef.current.srcObject = null;
     }
     setCameraActive(false);
-  }
-
-  useEffect(() => {
-    return () => {
-      cameraEpoch.current++;
-      if (loopRef.current) cancelAnimationFrame(loopRef.current);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-    };
   }, []);
+
+  useEffect(() => () => stopCamera(), [stopCamera]);
 
   function report(err) {
     setError({
@@ -239,8 +221,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
       const target = extractCode(targetInput);
       if (!target) {
         setError({
-          message:
-            "Vui lòng nhập hoặc quét mã vé (mã QR 64 ký tự hoặc mã đơn hàng NOVA-...).",
+          message: "Vui lòng nhập hoặc quét mã vé (mã QR hoặc mã vé 8 ký tự).",
         });
         return;
       }
@@ -268,57 +249,15 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           );
         }
 
-        try {
-          const ticket = await readCommand("/staff/verify", {
+        // UC14: giữ nguyên suất nhân viên đang soát; không tự chuyển sang suất khác.
+        const ticket = admissionTicket(
+          await readCommand("/staff/verify", {
             ticketHash: target,
             showtimeId: currentShowtimeId,
-          });
-          setShowtimeId(currentShowtimeId);
-          setPreview({ ticket, hash: target, showtimeId: currentShowtimeId });
-        } catch (err) {
-          // Tự động tìm suất chiếu đúng nếu vé thuộc suất khác trong ngày
-          if (err.code === "TICKET_SHOWTIME_MISMATCH") {
-            const actualId = err.details?.actualShowtimeId;
-            if (actualId) {
-              try {
-                const ticket = await readCommand("/staff/verify", {
-                  ticketHash: target,
-                  showtimeId: actualId,
-                });
-                setShowtimeId(actualId);
-                setPreview({ ticket, hash: target, showtimeId: actualId });
-                return;
-              } catch (innerErr) {
-                report(innerErr);
-                return;
-              }
-            }
-
-            // Quét qua các suất còn lại trong ngày để tự động bắt đúng suất
-            let matched = false;
-            for (const s of screenings) {
-              if (s.id === currentShowtimeId) continue;
-              try {
-                const ticket = await readCommand("/staff/verify", {
-                  ticketHash: target,
-                  showtimeId: s.id,
-                });
-                setShowtimeId(s.id);
-                setPreview({ ticket, hash: target, showtimeId: s.id });
-                matched = true;
-                break;
-              } catch (scanErr) {
-                if (scanErr.code === "TICKET_SHOWTIME_MISMATCH") continue;
-                report(scanErr);
-                matched = true;
-                break;
-              }
-            }
-            if (!matched) report(err);
-          } else {
-            report(err);
-          }
-        }
+          }),
+        );
+        setShowtimeId(currentShowtimeId);
+        setPreview({ ticket, hash: target, showtimeId: currentShowtimeId });
       } catch (err) {
         report(err);
       } finally {
@@ -326,7 +265,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         setBusy(false);
       }
     },
-    [showtimeId, screenings],
+    [showtimeId, screenings, stopCamera],
   );
 
   async function admit() {
@@ -339,10 +278,12 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     setBusy(true);
     setError(null);
     try {
-      const ticket = await readCommand("/staff/check-in", {
-        ticketHash: preview.hash,
-        showtimeId: preview.showtimeId,
-      });
+      const ticket = admissionTicket(
+        await readCommand("/staff/check-in", {
+          ticketHash: preview.hash,
+          showtimeId: preview.showtimeId,
+        }),
+      );
       setResult(ticket);
       setPreview(null);
       playSuccessBeep();
@@ -355,9 +296,17 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     }
   }
 
-  async function startCamera() {
+  const verifyRef = useRef(null);
+  useEffect(() => {
+    verifyRef.current = verify;
+  }, [verify]);
+
+  const startCamera = useCallback(async () => {
     setCameraError("");
-    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
       setCameraError(
         "Trình duyệt hoặc thiết bị chưa cấp quyền truy cập Camera. Bạn có thể dùng mục Nhập mã.",
       );
@@ -420,7 +369,9 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
               if (codes?.length && codes[0]?.rawValue) {
                 rawData = codes[0].rawValue;
               }
-            } catch {}
+            } catch {
+              /* Có thể thiếu quyền camera/clipboard; giữ đường nhập mã thủ công. */
+            }
           }
 
           // 2. Dùng jsQR đọc qua canvas (hỗ trợ 100% mọi trình duyệt Chrome, Edge, Safari, Firefox, điện thoại)
@@ -441,9 +392,12 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
               if (qr?.data) {
                 rawData = qr.data;
               }
-            } catch {}
+            } catch {
+              /* Có thể thiếu quyền camera/clipboard; giữ đường nhập mã thủ công. */
+            }
           }
 
+          if (epoch !== cameraEpoch.current || !streamRef.current) return;
           if (rawData) {
             const clean = extractCode(rawData);
             if (clean) {
@@ -452,12 +406,13 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
               stopCamera();
               setHash(clean);
               setTimeout(() => setScannedEffect(false), 800);
-              void verify(clean);
+              void verifyRef.current?.(clean);
               return;
             }
           }
         }
-        loopRef.current = requestAnimationFrame(detect);
+        if (epoch === cameraEpoch.current)
+          loopRef.current = requestAnimationFrame(detect);
       }
       loopRef.current = requestAnimationFrame(detect);
     } catch (err) {
@@ -468,17 +423,16 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           : err.message || "Không thể khởi động Camera thiết bị.",
       );
     }
-  }
+  }, [stopCamera]);
 
-  // Tự động bật camera khi chuyển sang tab Camera
   useEffect(() => {
-    if (mode === "camera") {
-      void startCamera();
-    } else {
+    if (mode !== "camera") return;
+    const frame = requestAnimationFrame(() => void startCamera());
+    return () => {
+      cancelAnimationFrame(frame);
       stopCamera();
-    }
-    return () => stopCamera();
-  }, [mode]);
+    };
+  }, [mode, startCamera, stopCamera]);
 
   const pasteFromClipboard = async () => {
     try {
@@ -491,7 +445,9 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           void verify(clean);
         }
       }
-    } catch {}
+    } catch {
+      /* Có thể thiếu quyền camera/clipboard; giữ đường nhập mã thủ công. */
+    }
   };
 
   const ticket = result || preview?.ticket;
@@ -508,8 +464,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           <p className="nova-kicker">NOVA ADMISSION DESK</p>
           <h3>Đúng suất. Đúng vé. Một lần vào rạp.</h3>
           <p>
-            Kiểm tra thông tin trước, xác nhận cho vào rạp sau. Tự động nhận diện
-            mã QR qua Camera điện thoại / webcam hoặc nhập mã đơn hàng.
+            Kiểm tra thông tin trước, xác nhận cho vào rạp sau. Tự động nhận
+            diện mã QR qua camera hoặc nhập mã vé 8 ký tự.
           </p>
         </div>
       </div>
@@ -590,7 +546,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
 
       <div className="staff-mode-switch">
         {[
-          ["manual", Keyboard, "Nhập mã vé / đơn hàng"],
+          ["manual", Keyboard, "Nhập mã vé"],
           ["camera", Camera, "Quét Camera QR"],
         ].map(([key, Icon, title]) => (
           <button
@@ -636,7 +592,10 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           </div>
 
           {cameraError && (
-            <div role="status" className="scanner-error-message mt-2 text-rose-400 text-xs text-center">
+            <div
+              role="status"
+              className="scanner-error-message mt-2 text-rose-400 text-xs text-center"
+            >
               {cameraError}
             </div>
           )}
@@ -670,8 +629,11 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         }}
       >
         <div className="flex items-center justify-between">
-          <label htmlFor="ticket-hash" className="text-sm font-medium text-slate-200">
-            Mã QR hoặc Mã đơn hàng (NOVA-...)
+          <label
+            htmlFor="ticket-hash"
+            className="text-sm font-medium text-slate-200"
+          >
+            Mã QR hoặc mã vé 8 ký tự
           </label>
           <div className="flex items-center gap-2">
             <button
@@ -699,6 +661,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         <div className="flex gap-2">
           <input
             id="ticket-hash"
+            aria-label="Mã đọc từ QR"
             value={hash}
             disabled={busy}
             onChange={(event) => {
@@ -707,7 +670,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
             }}
             autoComplete="off"
             spellCheck="false"
-            placeholder="Dán chuỗi QR vé (64 ký tự) hoặc nhập mã đơn NOVA-..."
+            placeholder="Quét QR hoặc nhập mã vé, ví dụ NV-8K92FABC"
             className="flex-1"
           />
           <button
@@ -758,11 +721,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
       )}
 
       {ticket && (
-        <div
-          role="status"
-          className={`admission-result ${result ? "valid" : "warning"} transition-all`}
-        >
-          <CheckCircle2 size={36} className={result ? "text-emerald-400" : "text-amber-400"} />
+        <div role="status" className="admission-result valid transition-all">
+          <CheckCircle2 size={36} className="text-emerald-400" />
           <div className="flex-1">
             <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
               <h3 className="text-lg font-bold text-white">
@@ -771,10 +731,41 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
                   : "Vé hợp lệ · Hãy đối chiếu thông tin"}
               </h3>
               <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                {ticket.orderCode}
+                {ticket.ticketCode || ticket.orderCode}
               </span>
             </div>
 
+            {ticket.posterUrl && (
+              <img
+                className="admission-poster"
+                src={ticket.posterUrl}
+                alt={ticket.movie}
+                onError={(event) => {
+                  if (
+                    event.currentTarget.getAttribute("src") !==
+                    "/images/cinema-auditorium.jpg"
+                  )
+                    event.currentTarget.src = "/images/cinema-auditorium.jpg";
+                }}
+              />
+            )}
+            <p>
+              Khách hàng: {ticket.customerName || "Chưa có tên"} · Điện thoại:{" "}
+              {ticket.customerPhone || "Chưa cung cấp"}
+            </p>
+            {ticket.bookedAt && (
+              <p>
+                Ngày đặt:{" "}
+                {new Date(ticket.bookedAt).toLocaleString("vi-VN", {
+                  timeZone: "Asia/Ho_Chi_Minh",
+                })}
+              </p>
+            )}
+            <p>
+              Thanh toán: {ticket.paymentStatus || "PAID"} · Mã vé:{" "}
+              <strong>{ticket.ticketCode || ticket.orderCode}</strong>
+            </p>
+            {!result && <p>Chưa xác nhận vào rạp</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm bg-slate-900/60 p-3 rounded-lg border border-slate-700/60 my-2">
               <div>
                 <p className="text-slate-400 text-xs">Phim</p>
@@ -821,6 +812,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
                 </span>
                 <button
                   className="button button-primary px-6 py-2.5 font-bold shadow-lg shadow-rose-900/30"
+                  aria-label="Xác nhận soát vé"
                   disabled={busy}
                   onClick={admit}
                 >
@@ -841,7 +833,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           <span>Đã sử dụng → Chặn vào lại</span>
         </div>
         <p>
-          Hệ thống nhận diện mã QR quét từ Camera điện thoại hoặc mã đơn hàng in
+          Hệ thống nhận diện mã QR quét từ Camera điện thoại hoặc mã vé riêng in
           trên vé.
         </p>
       </div>

@@ -29,6 +29,8 @@ import { uniqueRecords } from "@/uniqueRecords.js";
 import { apiGetMyBookings, apiGetMyTickets } from "@/api/client.js";
 import { useCatalog } from "@/catalog.js";
 import { money } from "@/data.js";
+import TicketQrZoom from "./TicketQrZoom.jsx";
+import { indexTickets, filterTickets } from "@/ticketFilters.js";
 import TicketConfirmation from "./TicketConfirmation.jsx";
 import ETicketQr from "./ETicketQr.jsx";
 import { ticketPng } from "@/ticketQr.js";
@@ -36,6 +38,29 @@ import { CalendarDays, Download, Ticket, RefreshCw } from "lucide-react";
 export default function LichSuVeKhachHang({ member, onResume }) {
   const { contextFor, movies } = useCatalog();
   const [filter, setFilter] = useState("all");
+  const [keyword, setKeyword] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [dateBasis, setDateBasis] = useState("viewing");
+  const [sort, setSort] = useState("newest");
+  const [zoomTicket, setZoomTicket] = useState(null);
+  const [copyNotice, setCopyNotice] = useState("");
+  function resetFilters() {
+    setKeyword("");
+    setFrom("");
+    setTo("");
+    setFilter("all");
+    setDateBasis("viewing");
+    setSort("newest");
+  }
+  async function copyCode(value) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyNotice("Đã sao chép mã vé.");
+    } catch {
+      setCopyNotice("Bạn có thể chọn và sao chép mã vé hiển thị trên thẻ.");
+    }
+  }
   const memberId = member?.id;
   const generation = useRef(0);
   const inFlight = useRef(null);
@@ -52,6 +77,38 @@ export default function LichSuVeKhachHang({ member, onResume }) {
     [loading, setLoading] = useState(true);
   const tickets = useMemo(() => uniqueRecords(ticketRows), [ticketRows]);
   const orders = useMemo(() => uniqueRecords(orderRows), [orderRows]);
+  const indexedTickets = useMemo(() => indexTickets(tickets), [tickets]);
+  const visibleTickets = useMemo(
+    () =>
+      filterTickets(indexedTickets, {
+        keyword,
+        from,
+        to,
+        dateBasis,
+        sort,
+        status: filter,
+      }),
+    [indexedTickets, keyword, from, to, dateBasis, sort, filter],
+  );
+  const visibleOrderIds = useMemo(() => {
+    const indexed = indexTickets(
+      orders.map((order) => {
+        const context = contextFor(order.showtimeId);
+        return {
+          ...order,
+          bookedAt: order.createdAt,
+          movie: context?.movie.title,
+          cinema: context?.cinema.name,
+          startTime: context?.time.startTime,
+        };
+      }),
+    );
+    return new Set(
+      filterTickets(indexed, { keyword, from, to, dateBasis, sort }).map(
+        (order) => order.id,
+      ),
+    );
+  }, [orders, contextFor, keyword, from, to, dateBasis, sort]);
   const load = useCallback(() => {
     if (!memberId) return;
     if (inFlight.current) return inFlight.current;
@@ -88,6 +145,7 @@ export default function LichSuVeKhachHang({ member, onResume }) {
       if (!active) return;
       setTickets([]);
       setOrders([]);
+      setZoomTicket(null);
       setError("");
       didScrollToQr.current = false;
       return load();
@@ -120,12 +178,78 @@ export default function LichSuVeKhachHang({ member, onResume }) {
   if (!member) return <p>Vui lòng đăng nhập để tra cứu vé của bạn.</p>;
   return (
     <div className="history-list" ref={wallet}>
+      <section className="ticket-search-bar" aria-label="Tìm kiếm vé của tôi">
+        <label>
+          Tìm vé
+          <input
+            type="search"
+            aria-label="Tìm theo mã vé, phim hoặc rạp"
+            placeholder="Mã vé, tên phim, rạp hoặc ngày…"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+        </label>
+        <label>
+          Lọc theo
+          <select
+            aria-label="Loại ngày tìm vé"
+            value={dateBasis}
+            onChange={(e) => setDateBasis(e.target.value)}
+          >
+            <option value="viewing">Ngày xem phim</option>
+            <option value="booked">Ngày đặt vé</option>
+          </select>
+        </label>
+        <label>
+          Từ ngày
+          <input
+            type="date"
+            aria-label="Vé từ ngày"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+        </label>
+        <label>
+          Đến ngày
+          <input
+            type="date"
+            aria-label="Vé đến ngày"
+            value={to}
+            min={from || undefined}
+            onChange={(e) => setTo(e.target.value)}
+          />
+        </label>
+        <label>
+          Sắp xếp
+          <select
+            aria-label="Sắp xếp vé"
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+          >
+            <option value="newest">Đặt mới nhất</option>
+            <option value="showtime">Ngày chiếu gần nhất</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          className="button button-glass"
+          onClick={resetFilters}
+        >
+          Xóa bộ lọc
+        </button>
+      </section>
+      {from && to && from > to && (
+        <p role="alert">Ngày kết thúc phải từ ngày bắt đầu trở đi.</p>
+      )}
+      {copyNotice && <p role="status">{copyNotice}</p>}
       <div className="history-tabs" role="group" aria-label="Lọc lịch sử vé">
         {[
           ["all", "Tất cả vé"],
           ["holding", "Đang giữ ghế"],
           ["unused", "Chưa soát vé"],
           ["used", "Đã sử dụng"],
+          ["past", "Đã qua suất chiếu"],
+          ["cancelled", "Đã hủy / Hết hạn"],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -143,6 +267,7 @@ export default function LichSuVeKhachHang({ member, onResume }) {
       {loading && <p role="status">Đang tải vé…</p>}
       {error && <p role="alert">{error}</p>}
       {orders
+        .filter((order) => visibleOrderIds.has(order.id))
         .filter(
           (o) =>
             ["all", "holding"].includes(filter) &&
@@ -171,6 +296,7 @@ export default function LichSuVeKhachHang({ member, onResume }) {
           </article>
         ))}
       {orders
+        .filter((order) => visibleOrderIds.has(order.id))
         .filter(
           (o) =>
             o.status === "PAID" && !tickets.some((t) => t.bookingId === o.id),
@@ -181,101 +307,156 @@ export default function LichSuVeKhachHang({ member, onResume }) {
             <ETicketQr loading />
           </div>
         ))}
-      {tickets
-        .filter(
-          (ticket) =>
-            filter === "all" ||
-            (filter === "used"
-              ? ticket.isCheckedIn
-              : filter === "unused"
-                ? !ticket.isCheckedIn
-                : false),
-        )
-        .map((ticket, index) => (
-          <article
-            className="cinema-ticket"
-            key={`${ticket.id}-${index}`}
-            data-booking-id={ticket.bookingId}
-          >
-            <img
-              className="ticket-movie-poster"
-              src={
-                movies.find((movie) => movie.title === ticket.movie)
-                  ?.localPoster || "/images/cinema-auditorium.jpg"
-              }
-              alt={ticket.movie}
-            />
-            <div className="ticket-story">
-              <p className="nova-kicker">
-                <Ticket size={13} />
-                NOVA CINEMA · ADMIT ONE BOOKING
-              </p>
-              <h3>{ticket.movie}</h3>
+      {visibleTickets.map((ticket, index) => (
+        <article
+          className="cinema-ticket"
+          key={`${ticket.id}-${index}`}
+          data-booking-id={ticket.bookingId}
+        >
+          <img
+            className="ticket-movie-poster"
+            src={
+              ticket.posterUrl ||
+              movies.find((movie) => movie.title === ticket.movie)
+                ?.localPoster ||
+              "/images/cinema-auditorium.jpg"
+            }
+            alt={ticket.movie}
+            onError={(event) => {
+              if (
+                event.currentTarget.getAttribute("src") !==
+                "/images/cinema-auditorium.jpg"
+              )
+                event.currentTarget.src = "/images/cinema-auditorium.jpg";
+            }}
+          />
+          <div className="ticket-story">
+            <p className="nova-kicker">
+              <Ticket size={13} />
+              NOVA CINEMA ·{" "}
+              {ticket.legacyGroup ? "VÉ NHÓM CŨ" : "MỘT GHẾ · MỘT LƯỢT VÀO"}
+            </p>
+            <h3>{ticket.movie}</h3>
+            <p>
+              {ticket.cinema} · {ticket.room}
+            </p>
+            <p>
+              {new Date(ticket.startTime).toLocaleString("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+              })}
+            </p>
+            <p>
+              Ghế:{" "}
+              {ticket.seats
+                .map(
+                  (s) =>
+                    `${s.label} (${s.type === "VIP" ? "VIP" : s.type === "SWEETBOX" ? "Sweetbox" : "Thường"})`,
+                )
+                .join(", ")}
+            </p>
+            <small
+              className={`ticket-state ${ticket.isCheckedIn ? "used" : ""}`}
+            >
+              {ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}
+            </small>
+            {ticket.bookedAt && (
               <p>
-                {ticket.cinema} · {ticket.room}
-              </p>
-              <p>
-                {new Date(ticket.startTime).toLocaleString("vi-VN", {
+                Ngày đặt vé:{" "}
+                {new Date(ticket.bookedAt).toLocaleString("vi-VN", {
                   timeZone: "Asia/Ho_Chi_Minh",
                 })}
               </p>
-              <p>
-                Ghế: {ticket.seats.map((s) => s.label).join(", ")} ·{" "}
-                {money(ticket.amount)}
-              </p>
-              <small
-                className={`ticket-state ${ticket.isCheckedIn ? "used" : ""}`}
-              >
-                {ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}
-              </small>
-              <p className="ticket-order-code">Mã đơn: {ticket.orderCode}</p>
-            </div>
-            <div
-              className="ticket-stub"
-              ref={index === 0 ? firstQr : undefined}
+            )}
+            <p>
+              Giờ kết thúc:{" "}
+              {new Date(ticket.endTime).toLocaleTimeString("vi-VN", {
+                timeZone: "Asia/Ho_Chi_Minh",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+            <p>
+              {(ticket.combos || [])
+                .map((c) => `${c.name} × ${c.quantity}`)
+                .join(" · ") || "Không kèm combo"}
+            </p>
+            <p>
+              Tổng thanh toán đơn ({ticket.ticketCount || ticket.seats.length}{" "}
+              ghế): {money(ticket.amount)}
+            </p>
+            <p className="ticket-order-code">Mã đơn: {ticket.orderCode}</p>
+            {ticket.ticketCode && (
+              <div className="ticket-code-line">
+                <strong className="ticket-readable-code">
+                  Mã vé: {ticket.ticketCode}
+                </strong>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => copyCode(ticket.ticketCode)}
+                >
+                  Sao chép mã vé
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="ticket-stub" ref={index === 0 ? firstQr : undefined}>
+            <button
+              type="button"
+              className="ticket-zoom-trigger"
+              onClick={() => setZoomTicket(ticket)}
+              aria-label={`Phóng to QR ghế ${ticket.seats.map((seat) => seat.label).join(", ")}`}
             >
               <ETicketQr ticket={ticket} />
-              <p>
-                {ticketPng(ticket) && (
-                  <a
-                    className="text-button"
-                    href={ticketPng(ticket)}
-                    download={`${ticket.orderCode}.png`}
-                  >
-                    <Download size={12} />
-                    Tải QR
-                  </a>
-                )}{" "}
-                ·{" "}
+              <span>Phóng to QR</span>
+            </button>
+            <p>
+              {ticketPng(ticket) && (
                 <a
                   className="text-button"
-                  href={`/api/v1/tickets/${ticket.id}/calendar`}
+                  href={ticketPng(ticket)}
+                  download={`${ticket.ticketCode || ticket.orderCode}.png`}
                 >
-                  <CalendarDays size={12} />
-                  Thêm lịch .ics
+                  <Download size={12} />
+                  Tải QR
                 </a>
-              </p>
-            </div>
-            <TicketConfirmation ticketId={ticket.id} />
-          </article>
-        ))}
-      {filter === "all" &&
-        orders.some((order) =>
-          ["CANCELLED", "EXPIRED"].includes(order.status),
+              )}{" "}
+              ·{" "}
+              <a
+                className="text-button"
+                href={`/api/v1/tickets/${ticket.id}/calendar`}
+              >
+                <CalendarDays size={12} />
+                Thêm lịch .ics
+              </a>
+            </p>
+          </div>
+          <TicketConfirmation ticketId={ticket.id} />
+        </article>
+      ))}
+      {["all", "cancelled"].includes(filter) &&
+        orders.some(
+          (order) =>
+            visibleOrderIds.has(order.id) &&
+            ["CANCELLED", "EXPIRED"].includes(order.status),
         ) && (
           <details className="history-archive">
             <summary>
               Đơn đã hủy / hết hạn (
               {
-                orders.filter((order) =>
-                  ["CANCELLED", "EXPIRED"].includes(order.status),
+                orders.filter(
+                  (order) =>
+                    visibleOrderIds.has(order.id) &&
+                    ["CANCELLED", "EXPIRED"].includes(order.status),
                 ).length
               }
               )
             </summary>
             {orders
-              .filter((order) =>
-                ["CANCELLED", "EXPIRED"].includes(order.status),
+              .filter(
+                (order) =>
+                  visibleOrderIds.has(order.id) &&
+                  ["CANCELLED", "EXPIRED"].includes(order.status),
               )
               .map((order) => (
                 <article key={order.id}>
@@ -290,6 +471,24 @@ export default function LichSuVeKhachHang({ member, onResume }) {
               ))}
           </details>
         )}
+      {!loading &&
+        !error &&
+        !visibleTickets.length &&
+        !["holding", "cancelled"].includes(filter) && (
+          <div role="status">
+            <p>Không tìm thấy vé phù hợp</p>
+            <button
+              type="button"
+              className="text-button"
+              onClick={resetFilters}
+            >
+              Xóa bộ lọc tìm vé
+            </button>
+          </div>
+        )}
+      {zoomTicket && (
+        <TicketQrZoom ticket={zoomTicket} onClose={() => setZoomTicket(null)} />
+      )}
       {!loading && !error && !orders.length && <p>Bạn chưa có đơn đặt vé.</p>}
     </div>
   );

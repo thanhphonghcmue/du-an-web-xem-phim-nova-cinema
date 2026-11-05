@@ -314,3 +314,169 @@
 [aria-invalid="true"] {
   border-color: #fb7185;
 }
+
+.ticket-search-bar {
+  display: grid;
+  grid-template-columns: minmax(190px, 2fr) repeat(4, minmax(120px, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 20px;
+  background: #131728;
+  border: 1px solid #2b3552;
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+.ticket-search-bar label {
+  display: grid;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 14px;
+  min-width: 0;
+}
+.ticket-search-bar input,
+.ticket-search-bar select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  background: #0b1020;
+  color: #fff;
+  border: 1px solid #475569;
+  border-radius: 8px;
+}
+.ticket-readable-code {
+  display: block;
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: #7dd3fc;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.ticket-code-line {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ticket-zoom-trigger {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  padding: 0;
+  max-width: 100%;
+  cursor: zoom-in;
+}
+.ticket-zoom-trigger span {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.ticket-qr-zoom {
+  width: min(520px, calc(100% - 24px));
+  max-height: 90dvh;
+  overflow: auto;
+  text-align: center;
+  background: #131728;
+  color: #f8fafc;
+  border: 2px solid #38bdf8;
+  border-radius: 20px;
+  padding: 28px;
+}
+.ticket-qr-zoom::backdrop {
+  background: #030712dd;
+  backdrop-filter: blur(6px);
+}
+.ticket-qr-zoom svg.ticket-qr-svg {
+  width: min(320px, 100%);
+  height: auto;
+  background: #fff;
+  margin: 20px auto;
+}
+.public-ticket-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #080a14;
+}
+.public-ticket-card {
+  max-width: 560px;
+  width: 100%;
+  padding: 32px;
+  background: #131728;
+  border: 1px solid #2b3552;
+  border-radius: 20px;
+  text-align: center;
+}
+.public-ticket-card p {
+  color: #cbd5e1;
+  line-height: 1.7;
+}
+@media (max-width: 1100px) {
+  .ticket-search-bar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .ticket-search-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 14px;
+  }
+  .ticket-search-bar label:first-child {
+    grid-column: 1/-1;
+  }
+  .ticket-readable-code {
+    font-size: 19px;
+  }
+  .public-ticket-card,
+  .ticket-qr-zoom {
+    padding: 20px;
+  }
+}
+
+.admission-poster {
+  width: 72px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+/* Popup thanh toán phải vừa card trên điện thoại, kể cả timer và nút đang chọn. */
+.payment-review-hold {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.payment-review-hold .hold-timer {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  white-space: normal;
+}
+.payment-review-methods .payment-provider-tabs button {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  box-sizing: border-box;
+}
+.payment-review-methods .payment-provider-tabs button span {
+  min-width: 0;
+  white-space: normal;
+  word-break: normal;
+}
+.payment-review-methods .payment-provider-tabs button small {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  margin-left: 0;
+  white-space: normal;
+}
+.payment-review-selected {
+  grid-column: 3;
+  grid-row: 1;
+}
+.payment-review-submit {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: normal;
+}

@@ -62,7 +62,9 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
         try {
           sessionStorage.removeItem("nova_catalogue_snapshot");
           sessionStorage.removeItem("nova:programme:raw");
-        } catch {}
+        } catch {
+          /* Cache phiên có thể bị chặn; API vẫn là nguồn dữ liệu. */
+        }
       }
       if (
         typeof window !== "undefined" &&
@@ -217,7 +219,9 @@ export function readProgramme() {
           return Promise.resolve(parsed.data);
         }
       }
-    } catch {}
+    } catch {
+      /* Cache phiên có thể bị chặn; API vẫn là nguồn dữ liệu. */
+    }
   }
   const key = "programme:transport";
   if (reads.has(key)) return reads.get(key);
@@ -236,8 +240,13 @@ export function readProgramme() {
         programmeCache = { data, until: Date.now() + 120000 };
         if (typeof window !== "undefined") {
           try {
-            sessionStorage.setItem("nova:programme:raw", JSON.stringify(programmeCache));
-          } catch {}
+            sessionStorage.setItem(
+              "nova:programme:raw",
+              JSON.stringify(programmeCache),
+            );
+          } catch {
+            /* Cache phiên có thể bị chặn; API vẫn là nguồn dữ liệu. */
+          }
         }
       }
       return data;
@@ -379,7 +388,7 @@ export const apiGiuGhe5Phut = apiHoldSeats;
 export const apiGetMyBookings = () => apiList("/bookings/me");
 export const apiLayDanhSachDonDatVe = apiGetMyBookings;
 
-export const apiGetMyTickets = () => apiList("/tickets/me");
+export const apiGetMyTickets = (params) => apiList("/tickets/me", params);
 export const apiLayDanhSachVeDienTu = apiGetMyTickets;
 
 export const apiGetBooking = (id) => read(`/bookings/${id}`);

@@ -308,7 +308,7 @@ test("duplicate catalogue/seat records keep UUID payloads and an expired real ho
     page.getByText("Trạng thái đơn trước: EXPIRED", { exact: true }),
   ).toBeVisible({ timeout: 10000 });
   await expect(
-    page.getByRole("button", { name: "Thanh toán Sandbox", exact: true }),
+    page.getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true }),
   ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Ghế A1, còn trống", exact: true }),

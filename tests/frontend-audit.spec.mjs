@@ -340,14 +340,17 @@ test("mobile seats stay at least 32px at 70% zoom and sticky summary updates com
     await expect(dock.getByTestId("hold-timer")).toBeVisible();
     await expect(dock).toContainText("Tổng thanh toán");
     await expect(
-      dock.getByRole("button", { name: "Thanh toán Sandbox", exact: true }),
+      dock.getByRole("button", {
+        name: "Xem lại đơn & thanh toán",
+        exact: true,
+      }),
     ).toBeEnabled();
     await page.setViewportSize({ width: 320, height: 740 });
     await expect
       .poll(() => dialog.evaluate((n) => n.scrollWidth <= n.clientWidth + 1))
       .toBe(true);
     const button = await dock
-        .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+        .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
         .boundingBox(),
       card = await dock.boundingBox();
     expect(button.x).toBeGreaterThanOrEqual(card.x - 1);

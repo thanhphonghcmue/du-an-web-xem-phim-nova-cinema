@@ -22,7 +22,7 @@ import { calendarLabel } from "@/bookingDates.js";
 import { youtubeTrailerId } from "@/moviePresentation.js";
 import Link from "next/link";
 
-export const initialMovies = artwork.map((art) => ({
+const initialMovies = artwork.map((art) => ({
   ...art,
   artId: art.id,
   id: art.id,
@@ -39,7 +39,7 @@ export const initialMovies = artwork.map((art) => ({
   year: art.year || 2024,
 }));
 
-export const initialCinemas = [
+const initialCinemas = [
   {
     id: "8581297e-1055-468e-ab50-8d6b58f09817",
     key: "landmark",
@@ -78,7 +78,7 @@ export const initialCinemas = [
   },
 ];
 
-export const fallbackCatalog = {
+const fallbackCatalog = {
   movies: initialMovies,
   cinemas: initialCinemas,
   rooms: [],
@@ -87,7 +87,7 @@ export const fallbackCatalog = {
   isLive: false,
 };
 
-export function processCatalogSnapshot(rawSnapshot) {
+function processCatalogSnapshot(rawSnapshot) {
   if (!rawSnapshot) return null;
   const {
     movies: films,
@@ -181,7 +181,9 @@ function getInitialCatalog() {
         const processed = processCatalogSnapshot(parsed);
         if (processed) return processed;
       }
-    } catch {}
+    } catch {
+      /* Cache chỉ hỗ trợ hiển thị; tiếp tục đồng bộ từ API. */
+    }
   }
   return fallbackCatalog;
 }
@@ -208,10 +210,14 @@ export default function CatalogProvider({ children }) {
               "nova_catalogue_snapshot",
               JSON.stringify(rawSnapshot),
             );
-          } catch {}
+          } catch {
+            /* Cache chỉ hỗ trợ hiển thị; tiếp tục đồng bộ từ API. */
+          }
         }
       } catch (cause) {
-        setData((current) => (current?.movies?.length ? current : fallbackCatalog));
+        setData((current) =>
+          current?.movies?.length ? current : fallbackCatalog,
+        );
         setError(cause.message || "Đặt vé đang tạm gián đoạn.");
       }
     })().finally(() => {
@@ -227,7 +233,9 @@ export default function CatalogProvider({ children }) {
       try {
         sessionStorage.removeItem("nova_catalogue_snapshot");
         sessionStorage.removeItem("nova:programme:raw");
-      } catch {}
+      } catch {
+        /* Cache chỉ hỗ trợ hiển thị; tiếp tục đồng bộ từ API. */
+      }
     }
     const pending = inFlight.current;
     if (pending) await pending;

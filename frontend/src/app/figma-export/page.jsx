@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import {
   Film,
@@ -31,7 +31,6 @@ import {
 } from "lucide-react";
 
 export default function FigmaExportAllScreens() {
-  const [activeScreen, setActiveScreen] = useState("all");
 
   const movies = [
     {
@@ -369,7 +368,7 @@ export default function FigmaExportAllScreens() {
           </div>
           {/* Seats Grid */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-            {rows.map((r, rIdx) => (
+            {rows.map((r) => (
               <div key={r} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <span style={{ width: "20px", fontSize: "12px", color: "#64748b", fontWeight: 700 }}>{r}</span>
                 {cols.map(c => {

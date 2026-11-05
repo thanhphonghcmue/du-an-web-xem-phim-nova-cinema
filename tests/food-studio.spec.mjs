@@ -268,7 +268,14 @@ test("new combos keep their UUIDs and real totals through hold, Sandbox and QR i
   });
   if (await age.count()) await age.check();
   await page
-    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", {
+      name: "Xác nhận đơn hàng & thanh toán",
+      exact: true,
+    })
+    .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })

@@ -117,16 +117,12 @@ function SeatConflictModal({ conflictInfo, onClose }) {
           Xung đột giữ ghế (Lỗi 409 Conflict)
         </h3>
         <p id="conflict-dialog-desc" className="seat-conflict-message">
-          Ghế <strong>{seatNames}</strong> vừa được một khách hàng khác giữ chỗ nhanh hơn trong tích tắc. Sơ đồ ghế đã tự động cập nhật trạng thái mới nhất.
-          <span className="seat-conflict-sub">
-            Vui lòng chọn ghế khác!
-          </span>
+          Ghế <strong>{seatNames}</strong> vừa được một khách hàng khác giữ chỗ
+          nhanh hơn trong tích tắc. Sơ đồ ghế đã tự động cập nhật trạng thái mới
+          nhất.
+          <span className="seat-conflict-sub">Vui lòng chọn ghế khác!</span>
         </p>
-        <button
-          type="button"
-          className="seat-conflict-btn"
-          onClick={onClose}
-        >
+        <button type="button" className="seat-conflict-btn" onClick={onClose}>
           Đã hiểu · Chọn ghế khác
         </button>
       </div>
@@ -280,17 +276,26 @@ function LiveBookingConsole({
   onViewTickets,
   onMemberUpdate,
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { combos } = useCatalog();
   const showtimeId = booking.showtimeId || booking.time.id;
   const [snapshot, setSnapshot] = useState(null);
-  const [selected, setSelected] = useState([]);
+  const [selected, saveSelected] = useState([]);
+  const [order, saveOrder] = useState(null);
+  // Các phản hồi bất đồng bộ đọc lựa chọn/đơn mới nhất, không dùng closure cũ.
+  const selectionRef = useRef([]);
+  const orderRef = useRef(null);
+  const setSelected = useCallback((value) => {
+    const next =
+      typeof value === "function" ? value(selectionRef.current) : value;
+    selectionRef.current = next;
+    saveSelected(next);
+  }, []);
+  const setOrder = useCallback((value) => {
+    orderRef.current = value;
+    saveOrder(value);
+  }, []);
   const [conflictInfo, setConflictInfo] = useState(null);
-  const selectedRef = useRef(selected);
-  useEffect(() => {
-    selectedRef.current = selected;
-  }, [selected]);
-  const [order, setOrder] = useState(null);
   const [busy, setBusy] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [live, setLive] = useState(false);
@@ -327,6 +332,17 @@ function LiveBookingConsole({
   const snapshotVersion = useRef(0);
   const orderRevision = useRef(0);
   const changingOrder = useRef(false);
+  const noticeElement = useRef(null);
+  const revealConflict = useRef(false);
+
+  useEffect(() => {
+    if (!notice || !revealConflict.current) return;
+    revealConflict.current = false;
+    noticeElement.current?.scrollIntoView({
+      block: "nearest",
+      behavior: "instant",
+    });
+  }, [notice]);
 
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [showAgeModal, setShowAgeModal] = useState(false);
@@ -338,31 +354,43 @@ function LiveBookingConsole({
     if (!mounted.current || version !== snapshotVersion.current) return;
     if (!Array.isArray(map?.seats) || typeof map.canBook !== "boolean")
       throw new Error("Chưa nhận được sơ đồ ghế hợp lệ. Hãy thử lại.");
-
-    // Kiểm tra xung đột giữ ghế khi cập nhật sơ đồ thời gian thực (SSE / Polling / Resync):
-    if (!activeOrderId.current && selectedRef.current.length > 0) {
-      const taken = map.seats.filter(
-        (s) =>
-          selectedRef.current.includes(s.seatId) && s.status !== "AVAILABLE",
+    const currentSeats = uniqueRecords(map.seats, "seatId");
+    // Lựa chọn UI chưa khóa ghế. Đồng bộ ngay trong phản hồi server, cùng một render.
+    const ownsHold = ["PENDING", "HOLDING", "PAID"].includes(
+      orderRef.current?.status,
+    );
+    if (!changingOrder.current && !ownsHold && selectionRef.current.length) {
+      const available = new Set(
+        currentSeats
+          .filter((s) => s.status === "AVAILABLE")
+          .map((s) => s.seatId),
       );
-      if (taken.length > 0) {
-        const takenNames = taken.map((s) => `${s.row}${s.column}`).join(", ");
-        const takenIds = new Set(taken.map((s) => s.seatId));
+      const blocked = new Set(
+        selectionRef.current.filter((id) => !available.has(id)),
+      );
+      if (blocked.size) {
+        const labels = currentSeats
+          .filter((s) => blocked.has(s.seatId))
+          .map((s) => `${s.row}${s.column}`)
+          .join(", ");
+        setSelected((current) => current.filter((id) => !blocked.has(id)));
         setConflictInfo({
-          seatNames: takenNames,
-          seatIds: Array.from(takenIds),
+          seatNames: labels || "đã chọn",
+          seatIds: [...blocked],
         });
-        setSelected((curr) => curr.filter((id) => !takenIds.has(id)));
+        requestKey.current = null;
+        revealConflict.current = true;
         setNotice(
-          `Ghế ${takenNames} vừa được người khác chọn. Vui lòng chọn ghế khác!`,
+          language === "en"
+            ? `Seats ${labels || "you selected"} are no longer available; they have been held or sold. Your selection has been updated. Please choose other seats.`
+            : `Ghế ${labels || "đã chọn"} vừa được giữ hoặc bán, không còn trống. Đã bỏ các ghế này khỏi lựa chọn; vui lòng chọn vị trí khác.`,
         );
       }
     }
-
     setSnapshot(map);
     setInitialized(true);
     setOffset(new Date(map.asOf).getTime() - Date.now());
-  }, [showtimeId]);
+  }, [showtimeId, language, setSelected]);
 
   useEffect(() => {
     mounted.current = true;
@@ -394,6 +422,8 @@ function LiveBookingConsole({
             activeOrderId.current = undefined;
             requestKey.current = null;
             setSelected([]);
+            setShowPaymentReview(false);
+            if (current.status === "EXPIRED") setShowExpiredNotice(true);
           } else
             setSelected(
               current.seats
@@ -418,7 +448,7 @@ function LiveBookingConsole({
       clearInterval(poll);
       window.removeEventListener("focus", update);
     };
-  }, [showtimeId, booking.orderId, refresh]);
+  }, [showtimeId, booking.orderId, refresh, setOrder, setSelected]);
 
   useEffect(() => {
     if (!initialized || getBackendKind() === "memory") return;
@@ -492,7 +522,7 @@ function LiveBookingConsole({
     return () => {
       active = false;
     };
-  }, [holding, expired, order?.id, refresh]);
+  }, [holding, expired, order?.id, refresh, setOrder, setSelected]);
 
   function applyCoupon() {
     const code = couponInput.trim().toUpperCase();
@@ -622,6 +652,7 @@ function LiveBookingConsole({
         if (mounted.current) setNotice(err.message);
       });
     } catch (err) {
+      if (err.code === "SEAT_UNAVAILABLE") revealConflict.current = true;
       setNotice(err.message);
       if (err.code === "SEAT_UNAVAILABLE") {
         const blockedIds = Array.isArray(err.details?.seatIds)
@@ -814,7 +845,7 @@ function LiveBookingConsole({
       )}
 
       {notice && (
-        <p role="alert" className="auth-notice">
+        <p ref={noticeElement} role="alert" className="auth-notice">
           {notice}
         </p>
       )}
@@ -838,7 +869,11 @@ function LiveBookingConsole({
             Mã QR vé điện tử của bạn. Mở ví vé để xem chi tiết và sử dụng vé tại
             rạp.
           </p>
-          <BookingTicket key={order.id} orderId={order.id} />
+          <BookingTicket
+            key={order.id}
+            orderId={order.id}
+            expectedSeats={order.seats?.length || 1}
+          />
           <button
             className="button button-primary payment-success-action"
             disabled={busy}
@@ -962,7 +997,9 @@ function LiveBookingConsole({
                         .filter((s) => s.row === row)
                         .sort((a, b) => a.column - b.column)
                         .map((seat, index) => {
-                          const chosen = selected.includes(seat.seatId);
+                          const chosen =
+                            selected.includes(seat.seatId) &&
+                            (Boolean(holding) || seat.status === "AVAILABLE");
                           const state = chosen
                             ? "selected"
                             : seat.status === "SOLD"
@@ -1232,7 +1269,7 @@ function LiveBookingConsole({
                 {selected.length} ghế ·{" "}
                 {holding ? "Tổng thanh toán" : "Tạm tính trước ưu đãi"}
               </small>
-              <strong>
+              <strong data-testid={holding ? "server-total" : undefined}>
                 {money(holding ? order.finalAmount : previewTotal)}
               </strong>
             </div>
@@ -1287,57 +1324,143 @@ function LiveBookingConsole({
           className="payment-review-modal"
           title="Xác nhận đơn hàng & thanh toán"
           onClose={() => setShowPaymentReview(false)}
-          image={booking.movie.localBackdrop || booking.movie.backdrop || "/images/cinema-imax.jpg"}
+          image={
+            booking.movie.localBackdrop ||
+            booking.movie.backdrop ||
+            "/images/cinema-imax.jpg"
+          }
         >
           <div className="payment-review-grid">
-            <section className="payment-review-summary" aria-labelledby="payment-review-title">
+            <section
+              className="payment-review-summary"
+              aria-labelledby="payment-review-title"
+            >
               <h3 id="payment-review-title">🧾 Tóm tắt đơn hàng</h3>
               <div className="payment-review-order">
-                <small className="payment-review-kicker">{booking.movie.title}</small>
+                <small className="payment-review-kicker">
+                  {booking.movie.title}
+                </small>
                 <h4>{booking.cinema.name}</h4>
-                <p>{booking.time.label} · {booking.date.label}</p>
+                <p>
+                  {booking.time.label} · {booking.date.label}
+                </p>
                 <dl>
                   <div>
                     <dt>Ghế</dt>
                     <dd>
                       {(order.seats || [])
-                        .map((seat) => `${seat.row}${seat.column}`)
-                        .join(", ") || selected.join(", ")}
+                        .map((line) => {
+                          const seat = seats.find(
+                            (item) => item.seatId === line.seatId,
+                          );
+                          return seat
+                            ? `${seat.row}${seat.column}`
+                            : "Đang cập nhật ghế";
+                        })
+                        .join(", ")}
                     </dd>
                   </div>
-                  <div><dt>Tiền vé</dt><dd>{money(order.totalTicketAmount)}</dd></div>
-                  {order.totalComboAmount > 0 && Object.values(comboItems).every((quantity) => quantity === 0) && (
-                    <div><dt>Combo</dt><dd>{money(order.totalComboAmount)}</dd></div>
-                  )}
-                  {Object.entries(comboItems).filter(([, quantity]) => quantity > 0).map(([id, quantity]) => {
-                    const combo = combos.find((item) => String(item.id) === String(id));
-                    return combo ? <div className="payment-review-combo" key={id}><dt>{quantity} × {combo.name}</dt><dd>{money(Number(combo.price) * quantity)}</dd></div> : null;
+                  <div>
+                    <dt>Tiền vé</dt>
+                    <dd>{money(order.totalTicketAmount)}</dd>
+                  </div>
+                  {(order.combos || []).map((line) => {
+                    const combo = combos.find(
+                      (item) => item.id === line.comboId,
+                    );
+                    return (
+                      <div className="payment-review-combo" key={line.comboId}>
+                        <dt>
+                          {line.quantity} × {combo?.name || "Combo"}
+                        </dt>
+                        <dd>{money(Number(line.unitPrice) * line.quantity)}</dd>
+                      </div>
+                    );
                   })}
                   {(order.couponCode || appliedCoupon?.code) && (
-                    <div className="payment-review-discount"><dt>Voucher {order.couponCode || appliedCoupon.code}</dt><dd>Đã áp dụng</dd></div>
+                    <div className="payment-review-discount">
+                      <dt>Voucher {order.couponCode || appliedCoupon.code}</dt>
+                      <dd>Đã áp dụng</dd>
+                    </div>
                   )}
-                  <div className="payment-review-discount"><dt>Ưu đãi {order.membershipTier || "thành viên"}</dt><dd>−{money(order.discountAmount)}</dd></div>
+                  <div className="payment-review-discount">
+                    <dt>Ưu đãi {order.membershipTier || "thành viên"}</dt>
+                    <dd>−{money(order.discountAmount)}</dd>
+                  </div>
                 </dl>
-                <p className="payment-review-total"><b>TỔNG THANH TOÁN</b><strong data-testid="server-total">{money(order.finalAmount)}</strong></p>
+                <p className="payment-review-total">
+                  <b>TỔNG THANH TOÁN</b>
+                  <strong data-testid="review-server-total">
+                    {money(order.finalAmount)}
+                  </strong>
+                </p>
               </div>
-              <div className="payment-review-hold"><ShieldCheck size={16} /> <span>Ghế đang được giữ:</span><HoldCountdown expiresAt={order.expiredAt} offset={offset} onExpire={notifyExpiry} /></div>
+              <div className="payment-review-hold">
+                <ShieldCheck size={16} /> <span>Ghế đang được giữ:</span>
+                <HoldCountdown
+                  expiresAt={order.expiredAt}
+                  offset={offset}
+                  onExpire={notifyExpiry}
+                />
+              </div>
             </section>
-            <section className="payment-review-methods" aria-labelledby="payment-method-title">
+            <section
+              className="payment-review-methods"
+              aria-labelledby="payment-method-title"
+            >
               <h3 id="payment-method-title">Chọn phương thức thanh toán</h3>
-              <div className="payment-provider-tabs" role="group" aria-label="Chọn cổng thanh toán mô phỏng">
+              <div
+                className="payment-provider-tabs"
+                role="group"
+                aria-label="Chọn cổng thanh toán mô phỏng"
+              >
                 {paymentGateways.map((method) => (
-                  <button key={method.id} type="button" aria-pressed={gateway === method.id} disabled={busy} onClick={() => setGateway(method.id)}>
-                    <span>{method.id === "sandbox" ? "Cổng Sandbox" : method.title}</span><small>{method.id === "sandbox" ? "Mô phỏng tức thì" : method.detail}</small>
-                    {gateway === method.id && <b className="payment-review-selected">Đã chọn</b>}
+                  <button
+                    key={method.id}
+                    type="button"
+                    aria-pressed={gateway === method.id}
+                    disabled={busy}
+                    onClick={() => setGateway(method.id)}
+                  >
+                    <span>
+                      {method.id === "sandbox" ? "Cổng Sandbox" : method.title}
+                    </span>
+                    <small>
+                      {method.id === "sandbox"
+                        ? "Mô phỏng tức thì"
+                        : method.detail}
+                    </small>
+                    {gateway === method.id && (
+                      <b className="payment-review-selected">Đã chọn</b>
+                    )}
                   </button>
                 ))}
               </div>
-              <p className="payment-review-note">{paymentGateways.find((method) => method.id === gateway)?.title} · Thanh toán mô phỏng, không kết nối ngân hàng hoặc ví thật.</p>
-              <button className="button button-primary payment-review-submit" disabled={busy || expired} onClick={() => { setShowPaymentReview(false); void checkout(); }}>
-                {busy ? "Đang chuyển…" : `Thanh toán ngay: ${money(order.finalAmount)} →`}
+              <p className="payment-review-note">
+                {paymentGateways.find((method) => method.id === gateway)?.title}{" "}
+                · Thanh toán mô phỏng, không kết nối ngân hàng hoặc ví thật.
+              </p>
+              <button
+                className="button button-primary payment-review-submit"
+                disabled={busy || expired}
+                onClick={() => {
+                  setShowPaymentReview(false);
+                  void checkout();
+                }}
+              >
+                {busy
+                  ? "Đang chuyển…"
+                  : `Thanh toán ngay: ${money(order.finalAmount)} →`}
               </button>
-              <p className="payment-review-secure">Giao dịch được mã hóa và xử lý an toàn.</p>
-              <button className="text-button payment-review-back" onClick={() => setShowPaymentReview(false)}>Quay lại chọn combo, ưu đãi</button>
+              <p className="payment-review-secure">
+                Giao dịch được mã hóa và xử lý an toàn.
+              </p>
+              <button
+                className="text-button payment-review-back"
+                onClick={() => setShowPaymentReview(false)}
+              >
+                Quay lại chọn combo, ưu đãi
+              </button>
             </section>
           </div>
         </Modal>

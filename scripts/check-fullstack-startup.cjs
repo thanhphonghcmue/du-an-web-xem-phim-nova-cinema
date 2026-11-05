@@ -16,7 +16,7 @@ const { spawn } = require("node:child_process");
 const { once } = require("node:events");
 const { createServer } = require("node:net");
 const { chromium, expect } = require("@playwright/test");
-const { randomBytes } = require("node:crypto");
+const { randomBytes, randomUUID } = require("node:crypto");
 const root = resolve(__dirname, "..");
 let child, browser, directory;
 async function freePort() {
@@ -143,7 +143,17 @@ async function main() {
     sessionStorage.setItem("nova-welcome-seen", "1"),
   );
   await page.goto(`${origin}/bap-nuoc`);
-  await expect(page.locator(".food-product")).toHaveCount(24);
+  try {
+    // Cold Next dev compilation/hydration also occurs in this isolated copy.
+    await expect(page.locator(".food-product")).toHaveCount(24, {
+      timeout: 15000,
+    });
+  } catch (cause) {
+    const alerts = await page.getByRole("alert").allTextContents();
+    throw new Error(
+      `Fallback catalogue UI: ${errors[0] || alerts.join(" · ") || cause.message}`,
+    );
+  }
   await page
     .locator(".food-product")
     .getByRole("button", { name: "Thêm Green Movie Combo", exact: true })
@@ -214,6 +224,79 @@ async function main() {
       console.error("Fallback browser errors:", errors);
       throw error;
     });
+  // Ghế được chọn trên UI chưa phải là ghế đã giữ: khách khác vẫn có thể giữ trước.
+  const candidate = dialog.getByRole("button", {
+    name: "Ghế A1, còn trống",
+    exact: true,
+  });
+  await candidate.click();
+  const other = await browser.newContext();
+  let competitorOrder;
+  try {
+    const rivalEmail = `ram-rival-${randomBytes(6).toString("hex")}@example.test`;
+    expect(
+      (
+        await other.request.post(`${origin}/api/v1/auth/register`, {
+          data: {
+            email: rivalEmail,
+            password,
+            fullName: "RAM seat competitor",
+          },
+        })
+      ).status(),
+    ).toBe(201);
+    expect(
+      (
+        await other.request.post(`${origin}/api/v1/auth/login`, {
+          data: { email: rivalEmail, password },
+        })
+      ).status(),
+    ).toBe(200);
+    const map = (
+      await (
+        await page.request.get(`${origin}/api/v1/showtimes/${show.id}/seats`)
+      ).json()
+    ).data;
+    const seatId = map.seats.find(
+      (s) => s.row === "A" && s.column === 1,
+    ).seatId;
+    const held = await other.request.post(`${origin}/api/v1/bookings/hold`, {
+      headers: { "Idempotency-Key": randomUUID() },
+      data: { showtimeId: show.id, seatIds: [seatId], comboItems: [] },
+    });
+    expect(held.status()).toBe(201);
+    competitorOrder = (await held.json()).data.id;
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    const blocked = dialog.getByRole("button", {
+      name: "Ghế A1, đang giữ",
+      exact: true,
+    });
+    await expect(blocked).toBeDisabled();
+    await expect(blocked).toHaveAttribute("aria-pressed", "false");
+    await expect(dialog.locator(".seat.selected")).toHaveCount(0);
+    const conflict = dialog
+      .getByRole("alert")
+      .filter({ hasText: /A1.*giữ hoặc bán/ });
+    await expect(conflict).toBeVisible();
+    await expect(conflict).toBeInViewport();
+    await page
+      .getByRole("button", { name: "Đã hiểu · Chọn ghế khác", exact: true })
+      .click();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+  } finally {
+    if (competitorOrder) {
+      expect(
+        (
+          await other.request.post(
+            `${origin}/api/v1/bookings/${competitorOrder}/cancel`,
+          )
+        ).status(),
+      ).toBe(200);
+    }
+    await other.close();
+  }
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(candidate).toBeEnabled();
   await dialog
     .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
     .click();
@@ -221,12 +304,22 @@ async function main() {
     .getByRole("button", { name: "Giữ ghế 5 phút", exact: true })
     .click();
   await expect(page.getByTestId("hold-timer")).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Ghế A1, đang chọn", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   const age = dialog.getByRole("checkbox", {
     name: "Tôi xác nhận bản thân và người đi cùng đã đủ tuổi",
   });
   if (await age.count()) await age.check();
   await dialog
-    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", {
+      name: "Xác nhận đơn hàng & thanh toán",
+      exact: true,
+    })
+    .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })

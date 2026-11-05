@@ -9,6 +9,22 @@ const ticket = {
   orderCode: "NOVA-" + "a".repeat(32),
   ticketHash: "b".repeat(64),
 };
+test("new seat QR uses the server URL only when its fragment matches the issued token", () => {
+  const url = `https://nova.example/ve#${ticket.ticketHash}`;
+  assert.equal(
+    ticketQrData({ ...ticket, qrPayload: url, ticketCode: "ABCD2345" }).value,
+    url,
+  );
+  for (const qrPayload of [
+    `javascript:alert(1)`,
+    `https://nova.example/ve#${"c".repeat(64)}`,
+    `https://nova.example/other#${ticket.ticketHash}`,
+  ])
+    assert.equal(
+      ticketQrData({ ...ticket, qrPayload }).value,
+      ticket.ticketHash,
+    );
+});
 test("a real-format ticket renders the server admission hash, never the order code", () => {
   assert.equal(ticketQrData(ticket).value, ticket.ticketHash);
   assert.notEqual(ticketQrData(ticket).value, ticket.orderCode);

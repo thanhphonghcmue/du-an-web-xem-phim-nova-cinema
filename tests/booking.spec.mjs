@@ -97,9 +97,10 @@ async function seats(page) {
 }
 async function hold(page, label = "A1") {
   await seats(page);
-  await page
-    .getByRole("button", { name: new RegExp(`Ghế ${label}, còn trống`) })
-    .click();
+  for (const seat of Array.isArray(label) ? label : [label])
+    await page
+      .getByRole("button", { name: new RegExp(`Ghế ${seat}, còn trống`) })
+      .click();
   const response = page.waitForResponse(
     (r) =>
       r.url().endsWith("/bookings/hold") && r.request().method() === "POST",
@@ -290,16 +291,20 @@ test("allows booking a seat even when it leaves one empty seat", async ({
   await expect(
     page.getByRole("button", { name: "Giữ ghế 5 phút", exact: true }),
   ).toBeEnabled();
-  const map = (await read(page, `/showtimes/${fixture().showtime.id}/seats`))
-    .body.data;
-  const held = await command(page, "/bookings/hold", {
-    showtimeId: fixture().showtime.id,
-    seatIds: [
-      map.seats.find((seat) => seat.row === "A" && seat.column === 2).seatId,
-    ],
-  });
-  expect(held.status).toBe(201);
-  expect(held.body.data.seats).toHaveLength(1);
+  const held = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/bookings/hold") &&
+      response.request().method() === "POST",
+  );
+  await page
+    .getByRole("button", { name: "Giữ ghế 5 phút", exact: true })
+    .click();
+  const responseHeld = await held;
+  expect(responseHeld.status()).toBe(201);
+  expect((await responseHeld.json()).data.seats).toHaveLength(1);
+  await page
+    .getByRole("button", { name: "Hủy đơn & trả ghế", exact: true })
+    .click();
   await page
     .getByRole("combobox", { name: "Loại ghế gợi ý", exact: true })
     .selectOption("VIP");
@@ -379,6 +384,69 @@ test("two independent sessions race for one seat with exactly one persisted winn
     );
     await cancelAll(p2);
   } finally {
+    await other.close();
+  }
+});
+
+test("a selected seat claimed by another customer becomes held and announces the conflict before checkout", async ({
+  browser,
+  page,
+}) => {
+  await login(page);
+  await seats(page);
+  const f = fixture();
+  const origin = new URL(page.url()).origin;
+  const map = (await read(page, `/showtimes/${f.showtime.id}/seats`)).body.data;
+  const seatId = map.seats.find((s) => s.row === "A" && s.column === 1).seatId;
+  const dialog = page.getByRole("dialog", { name: "Chọn ghế & đặt vé" });
+  await dialog
+    .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
+    .click();
+  await expect(dialog.locator(".seat.selected")).toHaveCount(1);
+  const other = await browser.newContext();
+  let orderId;
+  try {
+    const email = `${f.prefix}-selected-${randomUUID().slice(0, 8)}@example.test`;
+    expect(
+      (
+        await other.request.post(`${origin}/api/v1/auth/register`, {
+          data: {
+            email,
+            password: password(),
+            fullName: "Selected seat competitor",
+          },
+        })
+      ).status(),
+    ).toBe(201);
+    expect(
+      (
+        await other.request.post(`${origin}/api/v1/auth/login`, {
+          data: { email, password: password() },
+        })
+      ).status(),
+    ).toBe(200);
+    const held = await other.request.post(`${origin}/api/v1/bookings/hold`, {
+      headers: { "Idempotency-Key": randomUUID() },
+      data: { showtimeId: f.showtime.id, seatIds: [seatId], comboItems: [] },
+    });
+    expect(held.status()).toBe(201);
+    orderId = (await held.json()).data.id;
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    const blocked = dialog.getByRole("button", {
+      name: "Ghế A1, đang giữ",
+      exact: true,
+    });
+    await expect(blocked).toBeDisabled();
+    await expect(blocked).toHaveAttribute("aria-pressed", "false");
+    await expect(dialog.locator(".seat.selected")).toHaveCount(0);
+    const conflict = dialog
+      .getByRole("alert")
+      .filter({ hasText: /A1.*giữ hoặc bán/ });
+    await expect(conflict).toBeVisible();
+    await expect(conflict).toBeInViewport();
+  } finally {
+    if (orderId)
+      await other.request.post(`${origin}/api/v1/bookings/${orderId}/cancel`);
     await other.close();
   }
 });
@@ -483,7 +551,14 @@ for (const [button, state] of [
       })
       .check();
     await page
-      .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+      .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+      .click();
+    await page
+      .getByRole("dialog", {
+        name: "Xác nhận đơn hàng & thanh toán",
+        exact: true,
+      })
+      .getByRole("button", { name: /^Thanh toán ngay:/ })
       .click();
     await expect(
       page.getByRole("heading", { name: "Thanh toán mô phỏng" }),
@@ -498,12 +573,12 @@ for (const [button, state] of [
     await expect(restored).toContainText(state);
   });
 
-test("Sandbox success issues one real QR, ICS and atomic staff check-in", async ({
+test("Sandbox success issues one QR per seat, searchable wallet, public lookup, ICS and independent staff check-in", async ({
   page,
   browser,
 }) => {
   await login(page);
-  const order = await hold(page, "B1");
+  const order = await hold(page, ["B1", "B2"]);
   // A second active order must not replace the just-paid result when points refresh.
   const map = (await read(page, `/showtimes/${fixture().showtime.id}/seats`))
     .body.data;
@@ -523,7 +598,14 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
     })
     .check();
   await page
-    .getByRole("button", { name: "Thanh toán Sandbox", exact: true })
+    .getByRole("button", { name: "Xem lại đơn & thanh toán", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", {
+      name: "Xác nhận đơn hàng & thanh toán",
+      exact: true,
+    })
+    .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
@@ -541,24 +623,24 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
     new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
   );
   await expect(page.locator(".account-page")).toBeVisible();
-  await expect(
-    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
-  ).toBeInViewport({ ratio: 1 });
+  const cards = page
+    .locator(".cinema-ticket")
+    .filter({ hasText: order.orderCode });
+  await expect(cards).toHaveCount(2);
+  await expect(cards.first().locator(".ticket-qr-svg")).toBeVisible();
+  await expect(cards.first().locator(".ticket-qr-svg")).toBeInViewport({
+    ratio: 1,
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
-  await expect(
-    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
-  ).toBeInViewport({ ratio: 1 });
+  await expect(cards.first().locator(".ticket-qr-svg")).toBeInViewport({
+    ratio: 1,
+  });
   await page.setViewportSize({ width: 1440, height: 1000 });
   // A failure of the separate order list must not hide a successfully loaded ticket.
   await page.route("**/api/v1/bookings/me?*", (route) => route.abort());
   await page.reload();
-  await expect(
-    page.getByRole("img", { name: `QR vé ${order.orderCode}`, exact: true }),
-  ).toBeVisible();
+  await expect(cards.first().locator(".ticket-qr-svg")).toBeVisible();
   await expect(page.locator(".history-list [role=alert]")).toContainText(
     "Kết nối bị gián đoạn",
   );
@@ -568,7 +650,10 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
   const tickets = (
     await read(page, "/tickets/me?limit=100")
   ).body.data.items.filter((t) => t.bookingId === order.id);
-  expect(tickets).toHaveLength(1);
+  expect(tickets).toHaveLength(2);
+  expect(new Set(tickets.map((t) => t.ticketHash)).size).toBe(2);
+  expect(new Set(tickets.map((t) => t.ticketCode)).size).toBe(2);
+  expect(tickets.map((t) => t.seats.length)).toEqual([1, 1]);
   const ticket = tickets[0];
   const png = req("pngjs").PNG.sync.read(
     Buffer.from(ticket.qrCodeBase64.split(",")[1], "base64"),
@@ -578,7 +663,40 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
     png.width,
     png.height,
   );
-  expect(decoded?.data === ticket.ticketHash).toBe(true);
+  expect(decoded?.data === ticket.qrPayload).toBe(true);
+  expect(new URL(decoded.data).hash === `#${ticket.ticketHash}`).toBe(true);
+  const search = page.getByRole("searchbox", {
+    name: "Tìm theo mã vé, phim hoặc rạp",
+  });
+  await search.fill(ticket.ticketCode.toLowerCase());
+  await expect(cards).toHaveCount(1);
+  await cards.getByRole("button", { name: /Phóng to QR ghế/ }).click();
+  const zoom = page.getByRole("dialog", { name: /Mã QR ghế/ });
+  await expect(zoom.locator(".ticket-qr-svg")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(zoom).toHaveCount(0);
+  await expect(search).toBeVisible();
+  await search.fill("khong-co-ve-nay");
+  await expect(
+    page.getByText("Không tìm thấy vé phù hợp", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Xóa bộ lọc", exact: true }).click();
+  await expect(cards).toHaveCount(2);
+  await page.getByLabel("Loại ngày tìm vé").selectOption("viewing");
+  const day = new Date(ticket.startTime).toLocaleDateString("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+  await page.getByLabel("Vé từ ngày", { exact: true }).fill(day);
+  await page.getByLabel("Vé đến ngày", { exact: true }).fill(day);
+  await expect(cards).toHaveCount(2);
+  for (const width of [375, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ),
+    ).toBe(true);
+  }
   const calendar = await page.request.get(
     `/api/v1/tickets/${ticket.id}/calendar`,
   );
@@ -587,7 +705,7 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
   expect(await calendar.text()).toContain("TRIGGER:-PT30M");
   const ticketCard = page
     .locator(".cinema-ticket")
-    .filter({ hasText: order.orderCode });
+    .filter({ hasText: ticket.ticketCode });
   await ticketCard
     .getByRole("button", { name: "Xem email xác nhận", exact: true })
     .click();
@@ -614,9 +732,24 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
   const other = await browser.newContext();
   const staff = await other.newPage();
   try {
+    await staff.goto(`/ve#${ticket.ticketHash}`);
+    await expect(
+      staff.getByText("Vé chưa sử dụng", { exact: true }),
+    ).toBeVisible();
+    await expect(staff.locator(".public-ticket-card")).toContainText(
+      ticket.seats[0].label,
+    );
+    expect(await staff.getByRole("button", { name: /Xác nhận/ }).count()).toBe(
+      0,
+    );
+    expect(
+      (await read(page, `/tickets/${ticket.id}`)).body.data.isCheckedIn,
+    ).toBe(false);
     await login(staff, "staff");
     await staff.getByRole("button", { name: "Soát vé", exact: true }).click();
-    await staff.getByLabel("Mã đọc từ QR").fill(ticket.ticketHash);
+    await staff
+      .getByLabel("Mã đọc từ QR")
+      .fill(ticket.ticketCode.toLowerCase());
     const wrongScreening = fixture().programmeShowtimes[0];
     await staff.getByLabel("Ngày đang soát", { exact: true }).fill(
       new Date(wrongScreening.startTime).toLocaleDateString("en-CA", {
@@ -664,11 +797,31 @@ test("Sandbox success issues one real QR, ICS and atomic staff check-in", async 
       .getByRole("button", { name: "Kiểm tra vé", exact: true })
       .click();
     await expect(staff.locator(".admission-result.invalid")).toContainText(
-      "Vé đã sử dụng",
+      "Vé đã được sử dụng",
     );
     await expect(staff.locator(".admission-result.invalid")).toContainText(
       "Đã soát lúc",
     );
+    const second = tickets[1];
+    expect(
+      (await read(page, `/tickets/${second.id}`)).body.data.isCheckedIn,
+    ).toBe(false);
+    await staff.getByLabel("Mã đọc từ QR").fill(`NV-${second.ticketCode}`);
+    await staff
+      .getByRole("button", { name: "Kiểm tra vé", exact: true })
+      .click();
+    await expect(staff.locator(".admission-result.valid")).toContainText(
+      second.seats[0].label,
+    );
+    await staff
+      .getByRole("button", { name: "Xác nhận soát vé", exact: true })
+      .click();
+    await expect(
+      staff.getByRole("heading", { name: /Soát vé thành công/ }),
+    ).toBeVisible();
+    expect(
+      (await read(page, `/tickets/${second.id}`)).body.data.isCheckedIn,
+    ).toBe(true);
     await staff.getByLabel("Mã đọc từ QR").fill("0".repeat(64));
     await staff
       .getByRole("button", { name: "Kiểm tra vé", exact: true })
@@ -714,17 +867,25 @@ test("staff date lookup includes started shows, camera fallback is clear and mob
   expect(
     defaultList.some((show) => show.id === data.admissionShowtime.id),
   ).toBe(false);
+  await page.evaluate(() => {
+    delete window.BarcodeDetector;
+    Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+      configurable: true,
+      value: async () => {
+        throw new DOMException(
+          "Owned camera permission fixture",
+          "NotAllowedError",
+        );
+      },
+    });
+  });
   await page
     .getByRole("button", { name: "Quét Camera QR", exact: true })
     .click();
-  await page.evaluate(() => {
-    delete window.BarcodeDetector;
-  });
-  await page.getByRole("button", { name: "Bật camera", exact: true }).click();
   await expect(page.locator(".scanner-error-message")).toContainText(
-    "chưa hỗ trợ",
+    "từ chối quyền Camera",
   );
-  await page.getByRole("button", { name: "Nhập mã", exact: true }).click();
+  await page.getByRole("button", { name: "Nhập mã vé", exact: true }).click();
   await page.getByLabel("Mã đọc từ QR").fill("0".repeat(64));
   await page.getByRole("button", { name: "Kiểm tra vé", exact: true }).click();
   await expect(page.locator(".admission-result.invalid")).toContainText(
@@ -795,12 +956,15 @@ test("mobile layout, modal keyboard, language and backend failure are usable", a
       }),
     }),
   );
+  await page.evaluate(() => {
+    sessionStorage.removeItem("nova_catalogue_snapshot");
+    sessionStorage.removeItem("nova:programme:raw");
+  });
   await page.reload();
   await expect(
     page.locator(".catalog-connection-notice [role=alert]"),
   ).toContainText("Backend unavailable");
-  // Failed backend reads cannot manufacture bookable catalogue records.
-  await expect(page.locator(".discovery-film")).toHaveCount(0);
+  // Artwork can remain visible; an outage cannot invent bookable screening IDs.
   await expect(page.locator(".timeline-show")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Retry connection" }),

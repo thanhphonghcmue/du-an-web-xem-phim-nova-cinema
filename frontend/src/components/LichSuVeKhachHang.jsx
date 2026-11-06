@@ -34,7 +34,13 @@ import { indexTickets, filterTickets } from "@/ticketFilters.js";
 import TicketConfirmation from "./TicketConfirmation.jsx";
 import ETicketQr from "./ETicketQr.jsx";
 import { ticketPng } from "@/ticketQr.js";
-import { CalendarDays, Download, Ticket, RefreshCw } from "lucide-react";
+import {
+  CalendarDays,
+  Download,
+  Ticket,
+  RefreshCw,
+  CheckCircle2,
+} from "lucide-react";
 export default function LichSuVeKhachHang({ member, onResume }) {
   const { contextFor, movies } = useCatalog();
   const [filter, setFilter] = useState("all");
@@ -309,10 +315,28 @@ export default function LichSuVeKhachHang({ member, onResume }) {
         ))}
       {visibleTickets.map((ticket, index) => (
         <article
-          className="cinema-ticket"
+          className="cinema-ticket cinema-ticket-paid"
           key={`${ticket.id}-${index}`}
           data-booking-id={ticket.bookingId}
         >
+          <header className="paid-ticket-header">
+            <div className="paid-ticket-reference">
+              <span className="paid-ticket-status">
+                <CheckCircle2 size={13} />
+                {ticket.isCheckedIn ? "VÉ ĐÃ SỬ DỤNG" : "VÉ HỢP LỆ (PAID)"}
+              </span>
+              <span className="paid-ticket-order">
+                Mã vé: {ticket.ticketCode || ticket.orderCode}
+              </span>
+            </div>
+            <a
+              className="paid-ticket-calendar"
+              href={`/api/v1/tickets/${ticket.id}/calendar`}
+            >
+              <CalendarDays size={14} />
+              Tải lịch nhắc (.ics)
+            </a>
+          </header>
           <img
             className="ticket-movie-poster"
             src={

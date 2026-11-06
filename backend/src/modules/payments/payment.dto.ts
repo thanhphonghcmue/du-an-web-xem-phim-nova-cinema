@@ -85,6 +85,7 @@ export class PaymentWebhookDto {
   signature!: string;
 }
 export class SandboxUrlDto {
+  @ApiProperty() testControls!: boolean;
   @ApiProperty({ format: "uuid" }) bookingId!: string;
   @ApiProperty() transactionCode!: string;
   @ApiProperty() amount!: string;

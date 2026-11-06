@@ -61,6 +61,14 @@ export class PaymentsService {
       const current = await this.seats.requireRecord(booking.id, tx);
       const now = await this.bookings.now(tx);
       const showtime = await this.bookings.showtime(booking.showtimeId, tx);
+      if (
+        showtime &&
+        (showtime.status !== "ACTIVE" || showtime.movie.status === "ENDED")
+      ) {
+        if (this.isHolding(current))
+          await this.seats.releaseLocked(current, "CANCELLED", tx);
+        return { rejection: "SHOWTIME_UNAVAILABLE" } as const;
+      }
       if (!this.isHolding(current) || !showtime || showtime.startTime <= now)
         return { rejection: "BOOKING_NOT_PAYABLE" } as const;
       const existing = await this.payments.forBooking(booking.id, tx);
@@ -136,6 +144,7 @@ export class PaymentsService {
           currency: "VND" as const,
           expiredAt: current.expiredAt,
           url: url.href,
+          testControls: this.testControls(),
         },
       };
     });
@@ -200,6 +209,65 @@ export class PaymentsService {
       ...callback,
       signature: this.signatures.webhook(callback),
     });
+  }
+
+  private testControls() {
+    return (
+      process.env.NODE_ENV === "test" ||
+      (process.env.NODE_ENV === "development" &&
+        process.env.NOVA_TEST_CONTROLS === "true")
+    );
+  }
+  async testExpire(dto: SignedCheckoutDto) {
+    if (!this.testControls())
+      throw new ApiException(404, "NOT_FOUND", "Không tìm thấy chức năng.");
+    await this.checkout(dto);
+    return this.database.transaction(async (tx) => {
+      const order = await this.lockForPayment(dto.bookingId, tx);
+      if (!this.isHolding(order))
+        throw new ApiException(
+          409,
+          "BOOKING_NOT_PAYABLE",
+          "Đơn không còn giữ chỗ.",
+        );
+      await this.bookings.testDeadline(
+        order.id,
+        await this.bookings.now(tx),
+        tx,
+      );
+      await this.seats.expireLocked(order.id, tx);
+      return { expired: true };
+    });
+  }
+
+  async confirm(dto: CompleteSandboxDto) {
+    try {
+      return await this.simulate(dto);
+    } catch (cause) {
+      if (!(cause instanceof ApiException)) throw cause;
+      const state = await this.checkout(dto);
+      const unavailable = await this.database.transaction(async (tx) => {
+        const order = await this.bookings.find(dto.bookingId, tx);
+        const show =
+          order && (await this.bookings.showtime(order.showtimeId, tx));
+        return (
+          show && (show.status !== "ACTIVE" || show.movie.status === "ENDED")
+        );
+      });
+      if (unavailable)
+        throw new ApiException(
+          409,
+          "SHOWTIME_UNAVAILABLE",
+          "Rất tiếc, suất chiếu này đã bị hủy hoặc thay đổi. Vui lòng chọn suất khác",
+        );
+      if (state.bookingStatus === "EXPIRED")
+        throw new ApiException(
+          409,
+          "ORDER_EXPIRED_TIMEOUT",
+          "Đơn đã hết hạn, không còn thanh toán được",
+        );
+      throw cause;
+    }
   }
 
   private async finish(
@@ -309,7 +377,13 @@ export class PaymentsService {
       timestamp: dto.timestamp,
     };
     if (dto.status === "SUCCESS") {
-      if (!this.isHolding(current) || !showtime || showtime.startTime <= now) {
+      if (
+        !this.isHolding(current) ||
+        !showtime ||
+        showtime.status !== "ACTIVE" ||
+        showtime.movie.status === "ENDED" ||
+        showtime.startTime <= now
+      ) {
         if (this.isHolding(current))
           current = await this.seats.releaseLocked(current, "CANCELLED", tx);
         if (

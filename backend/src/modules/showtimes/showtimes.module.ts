@@ -1,3 +1,4 @@
+import { BookingsModule } from "../bookings/bookings.module";
 import { Module } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { ProgrammeSnapshotService } from "./programme-snapshot.service";
@@ -9,7 +10,7 @@ import { ShowtimesRepository } from "./showtimes.repository";
 import { ShowtimesService } from "./showtimes.service";
 
 @Module({
-  imports: [MoviesModule, RoomsModule],
+  imports: [MoviesModule, RoomsModule, BookingsModule],
   controllers: [ShowtimesController],
   providers: [
     ShowtimesService,

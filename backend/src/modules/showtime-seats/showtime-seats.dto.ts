@@ -60,6 +60,7 @@ export class ShowtimeSeatMapDto {
       "Time eligibility only; also inspect available capacity. Actual reservation requires authenticated hold.",
   })
   canBook!: boolean;
+  @ApiProperty() showtimeStatus!: string;
   @ApiProperty({ type: SeatCapacityDto }) capacity!: SeatCapacityDto;
   @ApiProperty({ type: [ShowtimeSeatDto] }) seats!: ShowtimeSeatDto[];
 }

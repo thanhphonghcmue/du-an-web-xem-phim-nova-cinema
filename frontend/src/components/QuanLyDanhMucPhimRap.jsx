@@ -371,6 +371,9 @@ export default function QuanLyDanhMucPhimRap() {
                         COMING_SOON: "Sắp chiếu",
                         NOW_SHOWING: "Đang chiếu",
                         ENDED: "Ngừng chiếu",
+                        ACTIVE: "Đang mở",
+                        LOCKED: "Đã khóa",
+                        CANCELED: "Đã hủy",
                         STANDARD_2D: "2D",
                         IMAX_70MM_LASER: "IMAX Laser",
                         DOLBY_ATMOS: "Dolby Atmos",
@@ -383,6 +386,36 @@ export default function QuanLyDanhMucPhimRap() {
                       >
                         Sửa
                       </button>
+                      {kind === "showtimes" && (
+                        <button
+                          className="text-button"
+                          disabled={busy}
+                          onClick={async () => {
+                            setBusy(true);
+                            try {
+                              await readCommand(
+                                `/showtimes/${item.id}/status`,
+                                {
+                                  status:
+                                    item.status === "LOCKED"
+                                      ? "ACTIVE"
+                                      : "LOCKED",
+                                },
+                                {},
+                                "PATCH",
+                              );
+                              setRevision((value) => value + 1);
+                              await catalog.reload();
+                            } catch (error) {
+                              setMessage(error.message);
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                        >
+                          {item.status === "LOCKED" ? "Mở suất" : "Khóa suất"}
+                        </button>
+                      )}
                       {kind !== "combos" && (
                         <button
                           className="text-button"

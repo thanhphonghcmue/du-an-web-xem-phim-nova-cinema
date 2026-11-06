@@ -112,6 +112,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
       success: false,
       statusCode,
       error,
+      ...(["SHOWTIME_UNAVAILABLE", "ORDER_EXPIRED_TIMEOUT"].includes(error)
+        ? { errorCode: error }
+        : {}),
       message,
       timestamp: new Date().toISOString(),
       path: request.path,

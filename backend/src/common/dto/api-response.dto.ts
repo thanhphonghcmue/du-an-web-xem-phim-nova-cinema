@@ -5,6 +5,7 @@ export class SuccessResponseDto {
   @ApiProperty({ example: "Request completed successfully." }) message!: string;
 }
 export class ErrorResponseDto {
+  @ApiPropertyOptional() errorCode?: string;
   @ApiProperty({ example: false }) success!: boolean;
   @ApiProperty({ example: 400 }) statusCode!: number;
   @ApiProperty({ example: "VALIDATION_ERROR" }) error!: string;

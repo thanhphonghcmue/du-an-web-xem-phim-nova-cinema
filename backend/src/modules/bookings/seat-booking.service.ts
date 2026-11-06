@@ -76,6 +76,12 @@ export class SeatBookingService {
               "SHOWTIME_NOT_FOUND",
               "Showtime was not found.",
             );
+          if (showtime.status !== "ACTIVE")
+            throw new ApiException(
+              409,
+              "SHOWTIME_UNAVAILABLE",
+              "Rất tiếc, suất chiếu này đã bị hủy hoặc thay đổi. Vui lòng chọn suất khác",
+            );
           if (showtime.movie.status === "ENDED")
             throw new ApiException(
               409,

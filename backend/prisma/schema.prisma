@@ -169,6 +169,7 @@ model Seat {
 }
 
 model Showtime {
+  status String @default("ACTIVE")
   id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   movieId         String        @map("movie_id") @db.Uuid
   roomId          String        @map("room_id") @db.Uuid

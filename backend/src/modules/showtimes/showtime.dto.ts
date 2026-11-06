@@ -8,6 +8,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   ArrayUnique,
+  IsIn,
   IsArray,
   IsDateString,
   IsInt,
@@ -88,6 +89,7 @@ export class ListShowtimesDto extends PaginationDto {
 }
 
 export class ShowtimeDto {
+  @ApiProperty({ enum: ["ACTIVE", "LOCKED", "CANCELED"] }) status!: string;
   @ApiProperty({ format: "uuid" }) id!: string;
   @ApiProperty({ format: "uuid" }) movieId!: string;
   @ApiProperty({ format: "uuid" }) roomId!: string;
@@ -143,4 +145,10 @@ export class ShowtimeCapacityDto {
   @ApiProperty() holding!: number;
   @ApiProperty() sold!: number;
   @ApiProperty({ format: "date-time" }) asOf!: Date;
+}
+
+export class ShowtimeStatusDto {
+  @ApiProperty({ enum: ["ACTIVE", "LOCKED", "CANCELED"] })
+  @IsIn(["ACTIVE", "LOCKED", "CANCELED"])
+  status!: string;
 }

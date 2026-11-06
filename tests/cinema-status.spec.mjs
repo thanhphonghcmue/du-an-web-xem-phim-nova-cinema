@@ -211,7 +211,7 @@ test("failed completion request unlocks actions and never invents PAID or a QR t
   await start(page);
   const order = await hold(page, "A3");
   const card = await gateway(page);
-  await page.route("**/api/v1/payments/sandbox/complete", (route) =>
+  await page.route("**/api/v1/payments/sandbox/confirm", (route) =>
     route.abort(),
   );
   await card
@@ -225,7 +225,7 @@ test("failed completion request unlocks actions and never invents PAID or a QR t
     (await read(page, `/bookings/${order.id}`)).status,
   );
   await expect(page.locator(".booking-issued-ticket")).toHaveCount(0);
-  await page.unroute("**/api/v1/payments/sandbox/complete");
+  await page.unroute("**/api/v1/payments/sandbox/confirm");
   await card
     .getByRole("button", { name: "Hủy giao dịch", exact: true })
     .click();
@@ -344,4 +344,155 @@ test("a real API 409 opens the red conflict modal, removes only the blocked seat
     if (held) await other.request.post(`/api/v1/bookings/${held.id}/cancel`);
     await other.close();
   }
+});
+
+test("TC_FR07_05: Admin locks a booked show, releases only unpaid holds and client sees a neon unavailable dialog", async ({
+  page,
+  browser,
+}) => {
+  const show = await start(page);
+  const order = await hold(page, "A7");
+  const checkoutResponse = await page.request.post(
+    "/api/v1/payments/create-sandbox-url",
+    {
+      data: {
+        bookingId: order.id,
+        returnUrl: new URL(page.url()).origin + "/?booking=" + order.id,
+      },
+    },
+  );
+  expect(checkoutResponse.status()).toBe(201);
+  const signed = Object.fromEntries(
+    new URL((await checkoutResponse.json()).data.url).searchParams,
+  );
+  const mapBefore = await read(page, `/showtimes/${show.id}/seats`);
+  const paidHold = await page.request.post("/api/v1/bookings/hold", {
+    data: {
+      showtimeId: show.id,
+      seatIds: [
+        mapBefore.seats.find((s) => s.row === "A" && s.column === 9).seatId,
+      ],
+    },
+  });
+  expect(paidHold.status()).toBe(201);
+  const paidOrder = (await paidHold.json()).data;
+  const paidUrl = await page.request.post(
+    "/api/v1/payments/create-sandbox-url",
+    {
+      data: {
+        bookingId: paidOrder.id,
+        returnUrl: new URL(page.url()).origin + "/?booking=" + paidOrder.id,
+      },
+    },
+  );
+  expect(paidUrl.status()).toBe(201);
+  const paidFields = Object.fromEntries(
+    new URL((await paidUrl.json()).data.url).searchParams,
+  );
+  expect(
+    (
+      await page.request.post("/api/v1/payments/sandbox/confirm", {
+        data: { ...paidFields, result: "SUCCESS" },
+      })
+    ).status(),
+  ).toBe(200);
+  const admin = await browser.newContext({
+    baseURL: new URL(page.url()).origin,
+  });
+  try {
+    const data = fixture();
+    expect(
+      (
+        await admin.request.post("/api/v1/auth/login", {
+          data: { email: data.accounts.admin.email, password: data.password },
+        })
+      ).status(),
+    ).toBe(200);
+    expect(
+      (
+        await page.request.patch(`/api/v1/showtimes/${show.id}/status`, {
+          data: { status: "LOCKED" },
+        })
+      ).status(),
+    ).toBe(403);
+    const changed = await admin.request.patch(
+      `/api/v1/showtimes/${show.id}/status`,
+      { data: { status: "LOCKED" } },
+    );
+    expect(changed.status()).toBe(200);
+    expect((await read(page, `/bookings/${order.id}`)).status).toBe(
+      "CANCELLED",
+    );
+    const preserved = await read(page, `/bookings/${paidOrder.id}`);
+    expect(preserved.status).toBe("PAID");
+    expect(preserved.seats.every((s) => s.status === "SOLD")).toBe(true);
+    const refused = await page.request.post("/api/v1/bookings/hold", {
+      data: { showtimeId: show.id, seatIds: [order.seats[0].seatId] },
+    });
+    expect(refused.status()).toBe(409);
+    expect((await refused.json()).errorCode).toBe("SHOWTIME_UNAVAILABLE");
+    const forbiddenPayment = await page.request.post(
+      "/api/v1/payments/sandbox/confirm",
+      { data: { ...signed, result: "SUCCESS" } },
+    );
+    expect(forbiddenPayment.status()).toBe(409);
+    expect((await forbiddenPayment.json()).error).toBe("SHOWTIME_UNAVAILABLE");
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    const notice = page.getByRole("dialog", {
+      name: "Thông báo thay đổi suất chiếu",
+      exact: true,
+    });
+    await expect(notice).toContainText(
+      "Rất tiếc, suất chiếu này đã bị hủy hoặc thay đổi. Vui lòng chọn suất khác",
+      { timeout: 12000 },
+    );
+    await notice.getByRole("button", { name: "Chọn suất chiếu khác" }).click();
+    await expect(notice).toHaveCount(0);
+  } finally {
+    await admin.request.patch(`/api/v1/showtimes/${show.id}/status`, {
+      data: { status: "ACTIVE" },
+    });
+    await admin.close();
+  }
+});
+
+test("TC_FR08_04: signed test expiry returns JSON409, no PAID/QR, keeps CSS and frees physical seats", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  const show = await start(page);
+  const order = await hold(page, "A8");
+  const card = await gateway(page);
+  const response = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/payments/sandbox/confirm") &&
+      r.request().method() === "POST",
+  );
+  await card.getByRole("button", { name: "Test: Hết hạn 5p ngay" }).click();
+  const rejected = await response;
+  expect(rejected.status()).toBe(409);
+  expect(rejected.headers()["content-type"]).toContain("application/json");
+  expect((await rejected.json()).errorCode).toBe("ORDER_EXPIRED_TIMEOUT");
+  const expired = page.getByRole("dialog", {
+    name: "Hết thời gian giữ ghế (Timeout 5 phút)",
+    exact: true,
+  });
+  await expect(expired).toContainText(
+    "Đơn đã hết hạn, không còn thanh toán được",
+  );
+  expect(
+    await expired.evaluate((n) => getComputedStyle(n).backgroundColor),
+  ).not.toBe("rgba(0, 0, 0, 0)");
+  expect((await read(page, `/bookings/${order.id}`)).status).toBe("EXPIRED");
+  const map = await read(page, `/showtimes/${show.id}/seats`);
+  expect(map.seats.find((s) => s.seatId === order.seats[0].seatId).status).toBe(
+    "AVAILABLE",
+  );
+  expect(
+    (await read(page, "/tickets/me?limit=100")).items.filter(
+      (t) => t.bookingId === order.id,
+    ),
+  ).toHaveLength(0);
+  expect(errors).toEqual([]);
 });

@@ -1,3 +1,5 @@
+import { SeatBookingService } from "../bookings/seat-booking.service";
+import { BookingsRepository } from "../bookings/bookings.repository";
 import { Injectable } from "@nestjs/common";
 import { Prisma, Showtime } from "@prisma/client";
 import { ApiException } from "../../common/exceptions/api.exception";
@@ -24,6 +26,8 @@ export class ShowtimesService {
     private readonly movies: MoviesRepository,
     private readonly rooms: RoomsRepository,
     private readonly database: UnitOfWork,
+    private readonly heldSeats: SeatBookingService,
+    private readonly bookings: BookingsRepository,
   ) {}
 
   private serialize(row: Showtime): ShowtimeDto {
@@ -42,6 +46,29 @@ export class ShowtimesService {
         "Showtime was not found.",
       );
     return row;
+  }
+
+  // TC_FR07_05: khóa suất độc quyền, giữ nguyên SOLD/vé cũ và giải phóng từng đơn chưa trả.
+  async setStatus(id: string, status: string) {
+    return this.database.transaction(async (tx) => {
+      await this.showtimes.lock(id, tx);
+      await this.requireShowtime(id, tx);
+      const row = await this.showtimes.update(id, { status }, tx);
+      if (status !== "ACTIVE") {
+        const held = await this.bookings.activeInShowtime(id, tx);
+        for (const item of held) {
+          await this.bookings.lockBooking(item.id, tx);
+          const order = await this.bookings.find(item.id, tx);
+          if (
+            order &&
+            ["HOLDING", "PENDING"].includes(order.status) &&
+            !order.seats.some((s) => s.status === "SOLD")
+          )
+            await this.heldSeats.releaseLocked(order, "CANCELLED", tx);
+        }
+      }
+      return this.serialize(row);
+    });
   }
 
   async get(id: string): Promise<ShowtimeDto> {

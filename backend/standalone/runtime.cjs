@@ -86,7 +86,12 @@ function pageOf(items, query) {
 function createMemoryServer(input) {
   const maps = {};
   for (const key of ["movies", "cinemas", "rooms", "showtimes", "combos"])
-    maps[key] = new Map(input[key].map((row) => [row.id, { ...row }]));
+    maps[key] = new Map(
+      input[key].map((row) => [
+        row.id,
+        { ...(key === "showtimes" ? { status: "ACTIVE" } : {}), ...row },
+      ]),
+    );
   const users = new Map(),
     sessions = new Map(),
     orders = new Map(),
@@ -107,6 +112,7 @@ function createMemoryServer(input) {
       combos: [...maps.combos.values()].filter((c) => c.isActive),
       showtimes: [...maps.showtimes.values()].filter(
         (s) =>
+          s.status === "ACTIVE" &&
           Date.parse(s.startTime) > stamp &&
           Date.parse(s.startTime) < stamp + days * 86400000 &&
           maps.movies.get(s.movieId)?.status !== "ENDED",
@@ -285,7 +291,11 @@ function createMemoryServer(input) {
       roomId: room.id,
       startTime: show.startTime,
       asOf: iso(now()),
-      canBook: movie.status !== "ENDED" && Date.parse(show.startTime) > now(),
+      showtimeStatus: show.status,
+      canBook:
+        show.status === "ACTIVE" &&
+        movie.status !== "ENDED" &&
+        Date.parse(show.startTime) > now(),
       capacity: {
         total: seats.length,
         available: seats.filter((s) => s.status === "AVAILABLE").length,
@@ -297,6 +307,12 @@ function createMemoryServer(input) {
   }
   function group(map, quantity, type) {
     assert(Number.isInteger(quantity) && quantity >= 1 && quantity <= 20);
+    assert(
+      map.showtimeStatus === "ACTIVE",
+      "SHOWTIME_UNAVAILABLE",
+      "Rất tiếc, suất chiếu này đã bị hủy hoặc thay đổi. Vui lòng chọn suất khác",
+      409,
+    );
     assert(map.canBook, "SHOWTIME_STARTED", "Suất đã bắt đầu.", 409);
     assert(!type || ["STANDARD", "VIP", "SWEETBOX"].includes(type));
     const seats = map.seats;
@@ -364,6 +380,12 @@ function createMemoryServer(input) {
       return bookingData(orders.get(prior.id));
     }
     const map = seatMap(body.showtimeId);
+    assert(
+      map.showtimeStatus === "ACTIVE",
+      "SHOWTIME_UNAVAILABLE",
+      "Rất tiếc, suất chiếu này đã bị hủy hoặc thay đổi. Vui lòng chọn suất khác",
+      409,
+    );
     assert(
       map.canBook,
       "SHOWTIME_STARTED",
@@ -520,6 +542,9 @@ function createMemoryServer(input) {
       currency: "VND",
       expiredAt: order.expiredAt,
       canPay:
+        model("showtimes", order.showtimeId).status === "ACTIVE" &&
+        model("movies", model("showtimes", order.showtimeId).movieId).status !==
+          "ENDED" &&
         ["HOLDING", "PENDING"].includes(s) &&
         Date.parse(model("showtimes", order.showtimeId).startTime) > now(),
     };
@@ -764,6 +789,10 @@ function createMemoryServer(input) {
       currency: "VND",
       expiredAt: order.expiredAt,
       url: url.href,
+      testControls:
+        process.env.NODE_ENV === "test" ||
+        (process.env.NODE_ENV === "development" &&
+          process.env.NOVA_TEST_CONTROLS === "true"),
     };
   }
   const html = (title, content) =>
@@ -927,6 +956,22 @@ function createMemoryServer(input) {
           realtime: { status: "polling" },
         },
       });
+    const statusRoute = path.match(/^\/showtimes\/([^/]+)\/status$/);
+    if (statusRoute && method === "PATCH") {
+      auth(request, ["ADMIN"]);
+      assert(["ACTIVE", "LOCKED", "CANCELED"].includes(body.status));
+      const show = model("showtimes", statusRoute[1]);
+      show.status = body.status;
+      if (show.status !== "ACTIVE")
+        for (const order of orders.values())
+          if (
+            order.showtimeId === show.id &&
+            ["HOLDING", "PENDING"].includes(order.status)
+          )
+            release(order, "CANCELLED");
+      programmePointers.clear();
+      return json(show);
+    }
     if (path === "/runtime") return json({ mode: "backend" });
     if (path === "/auth/register" && method === "POST") {
       assert(
@@ -1336,6 +1381,52 @@ function createMemoryServer(input) {
         "text/html; charset=utf-8",
       );
     }
+    if (path === "/payments/sandbox/test-expire" && method === "POST") {
+      assert(
+        process.env.NODE_ENV === "test" ||
+          (process.env.NODE_ENV === "development" &&
+            process.env.NOVA_TEST_CONTROLS === "true"),
+        "NOT_FOUND",
+        "Không tìm thấy chức năng.",
+        404,
+      );
+      const order = verifyCheckout(body);
+      assert(
+        ["HOLDING", "PENDING"].includes(order.status),
+        "BOOKING_NOT_PAYABLE",
+        "Đơn không còn giữ chỗ.",
+        409,
+      );
+      order.createdAt = iso(now() - 301000);
+      order.expiredAt = iso(now() - 1000);
+      release(order, "EXPIRED");
+      return json({ expired: true });
+    }
+    if (path === "/payments/sandbox/confirm" && method === "POST") {
+      const order = verifyCheckout(body),
+        show = model("showtimes", order.showtimeId);
+      if (status(order) === "EXPIRED") {
+        release(order, "EXPIRED");
+        fail(
+          409,
+          "ORDER_EXPIRED_TIMEOUT",
+          "Đơn đã hết hạn, không còn thanh toán được",
+        );
+      }
+      if (
+        show.status !== "ACTIVE" ||
+        model("movies", show.movieId).status === "ENDED"
+      ) {
+        if (["HOLDING", "PENDING"].includes(order.status))
+          release(order, "CANCELLED");
+        fail(
+          409,
+          "SHOWTIME_UNAVAILABLE",
+          "Rất tiếc, suất chiếu này đã bị hủy hoặc thay đổi. Vui lòng chọn suất khác",
+        );
+      }
+      return json(complete(body));
+    }
     if (path === "/payments/sandbox/complete" && method === "POST") {
       const result = complete(body);
       return send(
@@ -1590,6 +1681,11 @@ function createMemoryServer(input) {
         success: false,
         statusCode: error.status || 500,
         error: error.code || "INTERNAL_ERROR",
+        ...(["SHOWTIME_UNAVAILABLE", "ORDER_EXPIRED_TIMEOUT"].includes(
+          error.code,
+        )
+          ? { errorCode: error.code }
+          : {}),
         message: error.status
           ? error.message
           : "Máy chủ chưa xử lý được yêu cầu.",

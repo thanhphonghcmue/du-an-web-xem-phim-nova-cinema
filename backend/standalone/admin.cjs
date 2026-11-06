@@ -386,6 +386,7 @@ exports.createAdmin = (c) => {
     assert(Object.keys(body).every((k) => fields[kind].includes(k)));
     const prior = id ? model(kind, id) : {},
       row = {
+        ...(kind === "showtimes" ? { status: "ACTIVE" } : {}),
         ...(kind === "rooms"
           ? { totalSeats: 0 }
           : kind === "combos"

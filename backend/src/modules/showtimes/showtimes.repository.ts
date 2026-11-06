@@ -117,6 +117,7 @@ export class ShowtimesRepository {
       }),
       tx.showtime.findMany({
         where: {
+          status: "ACTIVE",
           startTime: { gte: now, lt: until },
           movie: { status: { not: "ENDED" } },
         },

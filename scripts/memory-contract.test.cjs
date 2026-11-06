@@ -931,3 +931,95 @@ test("RAM immutable programme pages preserve records and invalidate only future 
     404,
   );
 });
+
+test("TC_FR07_05 RAM soft-lock keeps booking records, frees held seats and prevents new holds", async (t) => {
+  const f = await paidFixture(t),
+    admin = await f.login("admin");
+  assert.equal(
+    (
+      await f.call(
+        `/showtimes/${f.showtimeId}/status`,
+        { status: "LOCKED" },
+        f.customer.accessToken,
+        "PATCH",
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await f.call(
+        `/showtimes/${f.showtimeId}/status`,
+        { status: "LOCKED" },
+        admin.accessToken,
+        "PATCH",
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await f.call(`/bookings/${f.order.id}`, undefined, f.customer.accessToken))
+      .data.status,
+    "CANCELLED",
+  );
+  const denied = await f.call(
+    "/bookings/hold",
+    { showtimeId: f.showtimeId, seatIds: [f.seat("A1")] },
+    f.customer.accessToken,
+  );
+  assert.equal(denied.status, 409);
+  assert.equal(denied.body.error, "SHOWTIME_UNAVAILABLE");
+  assert.equal(
+    (
+      await f.call(
+        `/showtimes/${f.showtimeId}/status`,
+        { status: "ACTIVE" },
+        admin.accessToken,
+        "PATCH",
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await f.call(
+        "/bookings/hold",
+        { showtimeId: f.showtimeId, seatIds: [f.seat("A1")] },
+        f.customer.accessToken,
+      )
+    ).status,
+    201,
+  );
+});
+test("TC_FR08_04 RAM expired JSON confirmation never issues tickets; production quick-expiry route is closed", async (t) => {
+  const f = await paidFixture(t);
+  const priorMode = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    assert.equal(
+      (await f.call("/payments/sandbox/test-expire", f.fields)).status,
+      404,
+    );
+  } finally {
+    if (priorMode === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = priorMode;
+  }
+  f.advance(301000);
+  const result = await f.call("/payments/sandbox/confirm", {
+    ...f.fields,
+    result: "SUCCESS",
+  });
+  assert.equal(result.status, 409);
+  assert.equal(result.body.error, "ORDER_EXPIRED_TIMEOUT");
+  const user = await f.login("customer");
+  assert.equal(
+    (await f.call(`/bookings/${f.order.id}`, undefined, user.accessToken)).data
+      .status,
+    "EXPIRED",
+  );
+  assert.equal(
+    (await f.call("/tickets/me", undefined, user.accessToken)).data.items
+      .length,
+    0,
+  );
+});

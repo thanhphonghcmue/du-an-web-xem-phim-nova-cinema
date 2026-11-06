@@ -27,6 +27,7 @@ import { ApiDataResponse } from "../../common/decorators/api-data-response.decor
 import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { DeletedDto } from "../../common/dto/pagination.dto";
 import {
+  ShowtimeStatusDto,
   ShowtimeCapacityQueryDto,
   ShowtimeCapacityDto,
   CreateShowtimeDto,
@@ -136,6 +137,15 @@ export class ShowtimesController {
   @ApiDataResponse(ShowtimeDto, 201)
   create(@Body() dto: CreateShowtimeDto) {
     return this.service.create(dto);
+  }
+
+  @Patch(":id/status")
+  @CatalogWrite()
+  setStatus(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: ShowtimeStatusDto,
+  ) {
+    return this.service.setStatus(id, dto.status);
   }
 
   @Patch(":id")

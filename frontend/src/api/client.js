@@ -224,6 +224,12 @@ export function read(path) {
 }
 
 /** Giữ nguyên catalogue trong bộ nhớ; chỉ chia nhỏ cách truyền qua mạng. */
+export function invalidateProgramme() {
+  programmeCache = null;
+  catalogueEpoch++;
+  reads.clear();
+}
+
 export function readProgramme() {
   if (programmeCache?.until > Date.now())
     return Promise.resolve(programmeCache.data);
@@ -437,16 +443,7 @@ export const apiTaoDuongDanThanhToanSandbox = apiCheckout;
 export async function apiCompleteSandbox(payload, result) {
   if (!["SUCCESS", "FAILED", "CANCELLED"].includes(result))
     throw new Error("Kết quả mô phỏng không hợp lệ.");
-  await apiRequest(
-    "/payments/sandbox/complete",
-    {
-      method: "POST",
-      headers: { Accept: "text/html" },
-      body: JSON.stringify({ ...payload, result }),
-    },
-    false,
-  );
-  // Không coi HTTP 200/HTML là PAID: đọc lại đơn của chủ sở hữu từ backend.
+  await readCommand("/payments/sandbox/confirm", { ...payload, result });
   return apiGetBooking(payload.bookingId);
 }
 

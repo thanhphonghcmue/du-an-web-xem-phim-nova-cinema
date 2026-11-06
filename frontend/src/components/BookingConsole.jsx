@@ -47,6 +47,8 @@ import {
   apiCompleteSandbox,
   apiGetProfile,
   memberProfile,
+  readCommand,
+  invalidateProgramme,
   getBackendKind,
 } from "@/api/client.js";
 
@@ -272,7 +274,7 @@ function LiveBookingConsole({
   onMemberUpdate,
 }) {
   const { t, language } = useI18n();
-  const { combos, rooms } = useCatalog();
+  const { combos, rooms, reload } = useCatalog();
   const showtimeId = booking.showtimeId || booking.time.id;
   const startTime = new Date(booking.time.startTime);
   const startLabel = Number.isFinite(startTime.getTime())
@@ -351,6 +353,8 @@ function LiveBookingConsole({
   const [showAgeModal, setShowAgeModal] = useState(false);
   const [showPaymentReview, setShowPaymentReview] = useState(false);
   const [sandbox, setSandbox] = useState(null);
+  const [testControls, setTestControls] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [cancelledNotice, setCancelledNotice] = useState(null);
   const ageInfo = getAgeRestriction(booking.movie?.age);
   const refresh = useCallback(async () => {
@@ -359,6 +363,11 @@ function LiveBookingConsole({
     if (!mounted.current || version !== snapshotVersion.current) return;
     if (!Array.isArray(map?.seats) || typeof map.canBook !== "boolean")
       throw new Error("Chưa nhận được sơ đồ ghế hợp lệ. Hãy thử lại.");
+    if (map.showtimeStatus && map.showtimeStatus !== "ACTIVE") {
+      setUnavailable(true);
+      setSandbox(null);
+      setShowPaymentReview(false);
+    }
     const currentSeats = uniqueRecords(map.seats, "seatId");
     // Lựa chọn UI chưa khóa ghế. Đồng bộ ngay trong phản hồi server, cùng một render.
     const ownsHold = ["PENDING", "HOLDING", "PAID"].includes(
@@ -441,6 +450,8 @@ function LiveBookingConsole({
       } catch (err) {
         if (active && revision === orderRevision.current)
           setNotice(err.message);
+        if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+          setUnavailable(true);
       } finally {
         running = false;
       }
@@ -638,6 +649,8 @@ function LiveBookingConsole({
       );
     } catch (err) {
       setNotice(err.message);
+      if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+        setUnavailable(true);
     } finally {
       setBusy(false);
     }
@@ -691,6 +704,8 @@ function LiveBookingConsole({
     } catch (err) {
       if (err.code === "SEAT_UNAVAILABLE") revealConflict.current = true;
       setNotice(err.message);
+      if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+        setUnavailable(true);
       if (err.code === "SEAT_UNAVAILABLE") {
         const blockedIds = Array.isArray(err.details?.seatIds)
           ? err.details.seatIds
@@ -750,6 +765,8 @@ function LiveBookingConsole({
       setNotice("Đã hủy đơn và trả ghế.");
     } catch (err) {
       setNotice(err.message);
+      if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+        setUnavailable(true);
     } finally {
       changingOrder.current = false;
       orderRevision.current++;
@@ -769,9 +786,12 @@ function LiveBookingConsole({
       }
       const result = await apiCheckout(order.id);
       setSandbox(sandboxCheckout(result.url, order));
+      setTestControls(result.testControls === true);
       setShowPaymentReview(false);
     } catch (err) {
       setNotice(err.message);
+      if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+        setUnavailable(true);
     } finally {
       setBusy(false);
     }
@@ -806,6 +826,26 @@ function LiveBookingConsole({
     } catch (error) {
       // Mất mạng: không tự suy ra PAID/hủy đơn, không tự gửi lại POST.
       setNotice(error.message);
+      if (error.code === "ORDER_EXPIRED_TIMEOUT") {
+        const current = await apiGetBooking(payload.bookingId).catch(
+          () => null,
+        );
+        if (current?.status === "EXPIRED") {
+          setOrder(current);
+          setSelected([]);
+          setSandbox(null);
+          setShowExpiredNotice(true);
+        }
+      }
+      if (
+        ["SHOWTIME_UNAVAILABLE", "BOOKING_NOT_PAYABLE"].includes(error.code)
+      ) {
+        const show = await apiGetShowtimeSeats(showtimeId).catch(() => null);
+        if (show && !show.canBook) {
+          setSandbox(null);
+          setUnavailable(true);
+        }
+      }
     } finally {
       changingOrder.current = false;
       orderRevision.current++;
@@ -1583,6 +1623,18 @@ function LiveBookingConsole({
 
       {sandbox && holding && !showExpiredNotice && (
         <SandboxGateway
+          testControls={testControls}
+          onTestExpire={async () => {
+            setBusy(true);
+            try {
+              await readCommand("/payments/sandbox/test-expire", sandbox);
+              await completeSandbox("SUCCESS");
+            } catch (error) {
+              setNotice(error.message);
+            } finally {
+              setBusy(false);
+            }
+          }}
           payload={sandbox}
           order={order}
           offset={offset}
@@ -1593,6 +1645,31 @@ function LiveBookingConsole({
           onResult={completeSandbox}
           onClose={() => setSandbox(null)}
         />
+      )}
+
+      {unavailable && (
+        <Modal
+          headerless
+          className="cinema-state-card cinema-state-red"
+          title="Thông báo thay đổi suất chiếu"
+          onClose={onClose}
+        >
+          <h2>Thông báo thay đổi suất chiếu</h2>
+          <p>
+            Rất tiếc, suất chiếu này đã bị hủy hoặc thay đổi. Vui lòng chọn suất
+            khác
+          </p>
+          <button
+            className="button button-primary"
+            onClick={() => {
+              invalidateProgramme();
+              void reload();
+              onClose();
+            }}
+          >
+            Chọn suất chiếu khác
+          </button>
+        </Modal>
       )}
 
       {cancelledNotice && (
@@ -1646,7 +1723,8 @@ function LiveBookingConsole({
             </div>
             <h2>Hết thời gian giữ ghế (Timeout 5 phút)</h2>
             <p>
-              Thời gian giữ chỗ ưu tiên của bạn đã kết thúc. Ghế
+              Đơn đã hết hạn, không còn thanh toán được. Hệ thống đã giải phóng
+              ghế
               {order?.seats?.length ? ` ${orderSeatNames} ` : " đã chọn "}
               đã được trả lại sơ đồ để khách khác lựa chọn. Hãy đặt lại vé để
               chọn ghế và giữ chỗ mới.

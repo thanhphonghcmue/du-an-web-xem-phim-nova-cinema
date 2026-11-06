@@ -12,6 +12,22 @@ export type BookingRecord = Prisma.BookingGetPayload<{
 @Injectable()
 export class BookingsRepository {
   constructor(private readonly prisma: PrismaService) {}
+  testDeadline(id: string, now: Date, tx: Prisma.TransactionClient) {
+    return tx.booking.update({
+      where: { id },
+      data: {
+        createdAt: new Date(now.getTime() - 301000),
+        expiredAt: new Date(now.getTime() - 1000),
+      },
+    });
+  }
+  activeInShowtime(showtimeId: string, tx: Prisma.TransactionClient) {
+    return tx.booking.findMany({
+      where: { showtimeId, status: { in: ["HOLDING", "PENDING"] } },
+      select: { id: true },
+      orderBy: { id: "asc" },
+    });
+  }
   find(id: string, tx: Prisma.TransactionClient = this.prisma) {
     return tx.booking.findUnique({ where: { id }, include: bookingRelations });
   }

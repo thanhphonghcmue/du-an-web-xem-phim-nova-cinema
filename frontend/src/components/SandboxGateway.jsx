@@ -6,6 +6,8 @@ import HoldCountdown from "./HoldCountdown.jsx";
 import { money } from "@/data.js";
 
 export default function SandboxGateway({
+  testControls,
+  onTestExpire,
   payload,
   order,
   offset,
@@ -31,6 +33,16 @@ export default function SandboxGateway({
       title="Cổng thanh toán Sandbox"
       onClose={busy ? () => {} : onClose}
     >
+      {testControls && (
+        <button
+          type="button"
+          className="text-button"
+          disabled={busy || expired}
+          onClick={onTestExpire}
+        >
+          Test: Hết hạn 5p ngay
+        </button>
+      )}
       <div className="cinema-state-heading">
         <span className="cinema-status-pill">SANDBOX GATEWAY</span>
         <span>Môi trường giả lập</span>

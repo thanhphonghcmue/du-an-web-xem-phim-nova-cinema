@@ -100,6 +100,20 @@ export class PaymentsController {
       .send(sandboxPage(dto, state.canPay, state.bookingStatus));
   }
   @Public()
+  @Post("sandbox/test-expire")
+  @HttpCode(200)
+  testExpire(@Body() dto: SignedCheckoutDto) {
+    return this.service.testExpire(dto);
+  }
+
+  @Public()
+  @Post("sandbox/confirm")
+  @HttpCode(200)
+  confirm(@Body() dto: CompleteSandboxDto) {
+    return this.service.confirm(dto);
+  }
+
+  @Public()
   @Post("sandbox/complete")
   @Header("Cache-Control", "no-store")
   @Header("Referrer-Policy", "no-referrer")

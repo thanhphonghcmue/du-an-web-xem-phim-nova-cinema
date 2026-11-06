@@ -191,3 +191,7 @@ thái, QR phóng to và trang tra cứu công khai chỉ đọc.
 Không đổi trạng thái Phase11–12. Tái sử dụng endpoint/payload/chữ ký và schema hiện có; frontend có review2 cột, Sandbox QR, hủy/hết hạn và ví vé từng ghế theo ảnh. API STAFF bổ sung metadata tối thiểu không chứa QR token/PII trong lỗi để hiển thị đúng ba thẻ. Backend RAM thống nhất chặn USED trước sai suất.
 
 Kiểm chứng615 ca độc lập qua các lượt:116 backend unit,254 HTTP/Socket.IO/SMTP,26 database,105 Node/RAM/config/planner,114 browser. Lượt browser đầy đủ111/114; sửa lỗi chờ kết quả hủy và class/hiển thị thẻ nổi, build lại và kiểm tra6 ca liên quan đạt6/6. Lint/typecheck/build và smoke RAM qua fullstack/BFF đạt. Không tuyên bố đạt budget30ms/15KiB hoặc pixel-perfect mọi thiết bị. [Báo cáo, contract, lịch sử và ảnh thực](../../docs/qa/cinema-status-design-2026-11-06.md).
+
+## Khóa suất và Sandbox hết hạn — 07/11/2026
+
+Bổ sung status suất qua migration additive, API ADMIN khóa/mở và release unpaid holds; JSON Sandbox dùng cùng chữ ký/state machine, cờ kiểm thử chỉ non-production. Giữ Phase11–12 như cũ. TC_FR07_05 và TC_FR08_04 được kiểm chứng native qua browser, cùng hồi quy QR từng ghế. [Báo cáo512 ca và budget chưa đạt](../../docs/qa/showtime-lock-expiry-2026-11-07.md).

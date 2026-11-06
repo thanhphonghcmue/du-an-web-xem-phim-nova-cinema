@@ -26,12 +26,12 @@ export class CheckInDto {
     description:
       "The opaque64 lowercase hex characters decoded from the QR PNG.",
   })
-  @Matches(/^([a-f0-9]{64}|NOVA-[a-zA-Z0-9_-]+|[a-f0-9-]{36})$/i)
+  @Matches(/^[a-f0-9]{64}$/)
   ticketHash!: string;
 }
 export class VerifyTicketDto {
   @ApiProperty({ description: "Opaque lowercase QR hash." })
-  @Matches(/^([a-f0-9]{64}|NOVA-[a-zA-Z0-9_-]+|[a-f0-9-]{36})$/i)
+  @Matches(/^[a-f0-9]{64}$/)
   ticketHash!: string;
   @ApiProperty({ format: "uuid" })
   @IsUUID()

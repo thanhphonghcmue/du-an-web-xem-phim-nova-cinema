@@ -328,11 +328,11 @@ function createDemoData() {
 }
 if (require.main === module) {
   const { createMemoryServer } = require("./standalone/runtime.cjs");
-  const server = createMemoryServer({ ...createDemoData(), persist: true });
+  const server = createMemoryServer(createDemoData());
   const port = Number(process.env.NOVA_API_PORT || process.env.PORT || 4000);
   server.listen(port, process.env.HOST || "127.0.0.1", () => {
     console.log(
-      `[NOVA RAM] Native process ready on port ${port}; data is persisted locally to .runtime/standalone-store.json. Existing .local accounts and four .vn development roles are available.`,
+      `[NOVA RAM] Native process ready on port ${port}; data is not persisted. Existing .local accounts and four .vn development roles are available.`,
     );
   });
 }

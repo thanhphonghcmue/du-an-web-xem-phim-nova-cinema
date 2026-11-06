@@ -47,38 +47,9 @@ export class TicketsRepository {
   find(id: string, tx: Prisma.TransactionClient = this.prisma) {
     return tx.eTicket.findUnique({ where: { id }, include: ticketRelations });
   }
-  byHash(ticketHash: string, tx: Prisma.TransactionClient = this.prisma) {
-    const trimmed = ticketHash.trim();
-    const isUuid =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        trimmed,
-      );
-    const isOrderCode = /^NOVA-/i.test(trimmed);
-
-    return tx.eTicket.findFirst({
-      where: {
-        OR: [
-          { ticketHash: trimmed.toLowerCase() },
-          ...(isUuid
-            ? [
-                { id: trimmed.toLowerCase() },
-                { bookingId: trimmed.toLowerCase() },
-              ]
-            : []),
-          ...(isOrderCode || trimmed.length >= 6
-            ? [
-                {
-                  booking: {
-                    orderCode: {
-                      equals: trimmed,
-                      mode: "insensitive" as const,
-                    },
-                  },
-                },
-              ]
-            : []),
-        ],
-      },
+  byHash(ticketHash: string, tx: Prisma.TransactionClient) {
+    return tx.eTicket.findUnique({
+      where: { ticketHash },
       include: ticketRelations,
     });
   }

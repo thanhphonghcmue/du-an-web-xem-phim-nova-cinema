@@ -16,12 +16,12 @@ function stop(code = 0) {
   process.exitCode = code;
 }
 for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, () => stop());
-function start(args, cwd, env) {
+function start(args, cwd, env, fatal = true) {
   const child = spawn(process.execPath, args, { cwd, env, stdio: "inherit" });
   children.push(child);
   child.once("error", () => stop(1));
   child.once("exit", (code) => {
-    if (!stopping) stop(code || 1);
+    if (!stopping && fatal) stop(code || 1);
   });
   return child;
 }
@@ -45,16 +45,58 @@ function checkPort(port, host = "127.0.0.1") {
   });
 }
 
+async function waitForBackend(port, child) {
+  for (let attempt = 0; attempt < 20 && !stopping; attempt++) {
+    if (child.exitCode !== null || child.signalCode !== null) return false;
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/v1/health`, {
+        signal: AbortSignal.timeout(1000),
+      });
+      if (response.ok) return true;
+    } catch {
+      /* Chưa bind cổng hoặc dịch vụ chưa sẵn sàng. */
+    }
+    await new Promise((done) => setTimeout(done, 250));
+  }
+  return false;
+}
+async function stopChild(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  await new Promise((done) => {
+    const timer = setTimeout(() => child.kill("SIGKILL"), 5000);
+    child.once("exit", () => {
+      clearTimeout(timer);
+      done();
+    });
+    child.kill("SIGTERM");
+  });
+}
+
 async function main() {
   if (
-    process.env.DATABASE_URL &&
-    process.env.DATABASE_URL.includes("offline:offline")
+    ![apiPort, webPort].every(
+      (port) => Number.isInteger(port) && port > 0 && port <= 65535,
+    ) ||
+    apiPort === webPort
   ) {
-    console.error("Configured database is unavailable.");
+    console.error(
+      "[NOVA] NOVA_API_PORT and NOVA_WEB_PORT must be distinct valid ports.",
+    );
     stop(1);
     return;
   }
-
+  for (const [name, port] of [
+    ["API", apiPort],
+    ["Frontend", webPort],
+  ]) {
+    if (await checkPort(port)) {
+      console.error(
+        `[NOVA] ${name} port ${port} is already in use. Stop the old NOVA process or choose a free NOVA_API_PORT/NOVA_WEB_PORT, then run npm run dev:full again.`,
+      );
+      stop(1);
+      return;
+    }
+  }
   let target;
   try {
     if (process.env.DATABASE_URL) target = new URL(process.env.DATABASE_URL);
@@ -66,13 +108,19 @@ async function main() {
     target &&
     ["postgresql:", "postgres:"].includes(target.protocol) &&
     (await checkPort(Number(target.port || 5432), target.hostname));
-  let useStandaloneBackend = !hasDb;
-  if (!hasDb)
+  const hasRedis =
+    hasDb &&
+    (await checkPort(
+      Number(process.env.REDIS_PORT || 6380),
+      process.env.REDIS_HOST || "127.0.0.1",
+    ));
+  let useStandaloneBackend = !hasDb || !hasRedis;
+  if (useStandaloneBackend)
     console.log(
-      "[NOVA] PostgreSQL unavailable/unconfigured; automatic native RAM fallback (data resets on restart).",
+      "[NOVA] PostgreSQL/Redis unavailable/unconfigured; automatic native RAM fallback (data resets on restart).",
     );
 
-  if (hasDb && process.env.NODE_ENV !== "production") {
+  if (!useStandaloneBackend && process.env.NODE_ENV !== "production") {
     const npmCli = process.env.npm_execpath;
     if (!npmCli) {
       console.error(
@@ -109,48 +157,52 @@ async function main() {
     }
   }
 
-  if (useStandaloneBackend) {
-    console.log(
-      `[NOVA] Khởi động máy chủ backend độc lập trên cổng ${apiPort}...`,
+  if (stopping) return; // Ctrl+C trong seed/build không được khởi động thêm process.
+  const backendEnv = {
+    ...process.env,
+    PORT: String(apiPort),
+    NOVA_API_PORT: String(apiPort),
+    PAYMENT_RETURN_ORIGINS:
+      process.env.PAYMENT_RETURN_ORIGINS ||
+      `http://localhost:${webPort},http://127.0.0.1:${webPort}`,
+  };
+  const launchBackend = () => {
+    if (useStandaloneBackend)
+      console.log(
+        `[NOVA] Khởi động máy chủ backend độc lập trên cổng ${apiPort}...`,
+      );
+    return start(
+      useStandaloneBackend
+        ? ["backend/standalone-server.cjs"]
+        : ["dist/main.js"],
+      useStandaloneBackend ? root : resolve(root, "backend"),
+      backendEnv,
+      false,
     );
-    start(["backend/standalone-server.cjs"], root, {
-      ...process.env,
-      PORT: String(apiPort),
-      NOVA_API_PORT: String(apiPort),
-    });
-  } else {
-    start(["dist/main.js"], resolve(root, "backend"), {
-      ...process.env,
-      PORT: String(apiPort),
-      PAYMENT_RETURN_ORIGINS:
-        process.env.PAYMENT_RETURN_ORIGINS ||
-        `http://localhost:${webPort},http://127.0.0.1:${webPort}`,
-    });
+  };
+  let backend = launchBackend();
+  let ready = await waitForBackend(apiPort, backend);
+  // Chỉ fallback lúc khởi động; không thay dữ liệu SQL bằng RAM giữa phiên đặt vé.
+  if (!ready && !useStandaloneBackend && !stopping) {
+    console.error(
+      "[NOVA] Native backend failed readiness (PostgreSQL/Redis/config). Switching to disposable RAM; SQL data is unchanged.",
+    );
+    await stopChild(backend);
+    useStandaloneBackend = true;
+    backend = launchBackend();
+    ready = await waitForBackend(apiPort, backend);
   }
-
-  let ready = false;
-  for (let attempt = 0; attempt < 60 && !stopping; attempt++) {
-    try {
-      const r = await fetch(`http://127.0.0.1:${apiPort}/api/v1/health`, {
-        signal: AbortSignal.timeout(2000),
-      });
-      if (r.ok) {
-        ready = true;
-        break;
-      }
-    } catch {
-      /* Backend may still be connecting to required services. */
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
+  if (stopping) return;
   if (!ready) {
     console.error(
-      "Backend readiness failed. Check the configured PostgreSQL/Redis connection and backend/.env.",
+      "Backend readiness failed. Check backend/.env and the API port.",
     );
     stop(1);
     return;
   }
-
+  backend.once("exit", (code) => {
+    if (!stopping) stop(code || 1);
+  });
   console.log(`[NOVA] Backend sẵn sàng tại http://127.0.0.1:${apiPort}/api/v1`);
   console.log(
     `[NOVA] Khởi động Next.js Frontend tại http://localhost:${webPort}...`,
@@ -159,7 +211,7 @@ async function main() {
   const frontendDir = resolve(root, "frontend");
   const feCwd = require("node:fs").existsSync(frontendDir) ? frontendDir : root;
 
-  start(
+  const frontend = start(
     [
       require.resolve("next/dist/bin/next", {
         paths: [resolve(root, "frontend")],
@@ -176,6 +228,19 @@ async function main() {
       ...process.env,
       BACKEND_API_URL: `http://127.0.0.1:${apiPort}/api/v1`,
     },
+  );
+  // Làm nóng catch-all BFF trong Next dev trước khi báo sẵn sàng; không chờ người dùng
+  // mở lịch mới biên dịch route API rồi chạm deadline 8 giây của trình duyệt.
+  if (!(await waitForBackend(webPort, frontend))) {
+    if (!stopping)
+      console.error(
+        "[NOVA] Frontend/API warmup failed. Check the Next.js error above.",
+      );
+    stop(1);
+    return;
+  }
+  console.log(
+    `[NOVA] Frontend và API đã sẵn sàng: http://localhost:${webPort}`,
   );
 }
 main().catch(() => stop(1));

@@ -47,11 +47,16 @@ export const getBackendKind = () => backendKind;
  * @param {boolean} [retry=true] - Cho phép thử lại khi hết hạn token hoặc 503
  * @returns {Promise<any>}
  */
-export async function apiRequest(endpoint, options = {}, retry = true) {
+export async function apiRequest(
+  endpoint,
+  options = {},
+  retry = true,
+  notify = true,
+) {
   const budget = requestBudget(options.signal);
   try {
     const result = await abortable(
-      requestWithinBudget(endpoint, options, retry, budget.signal),
+      requestWithinBudget(endpoint, options, retry, budget.signal, notify),
       budget.signal,
     );
     if (options.method && options.method !== "GET") {
@@ -91,7 +96,7 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
       : options.signal?.aborted
         ? "Đã hủy yêu cầu."
         : "Kết nối bị gián đoạn. Vui lòng thử lại.";
-    if (!options.signal?.aborted) notifyApiError(message);
+    if (notify && !options.signal?.aborted) notifyApiError(message);
     const error = new Error(message, { cause });
     error.code = timedOut ? "REQUEST_TIMEOUT" : "CONNECTION_FAILED";
     throw error;
@@ -100,7 +105,13 @@ export async function apiRequest(endpoint, options = {}, retry = true) {
   }
 }
 
-async function requestWithinBudget(endpoint, options, retry, signal) {
+async function requestWithinBudget(
+  endpoint,
+  options,
+  retry,
+  signal,
+  notify = true,
+) {
   signal.throwIfAborted();
   const response = await fetch(API_BASE + endpoint, {
     ...options,
@@ -141,7 +152,7 @@ async function requestWithinBudget(endpoint, options, retry, signal) {
       refreshing = null;
     });
     await abortable(refreshing, signal);
-    return requestWithinBudget(endpoint, options, false, signal);
+    return requestWithinBudget(endpoint, options, false, signal, notify);
   }
   let payload;
   try {
@@ -167,7 +178,7 @@ async function requestWithinBudget(endpoint, options, retry, signal) {
         new Promise((resolve) => setTimeout(resolve, 350)),
         signal,
       );
-      return requestWithinBudget(endpoint, options, false, signal);
+      return requestWithinBudget(endpoint, options, false, signal, notify);
     }
     const msg = apiErrorMessage(
       payload,
@@ -178,7 +189,7 @@ async function requestWithinBudget(endpoint, options, retry, signal) {
     error.status = response.status;
     error.details = payload.details;
     error.code = payload.error || payload.errorCode || payload.code;
-    if (response.status >= 500) notifyApiError(msg);
+    if (notify && response.status >= 500) notifyApiError(msg);
     throw error;
   }
   return payload;
@@ -230,7 +241,7 @@ export function readProgramme() {
   const task = abortable(
     loadProgramme(
       (path, options) =>
-        apiRequest(path, options).then((result) => result.data),
+        apiRequest(path, options, true, false).then((result) => result.data),
       budget.signal,
     ),
     budget.signal,

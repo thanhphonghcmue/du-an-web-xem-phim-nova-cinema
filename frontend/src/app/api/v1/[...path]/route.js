@@ -231,7 +231,8 @@ async function proxy(request, context) {
       {
         success: false,
         code: "BACKEND_UNAVAILABLE",
-        message: "Không thể kết nối đến máy chủ Backend. Vui lòng thử lại sau.",
+        message:
+          "Không thể kết nối đến máy chủ Backend. Hãy chạy npm run dev:full ở thư mục gốc dự án rồi thử kết nối lại.",
       },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );

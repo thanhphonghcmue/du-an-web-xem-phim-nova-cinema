@@ -61,7 +61,8 @@ a:hover .nova-logo__halo,
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 250;
+  /* Hộp thoại portal dùng 1700; toast phải bấm đóng được khi form đang mở. */
+  z-index: 2000;
   display: flex;
   align-items: center;
   gap: 20px;

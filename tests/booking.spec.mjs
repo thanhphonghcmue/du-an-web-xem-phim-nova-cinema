@@ -765,6 +765,10 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
     await expect(staff.locator(".admission-result.warning")).toContainText(
       "không khớp",
     );
+    await staff.getByRole("button", { name: /Mời khách đợi tại sảnh/ }).click();
+    await expect(
+      staff.getByText(/Hướng dẫn tại cửa: đối chiếu đúng giờ/),
+    ).toBeVisible();
     expect(
       (await read(page, `/tickets/${ticket.id}`)).body.data.isCheckedIn,
     ).toBe(false);
@@ -802,6 +806,10 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
     await expect(staff.locator(".admission-result.invalid")).toContainText(
       "Đã soát lúc",
     );
+    await staff.getByRole("button", { name: /Giữ khách đối chiếu/ }).click();
+    await expect(
+      staff.getByText(/Hướng dẫn tại cửa: đối chiếu giấy tờ/),
+    ).toBeVisible();
     const second = tickets[1];
     expect(
       (await read(page, `/tickets/${second.id}`)).body.data.isCheckedIn,

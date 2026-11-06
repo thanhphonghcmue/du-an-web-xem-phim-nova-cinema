@@ -148,6 +148,10 @@ export async function loadProgramme(request, signal) {
         await request("/showtimes/programme/manifest", { signal }),
       );
     } catch (error) {
+      // Next dev có thể còn biên dịch route ở lần mở đầu. Chỉ đọc lại manifest một lần,
+      // trong deadline chung; không retry lệnh giữ ghế/thanh toán hoặc che lỗi 503.
+      if (attempt === 0 && error.code === "REQUEST_TIMEOUT" && !signal.aborted)
+        continue;
       if (
         error.status === 404 ||
         (error.status === 422 && error.code === "PROGRAMME_TRANSPORT_TOO_LARGE")

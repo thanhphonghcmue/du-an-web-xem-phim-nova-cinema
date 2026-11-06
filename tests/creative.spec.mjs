@@ -320,12 +320,26 @@ test("duplicate catalogue/seat records keep UUID payloads and an expired real ho
   expect(errors).toEqual([]);
 });
 
-test("a network error displays a dismissible toast and can open the isolated preview", async ({
+test("catalogue failure uses one banner while login failures retain a dismissible toast and read-only preview", async ({
   page,
 }) => {
   await useLegacyProgramme(page);
   await page.route("**/api/v1/showtimes/programme", (route) => route.abort());
   await page.goto("/");
+  await expect(
+    page.locator(".catalog-connection-notice [role=alert]"),
+  ).toContainText("Kết nối bị gián đoạn");
+  await expect(page.locator(".nova-api-toast")).toHaveCount(0);
+  await page.route("**/api/v1/auth/login", (route) => route.abort());
+  await page.locator(".login-trigger").click();
+  const auth = page.getByRole("dialog");
+  await auth.getByLabel("Email", { exact: true }).fill("offline@example.test");
+  await auth
+    .getByLabel("Mật khẩu", { exact: true })
+    .fill("offline-only-test-2026");
+  await auth
+    .getByRole("button", { name: "Đăng nhập ngay", exact: true })
+    .click();
   await expect(page.locator(".nova-api-toast")).toContainText(
     "Kết nối bị gián đoạn",
   );
@@ -333,6 +347,7 @@ test("a network error displays a dismissible toast and can open the isolated pre
     .getByRole("button", { name: "Đóng thông báo kết nối", exact: true })
     .click();
   await expect(page.locator(".nova-api-toast")).toHaveCount(0);
+  await auth.getByRole("button", { name: "Đóng", exact: true }).click();
   await page
     .getByRole("link", { name: "Xem trước giao diện (chỉ đọc)", exact: true })
     .click();

@@ -105,6 +105,7 @@ function formatTimeOnly(timestamp) {
 export default function SoatVeNhanVien({ onClose, embedded = false }) {
   const { cinemas, rooms, movies, showtimes: catalogShowtimes } = useCatalog();
   const [mode, setMode] = useState("manual");
+  const [guidance, setGuidance] = useState("");
   const [cinemaId, setCinemaId] = useState("");
   const [day, setDay] = useState(vietnamDate);
   const [showtimeId, setShowtimeId] = useState("");
@@ -213,6 +214,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   }, [day, cinemaId]);
 
   function clearResult() {
+    setGuidance("");
     setPreview(null);
     setResult(null);
     setError(null);
@@ -237,7 +239,10 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   useEffect(() => () => stopCamera(), [stopCamera]);
 
   function report(err) {
+    setGuidance("");
     setError({
+      status: err.status,
+      details: err.details,
       code: err.code,
       message: labels[err.code] || err.message,
       at: err.details?.checkedInAt,
@@ -481,6 +486,10 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   };
 
   const ticket = result || preview?.ticket;
+  const alertRef = useRef(null);
+  useEffect(() => {
+    if (error || ticket) alertRef.current?.scrollIntoView({ block: "nearest" });
+  }, [error, ticket]);
 
   return (
     <Modal
@@ -811,8 +820,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
                 <button
                   type="button"
                   onClick={() =>
-                    alert(
-                      "Đã ghi nhận: Mời khách đợi tại sảnh chờ đến giờ vào rạp.",
+                    setGuidance(
+                      "Hướng dẫn tại cửa: đối chiếu đúng giờ trên vé và mời khách đợi tại sảnh nếu chưa đến giờ. Vé chưa được check-in.",
                     )
                   }
                   style={{
@@ -880,13 +889,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
                     fontWeight: 700,
                   }}
                 >
-                  Mã lỗi: {error.code || "REQUEST_FAILED"} (HTTP{" "}
-                  {error.code === "TICKET_ALREADY_USED"
-                    ? "409"
-                    : error.code === "TICKET_NOT_FOUND"
-                      ? "404"
-                      : "400"}
-                  )
+                  Mã lỗi: {error.code || "REQUEST_FAILED"}
+                  {error.status ? ` (HTTP ${error.status})` : ""}
                 </span>
               </div>
               <h3
@@ -918,8 +922,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
                 <button
                   type="button"
                   onClick={() =>
-                    alert(
-                      "Đã ghi nhận yêu cầu: Giữ khách đối chiếu CCCD & Thông tin đơn hàng.",
+                    setGuidance(
+                      "Hướng dẫn tại cửa: đối chiếu giấy tờ và đơn của khách, liên hệ quản lý nếu thông tin không khớp. Không xác nhận lại vé đã sử dụng.",
                     )
                   }
                   style={{
@@ -956,6 +960,11 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         </div>
       )}
 
+      {guidance && (
+        <p role="status" className="auth-notice">
+          {guidance}
+        </p>
+      )}
       {ticket && (
         <div
           ref={alertRef}

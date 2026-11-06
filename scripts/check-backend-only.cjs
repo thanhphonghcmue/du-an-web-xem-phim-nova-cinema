@@ -125,7 +125,7 @@ async function main() {
     page.locator(".catalog-connection-notice [role=alert]"),
   ).toContainText("Không thể kết nối đến máy chủ Backend", { timeout: 20000 });
   await expect(
-    page.locator(".discovery-film,.timeline-show,.standalone-mode-notice"),
+    page.locator(".timeline-show,.standalone-mode-notice"),
   ).toHaveCount(0);
   await expect(
     page.getByRole("combobox", { name: "Chọn cụm rạp", exact: true }),

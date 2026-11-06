@@ -43,6 +43,47 @@ function fixture(count = 800) {
 const signal = () => new AbortController().signal;
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
+test("only the initial cold manifest timeout retries once within the caller deadline", async () => {
+  const original = fixture(4),
+    { manifest, pages } = codec.encodeProgramme(original);
+  let calls = 0;
+  assert.deepEqual(
+    await loadProgramme(async (path) => {
+      if (path.endsWith("/manifest")) {
+        if (++calls === 1)
+          throw Object.assign(new Error("cold route"), {
+            code: "REQUEST_TIMEOUT",
+          });
+        return manifest;
+      }
+      return pages[Number(path.split("/").at(-1))];
+    }, signal()),
+    original,
+  );
+  assert.equal(calls, 2);
+  calls = 0;
+  await assert.rejects(
+    loadProgramme(async () => {
+      calls++;
+      throw Object.assign(new Error("still stalled"), {
+        code: "REQUEST_TIMEOUT",
+      });
+    }, signal()),
+    { code: "REQUEST_TIMEOUT" },
+  );
+  assert.equal(calls, 2);
+  const aborted = new AbortController();
+  aborted.abort();
+  calls = 0;
+  await assert.rejects(
+    loadProgramme(async () => {
+      calls++;
+      throw Object.assign(new Error("aborted"), { code: "REQUEST_TIMEOUT" });
+    }, aborted.signal),
+  );
+  assert.equal(calls, 1);
+});
+
 test("columnar pages retain every field and UUID for a 12000-screening catalogue", () => {
   const original = fixture(12000),
     { manifest, pages } = codec.encodeProgramme(original);

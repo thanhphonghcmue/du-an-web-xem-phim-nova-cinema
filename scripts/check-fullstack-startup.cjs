@@ -113,8 +113,8 @@ async function main() {
       if (response.ok) {
         const { data } = await response.json();
         if (
-          data.combos?.length !== 24 ||
-          new Set(data.combos.map((item) => item.id)).size !== 24
+          data.combos?.length !== 28 ||
+          new Set(data.combos.map((item) => item.id)).size !== 28
         )
           throw new Error("Wrong fallback menu.");
         programme = data;
@@ -145,7 +145,7 @@ async function main() {
   await page.goto(`${origin}/bap-nuoc`);
   try {
     // Cold Next dev compilation/hydration also occurs in this isolated copy.
-    await expect(page.locator(".food-product")).toHaveCount(24, {
+    await expect(page.locator(".food-product")).toHaveCount(28, {
       timeout: 15000,
     });
   } catch (cause) {
@@ -333,7 +333,7 @@ async function main() {
   });
   if (errors.length) throw new Error("Browser error in fallback booking UI.");
   console.log(
-    "PASS automatic RAM fallback: 24 menu items; register/login through HttpOnly BFF; select real RAM seat IDs; hold, signed Sandbox success and SVG QR. Disposable RAM only, no PostgreSQL/SMTP.",
+    "PASS automatic RAM fallback: 28 menu items; register/login through HttpOnly BFF; select real RAM seat IDs; hold, signed Sandbox success and SVG QR. Disposable RAM only, no PostgreSQL/SMTP.",
   );
 }
 async function cleanup() {

@@ -195,3 +195,8 @@ Kiểm chứng615 ca độc lập qua các lượt:116 backend unit,254 HTTP/Soc
 ## Khóa suất và Sandbox hết hạn — 07/11/2026
 
 Bổ sung status suất qua migration additive, API ADMIN khóa/mở và release unpaid holds; JSON Sandbox dùng cùng chữ ký/state machine, cờ kiểm thử chỉ non-production. Giữ Phase11–12 như cũ. TC_FR07_05 và TC_FR08_04 được kiểm chứng native qua browser, cùng hồi quy QR từng ghế. [Báo cáo512 ca và budget chưa đạt](../../docs/qa/showtime-lock-expiry-2026-11-07.md).
+
+
+## Bản vá FR08/FR12 — 07/11/2026
+
+Bổ sung FAILED/failure_reason và metadata combo qua migration additive; giữ kiến trúc, lịch sử đơn cũ và QR riêng từng ghế. Alias REST ADMIN, modal quản trị combo, gợi ý theo số ghế và đồng bộ menu active; adapter RAM giữ contract tương ứng. Kiểm chứng và giới hạn hiệu năng tại [báo cáo RCA](../../docs/qa/failed-payment-combos-2026-11-07.md). Đây là đợt vá theo yêu cầu, không chuyển trạng thái Phase11–12.

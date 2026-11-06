@@ -2,6 +2,8 @@
 
 Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–10 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR cho từng ghế SOLD của booking PAID (giữ nguyên vé nhóm cũ), email SMTP có durable retry, owner ticket/calendar APIs, check-in STAFF/ADMIN nguyên tử và báo cáo doanh thu ADMIN. Frontend Next.js ở `frontend/` đã nối qua BFF cùng origin, cookie HttpOnly và API thật.
 
+Bản vá FR08/FR12: tách FAILED/CANCELLED, metadata và quản trị combo, giữ QR từng ghế. Xem [RCA, ma trận và lệnh kiểm chứng](../docs/qa/failed-payment-combos-2026-11-07.md). Chạy migration trước khi khởi động backend riêng.
+
 Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md) · [Phase 9](docs/validation-phase-9.md) · [Phase 10](docs/validation-phase-10.md).
 
 Bổ sung ngày 05/11/2026: [vé theo từng ghế, mã ngắn, ví vé và soát vé](../docs/qa/per-seat-ticket-wallet.md).

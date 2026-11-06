@@ -1,6 +1,10 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
 import {
+  IsIn,
+  IsInt,
+  Min,
+  Max,
   IsBoolean,
   IsOptional,
   IsString,
@@ -11,6 +15,32 @@ import {
   ValidateIf,
 } from "class-validator";
 export class CreateComboDto {
+  @ApiPropertyOptional()
+  @ValidateIf((_o: unknown, v: unknown) => v !== undefined)
+  @IsIn(["NGỌT", "MẶN", "PHÔ_MAI", "CARAMEL", "MIX"])
+  tasteTag?: string;
+  @ApiPropertyOptional()
+  @ValidateIf((_o: unknown, v: unknown) => v !== undefined)
+  @IsString()
+  @MaxLength(4000)
+  itemsSummary?: string;
+  @ApiPropertyOptional()
+  @ValidateIf((_o: unknown, v: unknown) => v !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  suggestedMinSeats?: number;
+  @ApiPropertyOptional({ nullable: true })
+  @ValidateIf((_o: unknown, v: unknown) => v != null)
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  suggestedMaxSeats?: number | null;
+  @ApiPropertyOptional()
+  @ValidateIf((_o: unknown, v: unknown) => v !== undefined)
+  @IsIn(["SOLO", "COUPLE", "PARTY"])
+  badgeLabel?: string;
+
   @ApiProperty({ maxLength: 120 })
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim() : value,
@@ -44,6 +74,11 @@ export class UpdateComboDto extends PartialType(CreateComboDto, {
   skipNullProperties: false,
 }) {}
 export class ComboDto {
+  @ApiProperty() tasteTag!: string;
+  @ApiProperty() itemsSummary!: string;
+  @ApiProperty() suggestedMinSeats!: number;
+  @ApiProperty({ nullable: true }) suggestedMaxSeats!: number | null;
+  @ApiProperty() badgeLabel!: string;
   @ApiProperty({ format: "uuid" }) id!: string;
   @ApiProperty() name!: string;
   @ApiProperty() description!: string;

@@ -349,14 +349,15 @@ export class SeatBookingService {
   }
   async releaseLocked(
     booking: BookingRecord,
-    status: "CANCELLED" | "EXPIRED",
+    status: "CANCELLED" | "EXPIRED" | "FAILED",
     tx: Prisma.TransactionClient,
+    reason?: string,
   ): Promise<BookingRecord> {
     const seatIds = booking.seats
       .filter((seat) => seat.status === "HOLDING")
       .map((seat) => seat.seatId)
       .sort();
-    const updated = await this.bookings.release(booking.id, status, tx);
+    const updated = await this.bookings.release(booking.id, status, tx, reason);
     await this.events.add(
       "seat_released",
       booking.id,
@@ -381,7 +382,8 @@ export class SeatBookingService {
           "BOOKING_NOT_FOUND",
           "Booking was not found.",
         );
-      if (["CANCELLED", "EXPIRED"].includes(booking.status)) return booking;
+      if (["FAILED", "CANCELLED", "EXPIRED"].includes(booking.status))
+        return booking;
       if (
         booking.status === "PAID" ||
         booking.seats.some((seat) => seat.status === "SOLD")
@@ -396,6 +398,9 @@ export class SeatBookingService {
         booking,
         booking.expiredAt.getTime() <= now.getTime() ? "EXPIRED" : "CANCELLED",
         tx,
+        booking.expiredAt.getTime() <= now.getTime()
+          ? undefined
+          : "CUSTOMER_ABORTED",
       );
     });
   }

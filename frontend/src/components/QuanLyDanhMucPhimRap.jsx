@@ -27,6 +27,7 @@
 
 import { useEffect, useState } from "react";
 import RoomLayoutBuilder from "./RoomLayoutBuilder.jsx";
+import Modal from "./Modal.jsx";
 import { read, readCommand } from "@/api/client.js";
 import { formFieldErrors } from "@/api/formErrors.js";
 import { useCatalog } from "@/catalog.js";
@@ -77,6 +78,11 @@ const specs = {
     label: "Bắp nước",
     fields: [
       ["name", "Tên combo"],
+      ["tasteTag", "Khẩu vị", ["NGỌT", "MẶN", "PHÔ_MAI", "CARAMEL", "MIX"]],
+      ["itemsSummary", "Thành phần combo"],
+      ["suggestedMinSeats", "Số người tối thiểu", "number"],
+      ["suggestedMaxSeats", "Số người tối đa", "number"],
+      ["badgeLabel", "Nhãn", ["SOLO", "COUPLE", "PARTY"]],
       ["description", "Mô tả"],
       ["price", "Giá (VND)"],
       ["isActive", "Đang bán", ["true", "false"]],
@@ -85,7 +91,12 @@ const specs = {
 };
 export default function QuanLyDanhMucPhimRap() {
   const catalog = useCatalog();
-  const [kind, setKind] = useState("movies"),
+  const [kind, setKind] = useState(() =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("tab") === "combos"
+        ? "combos"
+        : "movies",
+    ),
     [items, setItems] = useState([]),
     [meta, setMeta] = useState(null),
     [page, setPage] = useState(1),
@@ -95,6 +106,7 @@ export default function QuanLyDanhMucPhimRap() {
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
     [revision, setRevision] = useState(0);
+  const [comboEditing, setComboEditing] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   function updateField(key, value) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -110,7 +122,7 @@ export default function QuanLyDanhMucPhimRap() {
           ? { keyword: keyword.trim() }
           : {}),
       });
-      read(`/${kind}?${params}`)
+      read(`/${kind === "combos" ? "admin/combos" : kind}?${params}`)
         .then((data) => {
           if (active) {
             setItems(data.items);
@@ -146,6 +158,10 @@ export default function QuanLyDanhMucPhimRap() {
       const body = {};
       for (const [key, , type] of specs[kind].fields) {
         const value = draft[key];
+        if (key === "suggestedMaxSeats" && value === "") {
+          body[key] = null;
+          continue;
+        }
         if (value === undefined || value === "") continue;
         body[key] =
           type === "number"
@@ -164,6 +180,7 @@ export default function QuanLyDanhMucPhimRap() {
       );
       setPage(1);
       setMessage("Đã lưu thành công.");
+      if (kind === "combos") setComboEditing(false);
       setDraft({});
       setEditId(null);
       setRevision((v) => v + 1);
@@ -187,6 +204,7 @@ export default function QuanLyDanhMucPhimRap() {
     }
   }
   function edit(item) {
+    if (kind === "combos") setComboEditing(true);
     setFieldErrors({});
     setEditId(item.id);
     setDraft(
@@ -235,96 +253,125 @@ export default function QuanLyDanhMucPhimRap() {
         ))}
       </nav>
       <div className="catalog-workspace">
-        <section className="admin-editor-panel">
-          <p className="nova-kicker">BIỂU MẪU DANH MỤC</p>
-          <h3>
-            {editId ? "Chỉnh sửa" : "Tạo mới"} {specs[kind].label.toLowerCase()}
-          </h3>
-          <form className="live-admin-form" onSubmit={save}>
-            {specs[kind].fields.map(([key, label, type = "text"]) => {
-              const choices = Array.isArray(type)
-                ? type.map((v) => ({ id: v, name: v }))
-                : ["cinemas", "movies", "rooms"].includes(type)
-                  ? catalog[type].map((v) => ({
-                      id: v.id,
-                      name: v.name || v.title,
-                    }))
-                  : null;
-              return (
-                <label key={key}>
-                  {label}
-                  {choices ? (
-                    <select
-                      aria-label={label}
-                      disabled={busy}
-                      aria-invalid={Boolean(fieldErrors[key])}
-                      aria-describedby={
-                        fieldErrors[key] ? `catalog-error-${key}` : undefined
-                      }
-                      value={draft[key] || ""}
-                      required={!editId}
-                      onChange={(e) => updateField(key, e.target.value)}
-                    >
-                      <option value="">Chọn…</option>
-                      {choices.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      aria-label={label}
-                      disabled={busy}
-                      aria-invalid={Boolean(fieldErrors[key])}
-                      aria-describedby={
-                        fieldErrors[key] ? `catalog-error-${key}` : undefined
-                      }
-                      type={type}
-                      value={draft[key] || ""}
-                      min={type === "number" ? 1 : undefined}
-                      required={
-                        !editId && !["posterUrl", "trailerUrl"].includes(key)
-                      }
-                      onChange={(e) => updateField(key, e.target.value)}
-                    />
-                  )}
-                  {fieldErrors[key] && (
-                    <span
-                      id={`catalog-error-${key}`}
-                      className="field-validation-message"
-                      role="alert"
-                    >
-                      {fieldErrors[key]}
-                    </span>
-                  )}
-                </label>
-              );
-            })}
-            <button className="button button-primary" disabled={busy}>
-              Lưu {specs[kind].label.toLowerCase()}
-            </button>
-            {editId && (
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => {
-                  setEditId(null);
-                  setDraft({});
-                  setFieldErrors({});
-                }}
-              >
-                Hủy chỉnh sửa
+        {(kind !== "combos" || comboEditing) && (
+          <CatalogEditor
+            modal={kind === "combos"}
+            onClose={() => setComboEditing(false)}
+          >
+            <p className="nova-kicker">BIỂU MẪU DANH MỤC</p>
+            <h3>
+              {editId ? "Chỉnh sửa" : "Tạo mới"}{" "}
+              {specs[kind].label.toLowerCase()}
+            </h3>
+            <form className="live-admin-form" onSubmit={save}>
+              {specs[kind].fields.map(([key, label, type = "text"]) => {
+                const choices = Array.isArray(type)
+                  ? type.map((v) => ({ id: v, name: v }))
+                  : ["cinemas", "movies", "rooms"].includes(type)
+                    ? catalog[type].map((v) => ({
+                        id: v.id,
+                        name: v.name || v.title,
+                      }))
+                    : null;
+                return (
+                  <label key={key}>
+                    {label}
+                    {choices ? (
+                      <select
+                        aria-label={label}
+                        disabled={busy}
+                        aria-invalid={Boolean(fieldErrors[key])}
+                        aria-describedby={
+                          fieldErrors[key] ? `catalog-error-${key}` : undefined
+                        }
+                        value={draft[key] || ""}
+                        required={!editId}
+                        onChange={(e) => updateField(key, e.target.value)}
+                      >
+                        <option value="">Chọn…</option>
+                        {choices.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        aria-label={label}
+                        disabled={busy}
+                        aria-invalid={Boolean(fieldErrors[key])}
+                        aria-describedby={
+                          fieldErrors[key] ? `catalog-error-${key}` : undefined
+                        }
+                        type={type}
+                        value={draft[key] || ""}
+                        min={type === "number" ? 1 : undefined}
+                        required={
+                          !editId &&
+                          ![
+                            "posterUrl",
+                            "trailerUrl",
+                            "suggestedMaxSeats",
+                          ].includes(key)
+                        }
+                        onChange={(e) => updateField(key, e.target.value)}
+                      />
+                    )}
+                    {fieldErrors[key] && (
+                      <span
+                        id={`catalog-error-${key}`}
+                        className="field-validation-message"
+                        role="alert"
+                      >
+                        {fieldErrors[key]}
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+              <button className="button button-primary" disabled={busy}>
+                Lưu {specs[kind].label.toLowerCase()}
               </button>
+              {editId && (
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    setEditId(null);
+                    setDraft({});
+                    setFieldErrors({});
+                  }}
+                >
+                  Hủy chỉnh sửa
+                </button>
+              )}
+            </form>
+            {message && (
+              <p className="workspace-message" role="status">
+                {message}
+              </p>
             )}
-          </form>
-          {message && (
-            <p className="workspace-message" role="status">
-              {message}
-            </p>
-          )}
-        </section>
+          </CatalogEditor>
+        )}
         <section className="admin-list-panel">
+          {kind === "combos" && (
+            <button
+              className="button button-primary"
+              onClick={() => {
+                setDraft({
+                  isActive: "true",
+                  tasteTag: "NGỌT",
+                  badgeLabel: "SOLO",
+                  suggestedMinSeats: 1,
+                  suggestedMaxSeats: 1,
+                });
+                setEditId(null);
+                setComboEditing(true);
+              }}
+            >
+              Thêm mới Combo
+            </button>
+          )}
           <div className="workspace-toolbar">
             <div>
               <p className="nova-kicker">DỮ LIỆU ĐÃ LƯU</p>
@@ -365,6 +412,14 @@ export default function QuanLyDanhMucPhimRap() {
                       {item.title ||
                         item.name ||
                         new Date(item.startTime).toLocaleString("vi-VN")}
+                      {kind === "combos" && (
+                        <p>
+                          {item.price} VND · {item.tasteTag} · {item.badgeLabel}{" "}
+                          · {item.suggestedMinSeats}–
+                          {item.suggestedMaxSeats ?? "nhiều"} vé ·{" "}
+                          {item.isActive ? "Đang bán" : "Đã ẩn"}
+                        </p>
+                      )}
                     </td>
                     <td>
                       {{
@@ -386,6 +441,31 @@ export default function QuanLyDanhMucPhimRap() {
                       >
                         Sửa
                       </button>
+                      {kind === "combos" && (
+                        <button
+                          className="text-button"
+                          disabled={busy}
+                          onClick={async () => {
+                            setBusy(true);
+                            try {
+                              await readCommand(
+                                `/admin/combos/${item.id}/toggle-status`,
+                                {},
+                                {},
+                                "PATCH",
+                              );
+                              setRevision((v) => v + 1);
+                              await catalog.reload();
+                            } catch (e) {
+                              setMessage(e.message);
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                        >
+                          {item.isActive ? "Ẩn combo" : "Hiện combo"}
+                        </button>
+                      )}
                       {kind === "showtimes" && (
                         <button
                           className="text-button"
@@ -459,5 +539,15 @@ export default function QuanLyDanhMucPhimRap() {
       </div>
       {kind === "rooms" && <RoomLayoutBuilder />}
     </div>
+  );
+}
+
+function CatalogEditor({ modal, onClose, children }) {
+  return modal ? (
+    <Modal title="Quản trị combo" onClose={onClose}>
+      {children}
+    </Modal>
+  ) : (
+    <section className="admin-editor-panel">{children}</section>
   );
 }

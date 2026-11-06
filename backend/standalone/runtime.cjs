@@ -89,9 +89,25 @@ function createMemoryServer(input) {
     maps[key] = new Map(
       input[key].map((row) => [
         row.id,
-        { ...(key === "showtimes" ? { status: "ACTIVE" } : {}), ...row },
+        {
+          ...(key === "showtimes"
+            ? { status: "ACTIVE" }
+            : key === "combos"
+              ? {
+                  tasteTag: "MIX",
+                  itemsSummary: "",
+                  suggestedMinSeats: 1,
+                  suggestedMaxSeats: null,
+                  badgeLabel: "PARTY",
+                }
+              : {}),
+          ...row,
+        },
       ]),
     );
+  if (input.combos.length >= 24)
+    for (const row of require("../../content/combo-recommendations.json"))
+      if (!maps.combos.has(row.id)) maps.combos.set(row.id, { ...row });
   const users = new Map(),
     sessions = new Map(),
     orders = new Map(),
@@ -249,6 +265,7 @@ function createMemoryServer(input) {
     return {
       ...row,
       status: projected,
+      failureReason: order.failureReason || null,
       seats: row.seats.map((seat) => ({
         ...seat,
         status:
@@ -726,7 +743,9 @@ function createMemoryServer(input) {
       issue(order);
     } else {
       payment.status = fields.result;
-      release(order, "CANCELLED");
+      release(order, fields.result === "FAILED" ? "FAILED" : "CANCELLED");
+      order.failureReason =
+        fields.result === "FAILED" ? "PAYMENT_DECLINED" : "CUSTOMER_ABORTED";
     }
     return { ...state(order), duplicate: false };
   }
@@ -956,6 +975,36 @@ function createMemoryServer(input) {
           realtime: { status: "polling" },
         },
       });
+    const comboAdminRoute = path.match(
+      /^\/admin\/combos(?:\/([^/]+))?(?:\/(toggle-status))?$/,
+    );
+    if (comboAdminRoute) {
+      auth(request, ["ADMIN"]);
+      const id = comboAdminRoute[1];
+      if (method === "GET")
+        return json(pageOf([...maps.combos.values()], query));
+      if (comboAdminRoute[2] && method === "PATCH") {
+        const item = model("combos", id);
+        item.isActive = !item.isActive;
+        programmePointers.clear();
+        return json(item);
+      }
+      const target = new URL(url);
+      target.pathname = "/api/v1/combos" + (id ? "/" + id : "");
+      const aliasRequest = Object.create(request);
+      Object.defineProperty(aliasRequest, "method", {
+        value: method === "PUT" ? "PATCH" : method,
+      });
+      const handled = admin(
+        aliasRequest,
+        target.pathname.replace("/api/v1", ""),
+        query,
+        body,
+        json,
+      );
+      programmePointers.clear();
+      return handled;
+    }
     const statusRoute = path.match(/^\/showtimes\/([^/]+)\/status$/);
     if (statusRoute && method === "PATCH") {
       auth(request, ["ADMIN"]);
@@ -1348,6 +1397,8 @@ function createMemoryServer(input) {
         );
         if (["HOLDING", "PENDING"].includes(order.status))
           release(order, status(order) === "EXPIRED" ? "EXPIRED" : "CANCELLED");
+        if (order.status === "CANCELLED")
+          order.failureReason = "CUSTOMER_ABORTED";
       }
       return json(bookingData(order));
     }

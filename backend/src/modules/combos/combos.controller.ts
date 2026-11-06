@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Put,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
@@ -44,5 +45,28 @@ export class CombosController {
     @Body() dto: UpdateComboDto,
   ) {
     return this.service.update(id, dto);
+  }
+}
+
+@ApiTags("Admin Combos")
+@Controller("admin/combos")
+export class AdminCombosController {
+  constructor(private readonly service: CombosService) {}
+  @Get() @CatalogWrite() list(@Query() query: PaginationDto) {
+    return this.service.list(query, true);
+  }
+  @Post() @CatalogWrite() create(@Body() dto: CreateComboDto) {
+    return this.service.create(dto);
+  }
+  @Put(":id") @CatalogWrite() update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateComboDto,
+  ) {
+    return this.service.update(id, dto);
+  }
+  @Patch(":id/toggle-status") @CatalogWrite() toggle(
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return this.service.toggle(id);
   }
 }

@@ -5,6 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CinematicScreen3D from "./CinematicScreen3D.jsx";
 import BookingPreview from "./BookingPreview.jsx";
 import BookingTicket from "./BookingTicket.jsx";
+import {
+  comboTastes,
+  rankedCombos,
+  recommended,
+} from "@/comboRecommendations.js";
 import SandboxGateway from "./SandboxGateway.jsx";
 import { sandboxCheckout } from "@/sandboxCheckout.js";
 import NovaLogo from "./NovaLogo.jsx";
@@ -37,6 +42,7 @@ import { createRequestKey } from "@/api/requestKey.js";
 import { money } from "@/data.js";
 import { menuDetails } from "@/commerce.js";
 import {
+  apiList,
   apiGetShowtimeSeats,
   apiGetMyBookings,
   apiGetBooking,
@@ -274,7 +280,9 @@ function LiveBookingConsole({
   onMemberUpdate,
 }) {
   const { t, language } = useI18n();
-  const { combos, rooms, reload } = useCatalog();
+  const { combos: catalogCombos, rooms, reload } = useCatalog();
+  const [menuSnapshot, setMenuSnapshot] = useState(null);
+  const combos = menuSnapshot || catalogCombos;
   const showtimeId = booking.showtimeId || booking.time.id;
   const startTime = new Date(booking.time.startTime);
   const startLabel = Number.isFinite(startTime.getTime())
@@ -309,6 +317,7 @@ function LiveBookingConsole({
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [gateway, setGateway] = useState("sandbox");
+  const [comboTaste, setComboTaste] = useState("all");
   const [comboItems, setComboItems] = useState(() => {
     const combo = booking.combo && combos.find((c) => c.price === "69000.00");
     const cart = readFoodCart();
@@ -339,6 +348,44 @@ function LiveBookingConsole({
   const changingOrder = useRef(false);
   const noticeElement = useRef(null);
   const revealConflict = useRef(false);
+  useEffect(() => {
+    let active = true,
+      running = false;
+    const sync = async () => {
+      if (running || document.hidden) return;
+      running = true;
+      try {
+        const items = await apiList("/combos");
+        if (active) {
+          setMenuSnapshot(items);
+          if (
+            !changingOrder.current &&
+            !["HOLDING", "PENDING", "PAID"].includes(orderRef.current?.status)
+          ) {
+            const available = new Set(items.map((item) => item.id));
+            setComboItems((current) =>
+              Object.keys(current).some((id) => !available.has(id))
+                ? Object.fromEntries(
+                    Object.entries(current).filter(([id]) => available.has(id)),
+                  )
+                : current,
+            );
+          }
+        }
+      } catch {
+        /* Giữ menu đã tải; lệnh giữ ghế vẫn kiểm tra lại trên server. */
+      } finally {
+        running = false;
+      }
+    };
+    const timer = setInterval(sync, 5000);
+    window.addEventListener("focus", sync);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", sync);
+    };
+  }, []);
 
   useEffect(() => {
     if (!notice || !revealConflict.current) return;
@@ -554,7 +601,7 @@ function LiveBookingConsole({
       .then((latest) => {
         if (!active) return;
         setOrder(latest);
-        if (["EXPIRED", "CANCELLED"].includes(latest.status)) {
+        if (["FAILED", "EXPIRED", "CANCELLED"].includes(latest.status)) {
           activeOrderId.current = undefined;
           requestKey.current = null;
           setSelected([]);
@@ -811,7 +858,9 @@ function LiveBookingConsole({
       setShowPaymentReview(false);
       if (confirmed.status === "PAID") {
         activeOrderId.current = confirmed.id;
-      } else if (["CANCELLED", "EXPIRED"].includes(confirmed.status)) {
+      } else if (
+        ["FAILED", "CANCELLED", "EXPIRED"].includes(confirmed.status)
+      ) {
         activeOrderId.current = undefined;
         requestKey.current = null;
         setSelected([]);
@@ -1198,68 +1247,97 @@ function LiveBookingConsole({
 
               {!holding && (
                 <div className="live-combos">
-                  {combos.map((combo) => (
-                    <label key={combo.id}>
-                      <MenuImage
-                        item={{ ...menuDetails(combo), ...combo }}
-                        decorative
-                      />
-                      <span>
-                        {combo.name}
-                        <small>{money(combo.price)}</small>
-                      </span>
-                      <div className="booking-combo-quantity">
-                        <button
-                          type="button"
-                          aria-label={`Giảm ${combo.name}`}
-                          disabled={!comboItems[combo.id]}
-                          onClick={() =>
-                            setComboItems((items) => ({
-                              ...items,
-                              [combo.id]: Math.max(
-                                0,
-                                (items[combo.id] || 0) - 1,
-                              ),
-                            }))
-                          }
-                        >
-                          −
-                        </button>
-                        <input
-                          aria-label={`Số lượng ${combo.name}`}
-                          type="number"
-                          min="0"
-                          max="20"
-                          value={comboItems[combo.id] || 0}
-                          onChange={(e) =>
-                            setComboItems({
-                              ...comboItems,
-                              [combo.id]: Math.min(
-                                20,
-                                Math.max(0, Math.trunc(Number(e.target.value))),
-                              ),
-                            })
-                          }
+                  <div
+                    role="group"
+                    aria-label="Khẩu vị combo"
+                    className="history-tabs"
+                  >
+                    {comboTastes.map(([value, label]) => (
+                      <button
+                        type="button"
+                        key={value}
+                        aria-pressed={comboTaste === value}
+                        onClick={() => setComboTaste(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {rankedCombos(combos, selected.length, comboTaste).map(
+                    (combo) => (
+                      <label key={combo.id}>
+                        <MenuImage
+                          item={{ ...menuDetails(combo), ...combo }}
+                          decorative
                         />
-                        <button
-                          type="button"
-                          aria-label={`Tăng ${combo.name}`}
-                          disabled={comboItems[combo.id] >= 20}
-                          onClick={() =>
-                            setComboItems((items) => ({
-                              ...items,
-                              [combo.id]: Math.min(
-                                20,
-                                (items[combo.id] || 0) + 1,
-                              ),
-                            }))
-                          }
-                        >
-                          +
-                        </button>
-                      </div>
-                    </label>
-                  ))}
+                        <span>
+                          {combo.name}
+                          {recommended(combo, selected.length) && (
+                            <small className="paid-ticket-seats">
+                              {selected.length >= 3
+                                ? `🔥 Phù hợp nhất cho nhóm ${selected.length} người`
+                                : `✨ Gợi ý cho bạn (${selected.length === 1 ? "Solo - 1 người" : "Cặp đôi - 2 người"})`}
+                            </small>
+                          )}
+                          <small>{combo.itemsSummary}</small>
+                          <small>{money(combo.price)}</small>
+                        </span>
+                        <div className="booking-combo-quantity">
+                          <button
+                            type="button"
+                            aria-label={`Giảm ${combo.name}`}
+                            disabled={!comboItems[combo.id]}
+                            onClick={() =>
+                              setComboItems((items) => ({
+                                ...items,
+                                [combo.id]: Math.max(
+                                  0,
+                                  (items[combo.id] || 0) - 1,
+                                ),
+                              }))
+                            }
+                          >
+                            −
+                          </button>
+                          <input
+                            aria-label={`Số lượng ${combo.name}`}
+                            type="number"
+                            min="0"
+                            max="20"
+                            value={comboItems[combo.id] || 0}
+                            onChange={(e) =>
+                              setComboItems({
+                                ...comboItems,
+                                [combo.id]: Math.min(
+                                  20,
+                                  Math.max(
+                                    0,
+                                    Math.trunc(Number(e.target.value)),
+                                  ),
+                                ),
+                              })
+                            }
+                          />
+                          <button
+                            type="button"
+                            aria-label={`Tăng ${combo.name}`}
+                            disabled={comboItems[combo.id] >= 20}
+                            onClick={() =>
+                              setComboItems((items) => ({
+                                ...items,
+                                [combo.id]: Math.min(
+                                  20,
+                                  (items[combo.id] || 0) + 1,
+                                ),
+                              }))
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      </label>
+                    ),
+                  )}
                 </div>
               )}
 
@@ -1676,16 +1754,27 @@ function LiveBookingConsole({
         <Modal
           headerless
           className="cinema-state-card cinema-state-red booking-cancelled-modal"
-          title="Giao dịch đã được hủy bỏ"
+          title={
+            cancelledNotice.status === "FAILED"
+              ? "Thanh toán không thành công"
+              : "Giao dịch đã được hủy bỏ"
+          }
           onClose={() => setCancelledNotice(null)}
         >
           <div className="cinema-state-icon">
             <X size={28} />
           </div>
-          <h2>Giao dịch đã được hủy bỏ</h2>
+          <h2>
+            {cancelledNotice.status === "FAILED"
+              ? "Thanh toán không thành công"
+              : "Giao dịch đã được hủy bỏ"}
+          </h2>
           <p>
-            Đơn <strong>{cancelledNotice.orderCode}</strong> đã được máy chủ xác
-            nhận hủy và trả ghế. Đây là thanh toán Sandbox, không thu tiền thật.
+            Đơn <strong>{cancelledNotice.orderCode}</strong>:{" "}
+            {cancelledNotice.status === "FAILED"
+              ? "Cổng Sandbox từ chối giao dịch (PAYMENT_DECLINED). Có thể thử phương thức mô phỏng khác sau khi chọn và giữ lại ghế."
+              : "Bạn đã hủy giao dịch (CUSTOMER_ABORTED). Ghế đã được giải phóng."}{" "}
+            Đây là Sandbox, không thu tiền thật.
           </p>
           <div className="cinema-state-actions">
             <a className="button button-glass" href="/">

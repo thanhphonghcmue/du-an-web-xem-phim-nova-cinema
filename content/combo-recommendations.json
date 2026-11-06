@@ -1,0 +1,54 @@
+[
+  {
+    "id": "1f5296e1-2c81-4354-9d39-d0bdf8700001",
+    "name": "Solo Sweet Combo",
+    "description": "1 bắp ngọt + 1 nước",
+    "price": "49000.00",
+    "tasteTag": "NGỌT",
+    "itemsSummary": "1 bắp ngọt + 1 nước",
+    "suggestedMinSeats": 1,
+    "suggestedMaxSeats": 1,
+    "badgeLabel": "SOLO",
+    "isActive": true,
+    "imageUrl": "/images/food-photography/popcorn-plain.webp"
+  },
+  {
+    "id": "1f5296e1-2c81-4354-9d39-d0bdf8700002",
+    "name": "Couple Phô Mai Combo",
+    "description": "1 bắp phô mai + 2 nước",
+    "price": "89000.00",
+    "tasteTag": "PHÔ_MAI",
+    "itemsSummary": "1 bắp phô mai + 2 nước",
+    "suggestedMinSeats": 2,
+    "suggestedMaxSeats": 2,
+    "badgeLabel": "COUPLE",
+    "isActive": true,
+    "imageUrl": "/images/food-photography/popcorn-cheese.webp"
+  },
+  {
+    "id": "1f5296e1-2c81-4354-9d39-d0bdf8700003",
+    "name": "Party Combo 69K Siêu Tiết Kiệm",
+    "description": "1 bắp mix + 2 nước",
+    "price": "69000.00",
+    "tasteTag": "MIX",
+    "itemsSummary": "1 bắp mix + 2 nước",
+    "suggestedMinSeats": 3,
+    "suggestedMaxSeats": null,
+    "badgeLabel": "PARTY",
+    "isActive": true,
+    "imageUrl": "/images/food-photography/popcorn-sharing.webp"
+  },
+  {
+    "id": "1f5296e1-2c81-4354-9d39-d0bdf8700004",
+    "name": "Mega Party All-In Combo",
+    "description": "2 bắp caramel + 4 nước",
+    "price": "149000.00",
+    "tasteTag": "CARAMEL",
+    "itemsSummary": "2 bắp caramel + 4 nước",
+    "suggestedMinSeats": 4,
+    "suggestedMaxSeats": null,
+    "badgeLabel": "PARTY",
+    "isActive": true,
+    "imageUrl": "/images/food-photography/popcorn-caramel.webp"
+  }
+]

@@ -592,11 +592,25 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
       const notifications = await watch(f.showtime.id);
       const signed = callback(booking, payment, outcome);
       expect(data(await webhook(signed).expect(200)) as State).toMatchObject({
-        bookingStatus: "CANCELLED",
+        bookingStatus: outcome,
         paymentStatus: outcome,
         duplicate: false,
       });
       expect((await stored(booking.id)).seats[0]?.status).toBe("AVAILABLE");
+      expect((await stored(booking.id)).failureReason).toBe(
+        outcome === "FAILED" ? "PAYMENT_DECLINED" : "CUSTOMER_ABORTED",
+      );
+      // Gọi hủy sau kết quả cuối không được đổi FAILED thành CANCELLED.
+      expect(
+        (
+          await app
+            .get(SeatBookingService)
+            .releaseSeats(booking.id, userId)
+        ).status,
+      ).toBe(outcome);
+      expect((await stored(booking.id)).failureReason).toBe(
+        outcome === "FAILED" ? "PAYMENT_DECLINED" : "CUSTOMER_ABORTED",
+      );
       expect(await points()).toBe(0);
       await flushSeats();
       await eventually(() =>
@@ -722,7 +736,8 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
       expect(row.seats[0]?.status).toBe("SOLD");
       expect(await points()).toBe(8);
     } else {
-      expect(row.status).toBe("CANCELLED");
+      expect(row.status).toBe("FAILED");
+      expect(row.failureReason).toBe("PAYMENT_DECLINED");
       expect(row.payments[0]?.status).toBe("FAILED");
       expect(row.seats[0]?.status).toBe("AVAILABLE");
       expect(await points()).toBe(0);

@@ -53,6 +53,7 @@ enum SeatType {
 }
 
 enum BookingStatus {
+  FAILED
   PENDING
   HOLDING
   PAID
@@ -193,6 +194,11 @@ model Showtime {
 }
 
 model Combo {
+  tasteTag String @default("MIX") @map("taste_tag")
+  itemsSummary String @default("") @map("items_summary")
+  suggestedMinSeats Int @default(1) @map("suggested_min_seats")
+  suggestedMaxSeats Int? @map("suggested_max_seats")
+  badgeLabel String @default("PARTY") @map("badge_label")
   id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String         @db.VarChar(120)
   description   String         @db.Text
@@ -208,6 +214,7 @@ model Combo {
 }
 
 model Booking {
+  failureReason String? @map("failure_reason")
   id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderCode         String         @unique @map("order_code") @db.VarChar(40)
   userId            String         @map("user_id") @db.Uuid

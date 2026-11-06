@@ -1,5 +1,5 @@
 "use client";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useCatalog } from "@/catalog.js";
+import { apiList } from "@/api/client.js";
 import { menuCategories, menuDetails } from "@/commerce.js";
 import { money } from "@/data.js";
 import { matchesFood, readFoodCart, saveFoodCart } from "@/foodCart.js";
@@ -199,7 +200,9 @@ const FoodProduct = memo(function FoodProduct({
 });
 
 export default function FoodStore({ compact = false, onBooking }) {
-  const { combos, isLive, error } = useCatalog();
+  const { combos: catalogCombos, isLive, error } = useCatalog();
+  const [menuSnapshot, setMenuSnapshot] = useState(null);
+  const combos = menuSnapshot || catalogCombos;
   const loading = !isLive && !error;
   const [category, setCategory] = useState("all");
   const [flavor, setFlavor] = useState("all");
@@ -209,6 +212,42 @@ export default function FoodStore({ compact = false, onBooking }) {
   const cartRef = useRef(cart);
   const [detailId, setDetailId] = useState(null);
   const [draftNotice, setDraftNotice] = useState("");
+  useEffect(() => {
+    let active = true,
+      running = false;
+    const sync = async () => {
+      if (running || document.hidden) return;
+      running = true;
+      try {
+        const items = await apiList("/combos");
+        if (!active) return;
+        setMenuSnapshot(items);
+        // Loại món ngừng bán khỏi bản nháp, không đụng vào đơn đã giữ ghế.
+        const available = new Set(items.map((item) => item.id));
+        const current = cartRef.current;
+        if (Object.keys(current).some((id) => !available.has(id))) {
+          const next = Object.fromEntries(
+            Object.entries(current).filter(([id]) => available.has(id)),
+          );
+          cartRef.current = next;
+          setCart(next);
+          saveFoodCart(next);
+        }
+      } catch {
+        /* Giữ menu đã tải khi mất mạng; backend vẫn kiểm tra khả dụng. */
+      } finally {
+        running = false;
+      }
+    };
+    const timer = setInterval(sync, 5000);
+    window.addEventListener("focus", sync);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", sync);
+    };
+  }, []);
+
   const products = useMemo(
     () =>
       combos

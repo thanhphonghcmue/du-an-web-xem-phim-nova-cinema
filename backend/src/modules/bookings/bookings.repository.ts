@@ -148,13 +148,16 @@ export class BookingsRepository {
   }
   release(
     id: string,
-    status: "CANCELLED" | "EXPIRED",
+    status: "CANCELLED" | "EXPIRED" | "FAILED",
     tx: Prisma.TransactionClient,
+    reason?: string,
   ) {
     return tx.booking.update({
       where: { id },
       data: {
         status,
+        failureReason:
+          reason ?? (status === "FAILED" ? "PAYMENT_DECLINED" : null),
         seats: {
           updateMany: {
             where: { status: "HOLDING" },

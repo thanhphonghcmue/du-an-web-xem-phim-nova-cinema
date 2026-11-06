@@ -71,7 +71,12 @@ export default function QuanTriHeThong({
   adminUser,
   embedded = false,
 }) {
-  const [activeTab, setActiveTab] = useState("revenue"); // revenue | users | catalog | maintenance
+  const [activeTab, setActiveTab] = useState(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("tab") === "combos"
+      ? "catalog"
+      : "revenue",
+  ); // revenue | users | catalog | maintenance
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -673,9 +678,11 @@ export default function QuanTriHeThong({
                                     ? "⏳ Đang giữ chỗ"
                                     : b.status === "EXPIRED"
                                       ? "⏱️ Hết hạn 5 phút"
-                                      : b.status === "CANCELLED"
-                                        ? "❌ Đã hủy"
-                                        : b.status}
+                                      : b.status === "FAILED"
+                                        ? "❌ Thanh toán thất bại"
+                                        : b.status === "CANCELLED"
+                                          ? "❌ Đã hủy"
+                                          : b.status}
                               </span>
                             </td>
                           </tr>

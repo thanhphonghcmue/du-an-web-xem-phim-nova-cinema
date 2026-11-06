@@ -496,3 +496,235 @@ test("TC_FR08_04: signed test expiry returns JSON409, no PAID/QR, keeps CSS and 
   ).toHaveLength(0);
   expect(errors).toEqual([]);
 });
+
+test("TC_FR12_01: persisted seat ranges rank Solo, Couple and Party69K; taste chips filter locally without changing the cart", async ({
+  page,
+}) => {
+  await start(page);
+  const seat = (n) =>
+    page.getByRole("button", { name: `Ghế A${n}, còn trống`, exact: true });
+  await seat(10).click();
+  await expect(page.locator(".live-combos")).toContainText("Solo - 1 người");
+  await seat(11).click();
+  await expect(page.locator(".live-combos")).toContainText("Cặp đôi - 2 người");
+  await seat(12).click();
+  await expect(page.locator(".live-combos > label").first()).toContainText(
+    "Party Combo 69K",
+  );
+  await expect(page.locator(".live-combos > label").first()).toContainText(
+    "Phù hợp nhất cho nhóm 3 người",
+  );
+  const labels = page.locator(".live-combos > label");
+  await page
+    .getByRole("group", { name: "Khẩu vị combo" })
+    .getByRole("button", { name: "Phô Mai", exact: true })
+    .click();
+  await expect(labels).toContainText(["Couple Phô Mai Combo"]);
+  await page
+    .getByRole("group", { name: "Khẩu vị combo" })
+    .getByRole("button", { name: "Tất cả", exact: true })
+    .click();
+  await expect(labels.first()).toContainText("Party Combo 69K");
+});
+
+test("TC_FR12_02: admin creates metadata in a modal, edits price and hides/restores a combo; customer cannot administer it", async ({
+  page,
+  browser,
+}) => {
+  const data = fixture();
+  expect(
+    (
+      await page.request.post("/api/v1/auth/login", {
+        data: { email: data.accounts.admin.email, password: data.password },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.goto("/admin/combos");
+  await expect(page).toHaveURL(/\/quan-tri\?tab=combos/);
+  await page
+    .getByRole("button", { name: "Thêm mới Combo", exact: true })
+    .click();
+  const modal = page.getByRole("dialog", {
+    name: "Quản trị combo",
+    exact: true,
+  });
+  const name = "00 " + data.prefix + " combo";
+  await modal.getByLabel("Đang bán", { exact: true }).selectOption("true");
+  await modal.getByLabel("Tên combo", { exact: true }).fill(name);
+  await modal
+    .getByLabel("Mô tả", { exact: true })
+    .fill(data.prefix + " menu · Owned combo fixture");
+  await modal.getByLabel("Giá (VND)", { exact: true }).fill("49000");
+  await modal.getByLabel("Khẩu vị", { exact: true }).selectOption("NGỌT");
+  await modal
+    .getByLabel("Thành phần combo", { exact: true })
+    .fill("1 bắp + 1 nước");
+  await modal.getByLabel("Số người tối thiểu", { exact: true }).fill("1");
+  await modal.getByLabel("Số người tối đa", { exact: true }).fill("1");
+  await modal.getByLabel("Nhãn", { exact: true }).selectOption("SOLO");
+  const created = page.waitForResponse(
+    (r) => r.url().endsWith("/combos") && r.request().method() === "POST",
+  );
+  await modal
+    .getByRole("button", { name: "Lưu bắp nước", exact: true })
+    .click();
+  const r = await created;
+  expect(r.status()).toBe(201);
+  const combo = (await r.json()).data;
+  expect(combo).toMatchObject({
+    tasteTag: "NGỌT",
+    suggestedMinSeats: 1,
+    suggestedMaxSeats: 1,
+    badgeLabel: "SOLO",
+  });
+  await expect(modal).toHaveCount(0);
+  const row = page.locator(`[data-entity-id="${combo.id}"]`);
+  await expect(row).toContainText(name);
+  await row.getByRole("button", { name: "Sửa", exact: true }).click();
+  await modal.getByLabel("Giá (VND)", { exact: true }).fill("51000");
+  await modal
+    .getByRole("button", { name: "Lưu bắp nước", exact: true })
+    .click();
+  await expect(row).toContainText("51000");
+  await row.getByRole("button", { name: "Ẩn combo", exact: true }).click();
+  await expect(
+    row.getByRole("button", { name: "Hiện combo", exact: true }),
+  ).toBeVisible();
+  const publicRows = await read(page, "/combos?limit=100");
+  expect(publicRows.items.some((c) => c.id === combo.id)).toBe(false);
+  const all = await read(page, "/admin/combos?limit=100");
+  expect(all.items.find((c) => c.id === combo.id).isActive).toBe(false);
+  const other = await browser.newContext({
+    baseURL: new URL(page.url()).origin,
+  });
+  try {
+    expect(
+      (
+        await other.request.post("/api/v1/auth/login", {
+          data: {
+            email: data.accounts.customer.email,
+            password: data.password,
+          },
+        })
+      ).status(),
+    ).toBe(200);
+    expect(
+      (
+        await other.request.patch(
+          `/api/v1/admin/combos/${combo.id}/toggle-status`,
+          { data: {} },
+        )
+      ).status(),
+    ).toBe(403);
+  } finally {
+    await other.close();
+  }
+  await row.getByRole("button", { name: "Hiện combo", exact: true }).click();
+  await expect(
+    row.getByRole("button", { name: "Ẩn combo", exact: true }),
+  ).toBeVisible();
+  expect(
+    (await read(page, "/combos?limit=100")).items.some(
+      (c) => c.id === combo.id,
+    ),
+  ).toBe(true);
+});
+
+test("TC_FR12_02: another customer refreshes hidden combos and removes an unheld cart item", async ({
+  page,
+  browser,
+}) => {
+  const data = fixture();
+  const admin = await browser.newContext({
+    baseURL: new URL(test.info().project.use.baseURL).origin,
+  });
+  try {
+    expect(
+      (
+        await admin.request.post("/api/v1/auth/login", {
+          data: { email: data.accounts.admin.email, password: data.password },
+        })
+      ).status(),
+    ).toBe(200);
+    const payload = {
+      name: data.prefix + " live combo",
+      description: data.prefix + " menu · Live visibility",
+      price: "49000",
+      tasteTag: "NGỌT",
+      itemsSummary: "1 bắp + 1 nước",
+      suggestedMinSeats: 1,
+      suggestedMaxSeats: 1,
+      badgeLabel: "SOLO",
+      isActive: true,
+    };
+    expect(
+      (
+        await admin.request.post("/api/v1/admin/combos", {
+          data: { ...payload, suggestedMinSeats: 3, suggestedMaxSeats: 1 },
+        })
+      ).status(),
+    ).toBe(400);
+    expect(
+      (
+        await admin.request.post("/api/v1/admin/combos", {
+          data: { ...payload, tasteTag: null },
+        })
+      ).status(),
+    ).toBe(400);
+    const response = await admin.request.post("/api/v1/admin/combos", {
+      data: payload,
+    });
+    expect(response.status()).toBe(201);
+    const combo = (await response.json()).data;
+    expect(
+      (
+        await admin.request.put(`/api/v1/admin/combos/${combo.id}`, {
+          data: { price: "51000", suggestedMaxSeats: null },
+        })
+      ).status(),
+    ).toBe(200);
+    await start(page);
+    const quantity = page.getByRole("spinbutton", {
+      name: `Số lượng ${combo.name}`,
+      exact: true,
+    });
+    await expect(quantity).toBeVisible();
+    await quantity.fill("1");
+    expect(
+      (
+        await admin.request.patch(
+          `/api/v1/admin/combos/${combo.id}/toggle-status`,
+          { data: {} },
+        )
+      ).status(),
+    ).toBe(200);
+    await expect(quantity).toHaveCount(0, { timeout: 10000 });
+    expect(
+      (
+        await admin.request.patch(
+          `/api/v1/admin/combos/${combo.id}/toggle-status`,
+          { data: {} },
+        )
+      ).status(),
+    ).toBe(200);
+    await expect(quantity).toBeVisible({ timeout: 10000 });
+    await expect(quantity).toHaveValue("0");
+    await page.goto("/bap-nuoc");
+    const product = page.getByRole("heading", {
+      name: combo.name,
+      exact: true,
+    });
+    await expect(product).toBeVisible();
+    expect(
+      (
+        await admin.request.patch(
+          `/api/v1/admin/combos/${combo.id}/toggle-status`,
+          { data: {} },
+        )
+      ).status(),
+    ).toBe(200);
+    await expect(product).toHaveCount(0, { timeout: 10000 });
+  } finally {
+    await admin.close();
+  }
+});

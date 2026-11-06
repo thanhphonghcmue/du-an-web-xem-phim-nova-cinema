@@ -537,7 +537,7 @@ test("refresh restores the same hold and deadline, cancel releases it", async ({
 });
 
 for (const [button, state] of [
-  ["Mô phỏng thất bại", "CANCELLED"],
+  ["Mô phỏng thất bại", "FAILED"],
   ["Hủy giao dịch", "CANCELLED"],
 ])
   test(`Sandbox ${button} returns verified state and releases seats`, async ({
@@ -565,7 +565,12 @@ for (const [button, state] of [
     ).toBeVisible();
     await page.getByRole("button", { name: button, exact: true }).click();
     await expect(
-      page.getByRole("dialog", { name: "Giao dịch đã được hủy bỏ" }),
+      page.getByRole("dialog", {
+        name:
+          state === "FAILED"
+            ? "Thanh toán không thành công"
+            : "Giao dịch đã được hủy bỏ",
+      }),
     ).toBeVisible();
     expect(
       (await read(page, `/payments/${order.id}/status`)).body.data
@@ -576,6 +581,18 @@ for (const [button, state] of [
     await expect(
       restored.getByRole("button", { name: "Ghế A1, còn trống", exact: true }),
     ).toBeEnabled();
+    expect(
+      (await read(page, `/bookings/${order.id}`)).body.data.failureReason,
+    ).toBe(state === "FAILED" ? "PAYMENT_DECLINED" : "CUSTOMER_ABORTED");
+    await page.goto("/tai-khoan");
+    await page.locator(".history-archive summary").click();
+    await expect(
+      page
+        .locator(".history-archive article")
+        .filter({ hasText: order.orderCode }),
+    ).toContainText(
+      state === "FAILED" ? "Thanh toán không thành công" : "Đã hủy",
+    );
   });
 
 test("Sandbox success issues one QR per seat, searchable wallet, public lookup, ICS and independent staff check-in", async ({
@@ -633,6 +650,7 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
   await page.getByRole("button", { name: "Xem vé trong tài khoản" }).click();
   await expect(page).toHaveURL(
     new RegExp("/tai-khoan\\?ve=" + order.id + "#ve-cua-toi$"),
+    { timeout: 15000 },
   );
   await expect(page.locator(".account-page")).toBeVisible();
   const cards = page

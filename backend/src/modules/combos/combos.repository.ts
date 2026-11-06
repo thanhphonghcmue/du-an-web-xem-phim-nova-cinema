@@ -19,20 +19,41 @@ export class CombosRepository {
   find(id: string) {
     return this.prisma.combo.findUnique({ where: { id } });
   }
-  page(query: PaginationDto, tx: Prisma.TransactionClient) {
+  page(query: PaginationDto, tx: Prisma.TransactionClient, admin = false) {
     return Promise.all([
       tx.combo.findMany({
-        where: { isActive: true },
+        where: admin ? {} : { isActive: true },
         orderBy: [{ name: "asc" }, { id: "asc" }],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
-      tx.combo.count({ where: { isActive: true } }),
+      tx.combo.count({ where: admin ? {} : { isActive: true } }),
     ]);
+  }
+  private metadata(dto: UpdateComboDto) {
+    return {
+      ...(dto.tasteTag !== undefined ? { tasteTag: dto.tasteTag } : {}),
+      ...(dto.itemsSummary !== undefined
+        ? { itemsSummary: dto.itemsSummary }
+        : {}),
+      ...(dto.suggestedMinSeats !== undefined
+        ? { suggestedMinSeats: dto.suggestedMinSeats }
+        : {}),
+      ...(dto.suggestedMaxSeats !== undefined
+        ? { suggestedMaxSeats: dto.suggestedMaxSeats }
+        : {}),
+      ...(dto.badgeLabel !== undefined ? { badgeLabel: dto.badgeLabel } : {}),
+    };
+  }
+  toggle(id: string) {
+    return this.prisma.$queryRaw<
+      Array<{ id: string }>
+    >`UPDATE combos SET is_active=NOT is_active,updated_at=NOW() WHERE id=${id}::uuid RETURNING id`;
   }
   create(dto: CreateComboDto) {
     return this.prisma.combo.create({
       data: {
+        ...this.metadata(dto),
         name: dto.name,
         description: dto.description,
         price: new Prisma.Decimal(dto.price),
@@ -45,6 +66,7 @@ export class CombosRepository {
     return this.prisma.combo.update({
       where: { id },
       data: {
+        ...this.metadata(dto),
         ...(dto.name !== undefined ? { name: dto.name } : {}),
         ...(dto.description !== undefined
           ? { description: dto.description }

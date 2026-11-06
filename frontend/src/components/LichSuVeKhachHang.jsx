@@ -263,7 +263,7 @@ export default function LichSuVeKhachHang({ member, onResume }) {
           ["unused", "Chưa soát vé"],
           ["used", "Đã sử dụng"],
           ["past", "Đã qua suất chiếu"],
-          ["cancelled", "Đã hủy / Hết hạn"],
+          ["cancelled", "Thất bại / Đã hủy / Hết hạn"],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -513,16 +513,16 @@ export default function LichSuVeKhachHang({ member, onResume }) {
         orders.some(
           (order) =>
             visibleOrderIds.has(order.id) &&
-            ["CANCELLED", "EXPIRED"].includes(order.status),
+            ["FAILED", "CANCELLED", "EXPIRED"].includes(order.status),
         ) && (
           <details className="history-archive">
             <summary>
-              Đơn đã hủy / hết hạn (
+              Đơn thất bại / đã hủy / hết hạn (
               {
                 orders.filter(
                   (order) =>
                     visibleOrderIds.has(order.id) &&
-                    ["CANCELLED", "EXPIRED"].includes(order.status),
+                    ["FAILED", "CANCELLED", "EXPIRED"].includes(order.status),
                 ).length
               }
               )
@@ -531,7 +531,7 @@ export default function LichSuVeKhachHang({ member, onResume }) {
               .filter(
                 (order) =>
                   visibleOrderIds.has(order.id) &&
-                  ["CANCELLED", "EXPIRED"].includes(order.status),
+                  ["FAILED", "CANCELLED", "EXPIRED"].includes(order.status),
               )
               .map((order) => (
                 <article key={order.id}>
@@ -539,7 +539,9 @@ export default function LichSuVeKhachHang({ member, onResume }) {
                   <p>
                     {order.status === "EXPIRED"
                       ? "Đã hết hạn giữ ghế"
-                      : "Đã hủy"}{" "}
+                      : order.status === "FAILED"
+                        ? "Thanh toán không thành công"
+                        : "Đã hủy"}{" "}
                     · {money(order.finalAmount)}
                   </p>
                 </article>

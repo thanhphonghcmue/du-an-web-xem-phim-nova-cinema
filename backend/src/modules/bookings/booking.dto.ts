@@ -105,6 +105,7 @@ export class BookingComboDto {
   @ApiProperty({ type: String, example: "69000.00" }) unitPrice!: string;
 }
 export class BookingDto {
+  @ApiProperty({ nullable: true }) failureReason!: string | null;
   @ApiProperty({ format: "uuid" }) id!: string;
   @ApiProperty() orderCode!: string;
   @ApiProperty({ format: "uuid" }) showtimeId!: string;

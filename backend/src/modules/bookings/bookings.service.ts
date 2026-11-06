@@ -19,6 +19,7 @@ export class BookingsService {
       orderCode: row.orderCode,
       showtimeId: row.showtimeId,
       status: row.status,
+      failureReason: row.failureReason,
       expiredAt: row.expiredAt,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

@@ -39,7 +39,18 @@ exports.createAdmin = (c) => {
     cinemas: ["name", "city", "address"],
     rooms: ["cinemaId", "name", "roomType", "totalSeats"],
     showtimes: ["movieId", "roomId", "startTime", "baseTicketPrice"],
-    combos: ["name", "description", "price", "isActive", "imageUrl"],
+    combos: [
+      "name",
+      "description",
+      "price",
+      "isActive",
+      "imageUrl",
+      "tasteTag",
+      "itemsSummary",
+      "suggestedMinSeats",
+      "suggestedMaxSeats",
+      "badgeLabel",
+    ],
   };
   const inUse = (roomId) =>
     [...orders.values()].some(
@@ -318,6 +329,7 @@ exports.createAdmin = (c) => {
       if (id) return json(model(kind, id));
       if (query.get("includeEnded") === "true") auth(request, ["ADMIN"]);
       let rows = values(kind);
+      if (kind === "combos") rows = rows.filter((r) => r.isActive);
       const q = words(query.get("search"));
       if (q) rows = rows.filter((r) => words(r.title || r.name).includes(q));
       for (const key of ["movieId", "roomId", "cinemaId", "status"])
@@ -390,7 +402,14 @@ exports.createAdmin = (c) => {
         ...(kind === "rooms"
           ? { totalSeats: 0 }
           : kind === "combos"
-            ? { isActive: true }
+            ? {
+                isActive: true,
+                tasteTag: "MIX",
+                itemsSummary: "",
+                suggestedMinSeats: 1,
+                suggestedMaxSeats: null,
+                badgeLabel: "PARTY",
+              }
             : kind === "movies"
               ? { posterUrl: null, trailerUrl: null }
               : {}),
@@ -398,6 +417,20 @@ exports.createAdmin = (c) => {
         ...body,
         id: id || randomUUID(),
       };
+    if (kind === "combos")
+      assert(
+        ["NGỌT", "MẶN", "PHÔ_MAI", "CARAMEL", "MIX"].includes(row.tasteTag) &&
+          ["SOLO", "COUPLE", "PARTY"].includes(row.badgeLabel) &&
+          Number.isInteger(row.suggestedMinSeats) &&
+          row.suggestedMinSeats >= 1 &&
+          row.suggestedMinSeats <= 20 &&
+          (row.suggestedMaxSeats == null ||
+            (Number.isInteger(row.suggestedMaxSeats) &&
+              row.suggestedMaxSeats >= row.suggestedMinSeats &&
+              row.suggestedMaxSeats <= 20)),
+        "VALIDATION_ERROR",
+        "Thông tin gợi ý combo không hợp lệ.",
+      );
     validate(kind, row, id);
     maps[kind].set(row.id, row);
     if (kind === "movies")

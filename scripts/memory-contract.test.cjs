@@ -1023,3 +1023,97 @@ test("TC_FR08_04 RAM expired JSON confirmation never issues tickets; production 
     0,
   );
 });
+for (const outcome of ["FAILED", "CANCELLED"])
+  test(
+    "FR08 RAM distinguishes " +
+      outcome +
+      " and persists the reason without tickets",
+    async (t) => {
+      const f = await paidFixture(t);
+      assert.equal(
+        (
+          await f.call("/payments/sandbox/confirm", {
+            ...f.fields,
+            result: outcome,
+          })
+        ).status,
+        200,
+      );
+      const order = (
+        await f.call(
+          `/bookings/${f.order.id}`,
+          undefined,
+          f.customer.accessToken,
+        )
+      ).data;
+      assert.equal(order.status, outcome);
+      assert.equal(
+        order.failureReason,
+        outcome === "FAILED" ? "PAYMENT_DECLINED" : "CUSTOMER_ABORTED",
+      );
+      assert.ok(order.seats.every((s) => s.status === "AVAILABLE"));
+      const unchanged = await f.call(
+        `/bookings/${f.order.id}/cancel`,
+        {},
+        f.customer.accessToken,
+      );
+      assert.equal(unchanged.data.status, outcome);
+      assert.equal(unchanged.data.failureReason, order.failureReason);
+      assert.equal(
+        (await f.call("/tickets/me", undefined, f.customer.accessToken)).data
+          .items.length,
+        0,
+      );
+    },
+  );
+test("FR12 RAM admin combo REST supports persisted metadata, range validation and hidden rows safely", async (t) => {
+  const f = await fixture(t),
+    admin = await f.login("admin");
+  const payload = {
+    name: "Owned Solo",
+    description: "Owned combo fixture",
+    price: "49000.00",
+    tasteTag: "NGỌT",
+    itemsSummary: "1 bắp",
+    suggestedMinSeats: 1,
+    suggestedMaxSeats: 1,
+    badgeLabel: "SOLO",
+  };
+  assert.equal(
+    (await f.call("/admin/combos", payload, f.customer.accessToken)).status,
+    403,
+  );
+  const item = await f.call("/admin/combos", payload, admin.accessToken);
+  assert.equal(item.status, 201);
+  assert.equal(item.data.badgeLabel, "SOLO");
+  assert.equal(
+    (
+      await f.call(
+        `/admin/combos/${item.data.id}`,
+        { suggestedMinSeats: 2, suggestedMaxSeats: 1 },
+        admin.accessToken,
+        "PUT",
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await f.call(
+        `/admin/combos/${item.data.id}/toggle-status`,
+        {},
+        admin.accessToken,
+        "PATCH",
+      )
+    ).data.isActive,
+    false,
+  );
+  assert.ok(
+    (
+      await f.call("/admin/combos", undefined, admin.accessToken)
+    ).data.items.some((c) => c.id === item.data.id),
+  );
+  assert.ok(
+    !(await f.call("/combos")).data.items.some((c) => c.id === item.data.id),
+  );
+});

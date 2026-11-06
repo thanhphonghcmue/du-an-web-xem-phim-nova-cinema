@@ -444,7 +444,12 @@ export class PaymentsService {
     )
       return { rejection: "PAYMENT_STATE_CONFLICT" };
     if (["PENDING", "HOLDING"].includes(current.status))
-      current = await this.seats.releaseLocked(current, "CANCELLED", tx);
+      current = await this.seats.releaseLocked(
+        current,
+        dto.status === "FAILED" ? "FAILED" : "CANCELLED",
+        tx,
+        dto.status === "FAILED" ? "PAYMENT_DECLINED" : "CUSTOMER_ABORTED",
+      );
     const failed = await this.payments.finalize(
       payment.id,
       dto.status,

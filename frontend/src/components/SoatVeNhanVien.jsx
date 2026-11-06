@@ -671,7 +671,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
       >
         <div className="flex items-center justify-between">
           <label htmlFor="ticket-hash" className="text-sm font-medium text-slate-200">
-            Mã QR hoặc Mã đơn hàng (NOVA-...)
+            Mã QR
           </label>
           <div className="flex items-center gap-2">
             <button
@@ -708,7 +708,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
             autoComplete="off"
             spellCheck="false"
             placeholder="Dán chuỗi QR vé (64 ký tự) hoặc nhập mã đơn NOVA-..."
-            className="flex-1"
+            className="flex-1 text-black font-medium"
+            style={{ color: "#000000" }}
           />
           <button
             type="submit"

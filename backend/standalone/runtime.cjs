@@ -1,3 +1,5 @@
+const { extractNormalizedCode } = require("../../shared/ticket-input.cjs");
+const { ticketErrorFields } = require("../../shared/ticket-errors.cjs");
 // Single-process, disposable RAM adapter. It mirrors the public NestJS contracts;
 // PostgreSQL/Redis remain the production concurrency and persistence boundary.
 const http = require("node:http");
@@ -576,6 +578,14 @@ function createMemoryServer(input) {
     return {
       id: ticket.id,
       ticketCode: ticket.ticketCode,
+      shortCode: ticket.shortCode || null,
+      ticketStatus:
+        order.status !== "PAID"
+          ? "INVALID"
+          : ticket.isCheckedIn
+            ? "USED"
+            : "VALID",
+      usedAt: ticket.checkedInAt,
       createdAt: ticket.createdAt,
       bookedAt: order.createdAt,
       posterUrl: movie.posterUrl,
@@ -647,6 +657,9 @@ function createMemoryServer(input) {
         `http://localhost:${process.env.NOVA_WEB_PORT || 3000}`
       ).split(",")[0];
       ticket.qrPayload = `${origin}/ve#${ticket.ticketHash}`;
+      ticket.hmacSignature = createHmac("sha256", secret)
+        .update(`nova-ticket:v1:${order.id}:${ticket.ticketHash}`)
+        .digest("hex");
       tickets.set(ticket.id, ticket);
       setImmediate(() => {
         toDataURL(ticket.qrPayload, {
@@ -817,16 +830,13 @@ function createMemoryServer(input) {
   const html = (title, content) =>
     `<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>*{box-sizing:border-box}body{margin:0;padding:24px;background:#080d18;color:#eef3ff;font:16px/1.6 system-ui}main{max-width:900px;margin:auto;background:#142039;border:1px solid #687aa4;border-radius:20px;padding:32px}button,a{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;padding:15px;border-radius:9px;background:#d5ef95;color:#18220e;border:0;font:inherit;margin:12px 0;text-decoration:none}button{width:100%;cursor:pointer}input{max-width:100%}.secondary-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sandbox-choice{min-width:0}h1{font-size:clamp(24px,5vw,38px)}small{color:#afc1df}</style><main>${content}</main></html>`;
   function admission(body, user, consume) {
-    const rawKey =
-      typeof body.ticketHash === "string" ? body.ticketHash.trim() : "";
+    const rawKey = extractNormalizedCode(body.ticketHash || body.code);
     assert(
-      rawKey &&
-        (/^[A-HJ-NP-Z2-9]{8}$/i.test(rawKey) ||
-          /^[a-f\d]{64}$/i.test(rawKey) ||
-          /^NOVA-[a-f0-9]{32}$/i.test(rawKey) ||
-          uuid.test(rawKey)) &&
-        uuid.test(body.showtimeId),
+      rawKey && rawKey.length <= 4096,
+      "TICKET_CODE_REQUIRED",
+      "Vui lòng nhập hoặc quét mã vé!",
     );
+    if (body.showtimeId) assert(uuid.test(body.showtimeId));
     const group = [...tickets.values()].filter(
       (t) =>
         orders.get(t.bookingId)?.orderCode?.toLowerCase() ===
@@ -841,12 +851,19 @@ function createMemoryServer(input) {
     const ticket = [...tickets.values()].find(
       (t) =>
         t.ticketCode?.toLowerCase() === rawKey.toLowerCase() ||
+        t.shortCode?.toUpperCase() === rawKey ||
+        t.aliases?.includes(rawKey) ||
         t.ticketHash.toLowerCase() === rawKey.toLowerCase() ||
         t.id.toLowerCase() === rawKey.toLowerCase() ||
         orders.get(t.bookingId)?.orderCode?.toLowerCase() ===
           rawKey.toLowerCase(),
     );
-    assert(ticket, "TICKET_NOT_FOUND", "Không tìm thấy vé.", 404);
+    assert(
+      ticket && !(ticket.demoOnly && process.env.NODE_ENV === "production"),
+      "TICKET_NOT_FOUND",
+      "Mã vé không tồn tại hoặc không hợp lệ!",
+      404,
+    );
     const order = orders.get(ticket.bookingId);
     assert(
       order.status === "PAID",
@@ -868,7 +885,15 @@ function createMemoryServer(input) {
         ...admissionContext,
         checkedInAt: ticket.checkedInAt,
       });
-    if (order.showtimeId !== body.showtimeId) {
+    if (
+      (body.showtimeId && order.showtimeId !== body.showtimeId) ||
+      (body.currentShowtime &&
+        new Date(data.startTime).toLocaleTimeString("vi-VN", {
+          timeZone: "Asia/Ho_Chi_Minh",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) !== body.currentShowtime)
+    ) {
       fail(
         409,
         "TICKET_SHOWTIME_MISMATCH",
@@ -882,7 +907,8 @@ function createMemoryServer(input) {
     }
     const start = Date.parse(model("showtimes", order.showtimeId).startTime);
     assert(
-      now() >= start - 3600000 && now() <= start + 1800000,
+      (ticket.demoOnly && process.env.NODE_ENV !== "production") ||
+        (now() >= start - 3600000 && now() <= start + 1800000),
       "CHECK_IN_OUTSIDE_WINDOW",
       "Chưa đến hoặc đã hết giờ soát vé.",
       409,
@@ -916,6 +942,15 @@ function createMemoryServer(input) {
     ticketData,
   };
   const admin = require("./admin.cjs").createAdmin(context);
+  async function demoFixtures() {
+    if (input.combos.length < 24 || process.env.NODE_ENV === "production")
+      return;
+    await passwordsReady;
+    require("./admission-fixtures.cjs").seedMemoryAdmission({
+      ...context,
+      issue,
+    });
+  }
   async function route(request, response, url, body) {
     const path = url.pathname.replace(/^\/api\/v1/, "") || "/",
       method = request.method,
@@ -936,6 +971,59 @@ function createMemoryServer(input) {
         message,
       });
     };
+    if (path === "/staff/demo-fixtures" && method === "GET") {
+      auth(request, ["ADMIN", "STAFF"]);
+      await demoFixtures();
+      const sample = [...tickets.values()].find(
+        (t) => t.shortCode === "V1" && t.demoOnly,
+      );
+      return json({
+        enabled: process.env.NODE_ENV !== "production",
+        showtimeId: sample ? orders.get(sample.bookingId).showtimeId : null,
+      });
+    }
+    if (path === "/tickets/lookup" && method === "GET") {
+      const user = auth(request);
+      await demoFixtures();
+      const code = extractNormalizedCode(query.get("code"));
+      assert(code, "TICKET_CODE_REQUIRED", "Vui lòng nhập hoặc quét mã vé!");
+      const matches = [...tickets.values()].filter(
+        (t) =>
+          t.ticketCode.toUpperCase() === code ||
+          t.shortCode?.toUpperCase() === code ||
+          t.aliases?.includes(code) ||
+          t.ticketHash.toUpperCase() === code,
+      );
+      const ticket = matches.length === 1 && matches[0];
+      assert(
+        ticket &&
+          orders.get(ticket.bookingId)?.userId === user.id &&
+          orders.get(ticket.bookingId)?.status === "PAID",
+        "TICKET_NOT_FOUND",
+        "Không tìm thấy vé hoặc mã vé không hợp lệ!",
+        404,
+      );
+      return json({ found: true, ticket: ticketData(ticket) });
+    }
+    if (
+      ["/staff/verify-ticket", "/staff/checkin"].includes(path) &&
+      method === "POST"
+    ) {
+      const user = auth(request, ["ADMIN", "STAFF"]);
+      await demoFixtures();
+      const ticket = admission(
+        body,
+        user,
+        path.endsWith("checkin") || body.autoCheckin === true,
+      );
+      return json({
+        ...ticket,
+        statusType: "VALID_SUCCESS",
+        httpCode: 200,
+        title: "Soát vé thành công - Hợp lệ",
+        ticket,
+      });
+    }
     if (path === "/tickets/lookup" && method === "POST") {
       assert(
         typeof body.ticketHash === "string" &&
@@ -1647,14 +1735,11 @@ function createMemoryServer(input) {
     if (
       (path === "/staff/verify" || path === "/staff/check-in") &&
       method === "POST"
-    )
-      return json(
-        admission(
-          body,
-          auth(request, ["ADMIN", "STAFF"]),
-          path.endsWith("check-in"),
-        ),
-      );
+    ) {
+      const user = auth(request, ["ADMIN", "STAFF"]);
+      await demoFixtures();
+      return json(admission(body, user, path.endsWith("check-in")));
+    }
     const handled = admin(request, path, query, body, json);
     if (handled !== false) return handled;
     fail(404, "NOT_FOUND", "Chức năng hoặc dữ liệu không tồn tại.");
@@ -1732,6 +1817,7 @@ function createMemoryServer(input) {
         success: false,
         statusCode: error.status || 500,
         error: error.code || "INTERNAL_ERROR",
+        ...ticketErrorFields(error.code, error.details, now()),
         ...(["SHOWTIME_UNAVAILABLE", "ORDER_EXPIRED_TIMEOUT"].includes(
           error.code,
         )

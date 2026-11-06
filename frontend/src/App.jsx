@@ -410,6 +410,9 @@ export default function App() {
             >
               <Ticket size={20} />
             </Link>
+            <Link className="text-button" href="/ve">
+              Tra cứu vé
+            </Link>
             <span className="nav-divider" />
             {member?.role === "ADMIN" && (
               <button

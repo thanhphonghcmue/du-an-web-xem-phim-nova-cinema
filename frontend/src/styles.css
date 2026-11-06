@@ -7522,3 +7522,15 @@ button:focus-visible {
 }
 
 
+
+/* Tra cứu độc lập và camera/file fallback, dùng lại màu neon hiện có. */
+.ticket-lookup-panel { padding: 20px; border: 1px solid #334155; border-radius: 16px; margin-bottom: 24px; min-width: 0; }
+.ticket-lookup-panel form { display: flex; flex-wrap: wrap; gap: 10px; }
+.ticket-lookup-panel input[type=text] { flex: 1 1 260px; min-width: 0; padding: 12px; background: #111827; border: 1px solid #475569; border-radius: 8px; color: #fff; }
+.ticket-lookup-result { position: relative; margin: 16px 0; overflow-wrap: anywhere; }
+.qr-capture { margin: 16px 0; min-width: 0; }
+.qr-capture .scanner-viewfinder { max-width: 420px; min-height: 200px; }
+.qr-capture input[type=file] { width: 100%; max-width: 230px; }
+.qr-capture .cinema-state-actions { flex-wrap: wrap; }
+.history-list[data-ticket-lookup-active="true"] > :not(.ticket-lookup-panel),
+.account-page:has(.history-list[data-ticket-lookup-active="true"]) #account-ticket-slot { display: none !important; }

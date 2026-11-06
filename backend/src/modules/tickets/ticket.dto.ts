@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsBoolean,
+  IsNotEmpty,
   IsOptional,
   IsUUID,
   Matches,
@@ -67,14 +68,18 @@ export class CheckInDto {
     description:
       "Opaque64 lowercase QR token or the seat's case-insensitive 8-character ticket code.",
   })
-  @Matches(/^(?:[a-f0-9]{64}|[A-HJ-NP-Z2-9a-hj-np-z]{8})$/)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4096)
   ticketHash!: string;
 }
 export class VerifyTicketDto {
   @ApiProperty({
     description: "Opaque QR token or 8-character seat ticket code.",
   })
-  @Matches(/^(?:[a-f0-9]{64}|[A-HJ-NP-Z2-9a-hj-np-z]{8})$/)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4096)
   ticketHash!: string;
   @ApiProperty({ format: "uuid" })
   @IsUUID()
@@ -101,6 +106,9 @@ export class TicketComboDto {
   @ApiProperty() unitPrice!: string;
 }
 export class TicketDetailsDto {
+  @ApiPropertyOptional({ nullable: true }) shortCode?: string | null;
+  @ApiProperty() ticketStatus!: string;
+  @ApiPropertyOptional({ nullable: true }) usedAt?: Date | null;
   @ApiProperty() ticketCode!: string;
   @ApiProperty({ format: "date-time" }) createdAt!: Date;
   @ApiProperty({ format: "date-time" }) bookedAt!: Date;
@@ -140,4 +148,13 @@ export class TicketDto extends TicketDetailsDto {
       "data:image/png;base64 QR encoding the read-only ticket URL (opaque hash for legacy tickets).",
   })
   qrCodeBase64!: string;
+}
+
+export class TicketCodeQueryDto {
+  @IsString() @MaxLength(4096) code!: string;
+}
+export class StaffTicketCodeDto extends TicketCodeQueryDto {
+  @IsOptional() @IsUUID() showtimeId?: string;
+  @IsOptional() @IsString() @MaxLength(5) currentShowtime?: string;
+  @IsOptional() @IsBoolean() autoCheckin?: boolean;
 }

@@ -27,8 +27,17 @@ export class ResponseInterceptor implements NestInterceptor<
         context.getHandler(),
         context.getClass(),
       ]) || "Request completed successfully.";
-    return next
-      .handle()
-      .pipe(map((data) => ({ success: true, data: data ?? null, message })));
+    return next.handle().pipe(
+      map((data) => ({
+        ...(data &&
+        typeof data === "object" &&
+        ("statusType" in data || "found" in data)
+          ? data
+          : {}),
+        success: true,
+        data: data ?? null,
+        message,
+      })),
+    );
   }
 }

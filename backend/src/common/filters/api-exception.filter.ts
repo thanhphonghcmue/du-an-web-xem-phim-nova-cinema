@@ -1,3 +1,4 @@
+import { ticketErrorFields } from "../../../../shared/ticket-errors.cjs";
 import {
   ArgumentsHost,
   Catch,
@@ -110,6 +111,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
       );
     response.status(statusCode).json({
       success: false,
+      ...ticketErrorFields(
+        error,
+        details as { checkedInAt?: Date | null } | undefined,
+      ),
       statusCode,
       error,
       ...(["SHOWTIME_UNAVAILABLE", "ORDER_EXPIRED_TIMEOUT"].includes(error)

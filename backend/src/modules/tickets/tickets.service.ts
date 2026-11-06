@@ -1,9 +1,11 @@
+import { extractNormalizedCode } from "../../../../shared/ticket-input.cjs";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma } from "@prisma/client";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHmac } from "node:crypto";
 import { ApiException } from "../../common/exceptions/api.exception";
 import { pageOf } from "../../common/dto/pagination.dto";
+import { JwtSettings } from "../../config/jwt.config";
 import { AppSettings } from "../../config/app.config";
 import { NotificationSettings } from "../../config/notification.settings";
 import { UnitOfWork } from "../../database/unit-of-work";
@@ -30,6 +32,7 @@ import { ticketQrPng } from "./ticket-qr";
 export class TicketsService {
   private readonly settings: NotificationSettings;
   private readonly webOrigin: string;
+  private readonly ticketSigningKey: string;
   constructor(
     config: ConfigService,
     private readonly database: UnitOfWork,
@@ -37,6 +40,7 @@ export class TicketsService {
     private readonly tickets: TicketsRepository,
     private readonly events: OutboxRepository,
   ) {
+    this.ticketSigningKey = config.getOrThrow<JwtSettings>("jwt").accessSecret;
     this.settings = config.getOrThrow<NotificationSettings>("notification");
     this.webOrigin =
       config.getOrThrow<AppSettings>("app").corsOrigins[0] ||
@@ -51,7 +55,14 @@ export class TicketsService {
         const ticketHash = randomBytes(32).toString("hex");
         return [
           seat.id,
-          { ticketHash, qrCodeBase64: ticketQrPng(this.qrUrl(ticketHash)) },
+          {
+            ticketHash,
+            qrPayload: this.qrUrl(ticketHash),
+            hmacSignature: createHmac("sha256", this.ticketSigningKey)
+              .update(`nova-ticket:v1:${bookingId}:${ticketHash}`)
+              .digest("hex"),
+            qrCodeBase64: ticketQrPng(this.qrUrl(ticketHash)),
+          },
         ];
       }),
     );
@@ -120,7 +131,8 @@ export class TicketsService {
     const row = await this.database.transaction((tx) =>
       this.tickets.byHash(hash, tx),
     );
-    if (!row) throw missing();
+    if (!row || (row.demoOnly && process.env.NODE_ENV === "production"))
+      throw missing();
     const d = ticketDetails(row);
     // Không trả tên/số điện thoại/email, mã đơn, QR token hoặc quyền check-in cho khách ẩn danh.
     return {
@@ -139,6 +151,80 @@ export class TicketsService {
             ? "USED"
             : "VALID",
     };
+  }
+  async demoFixtures() {
+    if (process.env.NODE_ENV === "production") return { enabled: false };
+    const row = await this.database.transaction((tx) =>
+      this.tickets.byHash("V1", tx),
+    );
+    return {
+      enabled: true,
+      showtimeId: row?.demoOnly ? row.booking.showtimeId : null,
+    };
+  }
+  async lookupCode(raw: string, userId: string) {
+    const code = extractNormalizedCode(raw);
+    if (!code)
+      throw new ApiException(
+        400,
+        "TICKET_CODE_REQUIRED",
+        "Vui lòng nhập hoặc quét mã vé!",
+      );
+    const row = await this.database.transaction((tx) =>
+      this.tickets.byHash(code, tx),
+    );
+    // Cùng 404 cho mã giả và mã thuộc người khác; không fallback sang danh sách.
+    if (
+      !row ||
+      (row.demoOnly && process.env.NODE_ENV === "production") ||
+      row.booking.userId !== userId ||
+      row.booking.status !== "PAID"
+    )
+      throw missing();
+    return { found: true, ticket: this.serialize(row) };
+  }
+  async verifyCode(
+    raw: string,
+    staffId: string,
+    showtimeId?: string,
+    currentShowtime?: string,
+    autoCheckin = false,
+  ) {
+    const code = extractNormalizedCode(raw);
+    if (!code)
+      throw new ApiException(
+        400,
+        "TICKET_CODE_REQUIRED",
+        "Vui lòng nhập hoặc quét mã vé!",
+      );
+    const details = await this.verify(code, showtimeId, staffId);
+    if (
+      currentShowtime &&
+      new Intl.DateTimeFormat("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(details.startTime) !== currentShowtime
+    )
+      throw new ApiException(
+        409,
+        "TICKET_SHOWTIME_MISMATCH",
+        "CẢNH BÁO: SAI SUẤT CHIẾU",
+        details,
+      );
+    const ticket = autoCheckin
+      ? await this.checkIn(code, staffId, details.showtimeId)
+      : details;
+    return Object.assign({}, ticket, {
+      statusType: "VALID_SUCCESS",
+      httpCode: 200,
+      title: "Soát vé thành công - Hợp lệ",
+      badge: "✓ VÉ HỢP LỆ (VERIFIED)",
+      statusLabel: autoCheckin
+        ? "ĐỦ ĐIỀU KIỆN VÀO RẠP (LẦN 1) -> ĐÃ CHECK-IN"
+        : "ĐỦ ĐIỀU KIỆN VÀO RẠP · CHƯA CHECK-IN",
+      ticket,
+    });
   }
   async get(id: string, userId: string): Promise<TicketDto> {
     return this.serialize(await this.requireOwned(id, userId));
@@ -180,7 +266,7 @@ export class TicketsService {
   }
   verify(
     ticketHash: string,
-    showtimeId: string,
+    showtimeId: string | undefined,
     staffId: string,
   ): Promise<TicketDetailsDto> {
     return this.database.transaction(async (tx) => {
@@ -192,7 +278,7 @@ export class TicketsService {
           "Only staff or administrators can verify tickets.",
         );
       const ticket = await this.tickets.byHash(ticketHash, tx);
-      if (!ticket) throw missing();
+      if (!ticket || ticket.booking.status !== "PAID") throw missing();
       this.assertAdmission(ticket, await this.bookings.now(tx), showtimeId);
       return ticketDetails(ticket);
     }, Prisma.TransactionIsolationLevel.RepeatableRead);
@@ -230,6 +316,8 @@ export class TicketsService {
     now: Date,
     showtimeId?: string,
   ): void {
+    if (ticket.demoOnly && process.env.NODE_ENV === "production")
+      throw missing();
     if (ticket.isCheckedIn)
       throw new ApiException(
         409,
@@ -258,6 +346,7 @@ export class TicketsService {
         "Ticket is not eligible for admission.",
       );
     if (
+      !(ticket.demoOnly && process.env.NODE_ENV !== "production") &&
       !withinCheckInWindow(
         now,
         ticket.booking.showtime.startTime,
@@ -282,6 +371,9 @@ export class TicketsService {
       startTime: details.startTime,
       orderCode: details.orderCode,
       ticketCode: details.ticketCode,
+      shortCode: details.shortCode,
+      seats: details.seats,
+      customerName: details.customerName,
     };
   }
   private async requireOwned(
@@ -297,9 +389,9 @@ export class TicketsService {
       ...ticketDetails(row),
       ticketHash: row.ticketHash,
       ticketQrToken: row.ticketHash,
-      qrPayload: row.bookingSeatId
-        ? this.qrUrl(row.ticketHash)
-        : row.ticketHash,
+      qrPayload:
+        row.qrPayload ||
+        (row.bookingSeatId ? this.qrUrl(row.ticketHash) : row.ticketHash),
       qrCodeBase64: row.qrCodeBase64,
     };
   }

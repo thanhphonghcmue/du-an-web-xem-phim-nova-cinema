@@ -292,7 +292,12 @@ model ETicket {
   id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   bookingId          String    @map("booking_id") @db.Uuid
   bookingSeatId      String?   @unique @map("booking_seat_id") @db.Uuid
-  ticketCode         String    @unique @default(dbgenerated("nova_short_ticket_code()")) @map("ticket_code") @db.VarChar(8)
+  ticketCode         String    @unique @default(dbgenerated("nova_short_ticket_code()")) @map("ticket_code") @db.VarChar(96)
+  qrPayload String? @map("qr_payload") @db.Text
+  hmacSignature String? @map("hmac_signature") @db.VarChar(64)
+  demoOnly Boolean @default(false) @map("demo_only")
+  shortCode String? @unique @map("short_code") @db.VarChar(32)
+  aliases String[] @default([])
   ticketHash         String    @unique @map("ticket_hash") @db.VarChar(64)
   qrCodeBase64       String    @map("qr_code_base64") @db.Text
   isCheckedIn        Boolean   @default(false) @map("is_checked_in")

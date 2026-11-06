@@ -69,6 +69,7 @@ for (const failure of ["none", "backend", "redis", "memory", "busy-web"])
           scripts: {
             seed: "node prepare.cjs seed",
             "build:backend": "node prepare.cjs build",
+            "seed:admission:data": "node prepare.cjs admission",
           },
         }),
       );
@@ -163,7 +164,7 @@ for (const failure of ["none", "backend", "redis", "memory", "busy-web"])
         existsSync(join(dir, "steps.txt"))
           ? readFileSync(join(dir, "steps.txt"), "utf8")
           : "",
-        ["redis", "memory"].includes(failure) ? "" : "seed\nbuild\n",
+        ["redis", "memory"].includes(failure) ? "" : "seed\nbuild\nadmission\n",
       );
       assert.deepEqual(
         await (await fetch(`http://127.0.0.1:${apiPort}/api/v1/health`)).json(),

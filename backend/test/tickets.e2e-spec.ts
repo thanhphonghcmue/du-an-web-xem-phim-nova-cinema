@@ -1077,12 +1077,12 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         .isCheckedIn,
     ).toBe(false);
   });
-  it("returns404 for unknown valid hashes and400 for malformed or mass-assigned check-in payloads", async () => {
+  it("returns404 for unknown nonempty codes and400 for non-string or mass-assigned payloads", async () => {
     expect(
       error(await check(randomBytes(32).toString("hex")).expect(404)),
     ).toBe("TICKET_NOT_FOUND");
     for (const value of ["bad", "a".repeat(63), "A".repeat(64)])
-      await check(value).expect(400);
+      await check(value).expect(404);
     await request(server)
       .post("/api/v1/staff/check-in")
       .auth(staffToken, { type: "bearer" })

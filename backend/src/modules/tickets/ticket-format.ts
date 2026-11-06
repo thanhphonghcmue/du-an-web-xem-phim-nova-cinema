@@ -5,6 +5,14 @@ export function ticketDetails(row: TicketRecord) {
   return {
     id: row.id,
     ticketCode: row.ticketCode,
+    shortCode: row.shortCode,
+    ticketStatus:
+      booking.status !== "PAID"
+        ? "INVALID"
+        : row.isCheckedIn
+          ? "USED"
+          : "VALID",
+    usedAt: row.checkedInAt,
     createdAt: row.createdAt,
     bookedAt: booking.createdAt,
     posterUrl: showtime.movie.posterUrl,

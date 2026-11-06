@@ -42,8 +42,10 @@ import {
   RefreshCw,
   CheckCircle2,
 } from "lucide-react";
+import SingleTicketLookup from "./SingleTicketLookup.jsx";
 export default function LichSuVeKhachHang({ member, onResume }) {
   const { contextFor, movies } = useCatalog();
+  const [lookupActive, setLookupActive] = useState(false);
   const [filter, setFilter] = useState("all");
   const [keyword, setKeyword] = useState("");
   const [from, setFrom] = useState("");
@@ -191,7 +193,12 @@ export default function LichSuVeKhachHang({ member, onResume }) {
   }, [tickets]);
   if (!member) return <p>Vui lòng đăng nhập để tra cứu vé của bạn.</p>;
   return (
-    <div className="history-list" ref={wallet}>
+    <div
+      className="history-list"
+      ref={wallet}
+      data-ticket-lookup-active={lookupActive}
+    >
+      <SingleTicketLookup onActive={setLookupActive} />
       <section className="ticket-search-bar" aria-label="Tìm kiếm vé của tôi">
         <label>
           Tìm vé

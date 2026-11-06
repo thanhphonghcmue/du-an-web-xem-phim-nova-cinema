@@ -30,6 +30,7 @@ async function freePort() {
 async function main() {
   directory = mkdtempSync(join(tmpdir(), "nova-fallback-startup-"));
   mkdirSync(join(directory, "frontend"));
+  cpSync(join(root, "shared"), join(directory, "shared"), { recursive: true });
   cpSync(join(root, "content"), join(directory, "content"), {
     recursive: true,
   });

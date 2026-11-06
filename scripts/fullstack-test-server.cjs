@@ -300,6 +300,11 @@ async function main() {
       new Set(process.listeners(signal)),
     ]),
   );
+  const admissionFixtures =
+    await require("../backend/scripts/admission-fixtures.cjs").seedAdmissionFixtures(
+      prisma,
+      { userId: accounts.cmember.id, staffId: accounts.staff.id, prefix },
+    );
   app = await require("../backend/dist/bootstrap.js").createApplication({
     logger: false,
   });
@@ -326,6 +331,7 @@ async function main() {
       programmeRoom,
       programmeShowtimes,
       admissionShowtime,
+      admissionFixtures,
       advanceRooms,
       advanceShows,
       presaleMovie,

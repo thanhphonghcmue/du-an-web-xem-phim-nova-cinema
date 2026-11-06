@@ -21,6 +21,7 @@ export default function AdmissionStatus({
   busy,
   onAdmit,
   onClear,
+  onRepeat,
   guidance,
   onGuidance,
   cardRef,
@@ -39,7 +40,7 @@ export default function AdmissionStatus({
   const details = error?.details;
   const ago =
     error?.at && Number.isFinite(Date.parse(error.at))
-      ? Math.max(0, Math.floor((now - Date.parse(error.at)) / 60000))
+      ? Math.max(1, Math.round((now - Date.parse(error.at)) / 60000))
       : null;
   const code = ticket?.ticketCode || details?.ticketCode;
   return (
@@ -59,14 +60,14 @@ export default function AdmissionStatus({
                 ? "TỪ CHỐI VÀO RẠP: VÉ ĐÃ SỬ DỤNG"
                 : "KHÔNG THỂ XÁC NHẬN VÉ"
             : result
-              ? "✓ ĐÃ XÁC NHẬN VÀO RẠP (USED)"
+              ? "✓ VÉ HỢP LỆ (VERIFIED)"
               : "✓ VÉ HỢP LỆ (VERIFIED)"}
         </span>
         <span>
           {error
             ? `Mã lỗi: ${error.code || "REQUEST_FAILED"}${error.status ? ` (HTTP ${error.status})` : ""}`
             : result
-              ? "Một lần vào rạp"
+              ? "Soát vé thành công - Hợp lệ · Trạng thái vé: Đã sử dụng / Đã check-in"
               : "ĐỦ ĐIỀU KIỆN VÀO RẠP · CHƯA CHECK-IN"}
         </span>
       </div>
@@ -74,17 +75,19 @@ export default function AdmissionStatus({
         <>
           <h3>
             {used
-              ? `Vé này đã được nhân viên soát vé quét lúc ${time(error.at)}${ago !== null ? ` (${ago === 0 ? "Vừa xong" : `${ago} phút trước`})` : ""}`
+              ? `Vé đã được sử dụng! — Quét lần trước lúc ${time(error.at)}${ago !== null ? ` (Cách đây ${ago} phút)` : ""}`
               : warning
                 ? `Suất trên vé: ${time(details?.startTime)} · Suất đang soát: ${time(currentShowtime?.startTime)}`
                 : error.message}
           </h3>
           <p>
             {used
-              ? "Vé đã được sử dụng. Hệ thống chặn lần vào rạp thứ hai với cùng một mã QR."
-              : details?.movie
-                ? `Phim ${details.movie} · ${details.room || ""}. ${error.message}`
-                : error.message}
+              ? "Hệ thống ngăn chặn tuyệt đối việc vào rạp lần thứ hai với cùng một mã QR để chống hành vi gian lận chụp ảnh màn hình chia sẻ vé cho người khác. Không cho phép check-in lại."
+              : error.code === "TICKET_NOT_FOUND"
+                ? `Mã "${error.input || ""}" không tồn tại trong hệ thống phát hành vé của NOVA Cinema. Từ chối cho vào rạp.`
+                : details?.movie
+                  ? `Phim ${details.movie} · ${details.room || ""}. ${error.message}`
+                  : error.message}
           </p>
           {code && (
             <p>
@@ -123,7 +126,7 @@ export default function AdmissionStatus({
         <>
           <h3>
             {result
-              ? "✓ Soát vé thành công — Cho khách vào rạp"
+              ? "Soát vé thành công - Hợp lệ"
               : "Vé hợp lệ · Hãy đối chiếu thông tin"}
           </h3>
           <p className="admission-film">
@@ -163,6 +166,25 @@ export default function AdmissionStatus({
             <p>Chưa xác nhận vào rạp</p>
           )}
           <div className="cinema-state-actions">
+            {result && (
+              <button
+                type="button"
+                className="button cinema-success-button"
+                disabled
+              >
+                ✓ Đã xác nhận CHO VÀO RẠP (Đã Check-in)
+              </button>
+            )}
+            {result && (
+              <button
+                type="button"
+                className="button button-glass"
+                disabled={busy}
+                onClick={onRepeat}
+              >
+                🔄 Quét lại vé này lần 2 (Test TC_FR09_03)
+              </button>
+            )}
             {!result && (
               <button
                 type="button"

@@ -19,14 +19,17 @@ import {
   Clock,
   Calendar,
 } from "lucide-react";
+import QrCapture from "./QrCapture.jsx";
+import ticketInput from "../../../shared/ticket-input.cjs";
 import Modal from "./Modal.jsx";
 import { createPortal } from "react-dom";
 import AdmissionStatus from "./AdmissionStatus.jsx";
-import { apiGetShowtimes, readCommand } from "@/api/client.js";
+import { apiGetShowtimes, read, readCommand } from "@/api/client.js";
 import { useCatalog, dayKey } from "@/catalog.js";
 import jsQR from "jsqr";
-import { extractCode, admissionTicket } from "@/admission.js";
+import { admissionTicket } from "@/admission.js";
 
+const extractCode = ticketInput.extractNormalizedCode;
 const vietnamDate = (value = new Date()) =>
   new Date(value).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
@@ -37,7 +40,7 @@ const screeningTime = new Intl.DateTimeFormat("vi-VN", {
 });
 
 const labels = {
-  TICKET_NOT_FOUND: "Không tìm thấy định danh vé trong hệ thống.",
+  TICKET_NOT_FOUND: "Mã vé không tồn tại hoặc không hợp lệ!",
   TICKET_SHOWTIME_MISMATCH:
     "Vé không khớp với suất chiếu đang kiểm tra. Hãy đối chiếu lại phòng và giờ trên vé.",
   TICKET_ALREADY_USED:
@@ -77,6 +80,7 @@ function playSuccessBeep() {
 export default function SoatVeNhanVien({ onClose, embedded = false }) {
   const { cinemas, rooms, movies, showtimes: catalogShowtimes } = useCatalog();
   const [mode, setMode] = useState("manual");
+  const [demo, setDemo] = useState(false);
   const [guidance, setGuidance] = useState("");
   const [cinemaId, setCinemaId] = useState("");
   const [day, setDay] = useState(vietnamDate);
@@ -95,6 +99,22 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     loopRef = useRef(null),
     inFlight = useRef(false),
     cameraEpoch = useRef(0);
+
+  useEffect(() => {
+    let active = true;
+    read("/staff/demo-fixtures")
+      .then((data) => {
+        if (active) {
+          setDemo(data.enabled === true);
+          if (data.showtimeId)
+            setShowtimeId((current) => current || data.showtimeId);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const [schedule, setSchedule] = useState({
     items: [],
@@ -210,9 +230,10 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
 
   useEffect(() => () => stopCamera(), [stopCamera]);
 
-  function report(err) {
+  const report = useCallback((err, input = "") => {
     setGuidance("");
     setError({
+      input,
       status: err.status,
       details: err.details,
       code: err.code,
@@ -220,7 +241,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
       at: err.details?.checkedInAt,
       actualShowtimeId: err.details?.actualShowtimeId,
     });
-  }
+  }, []);
 
   const verify = useCallback(
     async (targetInput) => {
@@ -250,30 +271,29 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           currentShowtimeId = activeShow?.id;
         }
 
-        if (!currentShowtimeId) {
-          throw new Error(
-            "Chưa có suất chiếu nào khả dụng. Hãy chọn Cụm rạp hoặc Ngày chiếu.",
-          );
-        }
-
         // UC14: giữ nguyên suất nhân viên đang soát; không tự chuyển sang suất khác.
         setShowtimeId(currentShowtimeId);
         const ticket = admissionTicket(
-          await readCommand("/staff/verify", {
-            ticketHash: target,
-            showtimeId: currentShowtimeId,
-          }),
+          await readCommand(
+            currentShowtimeId ? "/staff/verify" : "/staff/verify-ticket",
+            {
+              ...(currentShowtimeId
+                ? { ticketHash: target }
+                : { code: target }),
+              ...(currentShowtimeId ? { showtimeId: currentShowtimeId } : {}),
+            },
+          ),
         );
         setShowtimeId(currentShowtimeId);
         setPreview({ ticket, hash: target, showtimeId: currentShowtimeId });
       } catch (err) {
-        report(err);
+        report(err, target);
       } finally {
         inFlight.current = false;
         setBusy(false);
       }
     },
-    [showtimeId, screenings, stopCamera],
+    [showtimeId, screenings, stopCamera, report],
   );
 
   async function admit() {
@@ -427,7 +447,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
       stopCamera();
       setCameraError(
         err.name === "NotAllowedError"
-          ? "Bạn đã từ chối quyền Camera. Vui lòng cấp quyền trong cài đặt trình duyệt hoặc nhập mã bằng tay."
+          ? "Chế độ mô phỏng: camera chưa được cấp quyền. Hãy chọn ảnh QR hoặc nhập mã ở bên dưới."
           : err.message || "Không thể khởi động Camera thiết bị.",
       );
     }
@@ -459,6 +479,9 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   };
 
   const ticket = result || preview?.ticket;
+  function repeatTicket() {
+    void verify(hash);
+  }
   function nextTicket() {
     setHash("");
     clearResult();
@@ -609,20 +632,19 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
               <div className="reticle-corner top-right" />
               <div className="reticle-corner bottom-left" />
               <div className="reticle-corner bottom-right" />
-              {cameraActive && <div className="laser-scanner-line" />}
+              <div className="laser-scanner-line" />
             </div>
             <div className="scanner-overlay-hint">
               {cameraActive
                 ? "Hướng camera vào mã QR trên điện thoại hoặc vé in"
-                : "Đang kết nối camera…"}
+                : cameraError
+                  ? "Chế độ mô phỏng · Chọn ảnh hoặc nhập mã bên dưới"
+                  : "Đang kết nối camera…"}
             </div>
           </div>
 
           {cameraError && (
-            <div
-              role="status"
-              className="scanner-error-message mt-2 text-rose-400 text-xs text-center"
-            >
+            <div role="status" className="scanner-help-message">
               {cameraError}
             </div>
           )}
@@ -647,6 +669,15 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           </div>
         </div>
       )}
+
+      <QrCapture
+        disabled={busy}
+        demo={demo}
+        onCode={(code) => {
+          setHash(code);
+          void verify(code);
+        }}
+      />
 
       <form
         className="auth-form admission-form"
@@ -733,6 +764,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
               onClear={nextTicket}
               guidance={guidance}
               onGuidance={setGuidance}
+              onRepeat={repeatTicket}
               cardRef={alertRef}
             />
           );

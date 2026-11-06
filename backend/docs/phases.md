@@ -200,3 +200,8 @@ Bổ sung status suất qua migration additive, API ADMIN khóa/mở và release
 ## Bản vá FR08/FR12 — 07/11/2026
 
 Bổ sung FAILED/failure_reason và metadata combo qua migration additive; giữ kiến trúc, lịch sử đơn cũ và QR riêng từng ghế. Alias REST ADMIN, modal quản trị combo, gợi ý theo số ghế và đồng bộ menu active; adapter RAM giữ contract tương ứng. Kiểm chứng và giới hạn hiệu năng tại [báo cáo RCA](../../docs/qa/failed-payment-combos-2026-11-07.md). Đây là đợt vá theo yêu cầu, không chuyển trạng thái Phase11–12.
+
+
+## Bản vá FR09 — 07/11/2026
+
+Mở rộng mã vé và alias chính xác, giữ token/QR cũ và check-in một lần trong transaction; thêm tra cứu một vé owner-only, camera/file fallback và seed demo tách biệt. Không thay trạng thái Phase11–12. [RCA/kiểm chứng](../../docs/qa/ticket-admission-fr09-2026-11-07.md).

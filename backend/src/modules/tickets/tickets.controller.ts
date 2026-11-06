@@ -27,7 +27,7 @@ import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { UserProfileDto } from "../users/dto/user-profile.dto";
 import { ListTicketsDto, TicketDto, TicketConfirmationDto } from "./ticket.dto";
 import { Public } from "../../common/decorators/public.decorator";
-import { LookupTicketDto } from "./ticket.dto";
+import { LookupTicketDto, TicketCodeQueryDto } from "./ticket.dto";
 import { TicketsService } from "./tickets.service";
 @ApiTags("Tickets")
 @ApiBearerAuth()
@@ -43,6 +43,14 @@ export class TicketsController {
   @Header("Cache-Control", "no-store")
   lookup(@Body() dto: LookupTicketDto) {
     return this.service.publicLookup(dto.ticketHash);
+  }
+  @Get("lookup")
+  @Header("Cache-Control", "no-store")
+  lookupCode(
+    @CurrentUser() user: UserProfileDto,
+    @Query() query: TicketCodeQueryDto,
+  ) {
+    return this.service.lookupCode(query.code, user.id);
   }
   @Get("me")
   @ApiPageResponse(TicketDto)

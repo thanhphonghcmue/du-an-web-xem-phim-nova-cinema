@@ -1,3 +1,4 @@
+import { extractNormalizedCode } from "../../../../shared/ticket-input.cjs";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
@@ -54,13 +55,22 @@ export class TicketsRepository {
   find(id: string, tx: Prisma.TransactionClient = this.prisma) {
     return tx.eTicket.findUnique({ where: { id }, include: ticketRelations });
   }
-  byHash(ticketHash: string, tx: Prisma.TransactionClient) {
-    return tx.eTicket.findFirst({
-      where: /^[a-f0-9]{64}$/i.test(ticketHash)
-        ? { ticketHash: ticketHash.toLowerCase() }
-        : { ticketCode: ticketHash.toUpperCase() },
+  async byHash(ticketHash: string, tx: Prisma.TransactionClient) {
+    const code = extractNormalizedCode(ticketHash);
+    const rows = await tx.eTicket.findMany({
+      take: 2,
+      where: /^[a-f0-9]{64}$/i.test(code)
+        ? { ticketHash: code.toLowerCase() }
+        : {
+            OR: [
+              { ticketCode: code },
+              { shortCode: code },
+              { aliases: { has: code } },
+            ],
+          },
       include: ticketRelations,
     });
+    return rows.length === 1 ? (rows[0] ?? null) : null;
   }
   create(
     data: Prisma.ETicketUncheckedCreateInput,

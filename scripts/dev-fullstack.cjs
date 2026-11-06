@@ -133,6 +133,9 @@ async function main() {
     const tasks = [
       ...(process.env.NOVA_REFRESH_PROGRAMME !== "false" ? ["seed"] : []),
       "build:backend",
+      ...(process.env.NOVA_REFRESH_PROGRAMME !== "false"
+        ? ["seed:admission:data"]
+        : []),
     ];
     for (const task of tasks) {
       console.log("[NOVA] Preparing native backend:", task);

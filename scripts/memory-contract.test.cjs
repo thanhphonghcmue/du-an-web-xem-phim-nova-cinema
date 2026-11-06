@@ -1117,3 +1117,136 @@ test("FR12 RAM admin combo REST supports persisted metadata, range validation an
     !(await f.call("/combos")).data.items.some((c) => c.id === item.data.id),
   );
 });
+
+test("FR09 RAM alias APIs accept arbitrary codes and isolate owner lookup; two check-ins have one winner", async (t) => {
+  const f = await paidFixture(t);
+  await f.call("/payments/sandbox/complete", {
+    ...f.fields,
+    result: "SUCCESS",
+  });
+  const rows = (await f.call("/tickets/me", undefined, f.customer.accessToken))
+    .data.items;
+  const ticket = rows[0],
+    staff = await f.login("staff");
+  const owner = await f.call(
+    "/tickets/lookup?code=" + ticket.ticketCode,
+    undefined,
+    f.customer.accessToken,
+  );
+  assert.equal(owner.status, 200);
+  assert.equal(owner.data.ticket.id, ticket.id);
+  for (const [code, token, status] of [
+    ["QR_INVALID_999", f.customer.accessToken, 404],
+    [ticket.ticketCode, f.other.accessToken, 404],
+    [ticket.ticketCode, undefined, 401],
+  ]) {
+    const r = await f.call("/tickets/lookup?code=" + code, undefined, token);
+    assert.equal(r.status, status);
+    if (status === 404) {
+      assert.equal(r.body.data, null);
+      assert.equal(r.body.found, false);
+    }
+  }
+  const fake = await f.call(
+    "/staff/verify-ticket",
+    { code: "QR_INVALID_999" },
+    staff.accessToken,
+  );
+  assert.equal(fake.status, 404);
+  assert.equal(fake.body.statusType, "INVALID_NOT_FOUND");
+  f.advance(3 * 3600000);
+  const freshStaff = await f.login("staff");
+  const outcomes = await Promise.all(
+    [1, 2].map(() =>
+      f.call(
+        "/staff/checkin",
+        { code: ticket.ticketCode, showtimeId: f.showtimeId },
+        freshStaff.accessToken,
+      ),
+    ),
+  );
+  assert.deepEqual(outcomes.map((r) => r.status).sort(), [200, 409]);
+  const used = outcomes.find((r) => r.status === 409);
+  assert.equal(used.body.statusType, "ALREADY_USED");
+  assert.ok(used.body.details.checkedInAt);
+});
+
+test("FR09 full RAM demo exposes V1/V2/V3 with separate seat tickets and explicit wrong-screening protection", async (t) => {
+  const previous = process.env.NOVA_DEMO_PASSWORD;
+  process.env.NOVA_DEMO_PASSWORD = randomBytes(20).toString("hex");
+  const password = process.env.NOVA_DEMO_PASSWORD;
+  let data;
+  try {
+    data = require("../backend/standalone-server.cjs").createDemoData();
+  } finally {
+    if (previous === undefined) delete process.env.NOVA_DEMO_PASSWORD;
+    else process.env.NOVA_DEMO_PASSWORD = previous;
+  }
+  const server = createMemoryServer(data);
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(async () => {
+    server.closeAllConnections();
+    await new Promise((r) => server.close(r));
+  });
+  const base = `http://127.0.0.1:${server.address().port}/api/v1`;
+  async function call(path, body, token) {
+    const r = await fetch(base + path, {
+      method: body ? "POST" : "GET",
+      headers: {
+        ...(body ? { "content-type": "application/json" } : {}),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    return { status: r.status, body: await r.json() };
+  }
+  const member = data.accounts.find(
+    (u) => u.role === "CUSTOMER" && u.cMemberTier === "GOLD",
+  );
+  const staff = data.accounts.find((u) => u.role === "STAFF");
+  const ownerToken = (
+    await call("/auth/login", { email: member.email, password })
+  ).body.data.accessToken;
+  const staffToken = (
+    await call("/auth/login", { email: staff.email, password })
+  ).body.data.accessToken;
+  const one = await call("/tickets/lookup?code=V1", undefined, ownerToken);
+  assert.equal(one.status, 200);
+  assert.equal(one.body.data.ticket.seats.length, 1);
+  const current = (await call("/staff/demo-fixtures", undefined, staffToken))
+    .body.data.showtimeId;
+  assert.equal(
+    (
+      await call(
+        "/staff/checkin",
+        { code: "V1", showtimeId: current },
+        staffToken,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await call(
+        "/staff/verify-ticket",
+        { code: "V1", showtimeId: current },
+        staffToken,
+      )
+    ).status,
+    409,
+  );
+  const used = await call(
+    "/staff/verify-ticket",
+    { code: "V2", showtimeId: current },
+    staffToken,
+  );
+  assert.equal(used.body.statusType, "ALREADY_USED");
+  assert.ok(used.body.minutesAgo >= 16);
+  const wrong = await call(
+    "/staff/verify-ticket",
+    { code: "V3", showtimeId: current },
+    staffToken,
+  );
+  assert.equal(wrong.body.statusType, "WRONG_SHOWTIME");
+});

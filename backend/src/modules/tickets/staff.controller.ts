@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -14,7 +14,12 @@ import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { UserProfileDto } from "../users/dto/user-profile.dto";
-import { CheckInDto, TicketDetailsDto, VerifyTicketDto } from "./ticket.dto";
+import {
+  CheckInDto,
+  TicketDetailsDto,
+  VerifyTicketDto,
+  StaffTicketCodeDto,
+} from "./ticket.dto";
 import { TicketsService } from "./tickets.service";
 @ApiTags("Staff")
 @ApiBearerAuth()
@@ -27,6 +32,38 @@ import { TicketsService } from "./tickets.service";
 @Controller("staff")
 export class StaffController {
   constructor(private readonly service: TicketsService) {}
+  @Get("demo-fixtures")
+  demoFixtures() {
+    return this.service.demoFixtures();
+  }
+  @Post("verify-ticket")
+  @HttpCode(200)
+  verifyCode(
+    @CurrentUser() user: UserProfileDto,
+    @Body() dto: StaffTicketCodeDto,
+  ) {
+    return this.service.verifyCode(
+      dto.code,
+      user.id,
+      dto.showtimeId,
+      dto.currentShowtime,
+      dto.autoCheckin,
+    );
+  }
+  @Post("checkin")
+  @HttpCode(200)
+  checkInCode(
+    @CurrentUser() user: UserProfileDto,
+    @Body() dto: StaffTicketCodeDto,
+  ) {
+    return this.service.verifyCode(
+      dto.code,
+      user.id,
+      dto.showtimeId,
+      dto.currentShowtime,
+      true,
+    );
+  }
   @Post("verify")
   @HttpCode(200)
   @ApiDataResponse(TicketDetailsDto)

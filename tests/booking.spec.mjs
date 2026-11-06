@@ -869,7 +869,7 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
       .getByRole("button", { name: "Kiểm tra vé", exact: true })
       .click();
     await expect(staff.locator(".admission-result.invalid")).toContainText(
-      "Không tìm thấy",
+      "Mã vé không tồn tại",
     );
     expect(
       (
@@ -924,14 +924,14 @@ test("staff date lookup includes started shows, camera fallback is clear and mob
   await page
     .getByRole("button", { name: "Quét Camera QR", exact: true })
     .click();
-  await expect(page.locator(".scanner-error-message")).toContainText(
-    "từ chối quyền Camera",
+  await expect(page.locator(".scanner-help-message")).toContainText(
+    "Chế độ mô phỏng",
   );
   await page.getByRole("button", { name: "Nhập mã vé", exact: true }).click();
   await page.getByLabel("Mã đọc từ QR").fill("0".repeat(64));
   await page.getByRole("button", { name: "Kiểm tra vé", exact: true }).click();
   await expect(page.locator(".admission-result.invalid")).toContainText(
-    "Không tìm thấy",
+    "Mã vé không tồn tại",
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".admission-intro").scrollIntoViewIfNeeded();

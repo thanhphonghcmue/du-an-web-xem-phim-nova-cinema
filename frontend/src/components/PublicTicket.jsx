@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import SingleTicketLookup from "./SingleTicketLookup.jsx";
 import NovaLogo from "./NovaLogo.jsx";
 import { readCommand } from "@/api/client.js";
 export default function PublicTicket() {
+  const [lookupActive, setLookupActive] = useState(false);
   const [ticket, setTicket] = useState(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ export default function PublicTicket() {
       setTicket(null);
       setError("");
       try {
+        if (!hash) return;
         if (!/^[a-f0-9]{64}$/.test(hash))
           throw new Error(
             "Mã tra cứu vé chưa hợp lệ. Hãy quét lại QR trên vé của bạn.",
@@ -49,9 +52,10 @@ export default function PublicTicket() {
       <section className="public-ticket-card">
         <NovaLogo />
         <p className="nova-kicker">THÔNG TIN VÉ ĐIỆN TỬ</p>
-        {loading && <p role="status">Đang tra cứu vé…</p>}
-        {error && <p role="alert">{error}</p>}
-        {ticket && (
+        <SingleTicketLookup onActive={setLookupActive} />
+        {!lookupActive && loading && <p role="status">Đang tra cứu vé…</p>}
+        {!lookupActive && error && <p role="alert">{error}</p>}
+        {!lookupActive && ticket && (
           <>
             <h1>{ticket.movie}</h1>
             <strong className="ticket-readable-code">

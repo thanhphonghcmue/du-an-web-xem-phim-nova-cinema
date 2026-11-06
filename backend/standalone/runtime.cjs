@@ -1,6 +1,8 @@
 // Single-process, disposable RAM adapter. It mirrors the public NestJS contracts;
 // PostgreSQL/Redis remain the production concurrency and persistence boundary.
 const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
 const {
   randomUUID,
   randomBytes,
@@ -96,6 +98,132 @@ function createMemoryServer(input) {
     payments = new Map(),
     layouts = new Map(),
     audit = [];
+  const persist = Boolean(input && input.persist);
+  const storagePath = path.resolve(__dirname, "../../.runtime/standalone-store.json");
+
+  function saveStore() {
+    if (!persist) return;
+    try {
+      const dir = path.dirname(storagePath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      const payload = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        orders: [...orders.entries()],
+        tickets: [...tickets.entries()],
+        payments: [...payments.entries()],
+      };
+      fs.writeFileSync(storagePath, JSON.stringify(payload, null, 2), "utf8");
+    } catch (err) {
+      console.warn("[NOVA Storage] Không thể lưu file:", err.message);
+    }
+  }
+
+  function loadStore() {
+    if (!persist) return;
+    try {
+      if (fs.existsSync(storagePath)) {
+        const raw = fs.readFileSync(storagePath, "utf8");
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.orders)) {
+          for (const [k, v] of parsed.orders) {
+            orders.set(k, v);
+            if (v.status === "PAID" && Array.isArray(v.seats)) {
+              if (!claims.has(v.showtimeId)) claims.set(v.showtimeId, new Map());
+              const active = claims.get(v.showtimeId);
+              for (const seat of v.seats) {
+                active.set(seat.seatId, {
+                  bookingId: v.id,
+                  status: "SOLD",
+                  expires: Infinity,
+                });
+              }
+            }
+          }
+        }
+        if (Array.isArray(parsed.tickets)) {
+          for (const [k, v] of parsed.tickets) tickets.set(k, v);
+        }
+        if (Array.isArray(parsed.payments)) {
+          for (const [k, v] of parsed.payments) payments.set(k, v);
+        }
+        console.log(`[NOVA Storage] Đã nạp thành công ${tickets.size} vé và ${orders.size} đơn hàng từ ${storagePath}`);
+      }
+    } catch (err) {
+      console.warn("[NOVA Storage] Không thể đọc file lưu trữ:", err.message);
+    }
+  }
+
+  function seedDemoTicket() {
+    if (!persist || tickets.size > 0) return;
+    try {
+      const show = [...maps.showtimes.values()][0];
+      if (!show) return;
+      show.startTime = iso(now());
+      show.endTime = iso(now() + 7200000);
+
+      const custId = stableId("memory:user:customer@nova.local");
+      const orderId = randomUUID();
+      const ticketId = randomUUID();
+      const ticketHash = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90";
+      const orderCode = "NOVA-DEMO88889999";
+      const room = model("rooms", show.roomId);
+      const seats = physical(room.id).slice(0, 2).map((s) => ({
+        seatId: s.id,
+        price: show.baseTicketPrice,
+        status: "SOLD",
+      }));
+      const order = {
+        id: orderId,
+        userId: custId,
+        orderCode,
+        showtimeId: show.id,
+        status: "PAID",
+        expiredAt: iso(now() + 86400000),
+        createdAt: iso(now()),
+        updatedAt: iso(now()),
+        totalTicketAmount: fixed(money(show.baseTicketPrice) * 2n),
+        totalComboAmount: "0.00",
+        discountAmount: "0.00",
+        finalAmount: fixed(money(show.baseTicketPrice) * 2n),
+        baseTicketPrice: show.baseTicketPrice,
+        membershipTier: "SILVER",
+        discountRate: "0.050",
+        seats,
+        combos: [],
+      };
+      if (!claims.has(show.id)) claims.set(show.id, new Map());
+      const active = claims.get(show.id);
+      for (const seat of seats) {
+        active.set(seat.seatId, { bookingId: orderId, status: "SOLD", expires: Infinity });
+      }
+      orders.set(orderId, order);
+      const ticket = {
+        id: ticketId,
+        bookingId: orderId,
+        ticketHash,
+        qrCodeBase64: "",
+        isCheckedIn: false,
+        createdAt: iso(now()),
+        checkedInAt: null,
+      };
+      tickets.set(ticketId, ticket);
+      toDataURL(ticketHash, { type: "image/png", width: 320, margin: 4, errorCorrectionLevel: "M" })
+        .then((png) => {
+          ticket.qrCodeBase64 = png;
+          saveStore();
+        })
+        .catch(() => {});
+      saveStore();
+      console.log(`[NOVA Demo Ticket] Đã tự động tạo vé mẫu để test soát vé:`);
+      console.log(`   - Mã đơn hàng: ${orderCode}`);
+      console.log(`   - Mã QR Hash: ${ticketHash}`);
+      console.log(`   - Suất chiếu ID: ${show.id}`);
+    } catch (e) {
+      console.warn("[NOVA Demo Ticket] Không thể tạo vé mẫu:", e.message);
+    }
+  }
+
   const programmeSnapshots = new Map(),
     programmePointers = new Map();
   function programme(days) {
@@ -505,6 +633,7 @@ function createMemoryServer(input) {
       });
     }
     orders.set(id, order);
+    if (persist) saveStore();
     if (keyId) idempotency.set(keyId, { body: canonical, id });
     return bookingData(order);
   }
@@ -572,6 +701,7 @@ function createMemoryServer(input) {
       checkedInAt: null,
     };
     tickets.set(ticket.id, ticket);
+    if (persist) saveStore();
     setImmediate(() => {
       toDataURL(ticket.ticketHash, {
         type: "image/png",
@@ -581,6 +711,7 @@ function createMemoryServer(input) {
       })
         .then((png) => {
           ticket.qrCodeBase64 = png;
+          if (persist) saveStore();
         })
         .catch(() => {
           console.warn(
@@ -664,6 +795,7 @@ function createMemoryServer(input) {
       const user = users.get(order.userId);
       user.cMemberPoints += Number(money(order.finalAmount) / 1000000n);
       issue(order);
+      if (persist) saveStore();
     } else {
       payment.status = fields.result;
       release(order, "CANCELLED");
@@ -737,27 +869,44 @@ function createMemoryServer(input) {
     const rawKey = typeof body.ticketHash === "string" ? body.ticketHash.trim() : "";
     assert(
       rawKey &&
-        (/^[a-f\d]{64}$/i.test(rawKey) || /^NOVA-[a-f0-9]{32}$/i.test(rawKey) || uuid.test(rawKey)) &&
-        uuid.test(body.showtimeId),
+        (/^[a-f\d]{64}$/i.test(rawKey) ||
+          /^NOVA-[a-z0-9_-]+$/i.test(rawKey) ||
+          uuid.test(rawKey) ||
+          /^[a-z0-9_-]{4,64}$/i.test(rawKey)),
+      "VALIDATION_ERROR",
+      "Mã vé hoặc mã đơn hàng không đúng định dạng.",
+      400,
     );
-    const ticket = [...tickets.values()].find(
-      (t) =>
-        t.ticketHash.toLowerCase() === rawKey.toLowerCase() ||
-        t.id.toLowerCase() === rawKey.toLowerCase() ||
-        orders.get(t.bookingId)?.orderCode?.toLowerCase() === rawKey.toLowerCase(),
-    );
-    assert(ticket, "TICKET_NOT_FOUND", "Không tìm thấy vé.", 404);
+    if (body.showtimeId) {
+      assert(uuid.test(body.showtimeId), "VALIDATION_ERROR", "Mã suất chiếu không đúng định dạng UUID.", 400);
+    }
+    const cleanKey = rawKey.replace(/^NOVA-/i, "").toLowerCase();
+    const ticket = [...tickets.values()].find((t) => {
+      if (t.ticketHash && t.ticketHash.toLowerCase() === rawKey.toLowerCase()) return true;
+      if (t.id && t.id.toLowerCase() === rawKey.toLowerCase()) return true;
+      if (t.bookingId && t.bookingId.toLowerCase() === rawKey.toLowerCase()) return true;
+      const order = orders.get(t.bookingId);
+      if (order?.orderCode) {
+        const oCode = order.orderCode.toLowerCase();
+        if (oCode === rawKey.toLowerCase()) return true;
+        if (oCode.replace(/^nova-/i, "") === cleanKey) return true;
+      }
+      return false;
+    });
+    assert(ticket, "TICKET_NOT_FOUND", "Không tìm thấy vé trong hệ thống.", 404);
     const order = orders.get(ticket.bookingId);
     assert(
-      order.status === "PAID",
+      order && order.status === "PAID",
       "TICKET_BOOKING_NOT_PAID",
       "Vé chưa được thanh toán.",
       409,
     );
-    if (order.showtimeId !== body.showtimeId) {
+    if (body.showtimeId && order.showtimeId !== body.showtimeId) {
       fail(409, "TICKET_SHOWTIME_MISMATCH", "Vé không khớp với suất chiếu đang kiểm tra.", {
         actualShowtimeId: order.showtimeId,
         startTime: model("showtimes", order.showtimeId)?.startTime,
+        movie: model("movies", model("showtimes", order.showtimeId)?.movieId)?.title,
+        room: model("rooms", model("showtimes", order.showtimeId)?.roomId)?.name,
       });
     }
     const start = Date.parse(model("showtimes", order.showtimeId).startTime);
@@ -775,9 +924,12 @@ function createMemoryServer(input) {
       ticket.isCheckedIn = true;
       ticket.checkedInAt = iso(now());
       ticket.checkedInBy = user.id;
+      if (persist) saveStore();
     }
     return ticketData(ticket, false);
   }
+  loadStore();
+  seedDemoTicket();
   const context = {
     maps,
     users,

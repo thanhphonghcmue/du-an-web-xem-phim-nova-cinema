@@ -72,7 +72,7 @@ export function extractCode(input) {
   const hex64 = trimmed.match(/[a-f0-9]{64}/i);
   if (hex64) return hex64[0].toLowerCase();
   // 2. Tìm mã đơn hàng NOVA-xxxxxxxx...
-  const orderCode = trimmed.match(/NOVA-[a-f0-9]{16,32}/i);
+  const orderCode = trimmed.match(/NOVA-[a-zA-Z0-9_-]{4,64}/i);
   if (orderCode) return orderCode[0].toUpperCase();
   // 3. Tìm định dạng UUID
   const uuidMatch = trimmed.match(
@@ -671,7 +671,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
       >
         <div className="flex items-center justify-between">
           <label htmlFor="ticket-hash" className="text-sm font-medium text-slate-200">
-            Mã QR hoặc Mã đơn hàng (NOVA-...)
+            Mã QR
           </label>
           <div className="flex items-center gap-2">
             <button
@@ -708,7 +708,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
             autoComplete="off"
             spellCheck="false"
             placeholder="Dán chuỗi QR vé (64 ký tự) hoặc nhập mã đơn NOVA-..."
-            className="flex-1"
+            className="flex-1 text-black font-medium"
+            style={{ color: "#000000" }}
           />
           <button
             type="submit"
@@ -724,6 +725,19 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
                 <ClipboardCheck size={16} /> Kiểm tra vé
               </>
             )}
+          </button>
+        </div>
+        <div className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+          <span>Gợi ý mã test:</span>
+          <button
+            type="button"
+            className="text-amber-400 hover:underline font-mono bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20"
+            onClick={() => {
+              setHash("NOVA-DEMO88889999");
+              clearResult();
+            }}
+          >
+            NOVA-DEMO88889999
           </button>
         </div>
       </form>

@@ -176,6 +176,7 @@ export class TicketsService {
         "TICKET_SHOWTIME_MISMATCH",
         "Vé không khớp với suất chiếu đang kiểm tra.",
         {
+          actualShowtimeId: ticket.booking.showtimeId,
           startTime: ticket.booking.showtime.startTime,
           room: ticket.booking.showtime.room.name,
         },

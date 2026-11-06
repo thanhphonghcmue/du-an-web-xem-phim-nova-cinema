@@ -235,7 +235,7 @@ export class TicketsService {
         409,
         "TICKET_ALREADY_USED",
         "Vé đã được sử dụng.",
-        { checkedInAt: ticket.checkedInAt },
+        { ...this.admissionContext(ticket), checkedInAt: ticket.checkedInAt },
       );
     if (showtimeId && ticket.booking.showtimeId !== showtimeId.toLowerCase())
       throw new ApiException(
@@ -243,8 +243,8 @@ export class TicketsService {
         "TICKET_SHOWTIME_MISMATCH",
         "Vé không khớp với suất chiếu đang kiểm tra.",
         {
-          startTime: ticket.booking.showtime.startTime,
-          room: ticket.booking.showtime.room.name,
+          ...this.admissionContext(ticket),
+          actualShowtimeId: ticket.booking.showtimeId,
         },
       );
     if (
@@ -269,7 +269,20 @@ export class TicketsService {
         409,
         "CHECK_IN_OUTSIDE_WINDOW",
         "Ticket is outside the configured check-in window.",
+        this.admissionContext(ticket),
       );
+  }
+  private admissionContext(ticket: TicketRecord) {
+    // Chỉ dùng trong API STAFF/ADMIN; không đưa QR token/PII vào lỗi public.
+    const details = ticketDetails(ticket);
+    return {
+      movie: details.movie,
+      cinema: details.cinema,
+      room: details.room,
+      startTime: details.startTime,
+      orderCode: details.orderCode,
+      ticketCode: details.ticketCode,
+    };
   }
   private async requireOwned(
     id: string,

@@ -281,11 +281,11 @@ test("new combos keep their UUIDs and real totals through hold, Sandbox and QR i
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: /Kết quả: PAID/ }),
+    page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
   ).toBeVisible();
-  await page
-    .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
-    .click();
+  await expect(
+    page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
+  ).toBeVisible();
   await expect(page.locator(".ticket-qr-svg").first()).toBeVisible({
     timeout: 20000,
   });

@@ -2,7 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 
 // Decorative only: choosing seats never depends on WebGL or animation readiness.
-export default function CinematicScreen3D({ className = "" }) {
+export default function CinematicScreen3D({
+  className = "",
+  format = "CINEMASCOPE",
+}) {
   const host = useRef(null);
   const [status, setStatus] = useState("loading");
   useEffect(() => {
@@ -97,7 +100,7 @@ export default function CinematicScreen3D({ className = "" }) {
       </div>
       <figcaption>
         <span>NOVA / CINEMASCOPE</span>
-        <small>MÀN HÌNH · HƯỚNG NHÌN CỦA BẠN</small>
+        <small>MÀN HÌNH CHIẾU CONG · {format}</small>
       </figcaption>
     </figure>
   );

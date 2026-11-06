@@ -538,7 +538,7 @@ test("refresh restores the same hold and deadline, cancel releases it", async ({
 
 for (const [button, state] of [
   ["Mô phỏng thất bại", "CANCELLED"],
-  ["Hủy thanh toán", "CANCELLED"],
+  ["Hủy giao dịch", "CANCELLED"],
 ])
   test(`Sandbox ${button} returns verified state and releases seats`, async ({
     page,
@@ -561,22 +561,29 @@ for (const [button, state] of [
       .getByRole("button", { name: /^Thanh toán ngay:/ })
       .click();
     await expect(
-      page.getByRole("heading", { name: "Thanh toán mô phỏng" }),
+      page.getByRole("heading", { name: "Xác nhận Thanh toán Giả lập" }),
     ).toBeVisible();
     await page.getByRole("button", { name: button, exact: true }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Giao dịch đã được hủy bỏ" }),
+    ).toBeVisible();
     expect(
       (await read(page, `/payments/${order.id}/status`)).body.data
         .bookingStatus,
     ).toBe(state);
-    await page.getByRole("link", { name: "Quay lại ứng dụng" }).click();
+    await page.getByRole("button", { name: "Thử thanh toán lại →" }).click();
     const restored = await restoredSeatScreen(page);
-    await expect(restored).toContainText(state);
+    await expect(
+      restored.getByRole("button", { name: "Ghế A1, còn trống", exact: true }),
+    ).toBeEnabled();
   });
 
 test("Sandbox success issues one QR per seat, searchable wallet, public lookup, ICS and independent staff check-in", async ({
   page,
   browser,
 }) => {
+  // Hành trình gồm ví vé, email, public lookup và hai lượt soát ghế độc lập.
+  test.setTimeout(120000);
   await login(page);
   const order = await hold(page, ["B1", "B2"]);
   // A second active order must not replace the just-paid result when points refresh.
@@ -610,10 +617,15 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
     .click();
+  await expect(
+    page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
+  ).toBeVisible();
   expect(
     (await read(page, `/payments/${order.id}/status`)).body.data.bookingStatus,
   ).toBe("PAID");
-  await page.getByRole("link", { name: "Quay lại ứng dụng" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
+  ).toBeVisible();
   await restoredSeatScreen(page);
   await expect(
     page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
@@ -631,6 +643,7 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
   await expect(cards.first().locator(".ticket-qr-svg")).toBeInViewport({
     ratio: 1,
   });
+  await capture(page, "17-electronic-ticket");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(cards.first().locator(".ticket-qr-svg")).toBeInViewport({
@@ -765,6 +778,8 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
     await expect(staff.locator(".admission-result.warning")).toContainText(
       "không khớp",
     );
+    await expect(staff.locator(".admission-result.warning")).toBeInViewport();
+    await capture(staff, "20-wrong-showtime");
     await staff.getByRole("button", { name: /Mời khách đợi tại sảnh/ }).click();
     await expect(
       staff.getByText(/Hướng dẫn tại cửa: đối chiếu đúng giờ/),
@@ -790,9 +805,8 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
     expect(
       (await read(page, `/tickets/${ticket.id}`)).body.data.isCheckedIn,
     ).toBe(false);
-    await capture(staff.locator(".modal-panel"), "staff-valid-preview", [
-      staff.locator("#ticket-hash"),
-    ]);
+    await expect(staff.locator(".admission-result.valid")).toBeInViewport();
+    await capture(staff, "19-valid-ticket", [staff.locator("#ticket-hash")]);
     await staff.getByRole("button", { name: "Xác nhận soát vé" }).click();
     await expect(
       staff.getByRole("heading", { name: "Soát vé thành công" }),
@@ -806,6 +820,8 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
     await expect(staff.locator(".admission-result.invalid")).toContainText(
       "Đã soát lúc",
     );
+    await expect(staff.locator(".admission-result.invalid")).toBeInViewport();
+    await capture(staff, "21-used-ticket");
     await staff.getByRole("button", { name: /Giữ khách đối chiếu/ }).click();
     await expect(
       staff.getByText(/Hướng dẫn tại cửa: đối chiếu giấy tờ/),

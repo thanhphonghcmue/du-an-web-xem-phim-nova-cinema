@@ -106,6 +106,7 @@ export class TicketDetailsDto {
   @ApiProperty({ format: "date-time" }) bookedAt!: Date;
   @ApiProperty({ nullable: true }) posterUrl!: string | null;
   @ApiProperty() customerName!: string;
+  @ApiProperty({ nullable: true }) membershipTier!: string | null;
   @ApiProperty({ nullable: true }) customerPhone!: string | null;
   @ApiProperty() paymentStatus!: string;
   @ApiProperty() ticketCount!: number;

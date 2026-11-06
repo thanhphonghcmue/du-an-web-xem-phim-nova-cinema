@@ -156,6 +156,13 @@ async function requestWithinBudget(
   }
   let payload;
   try {
+    // Sandbox cũ trả HTML; giữ nguyên endpoint/payload và không thực thi HTML trả về.
+    if (
+      response.ok &&
+      options.headers?.Accept === "text/html" &&
+      response.headers.get("content-type")?.includes("text/html")
+    )
+      return { success: true, data: await response.text() };
     payload = await response.json();
   } catch (error) {
     signal.throwIfAborted();
@@ -426,6 +433,22 @@ export const apiCheckout = (id) =>
     returnUrl: window.location.origin + "/?booking=" + id,
   });
 export const apiTaoDuongDanThanhToanSandbox = apiCheckout;
+
+export async function apiCompleteSandbox(payload, result) {
+  if (!["SUCCESS", "FAILED", "CANCELLED"].includes(result))
+    throw new Error("Kết quả mô phỏng không hợp lệ.");
+  await apiRequest(
+    "/payments/sandbox/complete",
+    {
+      method: "POST",
+      headers: { Accept: "text/html" },
+      body: JSON.stringify({ ...payload, result }),
+    },
+    false,
+  );
+  // Không coi HTTP 200/HTML là PAID: đọc lại đơn của chủ sở hữu từ backend.
+  return apiGetBooking(payload.bookingId);
+}
 
 /**
  * Gửi lệnh POST/PUT/PATCH tới Backend

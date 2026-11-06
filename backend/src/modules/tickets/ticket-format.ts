@@ -10,6 +10,7 @@ export function ticketDetails(row: TicketRecord) {
     posterUrl: showtime.movie.posterUrl,
     customerName: booking.user.fullName,
     customerPhone: booking.user.phone,
+    membershipTier: booking.membershipTier,
     paymentStatus: booking.status,
     ticketCount: booking.seats.length,
     legacyGroup: !row.bookingSeatId,

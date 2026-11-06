@@ -1572,15 +1572,29 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         .post("/api/v1/staff/verify")
         .auth(auth, { type: "bearer" })
         .send({ ticketHash, showtimeId });
-    await verify().expect(200);
+    const verified = data(await verify().expect(200)) as Record<
+      string,
+      unknown
+    >;
+    expect(verified).toHaveProperty("membershipTier");
     await verify(ticket.ticketHash, f.showtime.id.toUpperCase()).expect(200);
     expect(
       (await prisma.eTicket.findUniqueOrThrow({ where: { id: ticket.id } }))
         .isCheckedIn,
     ).toBe(false);
-    expect(
-      error(await verify(ticket.ticketHash, randomUUID()).expect(409)),
-    ).toBe("TICKET_SHOWTIME_MISMATCH");
+    const mismatch = await verify(ticket.ticketHash, randomUUID()).expect(409);
+    expect(error(mismatch)).toBe("TICKET_SHOWTIME_MISMATCH");
+    const mismatchDetails = (
+      JSON.parse(mismatch.text) as { details: Record<string, unknown> }
+    ).details;
+    expect(mismatchDetails).toMatchObject({
+      room: verified.room,
+      orderCode: f.booking.orderCode,
+      ticketCode: ticket.ticketCode,
+      startTime: f.showtime.startTime.toISOString(),
+    });
+    expect(mismatchDetails).not.toHaveProperty("ticketHash");
+    expect(mismatchDetails).not.toHaveProperty("customerPhone");
     expect(
       error(await verify(randomBytes(32).toString("hex")).expect(404)),
     ).toBe("TICKET_NOT_FOUND");
@@ -1614,6 +1628,14 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
       .expect(200);
     const usedPreview = await verify().expect(409);
     expect(error(usedPreview)).toBe("TICKET_ALREADY_USED");
+    const usedDetails = (
+      JSON.parse(usedPreview.text) as { details: Record<string, unknown> }
+    ).details;
+    expect(usedDetails).toMatchObject({
+      orderCode: f.booking.orderCode,
+      ticketCode: ticket.ticketCode,
+    });
+    expect(usedDetails).not.toHaveProperty("ticketHash");
     expect(
       (JSON.parse(usedPreview.text) as { details: { checkedInAt: string } })
         .details.checkedInAt,

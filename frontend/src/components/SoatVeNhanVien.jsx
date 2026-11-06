@@ -20,6 +20,8 @@ import {
   Calendar,
 } from "lucide-react";
 import Modal from "./Modal.jsx";
+import { createPortal } from "react-dom";
+import AdmissionStatus from "./AdmissionStatus.jsx";
 import { apiGetShowtimes, readCommand } from "@/api/client.js";
 import { useCatalog, dayKey } from "@/catalog.js";
 import jsQR from "jsqr";
@@ -72,36 +74,6 @@ function playSuccessBeep() {
   }
 }
 
-function formatRelativeTime(timestamp) {
-  if (!timestamp || !Number.isFinite(Date.parse(timestamp)))
-    return "Chưa có thời gian xác nhận";
-  try {
-    const diff = Math.max(
-      1,
-      Math.round((Date.now() - new Date(timestamp).getTime()) / 60000),
-    );
-    if (diff < 60) return `Cách đây ${diff} phút`;
-    const h = Math.floor(diff / 60);
-    return `Cách đây ${h} giờ`;
-  } catch {
-    return "Chưa có thời gian xác nhận";
-  }
-}
-
-function formatTimeOnly(timestamp) {
-  if (!timestamp) return "Chưa có giờ";
-  try {
-    const d = new Date(timestamp);
-    if (isNaN(d.getTime())) return "Chưa có giờ";
-    return d.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Asia/Ho_Chi_Minh",
-    });
-  } catch {
-    return "Chưa có giờ";
-  }
-}
 export default function SoatVeNhanVien({ onClose, embedded = false }) {
   const { cinemas, rooms, movies, showtimes: catalogShowtimes } = useCatalog();
   const [mode, setMode] = useState("manual");
@@ -285,6 +257,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         }
 
         // UC14: giữ nguyên suất nhân viên đang soát; không tự chuyển sang suất khác.
+        setShowtimeId(currentShowtimeId);
         const ticket = admissionTicket(
           await readCommand("/staff/verify", {
             ticketHash: target,
@@ -486,9 +459,24 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   };
 
   const ticket = result || preview?.ticket;
+  function nextTicket() {
+    setHash("");
+    clearResult();
+    if (mode === "camera") void startCamera();
+    else document.getElementById("ticket-hash")?.focus();
+  }
   const alertRef = useRef(null);
   useEffect(() => {
-    if (error || ticket) alertRef.current?.scrollIntoView({ block: "nearest" });
+    if (!error && !ticket) return;
+    // Portal đặt kết quả trước banner; đợi layout rồi đưa thẻ vào vùng nhìn thấy.
+    const frame = requestAnimationFrame(() => {
+      alertRef.current?.focus({ preventScroll: true });
+      alertRef.current?.scrollIntoView({
+        block: "center",
+        behavior: "instant",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [error, ticket]);
 
   return (
@@ -730,353 +718,29 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         </div>
       </form>
 
-      {error && (
-        <div
-          ref={alertRef}
-          id="staff-alert-box"
-          className={`admission-result ${["TICKET_SHOWTIME_MISMATCH", "CHECK_IN_OUTSIDE_WINDOW"].includes(error.code) ? "warning" : "invalid"}`}
-          role="alert"
-          style={
-            error.code === "TICKET_SHOWTIME_MISMATCH" ||
-            error.code === "CHECK_IN_OUTSIDE_WINDOW"
-              ? {
-                  margin: "24px auto",
-                  maxWidth: "860px",
-                  width: "100%",
-                  background: "#241e0d",
-                  border: "2px solid #eab308",
-                  borderRadius: "12px",
-                  padding: "28px 36px",
-                  color: "#fff",
-                  boxShadow: "0 12px 40px rgba(234,179,8,0.35)",
-                  transition: "all 0.3s ease",
-                }
-              : {
-                  margin: "24px auto",
-                  maxWidth: "860px",
-                  width: "100%",
-                  background: "#2a1012",
-                  border: "2px solid #ef4444",
-                  borderRadius: "12px",
-                  padding: "28px 36px",
-                  color: "#fff",
-                  boxShadow: "0 12px 40px rgba(239,68,68,0.4)",
-                  transition: "all 0.3s ease",
-                }
-          }
-        >
-          {error.code === "TICKET_SHOWTIME_MISMATCH" ||
-          error.code === "CHECK_IN_OUTSIDE_WINDOW" ? (
-            <>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "14px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span
-                  style={{
-                    background: "#eab308",
-                    color: "#000",
-                    fontWeight: 900,
-                    padding: "5px 16px",
-                    borderRadius: "20px",
-                    fontSize: "13px",
-                  }}
-                >
-                  ⚠️ CẢNH BÁO:{" "}
-                  {error.code === "CHECK_IN_OUTSIDE_WINDOW"
-                    ? "NGOÀI KHUNG GIỜ VÀO RẠP (CHECK_IN_OUTSIDE_WINDOW)"
-                    : "SAI SUẤT CHIẾU (TICKET_SHOWTIME_MISMATCH)"}
-                </span>
-              </div>
-              <h3
-                style={{
-                  margin: "0 0 8px",
-                  fontSize: "21px",
-                  color: "#fde047",
-                  fontWeight: 700,
-                }}
-              >
-                {error.details?.startTime
-                  ? `Suất trên vé: ${formatTimeOnly(error.details.startTime)} (${vietnamDate(error.details.startTime) === day ? "Hôm nay" : vietnamDate(error.details.startTime)}) · Hãy đối chiếu suất đang chọn`
-                  : "Vé không khớp suất chiếu hoặc khung giờ đang soát"}
-              </h3>
-              <p
-                style={{
-                  margin: "0 0 16px",
-                  color: "#cbd5e1",
-                  fontSize: "14px",
-                  lineHeight: 1.6,
-                }}
-              >
-                {error.message ||
-                  "Hãy kiểm tra lại ngày, giờ và phòng chiếu trên vé."}
-              </p>
-              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setGuidance(
-                      "Hướng dẫn tại cửa: đối chiếu đúng giờ trên vé và mời khách đợi tại sảnh nếu chưa đến giờ. Vé chưa được check-in.",
-                    )
-                  }
-                  style={{
-                    background: "#eab308",
-                    color: "#000",
-                    fontWeight: 800,
-                    border: "none",
-                    padding: "12px 24px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                  }}
-                >
-                  Mời khách đợi tại sảnh (Chưa đến giờ vào rạp)
-                </button>
-                <button
-                  type="button"
-                  onClick={clearResult}
-                  style={{
-                    background: "#1e2438",
-                    color: "#cbd5e1",
-                    border: "1px solid #334155",
-                    padding: "12px 20px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                  }}
-                >
-                  Quét mã tiếp theo
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "14px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span
-                  style={{
-                    background: "#ef4444",
-                    color: "#fff",
-                    fontWeight: 900,
-                    padding: "5px 16px",
-                    borderRadius: "20px",
-                    fontSize: "13px",
-                  }}
-                >
-                  ⛔ TỪ CHỐI VÀO RẠP:{" "}
-                  {error.code === "TICKET_ALREADY_USED"
-                    ? "Vé đã được sử dụng"
-                    : error.code === "TICKET_NOT_FOUND"
-                      ? "Không tìm thấy vé"
-                      : "MÃ VÉ KHÔNG HỢP LỆ"}
-                </span>
-                <span
-                  style={{
-                    color: "#ef4444",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                  }}
-                >
-                  Mã lỗi: {error.code || "REQUEST_FAILED"}
-                  {error.status ? ` (HTTP ${error.status})` : ""}
-                </span>
-              </div>
-              <h3
-                style={{
-                  margin: "0 0 8px",
-                  fontSize: "21px",
-                  color: "#fca5a5",
-                  fontWeight: 700,
-                }}
-              >
-                {error.code === "TICKET_ALREADY_USED"
-                  ? `Vé này đã được nhân viên soát vé quét lúc ${formatTimeOnly(error.at)} (${formatRelativeTime(error.at)}) · Đã soát lúc ${error.at ? new Date(error.at).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }) : "Chưa có thời gian"}`
-                  : error.message || "Không thể xác nhận vé này trên hệ thống"}
-              </h3>
-              <p
-                style={{
-                  margin: "0 0 16px",
-                  color: "#cbd5e1",
-                  fontSize: "14px",
-                  lineHeight: 1.6,
-                }}
-              >
-                {error.code === "TICKET_ALREADY_USED"
-                  ? "Hệ thống ngăn chặn tuyệt đối việc vào rạp lần thứ hai với cùng một mã QR để chống hành vi gian lận chụp ảnh màn hình chia sẻ vé cho người khác."
-                  : error.message ||
-                    "Hệ thống không tìm thấy thông tin vé hợp lệ. Vui lòng kiểm tra lại mã QR trên ứng dụng hoặc email vé của khách."}
-              </p>
-              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setGuidance(
-                      "Hướng dẫn tại cửa: đối chiếu giấy tờ và đơn của khách, liên hệ quản lý nếu thông tin không khớp. Không xác nhận lại vé đã sử dụng.",
-                    )
-                  }
-                  style={{
-                    background: "#ef4444",
-                    color: "#fff",
-                    fontWeight: 800,
-                    border: "none",
-                    padding: "12px 24px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                  }}
-                >
-                  ⛔ Giữ khách đối chiếu CCCD & Thông tin đơn hàng
-                </button>
-                <button
-                  type="button"
-                  onClick={clearResult}
-                  style={{
-                    background: "#1e2438",
-                    color: "#cbd5e1",
-                    border: "1px solid #334155",
-                    padding: "12px 20px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "14px",
-                  }}
-                >
-                  Bỏ qua · Quét vé tiếp theo
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {guidance && (
-        <p role="status" className="auth-notice">
-          {guidance}
-        </p>
-      )}
-      {ticket && (
-        <div
-          ref={alertRef}
-          role="status"
-          className="admission-result valid transition-all"
-          style={{
-            background: "#0f2316",
-            border: "2px solid #22c55e",
-            boxShadow: "0 12px 40px #22c55e59",
-          }}
-        >
-          <CheckCircle2 size={36} className="text-emerald-400" />
-          <div className="flex-1">
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-              <h3 className="text-lg font-bold text-white">
-                {result
-                  ? "✓ Soát vé thành công — Cho khách vào rạp"
-                  : "Vé hợp lệ · Hãy đối chiếu thông tin"}
-              </h3>
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                {ticket.ticketCode || ticket.orderCode}
-              </span>
-            </div>
-
-            {ticket.posterUrl && (
-              <img
-                className="admission-poster"
-                src={ticket.posterUrl}
-                alt={ticket.movie}
-                onError={(event) => {
-                  if (
-                    event.currentTarget.getAttribute("src") !==
-                    "/images/cinema-auditorium.jpg"
-                  )
-                    event.currentTarget.src = "/images/cinema-auditorium.jpg";
-                }}
-              />
-            )}
-            <p>
-              Khách hàng: {ticket.customerName || "Chưa có tên"} · Điện thoại:{" "}
-              {ticket.customerPhone || "Chưa cung cấp"}
-            </p>
-            {ticket.bookedAt && (
-              <p>
-                Ngày đặt:{" "}
-                {new Date(ticket.bookedAt).toLocaleString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                })}
-              </p>
-            )}
-            <p>
-              Thanh toán: {ticket.paymentStatus || "PAID"} · Mã vé:{" "}
-              <strong>{ticket.ticketCode || ticket.orderCode}</strong>
-            </p>
-            {!result && <p>Chưa xác nhận vào rạp</p>}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm bg-slate-900/60 p-3 rounded-lg border border-slate-700/60 my-2">
-              <div>
-                <p className="text-slate-400 text-xs">Phim</p>
-                <strong className="text-white text-base">{ticket.movie}</strong>
-              </div>
-              <div>
-                <p className="text-slate-400 text-xs">Cụm rạp & Phòng</p>
-                <p className="font-semibold text-slate-200">
-                  {ticket.cinema} · {ticket.room}
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-xs">Suất chiếu</p>
-                <p className="font-semibold text-amber-300">
-                  {new Date(ticket.startTime).toLocaleString("vi-VN", {
-                    timeZone: "Asia/Ho_Chi_Minh",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-xs">Danh sách ghế</p>
-                <p className="font-bold text-emerald-400 text-base">
-                  {ticket.seats.map((seat) => seat.label).join(", ")}
-                </p>
-              </div>
-            </div>
-
-            {result ? (
-              <p className="text-xs text-emerald-300 mt-2 font-medium flex items-center gap-1.5">
-                <CheckCircle2 size={15} /> Đã xác nhận lúc{" "}
-                {new Date(result.checkedInAt).toLocaleString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                })}
-              </p>
-            ) : (
-              <div className="mt-3 flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-slate-700/50">
-                <span className="text-xs text-slate-300">
-                  Đối chiếu số ghế và người xem trước khi bấm xác nhận.
-                </span>
-                <button
-                  className="button button-primary px-6 py-2.5 font-bold shadow-lg shadow-rose-900/30"
-                  aria-label="Xác nhận soát vé"
-                  disabled={busy}
-                  onClick={admit}
-                >
-                  <CheckCircle2 size={18} /> Cho vào rạp (Xác nhận soát)
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {(error || ticket) &&
+        (() => {
+          const status = (
+            <AdmissionStatus
+              ticket={ticket}
+              result={result}
+              error={error}
+              currentShowtime={screenings.find(
+                (show) => show.id === showtimeId,
+              )}
+              busy={busy}
+              onAdmit={admit}
+              onClear={nextTicket}
+              guidance={guidance}
+              onGuidance={setGuidance}
+              cardRef={alertRef}
+            />
+          );
+          const host = embedded
+            ? document.getElementById("staff-status-slot")
+            : null;
+          return host ? createPortal(status, host) : status;
+        })()}
 
       <div className="admission-checklist">
         <p className="nova-kicker">QUY TRÌNH SOÁT VÉ TIÊU CHUẨN</p>

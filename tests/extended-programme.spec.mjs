@@ -293,9 +293,9 @@ test("movie 20 can be booked 15 days ahead with separated seats and three indepe
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
     .click();
-  await page
-    .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
-    .click();
+  await expect(
+    page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Xem vé trong tài khoản", exact: true })
     .click();

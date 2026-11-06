@@ -25,6 +25,7 @@
  */
 
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { uniqueRecords } from "@/uniqueRecords.js";
 import { apiGetMyBookings, apiGetMyTickets } from "@/api/client.js";
 import { useCatalog } from "@/catalog.js";
@@ -68,6 +69,10 @@ export default function LichSuVeKhachHang({ member, onResume }) {
     }
   }
   const memberId = member?.id;
+  const featuredBooking =
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("ve");
   const generation = useRef(0);
   const inFlight = useRef(null);
   const firstQr = useRef(null);
@@ -169,9 +174,12 @@ export default function LichSuVeKhachHang({ member, onResume }) {
       "ve",
     );
     const target = requestedBooking
-      ? [...(wallet.current?.querySelectorAll(".cinema-ticket") || [])].find(
-          (card) => card.dataset.bookingId === requestedBooking,
-        )
+      ? [
+          ...(wallet.current?.querySelectorAll(".cinema-ticket") || []),
+          ...(document
+            .getElementById("account-ticket-slot")
+            ?.querySelectorAll(".cinema-ticket") || []),
+        ].find((card) => card.dataset.bookingId === requestedBooking)
       : firstQr.current;
     const qr = target?.querySelector(".ticket-qr-svg");
     if (!qr) return;
@@ -313,151 +321,194 @@ export default function LichSuVeKhachHang({ member, onResume }) {
             <ETicketQr loading />
           </div>
         ))}
-      {visibleTickets.map((ticket, index) => (
-        <article
-          className="cinema-ticket cinema-ticket-paid"
-          key={`${ticket.id}-${index}`}
-          data-booking-id={ticket.bookingId}
-        >
-          <header className="paid-ticket-header">
-            <div className="paid-ticket-reference">
-              <span className="paid-ticket-status">
-                <CheckCircle2 size={13} />
-                {ticket.isCheckedIn ? "VÉ ĐÃ SỬ DỤNG" : "VÉ HỢP LỆ (PAID)"}
-              </span>
-              <span className="paid-ticket-order">
-                Mã vé: {ticket.ticketCode || ticket.orderCode}
-              </span>
-            </div>
-            <a
-              className="paid-ticket-calendar"
-              href={`/api/v1/tickets/${ticket.id}/calendar`}
-            >
-              <CalendarDays size={14} />
-              Tải lịch nhắc (.ics)
-            </a>
-          </header>
-          <img
-            className="ticket-movie-poster"
-            src={
-              ticket.posterUrl ||
-              movies.find((movie) => movie.title === ticket.movie)
-                ?.localPoster ||
-              "/images/cinema-auditorium.jpg"
-            }
-            alt={ticket.movie}
-            onError={(event) => {
-              if (
-                event.currentTarget.getAttribute("src") !==
-                "/images/cinema-auditorium.jpg"
-              )
-                event.currentTarget.src = "/images/cinema-auditorium.jpg";
-            }}
-          />
-          <div className="ticket-story">
-            <p className="nova-kicker">
-              <Ticket size={13} />
-              NOVA CINEMA ·{" "}
-              {ticket.legacyGroup ? "VÉ NHÓM CŨ" : "MỘT GHẾ · MỘT LƯỢT VÀO"}
-            </p>
-            <h3>{ticket.movie}</h3>
-            <p>
-              {ticket.cinema} · {ticket.room}
-            </p>
-            <p>
-              {new Date(ticket.startTime).toLocaleString("vi-VN", {
-                timeZone: "Asia/Ho_Chi_Minh",
-              })}
-            </p>
-            <p>
-              Ghế:{" "}
-              {ticket.seats
-                .map(
-                  (s) =>
-                    `${s.label} (${s.type === "VIP" ? "VIP" : s.type === "SWEETBOX" ? "Sweetbox" : "Thường"})`,
-                )
-                .join(", ")}
-            </p>
-            <small
-              className={`ticket-state ${ticket.isCheckedIn ? "used" : ""}`}
-            >
-              {ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}
-            </small>
-            {ticket.bookedAt && (
-              <p>
-                Ngày đặt vé:{" "}
-                {new Date(ticket.bookedAt).toLocaleString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                })}
-              </p>
-            )}
-            <p>
-              Giờ kết thúc:{" "}
-              {new Date(ticket.endTime).toLocaleTimeString("vi-VN", {
-                timeZone: "Asia/Ho_Chi_Minh",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-            <p>
-              {(ticket.combos || [])
-                .map((c) => `${c.name} × ${c.quantity}`)
-                .join(" · ") || "Không kèm combo"}
-            </p>
-            <p>
-              Tổng thanh toán đơn ({ticket.ticketCount || ticket.seats.length}{" "}
-              ghế): {money(ticket.amount)}
-            </p>
-            <p className="ticket-order-code">Mã đơn: {ticket.orderCode}</p>
-            {ticket.ticketCode && (
-              <div className="ticket-code-line">
-                <strong className="ticket-readable-code">
-                  Mã vé: {ticket.ticketCode}
-                </strong>
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => copyCode(ticket.ticketCode)}
-                >
-                  Sao chép mã vé
-                </button>
+      {visibleTickets.map((ticket, index) => {
+        const card = (
+          <article
+            className={`cinema-ticket cinema-ticket-paid ${ticket.isCheckedIn ? "ticket-used" : ""}`}
+            key={`${ticket.id}-${index}`}
+            data-booking-id={ticket.bookingId}
+          >
+            <header className="paid-ticket-header">
+              <div className="paid-ticket-reference">
+                <span className="paid-ticket-status">
+                  <CheckCircle2 size={13} />
+                  {ticket.isCheckedIn ? "VÉ ĐÃ SỬ DỤNG" : "VÉ HỢP LỆ (PAID)"}
+                </span>
+                <span className="paid-ticket-order">
+                  Mã đơn: {ticket.orderCode}
+                </span>
               </div>
-            )}
-          </div>
-          <div className="ticket-stub" ref={index === 0 ? firstQr : undefined}>
-            <button
-              type="button"
-              className="ticket-zoom-trigger"
-              onClick={() => setZoomTicket(ticket)}
-              aria-label={`Phóng to QR ghế ${ticket.seats.map((seat) => seat.label).join(", ")}`}
-            >
-              <ETicketQr ticket={ticket} />
-              <span>Phóng to QR</span>
-            </button>
-            <p>
-              {ticketPng(ticket) && (
-                <a
-                  className="text-button"
-                  href={ticketPng(ticket)}
-                  download={`${ticket.ticketCode || ticket.orderCode}.png`}
-                >
-                  <Download size={12} />
-                  Tải QR
-                </a>
-              )}{" "}
-              ·{" "}
               <a
-                className="text-button"
+                className="paid-ticket-calendar"
                 href={`/api/v1/tickets/${ticket.id}/calendar`}
               >
-                <CalendarDays size={12} />
-                Thêm lịch .ics
+                <CalendarDays size={14} />
+                Tải lịch nhắc (.ics)
               </a>
-            </p>
-          </div>
-          <TicketConfirmation ticketId={ticket.id} />
-        </article>
-      ))}
+            </header>
+            <div className="paid-ticket-body">
+              <div
+                className="ticket-stub paid-ticket-qr"
+                ref={index === 0 ? firstQr : undefined}
+              >
+                <button
+                  type="button"
+                  className="ticket-zoom-trigger"
+                  onClick={() => setZoomTicket(ticket)}
+                  aria-label={`Phóng to QR ghế ${ticket.seats.map((seat) => seat.label).join(", ")}`}
+                >
+                  <ETicketQr ticket={ticket} />
+                  <span>Phóng to QR</span>
+                </button>
+                <p>
+                  {ticketPng(ticket) && (
+                    <a
+                      className="text-button"
+                      href={ticketPng(ticket)}
+                      download={`${ticket.ticketCode || ticket.orderCode}.png`}
+                    >
+                      <Download size={12} />
+                      Tải QR
+                    </a>
+                  )}{" "}
+                  ·{" "}
+                  <a
+                    className="text-button"
+                    href={`/api/v1/tickets/${ticket.id}/calendar`}
+                  >
+                    <CalendarDays size={12} />
+                    Thêm lịch .ics
+                  </a>
+                </p>
+              </div>
+              <div className="ticket-story paid-ticket-details">
+                <p className="paid-ticket-venue">{ticket.cinema}</p>
+                <img
+                  className="ticket-movie-poster"
+                  src={
+                    ticket.posterUrl ||
+                    movies.find((movie) => movie.title === ticket.movie)
+                      ?.localPoster ||
+                    "/images/cinema-auditorium.jpg"
+                  }
+                  alt={ticket.movie}
+                  onError={(event) => {
+                    if (
+                      event.currentTarget.getAttribute("src") !==
+                      "/images/cinema-auditorium.jpg"
+                    )
+                      event.currentTarget.src = "/images/cinema-auditorium.jpg";
+                  }}
+                />
+                <p className="nova-kicker">
+                  <Ticket size={13} />
+                  NOVA CINEMA ·{" "}
+                  {ticket.legacyGroup ? "VÉ NHÓM CŨ" : "MỘT GHẾ · MỘT LƯỢT VÀO"}
+                </p>
+                <h3>{ticket.movie}</h3>
+                <div className="paid-ticket-facts">
+                  <p>
+                    Phòng chiếu <strong>{ticket.room}</strong>
+                  </p>
+                  <p>
+                    Suất chiếu{" "}
+                    <strong>
+                      {new Date(ticket.startTime).toLocaleString("vi-VN", {
+                        timeZone: "Asia/Ho_Chi_Minh",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      })}
+                    </strong>
+                  </p>
+                  <p>
+                    Số ghế{" "}
+                    <strong className="paid-ticket-seats">
+                      {ticket.seats
+                        .map(
+                          (seat) =>
+                            `${seat.label} (${seat.type === "VIP" ? "VIP" : seat.type === "SWEETBOX" ? "Sweetbox" : "Thường"})`,
+                        )
+                        .join(", ")}
+                    </strong>
+                  </p>
+                  <p>
+                    Bắp nước{" "}
+                    <strong>
+                      {(ticket.combos || [])
+                        .map((line) => `${line.quantity} × ${line.name}`)
+                        .join(" · ") || "Không kèm combo"}
+                    </strong>
+                  </p>
+                </div>
+                <small
+                  className={`ticket-state ${ticket.isCheckedIn ? "used" : ""}`}
+                >
+                  {ticket.isCheckedIn ? "Đã soát vé" : "Chưa soát vé"}
+                </small>
+                <details className="paid-ticket-extra">
+                  <summary>Chi tiết đơn hàng & mã xác thực</summary>
+                  {ticket.bookedAt && (
+                    <p>
+                      Ngày đặt vé:{" "}
+                      {new Date(ticket.bookedAt).toLocaleString("vi-VN", {
+                        timeZone: "Asia/Ho_Chi_Minh",
+                      })}
+                    </p>
+                  )}
+                  <p>
+                    Giờ kết thúc:{" "}
+                    {new Date(ticket.endTime).toLocaleTimeString("vi-VN", {
+                      timeZone: "Asia/Ho_Chi_Minh",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                  <p>
+                    {(ticket.combos || [])
+                      .map((c) => `${c.name} × ${c.quantity}`)
+                      .join(" · ") || "Không kèm combo"}
+                  </p>
+                  <p>
+                    Tổng thanh toán đơn (
+                    {ticket.ticketCount || ticket.seats.length} ghế):{" "}
+                    {money(ticket.amount)}
+                  </p>
+                  <p className="ticket-order-code">
+                    Mã đơn: {ticket.orderCode}
+                  </p>
+                  <p className="paid-ticket-note">
+                    Mã xác thực do máy chủ cấp:{" "}
+                    <code>{ticket.ticketHash || "Đang cập nhật"}</code>. Xuất
+                    trình QR hoặc mã vé tại quầy soát vé.
+                  </p>
+                </details>
+                {ticket.ticketCode && (
+                  <div className="ticket-code-line">
+                    <strong className="ticket-readable-code">
+                      Mã vé: {ticket.ticketCode}
+                    </strong>
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => copyCode(ticket.ticketCode)}
+                    >
+                      Sao chép mã vé
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <TicketConfirmation ticketId={ticket.id} />
+          </article>
+        );
+        const host = document.getElementById("account-ticket-slot");
+        return host && ticket.bookingId === featuredBooking
+          ? createPortal(card, host, ticket.id)
+          : card;
+      })}
       {["all", "cancelled"].includes(filter) &&
         orders.some(
           (order) =>

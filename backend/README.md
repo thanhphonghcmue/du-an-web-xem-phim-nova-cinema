@@ -7,6 +7,8 @@ Kiến trúc: Controller → Service → Repository → Prisma. Quyết định 
 Bổ sung ngày 05/11/2026: [vé theo từng ghế, mã ngắn, ví vé và soát vé](../docs/qa/per-seat-ticket-wallet.md).
 
 Ngày 06/11/2026: [sửa startup/Redis, timeout lần tải đầu và phục hồi kết nối](../docs/qa/connection-recovery-2026-11-06.md).
+
+Cùng ngày: [giao diện trạng thái đặt vé/Sandbox/ví vé/soát vé theo ảnh](../docs/qa/cinema-status-design-2026-11-06.md). Giữ nguyên các API hiện có; bổ sung metadata tối thiểu trong lỗi STAFF và hạng thành viên theo snapshot đơn. Không đổi schema hoặc chữ ký Sandbox.
 Migration `20261105000100_per_seat_tickets` giữ QR/USED của vé nhóm cũ; đơn mới
 phát N vé cho N ghế SOLD. API cũ giữ payload; soát vé chấp nhận thêm code 8 ký tự.
 `POST /api/v1/tickets/lookup` chỉ đọc thông tin tối thiểu từ token QR, không có PII

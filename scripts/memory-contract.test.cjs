@@ -551,6 +551,17 @@ test("RAM staff verify is nonconsuming and six simultaneous admissions accept ex
   );
   assert.equal(results.filter((r) => r.status === 200).length, 1);
   assert.equal(results.filter((r) => r.status === 409).length, 5);
+  const reused = await f.call(
+    "/staff/verify",
+    { ...body, showtimeId: f.secondShow },
+    staff.accessToken,
+  );
+  assert.equal(reused.status, 409);
+  assert.equal(reused.body.error, "TICKET_ALREADY_USED");
+  assert.equal(reused.body.details.ticketCode, ticket.ticketCode);
+  assert.equal(reused.body.details.orderCode, ticket.orderCode);
+  assert.ok(reused.body.details.checkedInAt);
+  assert.ok(!("ticketHash" in reused.body.details));
   assert.ok(!("ticketHash" in results.find((r) => r.status === 200).data));
 });
 test("RAM admin CRUD validates overlap and capacity, and revenue contains only paid fixture values", async (t) => {

@@ -11,6 +11,10 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
+// Chỉ hộp thoại trên cùng xử lý Escape/Tab; các bước thanh toán có thể lồng nhau.
+const dialogStack = [];
+let bodyOverflow = "";
+
 export default function HopThoaiModal({
   title,
   onClose,
@@ -19,23 +23,33 @@ export default function HopThoaiModal({
   embedded = false,
   image = "/images/cinema-lobby.jpg",
   className = "",
+  headerless = false,
+  dialogRole = "dialog",
 }) {
   const panel = useRef(null);
   useEffect(() => {
     if (embedded) return;
     const previous = document.activeElement;
-    const oldOverflow = document.body.style.overflow;
+    const node = panel.current;
+    if (!dialogStack.length) bodyOverflow = document.body.style.overflow;
+    dialogStack.push(node);
     document.body.style.overflow = "hidden";
-    panel.current.focus();
+    node.focus();
     return () => {
-      document.body.style.overflow = oldOverflow;
-      previous?.focus();
+      const index = dialogStack.indexOf(node);
+      if (index !== -1) dialogStack.splice(index, 1);
+      if (!dialogStack.length) document.body.style.overflow = bodyOverflow;
+      if (previous?.isConnected) previous.focus();
     };
   }, [embedded]);
   useEffect(() => {
     if (embedded) return;
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (dialogStack.at(-1) !== panel.current) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
       if (e.key === "Tab") {
         const items = [
           ...panel.current.querySelectorAll(
@@ -74,27 +88,33 @@ export default function HopThoaiModal({
       <section
         ref={panel}
         tabIndex={-1}
-        role="dialog"
+        role={dialogRole}
         aria-modal={embedded ? undefined : true}
         aria-label={title}
         className={`modal-panel ${wide ? "modal-wide" : ""} ${className}`}
       >
-        <header
-          className="modal-header"
-          style={{
-            backgroundImage: `linear-gradient(90deg, rgba(10,12,18,.94), rgba(10,12,18,.45)), url("${image}")`,
-          }}
-        >
-          <div>
-            <span className="eyebrow">NOVA / BEYOND THE FRAME</span>
-            <h2>{title}</h2>
-          </div>
-          {!embedded && (
-            <button className="icon-button" onClick={onClose} aria-label="Đóng">
-              <X size={21} />
-            </button>
-          )}
-        </header>
+        {!headerless && (
+          <header
+            className="modal-header"
+            style={{
+              backgroundImage: `linear-gradient(90deg, rgba(10,12,18,.94), rgba(10,12,18,.45)), url("${image}")`,
+            }}
+          >
+            <div>
+              <span className="eyebrow">NOVA / BEYOND THE FRAME</span>
+              <h2>{title}</h2>
+            </div>
+            {!embedded && (
+              <button
+                className="icon-button"
+                onClick={onClose}
+                aria-label="Đóng"
+              >
+                <X size={21} />
+              </button>
+            )}
+          </header>
+        )}
         {children}
       </section>
     </div>

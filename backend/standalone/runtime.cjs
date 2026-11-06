@@ -539,6 +539,7 @@ function createMemoryServer(input) {
       posterUrl: movie.posterUrl,
       customerName: users.get(order.userId)?.fullName || "",
       customerPhone: users.get(order.userId)?.phone || null,
+      membershipTier: order.membershipTier || null,
       paymentStatus: order.status,
       ticketCount: order.seats.length,
       legacyGroup: !ticket.bookingSeatId,
@@ -805,12 +806,27 @@ function createMemoryServer(input) {
       "Vé chưa được thanh toán.",
       409,
     );
+    const data = ticketData(ticket, false);
+    const admissionContext = {
+      movie: data.movie,
+      cinema: data.cinema,
+      room: data.room,
+      startTime: data.startTime,
+      orderCode: data.orderCode,
+      ticketCode: data.ticketCode,
+    };
+    if (ticket.isCheckedIn)
+      fail(409, "TICKET_ALREADY_USED", "Vé đã được sử dụng.", {
+        ...admissionContext,
+        checkedInAt: ticket.checkedInAt,
+      });
     if (order.showtimeId !== body.showtimeId) {
       fail(
         409,
         "TICKET_SHOWTIME_MISMATCH",
         "Vé không khớp với suất chiếu đang kiểm tra.",
         {
+          ...admissionContext,
           actualShowtimeId: order.showtimeId,
           startTime: model("showtimes", order.showtimeId)?.startTime,
         },
@@ -823,10 +839,6 @@ function createMemoryServer(input) {
       "Chưa đến hoặc đã hết giờ soát vé.",
       409,
     );
-    if (ticket.isCheckedIn)
-      fail(409, "TICKET_ALREADY_USED", "Vé đã được sử dụng.", {
-        checkedInAt: ticket.checkedInAt,
-      });
     if (consume) {
       ticket.isCheckedIn = true;
       ticket.checkedInAt = iso(now());

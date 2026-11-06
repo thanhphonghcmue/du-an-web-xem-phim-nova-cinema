@@ -7,11 +7,13 @@ export default function PageBanner({
   description,
   image = "/images/cinema-auditorium.jpg",
   children,
+  beforeTitle,
 }) {
   return (
     <header className="page-banner">
       <img className="page-banner-image" src={image} alt="" />
       <div className="content-width page-banner-inner">
+        {beforeTitle}
         <nav aria-label="Đường dẫn" className="page-breadcrumb">
           <Link href="/">NOVA Cinema</Link>
           <span>/</span>

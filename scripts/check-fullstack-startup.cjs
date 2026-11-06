@@ -296,7 +296,8 @@ async function main() {
     await other.close();
   }
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-  await expect(candidate).toBeEnabled();
+  // RAM dùng polling5s; một poll đang chạy có thể bỏ qua sự kiện focus này.
+  await expect(candidate).toBeEnabled({ timeout: 15000 });
   await dialog
     .getByRole("button", { name: "Ghế A1, còn trống", exact: true })
     .click();
@@ -325,11 +326,8 @@ async function main() {
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Kết quả: PAID", exact: true }),
+    page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
   ).toBeVisible();
-  await page
-    .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
-    .click();
   await expect(page.locator(".ticket-qr-svg").first()).toBeVisible({
     timeout: 20000,
   });

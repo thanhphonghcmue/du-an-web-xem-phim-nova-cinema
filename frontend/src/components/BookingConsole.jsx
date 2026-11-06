@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CinematicScreen3D from "./CinematicScreen3D.jsx";
 import BookingPreview from "./BookingPreview.jsx";
 import BookingTicket from "./BookingTicket.jsx";
+import SandboxGateway from "./SandboxGateway.jsx";
+import { sandboxCheckout } from "@/sandboxCheckout.js";
 import NovaLogo from "./NovaLogo.jsx";
 import HoldCountdown from "./HoldCountdown.jsx";
 import { holdSeconds } from "@/holdDeadline.js";
@@ -42,6 +44,7 @@ import {
   apiHoldSeats,
   apiCancelBooking,
   apiCheckout,
+  apiCompleteSandbox,
   apiGetProfile,
   memberProfile,
   getBackendKind,
@@ -97,36 +100,29 @@ function SeatConflictModal({ conflictInfo, onClose }) {
   if (!conflictInfo) return null;
   const seatNames = conflictInfo.seatNames || "vừa chọn";
   return (
-    <div
-      className="seat-conflict-backdrop"
-      onClick={onClose}
-      role="presentation"
+    <Modal
+      className="cinema-state-card cinema-state-red seat-conflict-dialog"
+      headerless
+      dialogRole="alertdialog"
+      title="Xung đột giữ ghế (Lỗi 409 Conflict)"
+      onClose={onClose}
     >
-      <div
-        className="seat-conflict-dialog"
-        onClick={(e) => e.stopPropagation()}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="conflict-dialog-title"
-        aria-describedby="conflict-dialog-desc"
-      >
-        <div className="seat-conflict-icon-wrap">
-          <AlertTriangle size={28} />
-        </div>
-        <h3 id="conflict-dialog-title" className="seat-conflict-title">
-          Xung đột giữ ghế (Lỗi 409 Conflict)
-        </h3>
-        <p id="conflict-dialog-desc" className="seat-conflict-message">
-          Ghế <strong>{seatNames}</strong> vừa được một khách hàng khác giữ chỗ
-          nhanh hơn trong tích tắc. Sơ đồ ghế đã tự động cập nhật trạng thái mới
-          nhất.
-          <span className="seat-conflict-sub">Vui lòng chọn ghế khác!</span>
-        </p>
-        <button type="button" className="seat-conflict-btn" onClick={onClose}>
-          Đã hiểu · Chọn ghế khác
-        </button>
+      <div className="seat-conflict-icon-wrap">
+        <AlertTriangle size={28} />
       </div>
-    </div>
+      <h3 id="conflict-dialog-title" className="seat-conflict-title">
+        Xung đột giữ ghế (Lỗi 409 Conflict)
+      </h3>
+      <p id="conflict-dialog-desc" className="seat-conflict-message">
+        Ghế <strong>{seatNames}</strong> vừa được một khách hàng khác giữ chỗ
+        nhanh hơn trong tích tắc. Sơ đồ ghế đã tự động cập nhật trạng thái mới
+        nhất.
+        <span className="seat-conflict-sub">Vui lòng chọn ghế khác!</span>
+      </p>
+      <button type="button" className="seat-conflict-btn" onClick={onClose}>
+        Đã hiểu · Chọn ghế khác
+      </button>
+    </Modal>
   );
 }
 
@@ -272,13 +268,20 @@ function LiveBookingConsole({
   booking,
   member,
   onClose,
-  onTimeout,
   onViewTickets,
   onMemberUpdate,
 }) {
   const { t, language } = useI18n();
-  const { combos } = useCatalog();
+  const { combos, rooms } = useCatalog();
   const showtimeId = booking.showtimeId || booking.time.id;
+  const startTime = new Date(booking.time.startTime);
+  const startLabel = Number.isFinite(startTime.getTime())
+    ? startTime.toLocaleTimeString("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : booking.time.displayTime || booking.time.label;
   const [snapshot, setSnapshot] = useState(null);
   const [selected, saveSelected] = useState([]);
   const [order, saveOrder] = useState(null);
@@ -347,6 +350,8 @@ function LiveBookingConsole({
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [showAgeModal, setShowAgeModal] = useState(false);
   const [showPaymentReview, setShowPaymentReview] = useState(false);
+  const [sandbox, setSandbox] = useState(null);
+  const [cancelledNotice, setCancelledNotice] = useState(null);
   const ageInfo = getAgeRestriction(booking.movie?.age);
   const refresh = useCallback(async () => {
     const version = ++snapshotVersion.current;
@@ -423,6 +428,7 @@ function LiveBookingConsole({
             requestKey.current = null;
             setSelected([]);
             setShowPaymentReview(false);
+            setSandbox(null);
             if (current.status === "EXPIRED") setShowExpiredNotice(true);
           } else
             setSelected(
@@ -467,6 +473,32 @@ function LiveBookingConsole({
     () => uniqueRecords(snapshot?.seats, "seatId"),
     [snapshot],
   );
+  const orderSeatNames = useMemo(
+    () =>
+      (order?.seats || [])
+        .map((line) => {
+          const seat = seats.find((item) => item.seatId === line.seatId);
+          return seat ? `${seat.row}${seat.column}` : "Đang cập nhật ghế";
+        })
+        .join(", "),
+    [order?.seats, seats],
+  );
+  const orderSeatTypes = useMemo(
+    () =>
+      [
+        ...new Set(
+          (order?.seats || []).map((line) => {
+            const seat = seats.find((item) => item.seatId === line.seatId);
+            return seat?.type === "VIP"
+              ? "VIP"
+              : seat?.type === "SWEETBOX"
+                ? "Sweetbox"
+                : "Thường";
+          }),
+        ),
+      ].join(" / "),
+    [order?.seats, seats],
+  );
   const rows = useMemo(
     () => [...new Set(seats.map((s) => s.row))].sort(),
     [seats],
@@ -496,9 +528,13 @@ function LiveBookingConsole({
   );
   const exitExpiredBooking = useCallback(() => {
     setShowExpiredNotice(false);
-    if (onTimeout) onTimeout();
-    else onClose();
-  }, [onClose, onTimeout]);
+    setSandbox(null);
+    setOrder(null);
+    setSelected([]);
+    requestKey.current = null;
+    activeOrderId.current = undefined;
+    void refresh().catch((error) => setNotice(error.message));
+  }, [refresh, setOrder, setSelected]);
   useEffect(() => {
     if (!holding || !expired || expiryRefresh.current === order?.id) return;
     expiryRefresh.current = order.id;
@@ -512,6 +548,7 @@ function LiveBookingConsole({
           requestKey.current = null;
           setSelected([]);
           setShowPaymentReview(false);
+          setSandbox(null);
           if (latest.status === "EXPIRED") setShowExpiredNotice(true);
         }
         return refresh();
@@ -702,6 +739,8 @@ function LiveBookingConsole({
     try {
       const result = await apiCancelBooking(order.id);
       setOrder(result);
+      setShowPaymentReview(false);
+      setSandbox(null);
       activeOrderId.current = undefined;
       setSelected([]);
       requestKey.current = null;
@@ -729,11 +768,47 @@ function LiveBookingConsole({
         return;
       }
       const result = await apiCheckout(order.id);
-      const url = new URL(result.url);
-      window.location.assign(url.pathname + url.search);
+      setSandbox(sandboxCheckout(result.url, order));
+      setShowPaymentReview(false);
     } catch (err) {
       setNotice(err.message);
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function completeSandbox(result) {
+    if (!sandbox || changingOrder.current) return;
+    const payload = sandbox;
+    orderRevision.current++;
+    changingOrder.current = true;
+    setBusy(true);
+    setNotice("");
+    try {
+      const confirmed = await apiCompleteSandbox(payload, result);
+      setOrder(confirmed);
+      setSandbox(null);
+      setShowPaymentReview(false);
+      if (confirmed.status === "PAID") {
+        activeOrderId.current = confirmed.id;
+      } else if (["CANCELLED", "EXPIRED"].includes(confirmed.status)) {
+        activeOrderId.current = undefined;
+        requestKey.current = null;
+        setSelected([]);
+        if (confirmed.status === "EXPIRED") setShowExpiredNotice(true);
+        else
+          setCancelledNotice({
+            status: confirmed.status,
+            orderCode: confirmed.orderCode,
+          });
+      }
+      void refresh().catch((error) => setNotice(error.message));
+    } catch (error) {
+      // Mất mạng: không tự suy ra PAID/hủy đơn, không tự gửi lại POST.
+      setNotice(error.message);
+    } finally {
+      changingOrder.current = false;
+      orderRevision.current++;
       setBusy(false);
     }
   }
@@ -816,14 +891,25 @@ function LiveBookingConsole({
           src={
             booking.movie.localPoster ||
             booking.movie.poster ||
-            "/images/dune-poster.jpg"
+            "/images/cinema-auditorium.jpg"
           }
           alt={booking.movie.title}
+          onError={(event) => {
+            if (
+              event.currentTarget.getAttribute("src") !==
+              "/images/cinema-auditorium.jpg"
+            )
+              event.currentTarget.src = "/images/cinema-auditorium.jpg";
+          }}
         />
         <div>
           <h3>{booking.movie.title}</h3>
           <p>
-            {booking.cinema.name} · {booking.time.label}
+            {booking.cinema.name} ·{" "}
+            {rooms.find((room) => room.id === booking.time.roomId)?.name ||
+              booking.time.roomName ||
+              "Phòng chiếu"}{" "}
+            · {startLabel}
           </p>
           <div className="booking-badges-row">
             <span>
@@ -989,7 +1075,12 @@ function LiveBookingConsole({
                     "--seat-target": `${Math.max(32, 32 / (zoom / 100))}px`,
                   }}
                 >
-                  <CinematicScreen3D />
+                  <CinematicScreen3D
+                    format={(
+                      rooms.find((room) => room.id === booking.time.roomId)
+                        ?.roomType || "CINEMASCOPE"
+                    ).replaceAll("_", " ")}
+                  />
                   {rows.map((row) => (
                     <div className="seat-row" key={row}>
                       <span className="row-label">{row}</span>
@@ -1025,7 +1116,9 @@ function LiveBookingConsole({
                               onClick={() => toggle(seat)}
                               title={`${seat.row}${seat.column} · ${money(seat.price)}`}
                             >
-                              {seat.column}
+                              {seat.status === "SOLD"
+                                ? "×"
+                                : `${seat.row}${String(seat.column).padStart(2, "0")}`}
                             </button>
                           );
                         })}
@@ -1260,8 +1353,7 @@ function LiveBookingConsole({
             <div className="booking-dock-context">
               <strong>{booking.movie.title}</strong>
               <span>
-                {booking.cinema.name} · {booking.time.label} ·{" "}
-                {booking.date.label}
+                {booking.cinema.name} · {startLabel} · {booking.date.label}
               </span>
             </div>
             <div className="booking-dock-total" aria-live="polite">
@@ -1272,6 +1364,17 @@ function LiveBookingConsole({
               <strong data-testid={holding ? "server-total" : undefined}>
                 {money(holding ? order.finalAmount : previewTotal)}
               </strong>
+              {selected.length > 0 && (
+                <span className="booking-dock-seats">
+                  {selected
+                    .map((id) => {
+                      const seat = seats.find((item) => item.seatId === id);
+                      return seat ? `${seat.row}${seat.column}` : "";
+                    })
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+              )}
             </div>
             {holding ? (
               <HoldCountdown
@@ -1324,6 +1427,7 @@ function LiveBookingConsole({
           className="payment-review-modal"
           title="Xác nhận đơn hàng & thanh toán"
           onClose={() => setShowPaymentReview(false)}
+          headerless
           image={
             booking.movie.localBackdrop ||
             booking.movie.backdrop ||
@@ -1340,28 +1444,23 @@ function LiveBookingConsole({
                 <small className="payment-review-kicker">
                   {booking.movie.title}
                 </small>
-                <h4>{booking.cinema.name}</h4>
+                <h4>
+                  {booking.cinema.name} ·{" "}
+                  {rooms.find((room) => room.id === booking.time.roomId)
+                    ?.name ||
+                    booking.time.roomName ||
+                    "Phòng chiếu"}
+                </h4>
                 <p>
-                  {booking.time.label} · {booking.date.label}
+                  {booking.date.label} · {startLabel}
+                  {booking.time.endTime &&
+                    ` – ${new Date(booking.time.endTime).toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit" })}`}
                 </p>
                 <dl>
                   <div>
-                    <dt>Ghế</dt>
-                    <dd>
-                      {(order.seats || [])
-                        .map((line) => {
-                          const seat = seats.find(
-                            (item) => item.seatId === line.seatId,
-                          );
-                          return seat
-                            ? `${seat.row}${seat.column}`
-                            : "Đang cập nhật ghế";
-                        })
-                        .join(", ")}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Tiền vé</dt>
+                    <dt>
+                      Ghế {orderSeatTypes}: {orderSeatNames}
+                    </dt>
                     <dd>{money(order.totalTicketAmount)}</dd>
                   </div>
                   {(order.combos || []).map((line) => {
@@ -1384,7 +1483,14 @@ function LiveBookingConsole({
                     </div>
                   )}
                   <div className="payment-review-discount">
-                    <dt>Ưu đãi {order.membershipTier || "thành viên"}</dt>
+                    <dt>
+                      Tổng ưu đãi · C'MEMBER (
+                      {order.membershipTier || "thành viên"}
+                      {order.discountRate != null
+                        ? ` · ${(Number(order.discountRate) * 100).toLocaleString("vi-VN", { maximumFractionDigits: 2 })}%`
+                        : ""}
+                      )
+                    </dt>
                     <dd>−{money(order.discountAmount)}</dd>
                   </div>
                 </dl>
@@ -1414,37 +1520,46 @@ function LiveBookingConsole({
                 role="group"
                 aria-label="Chọn cổng thanh toán mô phỏng"
               >
-                {paymentGateways.map((method) => (
-                  <button
-                    key={method.id}
-                    type="button"
-                    aria-pressed={gateway === method.id}
-                    disabled={busy}
-                    onClick={() => setGateway(method.id)}
-                  >
-                    <span>
-                      {method.id === "sandbox" ? "Cổng Sandbox" : method.title}
-                    </span>
-                    <small>
-                      {method.id === "sandbox"
-                        ? "Mô phỏng tức thì"
-                        : method.detail}
-                    </small>
-                    {gateway === method.id && (
-                      <b className="payment-review-selected">Đã chọn</b>
-                    )}
-                  </button>
-                ))}
+                {[...paymentGateways]
+                  .sort((a, b) => (b.id === "sandbox") - (a.id === "sandbox"))
+                  .map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      aria-pressed={gateway === method.id}
+                      disabled={busy}
+                      onClick={() => setGateway(method.id)}
+                    >
+                      <span className="provider-radio" aria-hidden="true" />
+                      <span className="provider-name">
+                        {method.id === "sandbox"
+                          ? "Cổng Sandbox"
+                          : method.title}
+                        <small>
+                          {method.id === "sandbox"
+                            ? "Mô phỏng tức thì"
+                            : method.detail}
+                        </small>
+                      </span>
+                      {method.id === "sandbox" && (
+                        <b className="payment-review-selected">TESTING</b>
+                      )}
+                    </button>
+                  ))}
               </div>
               <p className="payment-review-note">
                 {paymentGateways.find((method) => method.id === gateway)?.title}{" "}
                 · Thanh toán mô phỏng, không kết nối ngân hàng hoặc ví thật.
               </p>
+              {notice && (
+                <p role="alert" className="sandbox-error">
+                  {notice}
+                </p>
+              )}
               <button
                 className="button button-primary payment-review-submit"
                 disabled={busy || expired}
                 onClick={() => {
-                  setShowPaymentReview(false);
                   void checkout();
                 }}
               >
@@ -1453,7 +1568,7 @@ function LiveBookingConsole({
                   : `Thanh toán ngay: ${money(order.finalAmount)} →`}
               </button>
               <p className="payment-review-secure">
-                Giao dịch được mã hóa và xử lý an toàn.
+                Tổng tiền và thời hạn được xác minh bởi máy chủ.
               </p>
               <button
                 className="text-button payment-review-back"
@@ -1466,11 +1581,59 @@ function LiveBookingConsole({
         </Modal>
       )}
 
+      {sandbox && holding && !showExpiredNotice && (
+        <SandboxGateway
+          payload={sandbox}
+          order={order}
+          offset={offset}
+          busy={busy}
+          expired={expired}
+          error={notice}
+          onExpire={notifyExpiry}
+          onResult={completeSandbox}
+          onClose={() => setSandbox(null)}
+        />
+      )}
+
+      {cancelledNotice && (
+        <Modal
+          headerless
+          className="cinema-state-card cinema-state-red booking-cancelled-modal"
+          title="Giao dịch đã được hủy bỏ"
+          onClose={() => setCancelledNotice(null)}
+        >
+          <div className="cinema-state-icon">
+            <X size={28} />
+          </div>
+          <h2>Giao dịch đã được hủy bỏ</h2>
+          <p>
+            Đơn <strong>{cancelledNotice.orderCode}</strong> đã được máy chủ xác
+            nhận hủy và trả ghế. Đây là thanh toán Sandbox, không thu tiền thật.
+          </p>
+          <div className="cinema-state-actions">
+            <a className="button button-glass" href="/">
+              Về trang chủ
+            </a>
+            <button
+              className="button button-primary"
+              onClick={() => {
+                setCancelledNotice(null);
+                setOrder(null);
+                void refresh().catch((error) => setNotice(error.message));
+              }}
+            >
+              Thử thanh toán lại →
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {showExpiredNotice && (
         <Modal
-          className="booking-expired-modal"
+          className="cinema-state-card cinema-state-amber booking-expired-modal"
           title="Hết thời gian giữ ghế (Timeout 5 phút)"
           onClose={exitExpiredBooking}
+          headerless
           image={
             booking.movie.localBackdrop ||
             booking.movie.backdrop ||
@@ -1481,14 +1644,10 @@ function LiveBookingConsole({
             <div className="booking-expired-icon">
               <Clock3 size={24} />
             </div>
-            <h3>Hết thời gian giữ ghế</h3>
+            <h2>Hết thời gian giữ ghế (Timeout 5 phút)</h2>
             <p>
               Thời gian giữ chỗ ưu tiên của bạn đã kết thúc. Ghế
-              {order?.seats?.length
-                ? ` ${order.seats
-                    .map((seat) => `${seat.row}${seat.column}`)
-                    .join(", ")} `
-                : " đã chọn "}
+              {order?.seats?.length ? ` ${orderSeatNames} ` : " đã chọn "}
               đã được trả lại sơ đồ để khách khác lựa chọn. Hãy đặt lại vé để
               chọn ghế và giữ chỗ mới.
             </p>

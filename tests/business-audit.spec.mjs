@@ -267,12 +267,15 @@ test("payment gateways and signed Sandbox actions fit their cards on narrow and 
     .getByRole("button", { name: /^Thanh toán ngay:/ })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Thanh toán mô phỏng", exact: true }),
+    page.getByRole("heading", {
+      name: "Xác nhận Thanh toán Giả lập",
+      exact: true,
+    }),
   ).toBeVisible();
   for (const width of [320, 390, 650, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     expect(
-      await page.locator("main").evaluate((node) => {
+      await page.locator(".sandbox-gateway").evaluate((node) => {
         const bounds = node.getBoundingClientRect();
         return [...node.querySelectorAll("button")].every(
           (button) =>
@@ -287,16 +290,16 @@ test("payment gateways and signed Sandbox actions fit their cards on narrow and 
       ),
     ).toBe(true);
     if (process.env.NOVA_CAPTURE_DIR && width === 320)
-      await page.locator(".sandbox-choice").screenshot({
+      await page.locator(".sandbox-gateway").screenshot({
         path: resolve(process.env.NOVA_CAPTURE_DIR, "sandbox-320.jpg"),
         type: "jpeg",
       });
   }
   await page
-    .getByRole("button", { name: "Hủy thanh toán", exact: true })
+    .getByRole("button", { name: "Hủy giao dịch", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: /Kết quả: CANCELLED/ }),
+    page.getByRole("heading", { name: "Giao dịch đã được hủy bỏ" }),
   ).toBeVisible();
 });
 
@@ -531,9 +534,9 @@ test("ADMIN operates a real cinema/room/screening, buys a ticket, opens own QR a
   await page
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
     .click();
-  await page
-    .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
-    .click();
+  await expect(
+    page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Xem vé trong tài khoản", exact: true })
     .click();
@@ -970,9 +973,9 @@ test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS
     .getByRole("button", { name: "Thanh toán thành công", exact: true })
     .click();
   const returnJourneyStarted = performance.now();
-  await page
-    .getByRole("link", { name: "Quay lại ứng dụng", exact: true })
-    .click();
+  await expect(
+    page.getByRole("heading", { name: "Thanh toán đã được xác nhận" }),
+  ).toBeVisible();
   await expect(
     page.locator(".booking-issued-ticket .ticket-qr-svg").first(),
   ).toBeVisible();

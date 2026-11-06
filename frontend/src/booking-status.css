@@ -1,0 +1,488 @@
+/* Các trạng thái dùng dữ liệu API thật; màu/thứ bậc theo bản thiết kế bàn giao. */
+.booking-console .seat.standard {
+  background: #102e56;
+  border-color: #29588b;
+  color: #c7e2ff;
+}
+.booking-console .seat.vip:not(.selected) {
+  background: #57310b;
+  border-color: #c77618;
+  color: #ffcf8b;
+}
+.booking-console .seat.selected {
+  background: #e50914;
+  border-color: #ff8290;
+  color: #fff;
+  box-shadow: 0 0 17px #e5091455;
+}
+.booking-console .seat.held {
+  background: #253040;
+  border-color: #5e6e8b;
+  color: #b8c5d8;
+}
+.booking-console .seat {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.booking-dock-seats {
+  display: block;
+  font-size: 11px;
+  color: #f8d19c;
+  max-width: 260px;
+  overflow-wrap: anywhere;
+}
+.modal-backdrop:has(.cinema-state-card, .payment-review-modal) {
+  background: rgb(0 0 0 / 0.78);
+  backdrop-filter: blur(9px);
+  padding: 20px;
+}
+.cinema-state-red {
+  --state-rgb: 239 68 68;
+  --state-color: #ef4444;
+  --state-bg: #1a090d;
+}
+.cinema-state-green {
+  --state-rgb: 16 185 129;
+  --state-color: #10b981;
+  --state-bg: #061b14;
+}
+.cinema-state-amber {
+  --state-rgb: 245 158 11;
+  --state-color: #f59e0b;
+  --state-bg: #1f1206;
+}
+.cinema-state-cyan {
+  --state-rgb: 56 189 248;
+  --state-color: #38bdf8;
+  --state-bg: #071324;
+}
+.modal-panel.cinema-state-card {
+  width: min(480px, 100%);
+  min-width: 0;
+  max-height: calc(100dvh - 40px);
+  padding: 30px;
+  border: 1px solid rgb(var(--state-rgb) / 0.8);
+  border-radius: 16px;
+  background: var(--state-bg);
+  box-shadow: 0 0 50px rgb(var(--state-rgb) / 0.35);
+  text-align: center;
+}
+.cinema-state-card h2,
+.cinema-state-card h3 {
+  margin: 14px 0 10px;
+  font-size: 20px;
+  line-height: 1.45;
+  color: var(--state-color);
+}
+.cinema-state-card p {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #cbd5e1;
+}
+.cinema-state-card strong {
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+.cinema-state-icon,
+.cinema-state-card .seat-conflict-icon-wrap {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgb(var(--state-rgb) / 0.16);
+  color: var(--state-color);
+}
+.cinema-state-actions {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+.cinema-state-actions .button {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  text-decoration: none;
+}
+.cinema-success-button {
+  background: #16c766;
+  color: #041b0e;
+  border: 1px solid #16c766;
+  font-weight: 800;
+  box-shadow: 0 4px 18px #16c76630;
+}
+.cinema-warning-button {
+  background: #f59e0b;
+  border: 1px solid #f59e0b;
+  color: #211403;
+  font-weight: 800;
+}
+.cinema-state-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--state-color);
+}
+.cinema-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #081017;
+  background: var(--state-color);
+  font-weight: 800;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.cinema-state-card .cinema-state-heading {
+  justify-content: center;
+}
+.sandbox-gateway h2 {
+  color: #f8fafc;
+}
+.sandbox-reference b {
+  color: #38bdf8;
+}
+.sandbox-transaction-qr {
+  display: inline-flex;
+  padding: 4px;
+  margin: 12px auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px #0004;
+}
+.sandbox-transaction-qr svg {
+  width: min(188px, 100%);
+  height: auto;
+}
+.sandbox-gateway .hold-timer {
+  justify-content: center;
+  width: fit-content;
+  margin: 16px auto;
+}
+.sandbox-gateway > .text-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 18px auto 0;
+  font-size: 12px;
+}
+.sandbox-gateway .sandbox-error {
+  border: 1px solid #ef444470;
+  padding: 10px;
+  border-radius: 8px;
+  color: #fecaca;
+}
+.cinema-state-card .booking-expired-content {
+  padding: 0;
+}
+.cinema-state-card .booking-expired-action {
+  width: auto;
+  max-width: 100%;
+  color: #231406;
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+.payment-review-modal .payment-provider-tabs {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.payment-review-modal .payment-provider-tabs button {
+  flex-direction: row;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 12px;
+  padding: 14px;
+  min-height: 60px;
+  border-radius: 8px;
+  background: #171a29;
+}
+.payment-review-modal .payment-provider-tabs button[aria-pressed="true"] {
+  border-color: #ef4444;
+  background: #27151f;
+}
+.payment-review-modal .provider-name {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 6px;
+  align-items: baseline;
+}
+.payment-review-modal .provider-name,
+.payment-review-modal .provider-name small {
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.payment-review-modal .provider-radio {
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+}
+.payment-review-modal [aria-pressed="true"] .provider-radio {
+  border-color: #ef4444;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px #ef4444;
+}
+.payment-review-modal .payment-review-selected {
+  margin-left: auto;
+  font-size: 9px;
+  padding: 4px 6px;
+  color: #fff;
+  background: #e70829;
+  border-radius: 999px;
+}
+.payment-review-modal .payment-review-total strong {
+  color: #ff304d;
+}
+.payment-review-modal .payment-review-hold {
+  border: 1px solid #10b98180;
+  background: #061b14;
+  color: #6ee7b7;
+}
+.payment-review-modal .payment-review-hold .hold-timer {
+  width: auto;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.payment-review-modal .payment-review-hold .hold-timer small {
+  display: none;
+}
+.payment-review-modal .payment-review-hold .hold-timer strong {
+  font-size: 14px;
+  color: #34d399;
+}
+.payment-review-modal .payment-review-hold .hold-timer.urgent strong {
+  color: #fca5a5;
+}
+.payment-review-modal .payment-review-submit,
+.cinema-state-red .button-primary {
+  background: #eb061a;
+  box-shadow: 0 5px 22px #eb061a30;
+}
+.payment-review-modal .payment-review-submit {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.staff-status-slot:empty {
+  display: none;
+}
+.account-ticket-slot:empty {
+  display: none;
+}
+.account-ticket-slot {
+  max-width: 860px;
+  margin: 0 auto 42px;
+  position: relative;
+  z-index: 1;
+}
+.account-ticket-slot .cinema-ticket {
+  margin-bottom: 20px;
+}
+.staff-status-slot {
+  max-width: 760px;
+  margin: 0 auto 40px;
+  position: relative;
+  z-index: 1;
+}
+.cinema-admission-card.admission-result {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 22px 24px;
+  border: 1px solid rgb(var(--state-rgb) / 0.8);
+  border-radius: 12px;
+  background: var(--state-bg);
+  box-shadow: 0 0 45px rgb(var(--state-rgb) / 0.3);
+  color: #e2e8f0;
+  text-align: left;
+}
+.cinema-admission-card h3 {
+  color: #f8fafc;
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 13px 0 8px;
+}
+.cinema-admission-card.warning h3 {
+  color: #fde68a;
+}
+.cinema-admission-card.invalid h3 {
+  color: #fecaca;
+}
+.cinema-admission-card p {
+  font-size: 12px;
+  line-height: 1.85;
+  color: #d1d9e5;
+  margin: 7px 0;
+}
+.cinema-admission-card .cinema-state-actions {
+  justify-content: flex-start;
+  margin-top: 16px;
+}
+.cinema-admission-card .cinema-state-actions .button {
+  flex: 0 1 auto;
+  font-size: 12px;
+}
+.admission-seat-list,
+.admission-confirmed {
+  color: #34d399;
+}
+.admission-extra {
+  font-size: 11px;
+  color: #aebbd0;
+  margin: 10px 0;
+}
+.admission-extra summary {
+  cursor: pointer;
+}
+.cinema-admission-card .admission-guidance {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid rgb(var(--state-rgb) / 0.45);
+  border-radius: 8px;
+}
+:is(.history-list, .account-ticket-slot) .cinema-ticket-paid {
+  display: block;
+  border: 1px solid #10b981;
+  border-radius: 14px;
+  background: #101421;
+  box-shadow: 0 0 40px #10b98122;
+  overflow: hidden;
+}
+:is(.history-list, .account-ticket-slot) .cinema-ticket-paid .paid-ticket-body {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  align-items: center;
+  padding: 26px;
+  gap: 28px;
+}
+:is(.history-list, .account-ticket-slot) .cinema-ticket-paid .ticket-stub {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+:is(.history-list, .account-ticket-slot)
+  .cinema-ticket-paid
+  .ticket-movie-poster {
+  width: 48px;
+  height: 68px;
+  object-fit: cover;
+  float: right;
+  border-radius: 5px;
+  margin: 0 0 12px 12px;
+}
+:is(.history-list, .account-ticket-slot) .paid-ticket-details {
+  min-width: 0;
+  padding: 0;
+}
+:is(.history-list, .account-ticket-slot) .paid-ticket-details h3 {
+  margin: 6px 0 14px;
+  font-size: 23px;
+}
+:is(.history-list, .account-ticket-slot) .paid-ticket-venue {
+  font-size: 11px;
+  color: #ff4258;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+:is(.history-list, .account-ticket-slot) .paid-ticket-facts {
+  margin-top: 10px;
+}
+:is(.history-list, .account-ticket-slot) .paid-ticket-facts p {
+  font-size: 12px;
+}
+:is(.history-list, .account-ticket-slot) .paid-ticket-facts strong {
+  font-size: 13px;
+}
+.paid-ticket-extra {
+  margin: 16px 0;
+  color: #b8c4d6;
+  font-size: 12px;
+}
+.paid-ticket-extra summary {
+  cursor: pointer;
+}
+.paid-ticket-extra code {
+  overflow-wrap: anywhere;
+  font-size: 10px;
+}
+.paid-ticket-order {
+  overflow-wrap: anywhere;
+}
+.ticket-used .paid-ticket-status {
+  background: #94a3b8;
+  color: #08111a;
+}
+:is(.history-list, .account-ticket-slot) .ticket-used {
+  border-color: #64748b;
+  box-shadow: none;
+}
+@media (max-width: 600px) {
+  .modal-backdrop:has(.cinema-state-card, .payment-review-modal) {
+    padding: 12px;
+  }
+  .modal-panel.cinema-state-card {
+    padding: 24px 18px;
+    max-height: calc(100dvh - 24px);
+  }
+  .cinema-admission-card.admission-result {
+    padding: 18px;
+  }
+  .cinema-admission-card .cinema-state-actions .button {
+    flex: 1 1 100%;
+  }
+  :is(.history-list, .account-ticket-slot)
+    .cinema-ticket-paid
+    .paid-ticket-body {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px;
+    gap: 20px;
+  }
+  :is(.history-list, .account-ticket-slot) .paid-ticket-qr {
+    grid-row: 1;
+  }
+  :is(.history-list, .account-ticket-slot) .paid-ticket-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.account-ticket-slot .ticket-qr-svg {
+  width: 164px;
+  height: 164px;
+  background: #fff;
+  padding: 9px;
+  border-radius: 10px;
+}
+.account-ticket-slot .ticket-state {
+  font-size: 11px;
+}
+.account-ticket-slot .ticket-story > p {
+  font-size: 12px;
+}
+.account-ticket-slot .ticket-story > .paid-ticket-venue {
+  color: #ff4258;
+  font-weight: 800;
+}

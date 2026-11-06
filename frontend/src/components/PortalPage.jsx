@@ -303,6 +303,9 @@ export default function PortalPage({
       <>
         <PageBanner
           label="NOVA STAFF"
+          beforeTitle={
+            <div id="staff-status-slot" className="staff-status-slot" />
+          }
           title="Chào đón một trải nghiệm mới."
           description="Kiểm tra vé điện tử trước khi khách vào phòng chiếu."
           image="/images/cinema-lobby.jpg"
@@ -354,6 +357,9 @@ export default function PortalPage({
     <>
       <PageBanner
         label="YOUR NOVA SPACE"
+        beforeTitle={
+          <div id="account-ticket-slot" className="account-ticket-slot" />
+        }
         title={
           <>
             Xin chào, {member?.name?.split(" ").at(-1)}.<br />

@@ -79,7 +79,7 @@ export default function TicketConfirmation({ ticketId }) {
                 title="Nội dung email NOVA Cinema"
                 sandbox=""
                 referrerPolicy="no-referrer"
-                srcDoc={`<!doctype html><html lang="vi"><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline';"></head><body style="margin:0">${message.html}</body></html>`}
+                srcDoc={`<!doctype html><html lang="vi"><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline';"><style>html,body{margin:0;min-height:100%;background:#0b0e16;color:#f4f6fa;font-family:Arial,Helvetica,sans-serif}*{box-sizing:border-box}</style></head><body>${message.html}</body></html>`}
               />
             </>
           )}

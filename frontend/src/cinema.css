@@ -2163,22 +2163,79 @@ select:focus-visible {
   }
 }
 .history-list .cinema-ticket {
-  display: grid;
-  grid-template-columns: 100px minmax(0, 1fr) 155px;
-  align-items: center;
-  padding: 22px;
-  border: 1px solid #ffffff24;
-  background: linear-gradient(120deg, #181d29, #11151e);
-}
-.history-list .cinema-ticket .ticket-movie-poster {
-  width: 100px;
-  height: 150px;
+  display: block;
+  overflow: hidden;
   padding: 0;
-  object-fit: cover;
+  border: 2px solid #17c968;
+  border-radius: 15px;
+  background: #101321;
+  box-shadow: 0 14px 42px #0bc45a20;
+}
+.paid-ticket-header {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  background: #10251a;
+  border-bottom: 1px solid #17c96820;
+}
+.paid-ticket-reference {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.paid-ticket-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #16c766;
+  color: #06160d;
+  font-size: 11px;
+  font-weight: 800;
+}
+.paid-ticket-order {
+  color: #29d778;
+  font-size: 12px;
+  font-weight: 700;
+}
+.paid-ticket-calendar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid #ffffff20;
   border-radius: 6px;
+  background: #1b2031;
+  color: #d1d5e0;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.paid-ticket-calendar:hover {
+  border-color: #17c968;
+  color: white;
+}
+.paid-ticket-body {
+  display: grid;
+  grid-template-columns: 164px minmax(0, 1fr);
+  align-items: center;
+  gap: 26px;
+  padding: 24px 28px;
 }
 .ticket-story {
   padding-inline: 5px 15px;
+}
+.paid-ticket-details .nova-kicker {
+  margin: 0 0 8px;
+  color: #ff4148 !important;
+  font-size: 11px !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 .ticket-story h3 {
   font-size: 22px !important;
@@ -2208,15 +2265,47 @@ select:focus-visible {
   color: #7f899e !important;
 }
 .ticket-stub {
-  padding: 6px 0 6px 22px;
-  border-left: 1px dashed #ffffff38;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-.ticket-stub > img {
-  width: 124px;
-  height: 124px;
+.history-list .paid-ticket-qr .ticket-qr-svg {
+  width: 164px;
+  height: 164px;
+  padding: 9px;
+  border-radius: 10px;
+  background: white;
+}
+.paid-ticket-download {
+  margin-top: 10px;
+  color: #c8cfdf !important;
+}
+.paid-ticket-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 22px;
+  margin-top: 14px;
+}
+.paid-ticket-facts p {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  color: #99a3b7;
+  font-size: 11px;
+}
+.paid-ticket-facts strong {
+  color: #e4e7ee;
+  font-size: 12px;
+  font-weight: 700;
+}
+.paid-ticket-facts .paid-ticket-seats {
+  color: #22d477;
+}
+.paid-ticket-note {
+  margin: 10px 0 0;
+  color: #7f899e;
+  font-size: 10px;
 }
 .ticket-stub > p {
   display: flex;
@@ -2234,37 +2323,28 @@ select:focus-visible {
   color: #dbbb8b;
 }
 @media (max-width: 600px) {
-  .history-list .cinema-ticket {
-    grid-template-columns: 65px minmax(0, 1fr);
-    padding: 16px;
-    gap: 14px;
+  .paid-ticket-header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px;
   }
-  .history-list .cinema-ticket .ticket-movie-poster {
-    width: 65px;
-    height: 100px;
+  .paid-ticket-body {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 20px 16px;
   }
-  .ticket-story {
+  .paid-ticket-qr {
+    grid-row: 2;
+  }
+  .paid-ticket-details {
     padding: 0;
   }
-  .ticket-story h3 {
-    font-size: 17px !important;
+  .paid-ticket-facts {
+    grid-template-columns: 1fr;
   }
-  .ticket-story .nova-kicker {
-    font-size: 6px !important;
-    letter-spacing: 0.4px;
-  }
-  .ticket-stub {
-    grid-column: 1/-1;
-    border-left: 0;
-    border-top: 1px dashed #ffffff38;
-    padding: 18px 0 0;
-    flex-direction: row;
-    gap: 25px;
-    justify-content: center;
-  }
-  .ticket-stub > img {
-    width: 110px;
-    height: 110px;
+  .history-list .paid-ticket-qr .ticket-qr-svg {
+    width: 148px;
+    height: 148px;
   }
 }
 

@@ -16,7 +16,7 @@ export const ticketRelations = {
         ],
       },
       combos: { include: { combo: true }, orderBy: { comboId: "asc" } },
-      user: { select: { email: true } },
+      user: { select: { email: true, fullName: true } },
     },
   },
 } satisfies Prisma.ETicketInclude;

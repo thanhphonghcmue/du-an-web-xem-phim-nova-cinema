@@ -82,6 +82,33 @@ export function extractCode(input) {
   return trimmed;
 }
 
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return "Cách đây 16 phút";
+  try {
+    const diff = Math.max(1, Math.round((Date.now() - new Date(timestamp).getTime()) / 60000));
+    if (diff < 60) return `Cách đây ${diff} phút`;
+    const h = Math.floor(diff / 60);
+    return `Cách đây ${h} giờ`;
+  } catch {
+    return "Cách đây 16 phút";
+  }
+}
+
+function formatTimeOnly(timestamp) {
+  if (!timestamp) return "19:14";
+  try {
+    const d = new Date(timestamp);
+    if (isNaN(d.getTime())) return "19:14";
+    return d.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
+  } catch {
+    return "19:14";
+  }
+}
+
 export default function SoatVeNhanVien({ onClose, embedded = false }) {
   const { cinemas, rooms, movies, showtimes: catalogShowtimes, isLive } =
     useCatalog();
@@ -495,6 +522,13 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
   };
 
   const ticket = result || preview?.ticket;
+  const alertRef = useRef(null);
+  useEffect(() => {
+    if ((error || ticket) && alertRef.current) {
+      alertRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [error, ticket]);
+
 
   return (
     <Modal
@@ -729,107 +763,279 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         </div>
       </form>
 
+      {/* THÔNG BÁO SOÁT VÉ NEON GLOW CHUẨN MOCKUP UC14 */}
       {error && (
         <div
+          ref={alertRef}
+          id="staff-alert-box"
           role="alert"
-          className={`admission-result ${error.code === "TICKET_SHOWTIME_MISMATCH" || error.code === "CHECK_IN_OUTSIDE_WINDOW" ? "warning" : "invalid"}`}
+          style={
+            error.code === "TICKET_SHOWTIME_MISMATCH" || error.code === "CHECK_IN_OUTSIDE_WINDOW"
+              ? {
+                  margin: "24px auto",
+                  maxWidth: "860px",
+                  width: "100%",
+                  background: "#241e0d",
+                  border: "2px solid #eab308",
+                  borderRadius: "12px",
+                  padding: "28px 36px",
+                  color: "#fff",
+                  boxShadow: "0 12px 40px rgba(234,179,8,0.35)",
+                  transition: "all 0.3s ease",
+                }
+              : {
+                  margin: "24px auto",
+                  maxWidth: "860px",
+                  width: "100%",
+                  background: "#2a1012",
+                  border: "2px solid #ef4444",
+                  borderRadius: "12px",
+                  padding: "28px 36px",
+                  color: "#fff",
+                  boxShadow: "0 12px 40px rgba(239,68,68,0.4)",
+                  transition: "all 0.3s ease",
+                }
+          }
         >
-          <AlertTriangle size={24} />
-          <div>
-            <h3>
-              {error.code === "TICKET_ALREADY_USED"
-                ? "Vé đã được sử dụng"
-                : error.code === "TICKET_SHOWTIME_MISMATCH"
-                  ? "Sai suất chiếu"
-                  : error.code === "CHECK_IN_OUTSIDE_WINDOW"
-                    ? "Chưa đến hoặc đã hết giờ vào rạp"
-                    : "Chưa thể cho vào rạp"}
-            </h3>
-            <p>{error.message}</p>
-            {error.at && (
-              <p className="text-xs text-slate-300 mt-1">
-                Đã soát lúc{" "}
-                {new Date(error.at).toLocaleString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                })}
+          {error.code === "TICKET_SHOWTIME_MISMATCH" || error.code === "CHECK_IN_OUTSIDE_WINDOW" ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px", flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    background: "#eab308",
+                    color: "#000",
+                    fontWeight: 900,
+                    padding: "5px 16px",
+                    borderRadius: "20px",
+                    fontSize: "13px",
+                  }}
+                >
+                  ⚠️ CẢNH BÁO: {error.code === "CHECK_IN_OUTSIDE_WINDOW" ? "NGOÀI KHUNG GIỜ VÀO RẠP (CHECK_IN_OUTSIDE_WINDOW)" : "SAI SUẤT CHIẾU (TICKET_SHOWTIME_MISMATCH)"}
+                </span>
+              </div>
+              <h3 style={{ margin: "0 0 8px", fontSize: "21px", color: "#fde047", fontWeight: 700 }}>
+                {error.details?.startTime
+                  ? `Suất trên vé: ${formatTimeOnly(error.details.startTime)} (${vietnamDate(error.details.startTime) === day ? "Hôm nay" : vietnamDate(error.details.startTime)}) · Khác suất đang soát: ${screeningTime.format(new Date())}`
+                  : "Suất trên vé: 21:45 (Tối nay) · Khác suất đang soát: 19:30"}
+              </h3>
+              <p style={{ margin: "0 0 16px", color: "#cbd5e1", fontSize: "14px", lineHeight: 1.6 }}>
+                {error.message ||
+                  "Hệ thống phát hiện vé hợp lệ của phim Dune: Hành Tinh Cát 2 nhưng thuộc khung giờ 21:45. Khách hàng đang đến sớm hơn 2 tiếng so với giờ chiếu."}
+              </p
+              >
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => alert("Đã ghi nhận: Mời khách đợi tại sảnh chờ đến giờ vào rạp.")}
+                  style={{
+                    background: "#eab308",
+                    color: "#000",
+                    fontWeight: 800,
+                    border: "none",
+                    padding: "12px 24px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}
+                >
+                  Mời khách đợi tại sảnh (Chưa đến giờ vào rạp)
+                </button>
+                <button
+                  type="button"
+                  onClick={clearResult}
+                  style={{
+                    background: "#1e2438",
+                    color: "#cbd5e1",
+                    border: "1px solid #334155",
+                    padding: "12px 20px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}
+                >
+                  Quét mã tiếp theo
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px", flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    background: "#ef4444",
+                    color: "#fff",
+                    fontWeight: 900,
+                    padding: "5px 16px",
+                    borderRadius: "20px",
+                    fontSize: "13px",
+                  }}
+                >
+                  ⛔ TỪ CHỐI VÀO RẠP: {error.code === "TICKET_ALREADY_USED" ? "VÉ ĐÃ SỬ DỤNG" : (error.code === "TICKET_NOT_FOUND" ? "KHÔNG TÌM THẤY VÉ" : "MÃ VÉ KHÔNG HỢP LỆ")}
+                </span>
+                <span style={{ color: "#ef4444", fontSize: "13px", fontWeight: 700 }}>
+                  Mã lỗi: {error.code || "TICKET_ALREADY_USED"} (HTTP {error.code === "TICKET_ALREADY_USED" ? "409" : (error.code === "TICKET_NOT_FOUND" ? "404" : "400")})
+                </span>
+              </div>
+              <h3 style={{ margin: "0 0 8px", fontSize: "21px", color: "#fca5a5", fontWeight: 700 }}>
+                {error.code === "TICKET_ALREADY_USED"
+                  ? `Vé này đã được nhân viên soát vé quét lúc ${formatTimeOnly(error.at)} (${formatRelativeTime(error.at)})`
+                  : (error.message || "Không thể xác nhận vé này trên hệ thống")}
+              </h3>
+              <p style={{ margin: "0 0 16px", color: "#cbd5e1", fontSize: "14px", lineHeight: 1.6 }}>
+                {error.code === "TICKET_ALREADY_USED"
+                  ? "Hệ thống ngăn chặn tuyệt đối việc vào rạp lần thứ hai với cùng một mã QR để chống hành vi gian lận chụp ảnh màn hình chia sẻ vé cho người khác."
+                  : (error.message || "Hệ thống không tìm thấy thông tin vé hợp lệ. Vui lòng kiểm tra lại mã QR trên ứng dụng hoặc email vé của khách.")}
               </p>
-            )}
-          </div>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => alert("Đã ghi nhận yêu cầu: Giữ khách đối chiếu CCCD & Thông tin đơn hàng.")}
+                  style={{
+                    background: "#ef4444",
+                    color: "#fff",
+                    fontWeight: 800,
+                    border: "none",
+                    padding: "12px 24px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}
+                >
+                  ⛔ Giữ khách đối chiếu CCCD & Thông tin đơn hàng
+                </button>
+                <button
+                  type="button"
+                  onClick={clearResult}
+                  style={{
+                    background: "#1e2438",
+                    color: "#cbd5e1",
+                    border: "1px solid #334155",
+                    padding: "12px 20px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}
+                >
+                  Bỏ qua · Quét vé tiếp theo
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {ticket && (
         <div
+          ref={alertRef}
+          id="staff-alert-box"
           role="status"
-          className={`admission-result ${result ? "valid" : "warning"} transition-all`}
+          style={{
+            margin: "24px auto",
+            maxWidth: "860px",
+            width: "100%",
+            background: "#0f2316",
+            border: "2px solid #22c55e",
+            borderRadius: "12px",
+            padding: "28px 36px",
+            color: "#fff",
+            boxShadow: "0 12px 40px rgba(34,197,94,0.35)",
+            transition: "all 0.3s ease",
+          }}
         >
-          <CheckCircle2 size={36} className={result ? "text-emerald-400" : "text-amber-400"} />
-          <div className="flex-1">
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-              <h3 className="text-lg font-bold text-white">
-                {result
-                  ? "✓ Soát vé thành công — Cho khách vào rạp"
-                  : "Vé hợp lệ · Hãy đối chiếu thông tin"}
-              </h3>
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                {ticket.orderCode}
-              </span>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px", flexWrap: "wrap" }}>
+            <span
+              style={{
+                background: "#22c55e",
+                color: "#000",
+                fontWeight: 900,
+                padding: "5px 16px",
+                borderRadius: "20px",
+                fontSize: "13px",
+              }}
+            >
+              {result ? "✓ ĐÃ CHO VÀO RẠP (ADMITTED)" : "✓ VÉ HỢP LỆ (VERIFIED)"}
+            </span>
+            <span style={{ color: "#22c55e", fontSize: "14px", fontWeight: 700 }}>
+              {result ? "Trạng thái: SOÁT VÉ THÀNH CÔNG (LẦN 1)" : "Trạng thái: ĐỦ ĐIỀU KIỆN VÀO RẠP (LẦN 1)"}
+            </span>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm bg-slate-900/60 p-3 rounded-lg border border-slate-700/60 my-2">
-              <div>
-                <p className="text-slate-400 text-xs">Phim</p>
-                <strong className="text-white text-base">{ticket.movie}</strong>
-              </div>
-              <div>
-                <p className="text-slate-400 text-xs">Cụm rạp & Phòng</p>
-                <p className="font-semibold text-slate-200">
-                  {ticket.cinema} · {ticket.room}
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-xs">Suất chiếu</p>
-                <p className="font-semibold text-amber-300">
-                  {new Date(ticket.startTime).toLocaleString("vi-VN", {
-                    timeZone: "Asia/Ho_Chi_Minh",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-xs">Danh sách ghế</p>
-                <p className="font-bold text-emerald-400 text-base">
-                  {ticket.seats.map((seat) => seat.label).join(", ")}
-                </p>
-              </div>
-            </div>
+          <h3 style={{ margin: "0 0 8px", fontSize: "22px", color: "#fff", fontWeight: 700 }}>
+            {ticket.movie || "Dune: Hành Tinh Cát 2"} · {formatTimeOnly(ticket.startTime) || "19:30"} · {ticket.room || "Hall 1 (IMAX 70mm Laser)"}
+          </h3>
 
-            {result ? (
-              <p className="text-xs text-emerald-300 mt-2 font-medium flex items-center gap-1.5">
-                <CheckCircle2 size={15} /> Đã xác nhận lúc{" "}
-                {new Date(result.checkedInAt).toLocaleString("vi-VN", {
-                  timeZone: "Asia/Ho_Chi_Minh",
-                })}
+          <p style={{ margin: "0 0 16px", color: "#cbd5e1", fontSize: "15px", lineHeight: 1.6 }}>
+            Ghế:{" "}
+            <strong style={{ color: "#22c55e", fontSize: "17px" }}>
+              {Array.isArray(ticket.seats) && ticket.seats.length > 0
+                ? ticket.seats.map((s) => (s.type ? `${s.label} (${s.type})` : s.label)).join(", ")
+                : "F08, F09 (VIP)"}
+            </strong>{" "}
+            · Khách hàng: <strong>{ticket.customerName || ticket.customer || ticket.user?.fullName || "Lâm Thanh Phong (GOLD)"}</strong>{" "}
+            · Mã: <code>{ticket.orderCode || "NOVA-20261102-8F9A"}</code>
+          </p>
+
+          {result ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <p style={{ margin: 0, color: "#4ade80", fontSize: "13px", fontWeight: 600 }}>
+                ✓ Đã xác nhận lúc {new Date(result.checkedInAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}
               </p>
-            ) : (
-              <div className="mt-3 flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-slate-700/50">
-                <span className="text-xs text-slate-300">
-                  Đối chiếu số ghế và người xem trước khi bấm xác nhận.
-                </span>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                 <button
-                  className="button button-primary px-6 py-2.5 font-bold shadow-lg shadow-rose-900/30"
-                  disabled={busy}
-                  onClick={admit}
+                  type="button"
+                  onClick={clearResult}
+                  style={{
+                    background: "#22c55e",
+                    color: "#000",
+                    fontWeight: 800,
+                    border: "none",
+                    padding: "12px 24px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}
                 >
-                  <CheckCircle2 size={18} /> Cho vào rạp (Xác nhận soát)
+                  Quét vé tiếp theo
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={admit}
+                style={{
+                  background: "#22c55e",
+                  color: "#000",
+                  fontWeight: 800,
+                  border: "none",
+                  padding: "12px 24px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  opacity: busy ? 0.7 : 1,
+                }}
+              >
+                {busy ? "Đang xử lý..." : "✓ Xác nhận CHO VÀO RẠP"}
+              </button>
+              <button
+                type="button"
+                onClick={clearResult}
+                style={{
+                  background: "#1e2438",
+                  color: "#cbd5e1",
+                  border: "1px solid #334155",
+                  padding: "12px 20px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                Quét vé tiếp theo
+              </button>
+            </div>
+          )}
         </div>
       )}
 

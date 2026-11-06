@@ -87,3 +87,11 @@ trong kho demo RAM.
 
 Chưa có log hoặc quyền điều khiển máy Windows của người dùng; đây là các lỗi đã
 tái hiện và vá trong code, không phải xác nhận đã sửa cấu hình trực tiếp trên máy đó.
+
+## Bàn giao
+
+Đã push code đã kiểm chứng lên **remote main** tại `e79fcf7`. Nhánh chính chứa
+cả QR từng ghế và các sửa lỗi kết nối trên, đã ghép thay đổi của nhóm đến `987a318`.
+Các thông báo chặn push main ngày 05/11 trong báo cáo trước là lịch sử; lần bàn
+giao này push main thành công, không force-push. Cập nhật code giữ nguyên
+`backend/.env` của máy, rồi chạy lại `npm run dev:full`.

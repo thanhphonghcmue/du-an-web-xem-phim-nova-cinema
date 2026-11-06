@@ -122,12 +122,18 @@ thành bằng chứng cho phiên bản per-seat.
 
 ## Bàn giao GitHub
 
+**Cập nhật 06/11/2026:** bản per-seat và các bản vá kết nối đã vào remote `main`
+tại `e79fcf7`, sau khi ghép thay đổi nhóm đến `987a318`. Không cần gộp PR của
+nhánh cũ. [Báo cáo kết nối mới](connection-recovery-2026-11-06.md).
+
+Lịch sử bàn giao ngày 05/11/2026:
+
 Mã đã kiểm chứng được chốt ở `226160d` và push thành công lên nhánh
 `feat/nova-per-seat-tickets`, sau khi tích hợp main của nhóm tại `65ac1ee`.
 Push trực tiếp main bị GitHub từ chối hai lần với `fatal error in commit_refs_rules`.
 API GitHub trả `Forbidden`; policy mạng hiện tại không cho `api.github.com`, nên
 chưa tạo hoặc merge PR tự động được. Không force-push, không ghi đè thay đổi nhóm.
 
-**Remote main chưa nhận bản sửa này.**
+**Tại thời điểm 05/11, remote main chưa nhận bản sửa này.**
 [Mở so sánh để tạo PR vào main](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/compare/main...feat/nova-per-seat-tickets?expand=1),
 chọn **Create pull request**, rồi **Merge pull request** khi GitHub cho phép.

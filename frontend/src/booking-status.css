@@ -15,6 +15,69 @@
   color: #fff;
   box-shadow: 0 0 17px #e5091455;
 }
+/* Chống ghế lẻ (CR-01 Seat Isolation Warning) */
+.booking-console .seat.seat-isolated-error,
+.seat.seat-isolated-error {
+  outline: 3px solid #ef4444 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.95) !important;
+  animation: pulse-isolated-seat 1.2s infinite alternate !important;
+  border-color: #f87171 !important;
+}
+
+@keyframes pulse-isolated-seat {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  }
+  to {
+    transform: scale(1.08);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 1);
+  }
+}
+
+.seat-isolated-toast {
+  position: fixed;
+  bottom: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #991b1b;
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(239, 68, 68, 0.6);
+  z-index: 9999;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #ef4444;
+  animation: slideUpToast 0.25s ease-out;
+}
+
+.seat-isolated-toast-close {
+  margin-left: 10px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+@keyframes slideUpToast {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
 .booking-console .seat.held {
   background: #253040;
   border-color: #5e6e8b;

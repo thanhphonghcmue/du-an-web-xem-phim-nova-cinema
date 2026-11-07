@@ -276,6 +276,91 @@ const paymentGateways = [
   { id: "sandbox", title: "Sandbox", detail: "Môi trường thử" },
 ];
 
+
+export function validateSingleSeatIsolation(currentSelectedIds, nextSelectedIds, allSeats, toggledSeat) {
+  if (!nextSelectedIds || nextSelectedIds.length === 0) {
+    return { valid: true, isolatedSeatIds: [] };
+  }
+  const targetRow = toggledSeat?.row;
+  const targetRows = targetRow ? [targetRow] : [...new Set((allSeats || []).map((s) => s.row))];
+
+  function getIsolatedInRow(selectedIds, rowName) {
+    const rowSeats = (allSeats || [])
+      .filter((s) => s.row === rowName && s.type !== "SWEETBOX")
+      .sort((a, b) => a.column - b.column);
+    if (rowSeats.length === 0) return [];
+
+    const isOccupied = (s) =>
+      selectedIds.includes(s.seatId) || s.status !== "AVAILABLE";
+
+    const isolated = [];
+    const blocks = [];
+    let currentBlock = [rowSeats[0]];
+    for (let i = 1; i < rowSeats.length; i++) {
+      if (rowSeats[i].column - rowSeats[i - 1].column > 1) {
+        blocks.push(currentBlock);
+        currentBlock = [rowSeats[i]];
+      } else {
+        currentBlock.push(rowSeats[i]);
+      }
+    }
+    blocks.push(currentBlock);
+
+    for (const block of blocks) {
+      if (block.length <= 1) continue;
+      let i = 0;
+      while (i < block.length) {
+        if (!isOccupied(block[i])) {
+          let emptyStart = i;
+          while (i < block.length && !isOccupied(block[i])) {
+            i++;
+          }
+          let emptyEnd = i - 1;
+          let emptyCount = emptyEnd - emptyStart + 1;
+          if (emptyCount === 1) {
+            const singleSeat = block[emptyStart];
+            const hasLeftNeighbor = emptyStart > 0;
+            const hasRightNeighbor = emptyEnd < block.length - 1;
+            const leftOccupied =
+              hasLeftNeighbor && isOccupied(block[emptyStart - 1]);
+            const rightOccupied =
+              hasRightNeighbor && isOccupied(block[emptyEnd + 1]);
+            if (!hasLeftNeighbor && rightOccupied) {
+              isolated.push(singleSeat);
+            } else if (!hasRightNeighbor && leftOccupied) {
+              isolated.push(singleSeat);
+            } else if (leftOccupied && rightOccupied) {
+              isolated.push(singleSeat);
+            }
+          }
+        } else {
+          i++;
+        }
+      }
+    }
+    return isolated;
+  }
+
+  for (const r of targetRows) {
+    const prevIsolated = getIsolatedInRow(currentSelectedIds, r);
+    const prevIsolatedIds = new Set(prevIsolated.map((s) => s.seatId));
+    const nextIsolated = getIsolatedInRow(nextSelectedIds, r);
+    const newViolations = nextIsolated.filter(
+      (s) => !prevIsolatedIds.has(s.seatId),
+    );
+    if (newViolations.length > 0) {
+      return {
+        valid: false,
+        message:
+          "Vui lòng không để trống 1 ghế lẻ ở đầu hàng hoặc giữa các ghế đã chọn!",
+        isolatedSeatIds: newViolations.map((s) => s.seatId),
+        violatingSeats: newViolations,
+      };
+    }
+  }
+  return { valid: true, isolatedSeatIds: [] };
+}
+
 function LiveBookingConsole({
   booking,
   member,
@@ -312,6 +397,7 @@ function LiveBookingConsole({
     orderRef.current = value;
     saveOrder(value);
   }, []);
+  const [isolatedSeatIds, setIsolatedSeatIds] = useState([]);
   const [conflictInfo, setConflictInfo] = useState(null);
   const [busy, setBusy] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -714,6 +800,14 @@ function LiveBookingConsole({
       setNotice("Mỗi đơn tối đa 20 ghế, bao gồm ghế đôi.");
       return;
     }
+    const isolation = validateSingleSeatIsolation(selected, next, seats, seat);
+    if (!isolation.valid) {
+      setIsolatedSeatIds(isolation.isolatedSeatIds);
+      setNotice(isolation.message);
+      revealConflict.current = true;
+      return;
+    }
+    setIsolatedSeatIds([]);
     setSelected(next);
     setNotice("");
   }
@@ -756,6 +850,13 @@ function LiveBookingConsole({
     }
     if (!selected.length) {
       setNotice("Hãy chọn ít nhất một ghế trước khi giữ chỗ.");
+      return;
+    }
+    const holdIsolation = validateSingleSeatIsolation([], selected, seats);
+    if (!holdIsolation.valid) {
+      setIsolatedSeatIds(holdIsolation.isolatedSeatIds);
+      setNotice(holdIsolation.message);
+      revealConflict.current = true;
       return;
     }
     if (
@@ -1269,7 +1370,7 @@ function LiveBookingConsole({
                           return (
                             <button
                               key={`${seat.seatId}-${index}`}
-                              className={`seat ${state}`}
+                              className={`seat ${state}${isolatedSeatIds.includes(seat.seatId) ? " seat-isolated-error" : ""}`}
                               aria-pressed={chosen}
                               disabled={
                                 busy ||
@@ -1291,6 +1392,20 @@ function LiveBookingConsole({
                   ))}
                 </div>
               </div>
+              {isolatedSeatIds.length > 0 && (
+                <div role="alert" className="seat-isolated-toast">
+                  <span aria-hidden="true" style={{ fontSize: "18px" }}>⚠️</span>
+                  <span>Vui lòng không để trống 1 ghế lẻ ở đầu hàng hoặc giữa các ghế đã chọn!</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsolatedSeatIds([])}
+                    className="seat-isolated-toast-close"
+                    aria-label="Đóng cảnh báo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
               <p className="booking-dock-hint">
                 Gợi ý 1–20 người ưu tiên trung tâm; nhóm vượt một hàng được ghép
                 hai hàng liền kề. Gợi ý chưa giữ ghế, trạng thái sẽ được kiểm

@@ -46,12 +46,12 @@ function checkPort(port, host = "127.0.0.1") {
   });
 }
 
-async function waitForBackend(port, child) {
-  for (let attempt = 0; attempt < 20 && !stopping; attempt++) {
+async function waitForBackend(port, child, maxAttempts = 40, timeoutMs = 4000) {
+  for (let attempt = 0; attempt < maxAttempts && !stopping; attempt++) {
     if (child.exitCode !== null || child.signalCode !== null) return false;
     try {
       const response = await fetch(`http://127.0.0.1:${port}/api/v1/health`, {
-        signal: AbortSignal.timeout(1000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       if (response.ok) return true;
     } catch {

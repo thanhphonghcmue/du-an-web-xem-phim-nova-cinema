@@ -1073,7 +1073,7 @@ test("FR12 RAM admin combo REST supports persisted metadata, range validation an
     name: "Owned Solo",
     description: "Owned combo fixture",
     price: "49000.00",
-    tasteTag: "NGỌT",
+    tasteTag: "Ngọt Caramel",
     itemsSummary: "1 bắp",
     suggestedMinSeats: 1,
     suggestedMaxSeats: 1,
@@ -1115,6 +1115,27 @@ test("FR12 RAM admin combo REST supports persisted metadata, range validation an
   );
   assert.ok(
     !(await f.call("/combos")).data.items.some((c) => c.id === item.data.id),
+  );
+  for (const isActive of [false, false, true]) {
+    const result = await f.call(
+      `/admin/combos/${item.data.id}/status`,
+      { isActive },
+      admin.accessToken,
+      "PATCH",
+    );
+    assert.equal(result.status, 200);
+    assert.equal(result.data.isActive, isActive);
+  }
+  assert.equal(
+    (
+      await f.call(
+        `/admin/combos/${item.data.id}/status`,
+        { isActive: null },
+        admin.accessToken,
+        "PATCH",
+      )
+    ).status,
+    400,
   );
 });
 

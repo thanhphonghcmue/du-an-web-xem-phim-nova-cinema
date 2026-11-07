@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   rankedCombos,
   recommended,
+  comboTasteLabel,
 } from "../frontend/src/comboRecommendations.js";
 const solo = {
   id: "solo",
@@ -43,4 +44,35 @@ test("FR12 chips and Party69 ordering preserve IDs, leave inputs untouched and e
   );
   assert.deepEqual(rankedCombos(rows, 2, "PHÔ_MAI"), [pair]);
   assert.equal(rows[0], pair);
+});
+
+test("FR12 generic legacy PARTY metadata does not recommend drinks or displace the configured group combo", () => {
+  const generic = { ...party, id: "drink", suggestedMinSeats: 1 };
+  assert.equal(recommended(generic, 4), false);
+  assert.equal(rankedCombos([generic, party], 4, "all")[0].id, party.id);
+  assert.equal(rankedCombos([pair, solo, party], 1, "all")[0].id, solo.id);
+  assert.equal(rankedCombos([solo, party, pair], 2, "all")[0].id, pair.id);
+});
+
+test("FR12 exact seed taste labels still filter with canonical chips", () => {
+  const sweet = { ...solo, tasteTag: "Ngọt Caramel" };
+  const cheese = { ...pair, tasteTag: "Phô Mai Hoàng Kim" };
+  assert.deepEqual(rankedCombos([cheese, sweet], 1, "NGỌT"), [sweet]);
+  assert.deepEqual(rankedCombos([sweet, cheese], 2, "PHÔ_MAI"), [cheese]);
+  assert.equal(comboTasteLabel(sweet), "Ngọt Caramel");
+  assert.equal(comboTasteLabel(cheese), "Phô Mai Hoàng Kim");
+});
+
+test("FR12 canonical seed names take precedence over other eligible products without changing their cart IDs", () => {
+  const standardSolo = { ...solo, name: "Single / Solo Combo" };
+  const custom = { ...solo, id: "custom", name: "00 Custom" };
+  assert.equal(
+    rankedCombos([custom, standardSolo], 1, "all")[0].id,
+    standardSolo.id,
+  );
+  const standardParty = { ...party, name: "Party Combo 69K", price: "71000" };
+  assert.equal(
+    rankedCombos([{ ...party, id: "other" }, standardParty], 4, "all")[0].id,
+    standardParty.id,
+  );
 });

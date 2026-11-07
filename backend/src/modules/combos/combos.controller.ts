@@ -1,5 +1,6 @@
 import {
   Body,
+  Header,
   Controller,
   Get,
   Param,
@@ -22,7 +23,12 @@ import {
 import { ApiDataResponse } from "../../common/decorators/api-data-response.decorator";
 import { ErrorResponseDto } from "../../common/dto/api-response.dto";
 import { PaginationDto } from "../../common/dto/pagination.dto";
-import { ComboDto, CreateComboDto, UpdateComboDto } from "./combo.dto";
+import {
+  ComboDto,
+  CreateComboDto,
+  UpdateComboDto,
+  ComboStatusDto,
+} from "./combo.dto";
 import { CombosService } from "./combos.service";
 @ApiTags("Combos")
 @ApiBadRequestResponse({ type: ErrorResponseDto })
@@ -30,9 +36,11 @@ import { CombosService } from "./combos.service";
 @Controller("combos")
 export class CombosController {
   constructor(private readonly service: CombosService) {}
-  @Get() @Public() @ApiPageResponse(ComboDto) list(
-    @Query() query: PaginationDto,
-  ) {
+  @Get()
+  @Header("Cache-Control", "no-store")
+  @Public()
+  @ApiPageResponse(ComboDto)
+  list(@Query() query: PaginationDto) {
     return this.service.list(query);
   }
   @Post() @CatalogWrite() @ApiDataResponse(ComboDto, 201) create(
@@ -52,7 +60,9 @@ export class CombosController {
 @Controller("admin/combos")
 export class AdminCombosController {
   constructor(private readonly service: CombosService) {}
-  @Get() @CatalogWrite() list(@Query() query: PaginationDto) {
+  @Get() @Header("Cache-Control", "no-store") @CatalogWrite() list(
+    @Query() query: PaginationDto,
+  ) {
     return this.service.list(query, true);
   }
   @Post() @CatalogWrite() create(@Body() dto: CreateComboDto) {
@@ -63,6 +73,13 @@ export class AdminCombosController {
     @Body() dto: UpdateComboDto,
   ) {
     return this.service.update(id, dto);
+  }
+  @Patch(":id/status")
+  @CatalogWrite()
+  status(@Param("id", ParseUUIDPipe) id: string, @Body() dto: ComboStatusDto) {
+    return dto.isActive === undefined
+      ? this.service.toggle(id)
+      : this.service.update(id, { isActive: dto.isActive });
   }
   @Patch(":id/toggle-status") @CatalogWrite() toggle(
     @Param("id", ParseUUIDPipe) id: string,

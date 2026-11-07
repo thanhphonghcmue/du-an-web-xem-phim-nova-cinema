@@ -30,6 +30,8 @@ import RoomLayoutBuilder from "./RoomLayoutBuilder.jsx";
 import Modal from "./Modal.jsx";
 import { read, readCommand } from "@/api/client.js";
 import { formFieldErrors } from "@/api/formErrors.js";
+import { comboTasteLabel, normalizedTasteTag } from "@/comboRecommendations.js";
+import { publishComboUpdate } from "@/comboUpdates.js";
 import { useCatalog } from "@/catalog.js";
 const specs = {
   movies: {
@@ -89,13 +91,13 @@ const specs = {
     ],
   },
 };
-export default function QuanLyDanhMucPhimRap() {
+export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
   const catalog = useCatalog();
   const [kind, setKind] = useState(() =>
       typeof window !== "undefined" &&
       new URLSearchParams(window.location.search).get("tab") === "combos"
         ? "combos"
-        : "movies",
+        : initialKind,
     ),
     [items, setItems] = useState([]),
     [meta, setMeta] = useState(null),
@@ -109,7 +111,18 @@ export default function QuanLyDanhMucPhimRap() {
   const [comboEditing, setComboEditing] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   function updateField(key, value) {
-    setDraft((current) => ({ ...current, [key]: value }));
+    setDraft((current) => ({
+      ...current,
+      [key]: value,
+      ...(kind === "combos" && key === "badgeLabel" && value
+        ? {
+            suggestedMinSeats:
+              value === "SOLO" ? 1 : value === "COUPLE" ? 2 : 3,
+            suggestedMaxSeats:
+              value === "SOLO" ? 1 : value === "COUPLE" ? 2 : 20,
+          }
+        : {}),
+    }));
     setFieldErrors((current) => ({ ...current, [key]: "" }));
   }
   useEffect(() => {
@@ -173,11 +186,12 @@ export default function QuanLyDanhMucPhimRap() {
                 : value;
       }
       await readCommand(
-        `/${kind}${editId ? "/" + editId : ""}`,
+        `/${kind === "combos" ? "admin/combos" : kind}${editId ? "/" + editId : ""}`,
         body,
         {},
-        editId ? "PATCH" : "POST",
+        editId ? (kind === "combos" ? "PUT" : "PATCH") : "POST",
       );
+      if (kind === "combos") publishComboUpdate();
       setPage(1);
       setMessage("Đã lưu thành công.");
       if (kind === "combos") setComboEditing(false);
@@ -218,7 +232,9 @@ export default function QuanLyDanhMucPhimRap() {
               )
                 .toISOString()
                 .slice(0, 16)
-            : String(item[key] ?? ""),
+            : key === "tasteTag"
+              ? normalizedTasteTag(item[key])
+              : String(item[key] ?? ""),
         ]),
       ),
     );
@@ -266,7 +282,19 @@ export default function QuanLyDanhMucPhimRap() {
             <form className="live-admin-form" onSubmit={save}>
               {specs[kind].fields.map(([key, label, type = "text"]) => {
                 const choices = Array.isArray(type)
-                  ? type.map((v) => ({ id: v, name: v }))
+                  ? type.map((v) => ({
+                      id: v,
+                      name:
+                        key === "tasteTag"
+                          ? comboTasteLabel({ tasteTag: v })
+                          : key === "badgeLabel"
+                            ? {
+                                SOLO: "1 vé - Solo",
+                                COUPLE: "2 vé - Couple",
+                                PARTY: ">= 3 vé - Party",
+                              }[v]
+                            : v,
+                    }))
                   : ["cinemas", "movies", "rooms"].includes(type)
                     ? catalog[type].map((v) => ({
                         id: v.id,
@@ -417,7 +445,7 @@ export default function QuanLyDanhMucPhimRap() {
                           {item.price} VND · {item.tasteTag} · {item.badgeLabel}{" "}
                           · {item.suggestedMinSeats}–
                           {item.suggestedMaxSeats ?? "nhiều"} vé ·{" "}
-                          {item.isActive ? "Đang bán" : "Đã ẩn"}
+                          {item.isActive ? "Đang mở bán" : "Tạm ẩn"}
                         </p>
                       )}
                     </td>
@@ -449,11 +477,12 @@ export default function QuanLyDanhMucPhimRap() {
                             setBusy(true);
                             try {
                               await readCommand(
-                                `/admin/combos/${item.id}/toggle-status`,
-                                {},
+                                `/admin/combos/${item.id}/status`,
+                                { isActive: !item.isActive },
                                 {},
                                 "PATCH",
                               );
+                              publishComboUpdate();
                               setRevision((v) => v + 1);
                               await catalog.reload();
                             } catch (e) {

@@ -74,7 +74,7 @@ export default function QuanTriHeThong({
   const [activeTab, setActiveTab] = useState(() =>
     typeof window !== "undefined" &&
     new URLSearchParams(window.location.search).get("tab") === "combos"
-      ? "catalog"
+      ? "combos"
       : "revenue",
   ); // revenue | users | catalog | maintenance
   const [loading, setLoading] = useState(true);
@@ -365,6 +365,12 @@ export default function QuanTriHeThong({
           >
             <Film size={16} />
             Rạp, Phim & Suất Chiếu
+          </button>
+          <button
+            className={`admin-tab ${activeTab === "combos" ? "active" : ""}`}
+            onClick={() => setActiveTab("combos")}
+          >
+            🍿 Quản lý Party Combo (G3-FR12)
           </button>
           <button
             className={`admin-tab ${activeTab === "maintenance" ? "active" : ""}`}
@@ -796,9 +802,12 @@ export default function QuanTriHeThong({
           )}
 
           {/* TAB 3: DANH MỤC & RẠP CHIẾU */}
-          {activeTab === "catalog" && (
+          {["catalog", "combos"].includes(activeTab) && (
             <div className="admin-tab-pane">
-              <OperationalCatalog />
+              <OperationalCatalog
+                key={activeTab}
+                initialKind={activeTab === "combos" ? "combos" : "movies"}
+              />
               <div className="catalog-summary-cards">
                 <div className="mini-card">
                   <Film size={20} />

@@ -419,7 +419,16 @@ exports.createAdmin = (c) => {
       };
     if (kind === "combos")
       assert(
-        ["NGỌT", "MẶN", "PHÔ_MAI", "CARAMEL", "MIX"].includes(row.tasteTag) &&
+        [
+          "NGỌT",
+          "MẶN",
+          "PHÔ_MAI",
+          "CARAMEL",
+          "MIX",
+          "Ngọt Caramel",
+          "Phô Mai Hoàng Kim",
+          "Mix 2 Vị (Ngọt & Phô Mai)",
+        ].includes(row.tasteTag) &&
           ["SOLO", "COUPLE", "PARTY"].includes(row.badgeLabel) &&
           Number.isInteger(row.suggestedMinSeats) &&
           row.suggestedMinSeats >= 1 &&

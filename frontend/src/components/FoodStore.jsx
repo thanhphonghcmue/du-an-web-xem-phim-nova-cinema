@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useCatalog } from "@/catalog.js";
+import { subscribeComboUpdates } from "@/comboUpdates.js";
 import { apiList } from "@/api/client.js";
 import { menuCategories, menuDetails } from "@/commerce.js";
 import { money } from "@/data.js";
@@ -214,9 +215,14 @@ export default function FoodStore({ compact = false, onBooking }) {
   const [draftNotice, setDraftNotice] = useState("");
   useEffect(() => {
     let active = true,
-      running = false;
+      running = false,
+      dirty = false;
     const sync = async () => {
-      if (running || document.hidden) return;
+      if (!active || document.hidden) return;
+      if (running) {
+        dirty = true;
+        return;
+      }
       running = true;
       try {
         const items = await apiList("/combos");
@@ -237,13 +243,22 @@ export default function FoodStore({ compact = false, onBooking }) {
         /* Giữ menu đã tải khi mất mạng; backend vẫn kiểm tra khả dụng. */
       } finally {
         running = false;
+        if (dirty && active) {
+          dirty = false;
+          void sync();
+        }
       }
     };
+    void sync();
+    const unsubscribe = subscribeComboUpdates(sync);
+    document.addEventListener("visibilitychange", sync);
     const timer = setInterval(sync, 5000);
     window.addEventListener("focus", sync);
     return () => {
       active = false;
       clearInterval(timer);
+      unsubscribe();
+      document.removeEventListener("visibilitychange", sync);
       window.removeEventListener("focus", sync);
     };
   }, []);

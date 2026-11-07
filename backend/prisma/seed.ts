@@ -255,7 +255,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<void> {
         update: {},
         create: {
           id: seedId("combo:party69"),
-          name: "Party Combo 69K",
+          name: "Party Combo 69K (Classic)",
           description: "Một bắp và hai nước — giá minh họa đồ án.",
           price: new Prisma.Decimal("69000.00"),
           isActive: true,

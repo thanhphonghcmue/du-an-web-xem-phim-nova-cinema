@@ -7,9 +7,12 @@ import BookingPreview from "./BookingPreview.jsx";
 import BookingTicket from "./BookingTicket.jsx";
 import {
   comboTastes,
+  comboTasteLabel,
+  recommendationBadge,
   rankedCombos,
   recommended,
 } from "@/comboRecommendations.js";
+import { subscribeComboUpdates } from "@/comboUpdates.js";
 import SandboxGateway from "./SandboxGateway.jsx";
 import { sandboxCheckout } from "@/sandboxCheckout.js";
 import NovaLogo from "./NovaLogo.jsx";
@@ -350,9 +353,14 @@ function LiveBookingConsole({
   const revealConflict = useRef(false);
   useEffect(() => {
     let active = true,
-      running = false;
+      running = false,
+      dirty = false;
     const sync = async () => {
-      if (running || document.hidden) return;
+      if (!active || document.hidden) return;
+      if (running) {
+        dirty = true;
+        return;
+      }
       running = true;
       try {
         const items = await apiList("/combos");
@@ -376,13 +384,22 @@ function LiveBookingConsole({
         /* Giữ menu đã tải; lệnh giữ ghế vẫn kiểm tra lại trên server. */
       } finally {
         running = false;
+        if (dirty && active) {
+          dirty = false;
+          void sync();
+        }
       }
     };
+    void sync();
+    const unsubscribe = subscribeComboUpdates(sync);
+    document.addEventListener("visibilitychange", sync);
     const timer = setInterval(sync, 5000);
     window.addEventListener("focus", sync);
     return () => {
       active = false;
       clearInterval(timer);
+      unsubscribe();
+      document.removeEventListener("visibilitychange", sync);
       window.removeEventListener("focus", sync);
     };
   }, []);
@@ -400,6 +417,8 @@ function LiveBookingConsole({
   const [showAgeModal, setShowAgeModal] = useState(false);
   const [showPaymentReview, setShowPaymentReview] = useState(false);
   const [sandbox, setSandbox] = useState(null);
+  const [testExpiredOrder, setTestExpiredOrder] = useState(null);
+  const testExpiryPreview = useRef(null);
   const [testControls, setTestControls] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [cancelledNotice, setCancelledNotice] = useState(null);
@@ -484,8 +503,13 @@ function LiveBookingConsole({
             requestKey.current = null;
             setSelected([]);
             setShowPaymentReview(false);
-            setSandbox(null);
-            if (current.status === "EXPIRED") setShowExpiredNotice(true);
+            if (!(
+              current.status === "EXPIRED" &&
+              testExpiryPreview.current === current.id
+            )) {
+              setSandbox(null);
+              if (current.status === "EXPIRED") setShowExpiredNotice(true);
+            }
           } else
             setSelected(
               current.seats
@@ -574,6 +598,13 @@ function LiveBookingConsole({
         0,
       ),
     [seats, selected, combos, comboItems],
+  );
+  const menuCombos = useMemo(
+    () => rankedCombos(combos, selected.length, comboTaste),
+    [combos, selected.length, comboTaste],
+  );
+  const suggestion = menuCombos.find((combo) =>
+    recommended(combo, selected.length),
   );
   const holding = order && ["PENDING", "HOLDING"].includes(order.status);
   const expired = Boolean(
@@ -855,6 +886,8 @@ function LiveBookingConsole({
       const confirmed = await apiCompleteSandbox(payload, result);
       setOrder(confirmed);
       setSandbox(null);
+      setTestExpiredOrder(null);
+      testExpiryPreview.current = null;
       setShowPaymentReview(false);
       if (confirmed.status === "PAID") {
         activeOrderId.current = confirmed.id;
@@ -883,6 +916,8 @@ function LiveBookingConsole({
           setOrder(current);
           setSelected([]);
           setSandbox(null);
+          setTestExpiredOrder(null);
+          testExpiryPreview.current = null;
           setShowExpiredNotice(true);
         }
       }
@@ -1263,81 +1298,106 @@ function LiveBookingConsole({
                       </button>
                     ))}
                   </div>
-                  {rankedCombos(combos, selected.length, comboTaste).map(
-                    (combo) => (
-                      <label key={combo.id}>
-                        <MenuImage
-                          item={{ ...menuDetails(combo), ...combo }}
-                          decorative
-                        />
-                        <span>
-                          {combo.name}
-                          {recommended(combo, selected.length) && (
-                            <small className="paid-ticket-seats">
-                              {selected.length >= 3
-                                ? `🔥 Phù hợp nhất cho nhóm ${selected.length} người`
-                                : `✨ Gợi ý cho bạn (${selected.length === 1 ? "Solo - 1 người" : "Cặp đôi - 2 người"})`}
-                            </small>
-                          )}
-                          <small>{combo.itemsSummary}</small>
-                          <small>{money(combo.price)}</small>
-                        </span>
-                        <div className="booking-combo-quantity">
-                          <button
-                            type="button"
-                            aria-label={`Giảm ${combo.name}`}
-                            disabled={!comboItems[combo.id]}
-                            onClick={() =>
-                              setComboItems((items) => ({
-                                ...items,
-                                [combo.id]: Math.max(
-                                  0,
-                                  (items[combo.id] || 0) - 1,
-                                ),
-                              }))
-                            }
-                          >
-                            −
-                          </button>
-                          <input
-                            aria-label={`Số lượng ${combo.name}`}
-                            type="number"
-                            min="0"
-                            max="20"
-                            value={comboItems[combo.id] || 0}
-                            onChange={(e) =>
-                              setComboItems({
-                                ...comboItems,
-                                [combo.id]: Math.min(
-                                  20,
-                                  Math.max(
-                                    0,
-                                    Math.trunc(Number(e.target.value)),
-                                  ),
-                                ),
-                              })
-                            }
-                          />
-                          <button
-                            type="button"
-                            aria-label={`Tăng ${combo.name}`}
-                            disabled={comboItems[combo.id] >= 20}
-                            onClick={() =>
-                              setComboItems((items) => ({
-                                ...items,
-                                [combo.id]: Math.min(
-                                  20,
-                                  (items[combo.id] || 0) + 1,
-                                ),
-                              }))
-                            }
-                          >
-                            +
-                          </button>
-                        </div>
-                      </label>
-                    ),
+                  {suggestion && (
+                    <div className="combo-recommendation-banner" role="status">
+                      <p>
+                        🎯 Hệ thống nhận diện bạn đang chọn {selected.length} vé
+                        -&gt; Tự động ưu tiên gợi ý:{" "}
+                        <strong>{suggestion.name}</strong>
+                      </p>
+                      <button
+                        type="button"
+                        className="button button-glass"
+                        onClick={() =>
+                          setComboItems((items) => ({
+                            ...items,
+                            [suggestion.id]: Math.max(
+                              1,
+                              items[suggestion.id] || 0,
+                            ),
+                          }))
+                        }
+                      >
+                        + Áp dụng nhanh gợi ý này
+                      </button>
+                    </div>
                   )}
+                  {menuCombos.map((combo) => (
+                    <label
+                      key={combo.id}
+                      className={
+                        recommended(combo, selected.length)
+                          ? `combo-recommended ${selected.length >= 3 ? "combo-recommended-party" : ""}`
+                          : undefined
+                      }
+                    >
+                      <MenuImage
+                        item={{ ...menuDetails(combo), ...combo }}
+                        decorative
+                      />
+                      <span>
+                        {combo.name}
+                        {recommended(combo, selected.length) && (
+                          <small className="paid-ticket-seats">
+                            {recommendationBadge(selected.length)}
+                          </small>
+                        )}
+                        <small>{combo.itemsSummary}</small>
+                        <small>{comboTasteLabel(combo)}</small>
+                        <small>{money(combo.price)}</small>
+                      </span>
+                      <div className="booking-combo-quantity">
+                        <button
+                          type="button"
+                          aria-label={`Giảm ${combo.name}`}
+                          disabled={!comboItems[combo.id]}
+                          onClick={() =>
+                            setComboItems((items) => ({
+                              ...items,
+                              [combo.id]: Math.max(
+                                0,
+                                (items[combo.id] || 0) - 1,
+                              ),
+                            }))
+                          }
+                        >
+                          −
+                        </button>
+                        <input
+                          aria-label={`Số lượng ${combo.name}`}
+                          type="number"
+                          min="0"
+                          max="20"
+                          value={comboItems[combo.id] || 0}
+                          onChange={(e) =>
+                            setComboItems({
+                              ...comboItems,
+                              [combo.id]: Math.min(
+                                20,
+                                Math.max(0, Math.trunc(Number(e.target.value))),
+                              ),
+                            })
+                          }
+                        />
+                        <button
+                          type="button"
+                          aria-label={`Tăng ${combo.name}`}
+                          disabled={comboItems[combo.id] >= 20}
+                          onClick={() =>
+                            setComboItems((items) => ({
+                              ...items,
+                              [combo.id]: Math.min(
+                                20,
+                                (items[combo.id] || 0) + 1,
+                              ),
+                            }))
+                          }
+                        >
+                          +
+                        </button>
+                      </div>
+                    </label>
+                  ))}
                 </div>
               )}
 
@@ -1699,31 +1759,46 @@ function LiveBookingConsole({
         </Modal>
       )}
 
-      {sandbox && holding && !showExpiredNotice && (
-        <SandboxGateway
-          testControls={testControls}
-          onTestExpire={async () => {
-            setBusy(true);
-            try {
-              await readCommand("/payments/sandbox/test-expire", sandbox);
-              await completeSandbox("SUCCESS");
-            } catch (error) {
-              setNotice(error.message);
-            } finally {
-              setBusy(false);
-            }
-          }}
-          payload={sandbox}
-          order={order}
-          offset={offset}
-          busy={busy}
-          expired={expired}
-          error={notice}
-          onExpire={notifyExpiry}
-          onResult={completeSandbox}
-          onClose={() => setSandbox(null)}
-        />
-      )}
+      {sandbox &&
+        (holding || testExpiredOrder?.id === order?.id) &&
+        !showExpiredNotice && (
+          <SandboxGateway
+            testControls={testControls}
+            onTestExpire={async () => {
+              setBusy(true);
+              testExpiryPreview.current = order.id;
+              try {
+                await readCommand("/payments/sandbox/test-expire", sandbox);
+                const expiredOrder = await apiGetBooking(order.id);
+                setTestExpiredOrder(expiredOrder);
+                setOrder(expiredOrder);
+              } catch (error) {
+                testExpiryPreview.current = null;
+                setTestExpiredOrder(null);
+                setNotice(error.message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+            payload={sandbox}
+            order={testExpiredOrder || order}
+            allowExpiredConfirmation={Boolean(testControls && testExpiredOrder)}
+            offset={offset}
+            busy={busy}
+            expired={expired || Boolean(testExpiredOrder)}
+            error={notice}
+            onExpire={notifyExpiry}
+            onResult={completeSandbox}
+            onClose={() => {
+              setSandbox(null);
+              if (testExpiredOrder) {
+                testExpiryPreview.current = null;
+                setTestExpiredOrder(null);
+                setShowExpiredNotice(true);
+              }
+            }}
+          />
+        )}
 
       {unavailable && (
         <Modal
@@ -1797,7 +1872,7 @@ function LiveBookingConsole({
       {showExpiredNotice && (
         <Modal
           className="cinema-state-card cinema-state-amber booking-expired-modal"
-          title="Hết thời gian giữ ghế (Timeout 5 phút)"
+          title="Đơn đã hết hạn, không còn thanh toán được"
           onClose={exitExpiredBooking}
           headerless
           image={
@@ -1810,19 +1885,18 @@ function LiveBookingConsole({
             <div className="booking-expired-icon">
               <Clock3 size={24} />
             </div>
-            <h2>Hết thời gian giữ ghế (Timeout 5 phút)</h2>
+            <h2>Đơn đã hết hạn, không còn thanh toán được</h2>
             <p>
-              Đơn đã hết hạn, không còn thanh toán được. Hệ thống đã giải phóng
-              ghế
-              {order?.seats?.length ? ` ${orderSeatNames} ` : " đã chọn "}
-              đã được trả lại sơ đồ để khách khác lựa chọn. Hãy đặt lại vé để
-              chọn ghế và giữ chỗ mới.
+              Hệ thống phát hiện đơn hàng đã hết thời gian giữ ghế 5 phút. Hệ
+              thống không phát hành vé cho ghế đã hết hạn giữ và đã giải phóng
+              ghế{order?.seats?.length ? ` ${orderSeatNames}` : " đã chọn"} về
+              lại sơ đồ phòng chiếu.
             </p>
             <button
               className="button button-primary booking-expired-action"
               onClick={exitExpiredBooking}
             >
-              Đặt lại vé ngay <span aria-hidden="true">→</span>
+              Đặt lại vé / Chọn lại ghế <span aria-hidden="true">→</span>
             </button>
           </div>
         </Modal>

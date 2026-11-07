@@ -94,6 +94,15 @@ describe("programme cache invalidation after committed catalogue writes", () => 
     expect(invalidate).not.toHaveBeenCalled();
   });
 
+  it("invalidates an Admin combo PUT after its service commits", async () => {
+    const { invalidate, interceptor } = setup();
+    await firstValueFrom(
+      interceptor.intercept(http("/api/v1/admin/combos/owned-combo", "PUT"), {
+        handle: () => of({ id: "owned-combo" }),
+      }),
+    );
+    expect(invalidate).toHaveBeenCalledTimes(1);
+  });
   it("does not invalidate read-only catalogue and seat requests", async () => {
     const { invalidate, interceptor } = setup();
     const next: CallHandler<unknown> = { handle: () => of({ items: [] }) };

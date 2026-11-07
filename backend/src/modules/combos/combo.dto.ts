@@ -17,7 +17,16 @@ import {
 export class CreateComboDto {
   @ApiPropertyOptional()
   @ValidateIf((_o: unknown, v: unknown) => v !== undefined)
-  @IsIn(["NGỌT", "MẶN", "PHÔ_MAI", "CARAMEL", "MIX"])
+  @IsIn([
+    "NGỌT",
+    "MẶN",
+    "PHÔ_MAI",
+    "CARAMEL",
+    "MIX",
+    "Ngọt Caramel",
+    "Phô Mai Hoàng Kim",
+    "Mix 2 Vị (Ngọt & Phô Mai)",
+  ])
   tasteTag?: string;
   @ApiPropertyOptional()
   @ValidateIf((_o: unknown, v: unknown) => v !== undefined)
@@ -87,4 +96,11 @@ export class ComboDto {
   @ApiProperty() isActive!: boolean;
   @ApiProperty({ type: String, format: "date-time" }) createdAt!: Date;
   @ApiProperty({ type: String, format: "date-time" }) updatedAt!: Date;
+}
+
+export class ComboStatusDto {
+  @ApiPropertyOptional()
+  @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
+  @IsBoolean()
+  isActive?: boolean;
 }

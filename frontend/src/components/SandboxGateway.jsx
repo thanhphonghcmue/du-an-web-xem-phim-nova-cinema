@@ -7,6 +7,7 @@ import { money } from "@/data.js";
 
 export default function SandboxGateway({
   testControls,
+  allowExpiredConfirmation = false,
   onTestExpire,
   payload,
   order,
@@ -37,10 +38,10 @@ export default function SandboxGateway({
         <button
           type="button"
           className="text-button"
-          disabled={busy || expired}
+          disabled={busy || expired || allowExpiredConfirmation}
           onClick={onTestExpire}
         >
-          Test: Hết hạn 5p ngay
+          ⚡ Giả lập đã qua 5 phút không phản hồi
         </button>
       )}
       <div className="cinema-state-heading">
@@ -94,7 +95,7 @@ export default function SandboxGateway({
           type="button"
           className="button cinema-success-button"
           aria-label="Thanh toán thành công"
-          disabled={busy || expired}
+          disabled={busy || (expired && !allowExpiredConfirmation)}
           onClick={() => onResult("SUCCESS")}
         >
           {busy ? "Đang xác nhận…" : "✓ Giả lập Thành công (Paid)"}

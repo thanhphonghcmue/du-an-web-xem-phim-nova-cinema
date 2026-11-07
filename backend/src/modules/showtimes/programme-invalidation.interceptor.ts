@@ -20,7 +20,7 @@ export class ProgrammeInvalidationInterceptor implements NestInterceptor {
     if (context.getType() !== "http") return next.handle();
     const request = context.switchToHttp().getRequest<Request>();
     if (
-      !["POST", "PATCH", "DELETE"].includes(request.method) ||
+      !["POST", "PUT", "PATCH", "DELETE"].includes(request.method) ||
       !/^\/api\/v1\/(?:admin\/)?(movies|cinemas|rooms|seats|combos|showtimes)(\/|$)/.test(
         request.path,
       )

@@ -995,6 +995,81 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
       "until",
     ]);
   });
+  it("FR12 Admin combo aliases persist metadata, no-store public reads, explicit status is idempotent and roles stay enforced", async () => {
+    const created = entity(
+      await request(server)
+        .post("/api/v1/admin/combos")
+        .auth(admin, { type: "bearer" })
+        .send({
+          name: prefix + " combo",
+          description: "Owned CRUD fixture",
+          price: "69000",
+          tasteTag: "MIX",
+          itemsSummary: "2 bắp lớn + 4 nước + snack đi kèm",
+          badgeLabel: "PARTY",
+          suggestedMinSeats: 3,
+          suggestedMaxSeats: 20,
+        })
+        .expect(201),
+    );
+    try {
+      await request(server)
+        .put(`/api/v1/admin/combos/${created.id}`)
+        .auth(admin, { type: "bearer" })
+        .send({
+          price: "71000",
+          tasteTag: "CARAMEL",
+          itemsSummary: "Bắp caramel",
+        })
+        .expect(200);
+      const stored = await prisma.combo.findUniqueOrThrow({
+        where: { id: created.id },
+      });
+      expect(stored.price.toFixed(2)).toBe("71000.00");
+      expect(stored.itemsSummary).toBe("Bắp caramel");
+      for (let i = 0; i < 2; i++)
+        expect(
+          entity(
+            await request(server)
+              .patch(`/api/v1/admin/combos/${created.id}/status`)
+              .auth(admin, { type: "bearer" })
+              .send({ isActive: false })
+              .expect(200),
+          ).isActive,
+        ).toBe(false);
+      const publicMenu = await request(server)
+        .get("/api/v1/combos?limit=100")
+        .expect(200)
+        .expect("Cache-Control", "no-store");
+      expect(
+        listing(publicMenu).items.some((row) => row.id === created.id),
+      ).toBe(false);
+      const all = await request(server)
+        .get("/api/v1/admin/combos?limit=100")
+        .auth(admin, { type: "bearer" })
+        .expect(200);
+      expect(
+        listing(all).items.find((row) => row.id === created.id)?.isActive,
+      ).toBe(false);
+      for (const auth of [staff, customer])
+        await request(server)
+          .patch(`/api/v1/admin/combos/${created.id}/status`)
+          .auth(auth, { type: "bearer" })
+          .send({ isActive: true })
+          .expect(403);
+      await request(server)
+        .patch(`/api/v1/admin/combos/${created.id}/status`)
+        .auth(admin, { type: "bearer" })
+        .send({ isActive: true })
+        .expect(200);
+      expect(
+        (await prisma.combo.findUniqueOrThrow({ where: { id: created.id } }))
+          .isActive,
+      ).toBe(true);
+    } finally {
+      await prisma.combo.delete({ where: { id: created.id } });
+    }
+  });
   it("validates the public programme horizon and retains ordinary pagination limits", async () => {
     for (const days of ["0", "61", "abc", "1.5"])
       await request(server)

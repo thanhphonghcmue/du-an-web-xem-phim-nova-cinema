@@ -1117,7 +1117,7 @@ function createMemoryServer(input) {
         },
       });
     const comboAdminRoute = path.match(
-      /^\/admin\/combos(?:\/([^/]+))?(?:\/(toggle-status))?$/,
+      /^\/admin\/combos(?:\/([^/]+))?(?:\/(toggle-status|status))?$/,
     );
     if (comboAdminRoute) {
       auth(request, ["ADMIN"]);
@@ -1126,7 +1126,14 @@ function createMemoryServer(input) {
         return json(pageOf([...maps.combos.values()], query));
       if (comboAdminRoute[2] && method === "PATCH") {
         const item = model("combos", id);
-        item.isActive = !item.isActive;
+        if (comboAdminRoute[2] === "status") {
+          assert(
+            Object.keys(body).every((key) => key === "isActive") &&
+              (body.isActive === undefined ||
+                typeof body.isActive === "boolean"),
+          );
+          item.isActive = body.isActive ?? !item.isActive;
+        } else item.isActive = !item.isActive;
         programmePointers.clear();
         return json(item);
       }

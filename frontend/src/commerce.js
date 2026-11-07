@@ -1,3 +1,4 @@
+import { comboTasteLabel, normalizedTasteTag } from "./comboRecommendations.js";
 import catalog from "../content/cinema.json";
 
 export const menuArtwork = catalog.menu;
@@ -15,8 +16,12 @@ export function menuDetails(combo) {
       image: "/images/menu/party69.svg",
       category: "combo",
       badge: "NOVA MENU",
-      flavor: "other",
-      taste: "Theo thực đơn",
+      flavor: ["NGỌT", "CARAMEL"].includes(normalizedTasteTag(combo.tasteTag))
+        ? "sweet"
+        : ["PHÔ_MAI", "MẶN", "MIX"].includes(normalizedTasteTag(combo.tasteTag))
+          ? "savory"
+          : "other",
+      taste: comboTasteLabel(combo),
     }
   );
 }

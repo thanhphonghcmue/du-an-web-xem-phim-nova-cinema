@@ -210,3 +210,7 @@ Mở rộng mã vé và alias chính xác, giữ token/QR cũ và check-in một
 ## FR09 tự động soát và reset mẫu — 07/11/2026
 
 Theo prompt mới: verify-ticket mặc định auto check-in, vẫn có autoCheckin=false để preview ở API và checkbox tùy chọn; reset chỉ demo V1/non-production, không sửa SOLD hoặc vé thật. [Đối chiếu và bằng chứng](../../docs/qa/fr09-auto-checkin-reset-2026-11-07.md). Không chuyển trạng thái Phase11–12.
+
+## Hoàn thiện FR12 và Sandbox hết hạn — 07/11/2026
+
+Chuẩn hóa ba mẫu combo bằng migration có điều kiện, sửa ưu tiên giữa nhiều gói đủ điều kiện, thêm banner/áp dụng nhanh và tab quản trị rõ ràng. PUT invalidation, no-store và status rõ giá trị giữ dữ liệu menu mới; Sandbox ép hạn rồi xác nhận bằng hai thao tác, vẫn JSON409/không QR và giữ CSS. [Báo cáo trước/sau, phạm vi kiểm chứng và test3 bước](../../docs/qa/combo-expiry-refinement-2026-11-07.md). Giữ nguyên trạng thái Phase11–12.

@@ -89,8 +89,8 @@ export function configureApplication(app: INestApplication): void {
   );
   app.setGlobalPrefix("api/v1");
   app.enableCors({
-    origin: settings.corsOrigins,
-    credentials: false,
+    origin: settings.corsOrigins.length > 0 ? settings.corsOrigins : true,
+    credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     exposedHeaders: ["x-request-id"],
   });

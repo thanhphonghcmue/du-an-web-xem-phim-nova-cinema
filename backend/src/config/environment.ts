@@ -41,19 +41,35 @@ export function validateEnvironment(
       "DATABASE_URL must be a valid PostgreSQL connection URL.",
     );
   }
-  const host = environment.REDIS_HOST || "127.0.0.1";
-  if (!/^[a-zA-Z0-9.:[\]_-]+$/.test(host))
-    throw new ConfigurationError("REDIS_HOST is invalid.");
-  integerSetting(environment, "REDIS_PORT", 6380, 1, 65535);
-  integerSetting(environment, "REDIS_DB", 0, 0, 15);
+  if (environment.REDIS_URL) {
+    try {
+      const parsed = new URL(environment.REDIS_URL);
+      if (
+        !["redis:", "rediss:"].includes(parsed.protocol) ||
+        !parsed.hostname
+      ) {
+        throw new Error();
+      }
+    } catch {
+      throw new ConfigurationError(
+        "REDIS_URL must be a valid redis(s):// connection URL.",
+      );
+    }
+  } else {
+    const host = environment.REDIS_HOST || "127.0.0.1";
+    if (!/^[a-zA-Z0-9.:[\]_-]+$/.test(host))
+      throw new ConfigurationError("REDIS_HOST is invalid.");
+    integerSetting(environment, "REDIS_PORT", 6380, 1, 65535);
+    integerSetting(environment, "REDIS_DB", 0, 0, 15);
+    if (
+      environment.REDIS_TLS &&
+      !["true", "false"].includes(environment.REDIS_TLS)
+    )
+      throw new ConfigurationError("REDIS_TLS must be true or false.");
+  }
   integerSetting(environment, "HEALTH_TIMEOUT_MS", 2500, 100, 10000);
   integerSetting(environment, "RATE_LIMIT_TTL_MS", 60000, 100, 3600000);
   integerSetting(environment, "RATE_LIMIT_MAX", 60, 1, 10000);
-  if (
-    environment.REDIS_TLS &&
-    !["true", "false"].includes(environment.REDIS_TLS)
-  )
-    throw new ConfigurationError("REDIS_TLS must be true or false.");
   if (
     !/^[a-zA-Z0-9:_-]{1,64}$/.test(
       environment.BULLMQ_PREFIX || "nova:development",
@@ -102,15 +118,30 @@ export function paymentOrigin(environment: NodeJS.ProcessEnv): string {
   );
 }
 export function paymentReturnOrigins(environment: NodeJS.ProcessEnv): string[] {
-  const values = (
-    environment.PAYMENT_RETURN_ORIGINS ||
-    "http://localhost:3000,http://127.0.0.1:3000"
-  )
-    .split(",")
-    .map((value) => value.trim());
+  const baseOrigins = environment.PAYMENT_RETURN_ORIGINS
+    ? environment.PAYMENT_RETURN_ORIGINS.split(",")
+    : [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        ...(environment.FRONTEND_URL ? environment.FRONTEND_URL.split(",") : []),
+        ...(environment.NEXT_PUBLIC_SITE_URL
+          ? environment.NEXT_PUBLIC_SITE_URL.split(",")
+          : []),
+      ];
+  const cleaned: string[] = [];
+  for (const raw of baseOrigins) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    try {
+      const url = new URL(trimmed);
+      cleaned.push(url.origin);
+    } catch {
+      cleaned.push(trimmed);
+    }
+  }
   return [
     ...new Set(
-      values.map((value) => httpOrigin(value, "PAYMENT_RETURN_ORIGINS")),
+      cleaned.map((value) => httpOrigin(value, "PAYMENT_RETURN_ORIGINS")),
     ),
   ];
 }

@@ -12,9 +12,10 @@ export function redisConnection(settings: RedisSettings): RedisOptions {
     host: settings.host,
     port: settings.port,
     db: settings.db,
+    ...(settings.username ? { username: settings.username } : {}),
     ...(settings.password ? { password: settings.password } : {}),
-    ...(settings.tls ? { tls: {} } : {}),
-    connectTimeout: 2000,
+    ...(settings.tls ? { tls: { rejectUnauthorized: false } } : {}),
+    connectTimeout: 10000,
   };
 }
 @Injectable()

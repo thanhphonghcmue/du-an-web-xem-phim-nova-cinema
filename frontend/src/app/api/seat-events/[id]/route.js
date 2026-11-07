@@ -32,7 +32,7 @@ export async function GET(request, context) {
   if (!/^[a-f0-9-]{36}$/i.test(id))
     return new Response("Invalid showtime", { status: 400 });
   const origin = new URL(
-    process.env.BACKEND_API_URL || "http://127.0.0.1:4000/api/v1",
+    process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:4000/api/v1",
   ).origin;
   const encoder = new TextEncoder();
   let cleanup = () => {};

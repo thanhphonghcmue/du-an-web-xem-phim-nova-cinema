@@ -19,13 +19,20 @@ export function readBootstrapConfig(
   if (host.length === 0) {
     throw new Error("HOST must not be empty.");
   }
-  const corsOrigins = (
-    environment.CORS_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000"
-  )
-    .split(",")
+  const rawOrigins = [
+    ...(
+      environment.CORS_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000"
+    ).split(","),
+    ...(environment.FRONTEND_URL ? environment.FRONTEND_URL.split(",") : []),
+    ...(environment.NEXT_PUBLIC_SITE_URL
+      ? environment.NEXT_PUBLIC_SITE_URL.split(",")
+      : []),
+  ]
     .map((value) => value.trim())
     .filter((value) => value.length > 0);
-  for (const origin of corsOrigins) {
+
+  const corsOrigins: string[] = [];
+  for (const origin of rawOrigins) {
     let parsed: URL;
     try {
       parsed = new URL(origin);
@@ -35,13 +42,13 @@ export function readBootstrapConfig(
     if (
       !["http:", "https:"].includes(parsed.protocol) ||
       parsed.username !== "" ||
-      parsed.password !== "" ||
-      origin !== parsed.origin
+      parsed.password !== ""
     ) {
       throw new Error(
         "CORS_ORIGINS must contain HTTP(S) origins without paths or credentials.",
       );
     }
+    corsOrigins.push(parsed.origin);
   }
   return { port, host, corsOrigins: [...new Set(corsOrigins)] };
 }

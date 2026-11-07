@@ -14,11 +14,13 @@ const publicRead = (method, endpoint) =>
   /^\/(movies|cinemas|rooms|combos|showtimes)(\/|$)/.test(endpoint);
 
 // Chỉ biến máy chủ này chọn upstream; trình duyệt không thể điều hướng sang host khác.
-const upstream = () =>
-  (process.env.BACKEND_API_URL || "http://127.0.0.1:4000/api/v1").replace(
-    /\/$/,
-    "",
-  );
+const upstream = () => {
+  const target =
+    process.env.BACKEND_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://127.0.0.1:4000/api/v1";
+  return target.replace(/\/$/, "").replace(/\/api\/v1$/, "") + "/api/v1";
+};
 
 const names = {
   access: "nova_access",

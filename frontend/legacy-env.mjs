@@ -22,7 +22,12 @@ export function legacyFrontendEnv(root, current, mode) {
     const path = join(root, name);
     if (!existsSync(path)) continue;
     const parsed = parse(readFileSync(path));
-    for (const key of ["BACKEND_API_URL", "NEXT_PUBLIC_SITE_URL"]) {
+    for (const key of [
+      "BACKEND_API_URL",
+      "NEXT_PUBLIC_API_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "FRONTEND_URL",
+    ]) {
       if (
         current[key] === undefined &&
         values[key] === undefined &&

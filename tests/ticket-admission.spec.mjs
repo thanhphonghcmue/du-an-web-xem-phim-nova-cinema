@@ -244,3 +244,68 @@ test("FR09 fake/foreign lookup returns 404 data:null; no fallback tickets, no un
     await other.close();
   }
 });
+
+test("FR09 a slow QR image cannot overwrite a newer scan or submit after the scanner closes", async ({
+  page,
+}) => {
+  await login(page, "cmember");
+  const tickets = [];
+  for (const code of ["V1", "V1B"]) {
+    const response = await page.request.get("/api/v1/tickets/lookup", {
+      params: { code },
+    });
+    expect(response.status()).toBe(200);
+    tickets.push((await response.json()).data.ticket);
+  }
+  await page.addInitScript(() => {
+    const decode = window.createImageBitmap.bind(window);
+    let number = 0;
+    window.createImageBitmap = async (...args) => {
+      const turn = ++number;
+      if (turn === 1 || turn === 3)
+        await new Promise((resolve) => {
+          window.releaseQrDecode = resolve;
+          window.qrWaiting = turn;
+        });
+      const bitmap = await decode(...args);
+      if (turn === 1 || turn === 3) window.qrResolved = turn;
+      return bitmap;
+    };
+  });
+  await page.goto("/ve");
+  await page
+    .getByRole("button", { name: "📷 Quét QR vé", exact: true })
+    .click();
+  const file = (index) => ({
+    name: "qr.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(tickets[index].qrCodeBase64.split(",")[1], "base64"),
+  });
+  const upload = page.getByLabel("Chọn ảnh mã QR", { exact: true });
+  let lookups = 0;
+  page.on("request", (r) => {
+    if (new URL(r.url()).pathname === "/api/v1/tickets/lookup") lookups++;
+  });
+  await upload.setInputFiles(file(0));
+  await expect.poll(() => page.evaluate(() => window.qrWaiting)).toBe(1);
+  await upload.setInputFiles(file(1));
+  await expect(page.locator(".ticket-lookup-result")).toContainText(
+    tickets[1].ticketCode,
+  );
+  await page.evaluate(() => window.releaseQrDecode());
+  await expect.poll(() => page.evaluate(() => window.qrResolved)).toBe(1);
+  expect(lookups).toBe(1);
+  await expect(page.locator(".ticket-lookup-result")).toContainText(
+    tickets[1].ticketCode,
+  );
+  await upload.setInputFiles(file(0));
+  await expect.poll(() => page.evaluate(() => window.qrWaiting)).toBe(3);
+  await page
+    .getByRole("button", { name: "📷 Quét QR vé", exact: true })
+    .first()
+    .click();
+  await expect(page.locator(".qr-capture")).toHaveCount(0);
+  await page.evaluate(() => window.releaseQrDecode());
+  await expect.poll(() => page.evaluate(() => window.qrResolved)).toBe(3);
+  expect(lookups).toBe(1);
+});

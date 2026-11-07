@@ -8,7 +8,8 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
     stream = useRef(null),
     frame = useRef(null),
     epoch = useRef(0),
-    callback = useRef(onCode);
+    callback = useRef(onCode),
+    blocked = useRef(disabled);
   const [hint, setHint] = useState(
     "Chế độ mô phỏng máy quét · Nhập mã, dán chuỗi QR hoặc chọn ảnh.",
   );
@@ -16,11 +17,16 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
   useEffect(() => {
     callback.current = onCode;
   }, [onCode]);
+  useEffect(() => {
+    blocked.current = disabled;
+    if (disabled) stop();
+  }, [disabled]);
   function stop() {
     epoch.current++;
     cancelAnimationFrame(frame.current);
     stream.current?.getTracks().forEach((t) => t.stop());
     stream.current = null;
+    if (video.current) video.current.srcObject = null;
   }
   useEffect(() => () => stop(), []);
   function decoded(source) {
@@ -51,10 +57,11 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
       stream.current = media;
       video.current.srcObject = media;
       await video.current.play();
+      if (version !== epoch.current || blocked.current) return;
       setCamera(true);
       setHint("Hướng camera vào mã QR.");
       const scan = () => {
-        if (version !== epoch.current) return;
+        if (version !== epoch.current || blocked.current) return;
         let code;
         try {
           code = decoded(video.current);
@@ -80,13 +87,16 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
   async function upload(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file) return;
+    if (!file || blocked.current) return;
     stop();
     setCamera(false);
+    const version = epoch.current;
     let bitmap;
     try {
       if (file.size > 10 * 1024 * 1024) throw new Error("Ảnh tối đa 10MB.");
       bitmap = await createImageBitmap(file);
+      // Chỉ lượt quét mới nhất được cập nhật UI; luôn đóng bitmap trong finally.
+      if (version !== epoch.current || blocked.current) return;
       const code = decoded(bitmap);
       if (!code)
         throw new Error(
@@ -95,6 +105,7 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
       callback.current(extractNormalizedCode(code));
       setHint("Đã đọc nội dung QR từ ảnh.");
     } catch (error) {
+      if (version !== epoch.current || blocked.current) return;
       setHint(
         error.message || "Chưa đọc được ảnh. Bạn có thể nhập hoặc dán mã.",
       );

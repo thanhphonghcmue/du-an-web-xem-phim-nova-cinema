@@ -29,6 +29,18 @@ export class ResponseInterceptor implements NestInterceptor<
       ]) || "Request completed successfully.";
     return next.handle().pipe(
       map((data) => ({
+        ...(/^\/api\/v1\/(?:admin\/)?combos$/.test(
+          context.switchToHttp().getRequest<{ path: string; method: string }>()
+            .path,
+        ) &&
+        context.switchToHttp().getRequest<{ method: string }>().method ===
+          "GET" &&
+        data &&
+        typeof data === "object" &&
+        "items" in data &&
+        Array.isArray(data.items)
+          ? { combos: data.items as unknown[] }
+          : {}),
         ...(data &&
         typeof data === "object" &&
         ("statusType" in data || "found" in data)

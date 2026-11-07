@@ -114,8 +114,8 @@ async function main() {
       if (response.ok) {
         const { data } = await response.json();
         if (
-          data.combos?.length !== 28 ||
-          new Set(data.combos.map((item) => item.id)).size !== 28
+          data.combos?.length !== 29 ||
+          new Set(data.combos.map((item) => item.id)).size !== 29
         )
           throw new Error("Wrong fallback menu.");
         programme = data;
@@ -143,10 +143,75 @@ async function main() {
   await page.addInitScript(() =>
     sessionStorage.setItem("nova-welcome-seen", "1"),
   );
+  const seed = require("../backend/standalone-server.cjs").createDemoData();
+  const adminAccount = seed.accounts.find(
+    (account) => account.role === "ADMIN",
+  );
+  const adminLogin = await page.request.post(`${origin}/api/v1/auth/login`, {
+    data: { email: adminAccount.email, password: adminAccount.password },
+  });
+  expect(adminLogin.status()).toBe(200);
+  await page.goto(`${origin}/admin`);
+  await page
+    .getByRole("button", { name: "Rạp, Phim & Suất Chiếu", exact: true })
+    .click();
+  const film = seed.movies[0];
+  await page
+    .locator(`[data-entity-id="${film.id}"]`)
+    .getByRole("button", { name: "Sửa", exact: true })
+    .click();
+  await page
+    .getByLabel("Trạng thái", { exact: true })
+    .selectOption("COMING_SOON");
+  const savedFilm = page.waitForResponse(
+    (r) =>
+      r.url().endsWith(`/movies/${film.id}`) &&
+      r.request().method() === "PATCH",
+  );
+  await page.getByRole("button", { name: "Lưu phim", exact: true }).click();
+  expect((await savedFilm).status()).toBe(200);
+  await page
+    .getByRole("navigation", { name: "Danh mục vận hành" })
+    .getByRole("button", { name: "🍿 Quản lý Party Combo", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Thêm mới Combo", exact: true })
+    .click();
+  const modal = page.getByRole("dialog", {
+    name: "Quản trị combo",
+    exact: true,
+  });
+  await modal
+    .getByLabel("Tên combo", { exact: true })
+    .fill("00 RAM smoke combo");
+  await modal.getByLabel("Mô tả", { exact: true }).fill("Owned smoke combo");
+  await modal
+    .getByLabel("Thành phần combo", { exact: true })
+    .fill("1 bắp + 1 nước");
+  await modal.getByLabel("Giá (VND)", { exact: true }).fill("49000");
+  const created = page.waitForResponse(
+    (r) => r.url().endsWith("/admin/combos") && r.request().method() === "POST",
+  );
+  await modal
+    .getByRole("button", { name: "Lưu bắp nước", exact: true })
+    .click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  const combo = (await response.json()).data;
+  const comboRow = page.locator(`[data-entity-id="${combo.id}"]`);
+  await comboRow.getByRole("button", { name: "Ẩn combo", exact: true }).click();
+  await expect(
+    comboRow.getByRole("button", { name: "Hiện combo", exact: true }),
+  ).toBeVisible();
+  await comboRow
+    .getByRole("button", { name: "Xóa combo", exact: true })
+    .click();
+  await expect(comboRow).toHaveCount(0);
+  await page.request.post(`${origin}/api/v1/auth/logout`);
   await page.goto(`${origin}/bap-nuoc`);
   try {
     // Cold Next dev compilation/hydration also occurs in this isolated copy.
-    await expect(page.locator(".food-product")).toHaveCount(28, {
+    await expect(page.locator(".food-product")).toHaveCount(29, {
       timeout: 15000,
     });
   } catch (cause) {
@@ -352,7 +417,7 @@ async function main() {
   });
   if (errors.length) throw new Error("Browser error in fallback booking UI.");
   console.log(
-    "PASS automatic RAM fallback: 28 menu items; register/login through HttpOnly BFF; select real RAM seat IDs; hold, signed Sandbox success and SVG QR. Disposable RAM only, no PostgreSQL/SMTP.",
+    "PASS automatic RAM fallback: 29 menu items; register/login through HttpOnly BFF; select real RAM seat IDs; hold, signed Sandbox success and SVG QR. Disposable RAM only, no PostgreSQL/SMTP.",
   );
 }
 async function cleanup() {

@@ -50,5 +50,18 @@
     "badgeLabel": "PARTY",
     "isActive": true,
     "imageUrl": "/images/food-photography/popcorn-caramel.webp"
+  },
+  {
+    "id": "1f5296e1-2c81-4354-9d39-d0bdf8700005",
+    "name": "Party Combo Mặn Đặc Biệt",
+    "description": "2 bắp lớn vị mặn + 4 nước + 2 snack đi kèm",
+    "price": "119000.00",
+    "tasteTag": "MẶN",
+    "itemsSummary": "2 bắp lớn vị mặn + 4 nước + 2 snack đi kèm",
+    "suggestedMinSeats": 3,
+    "suggestedMaxSeats": 20,
+    "badgeLabel": "PARTY",
+    "isActive": true,
+    "imageUrl": "/images/food-photography/popcorn-sharing.webp"
   }
 ]

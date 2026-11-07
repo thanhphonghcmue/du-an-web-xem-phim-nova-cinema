@@ -14,6 +14,10 @@ export class CombosService {
   private serialize(row: Combo) {
     return { ...row, price: row.price.toFixed(2) };
   }
+  async remove(id: string) {
+    await this.combos.remove(id);
+    return { id, deleted: true };
+  }
   list(query: PaginationDto, admin = false) {
     return this.database.transaction(async (tx) => {
       const [items, total] = await this.combos.page(query, tx, admin);

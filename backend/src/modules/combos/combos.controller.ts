@@ -1,5 +1,6 @@
 import {
   Body,
+  Delete,
   Header,
   Controller,
   Get,
@@ -60,6 +61,11 @@ export class CombosController {
 @Controller("admin/combos")
 export class AdminCombosController {
   constructor(private readonly service: CombosService) {}
+  @Delete(":id")
+  @CatalogWrite()
+  remove(@Param("id", ParseUUIDPipe) id: string) {
+    return this.service.remove(id);
+  }
   @Get() @Header("Cache-Control", "no-store") @CatalogWrite() list(
     @Query() query: PaginationDto,
   ) {

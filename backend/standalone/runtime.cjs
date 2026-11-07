@@ -110,6 +110,13 @@ function createMemoryServer(input) {
   if (input.combos.length >= 24)
     for (const row of require("../../content/combo-recommendations.json"))
       if (!maps.combos.has(row.id)) maps.combos.set(row.id, { ...row });
+  if (input.comboStore) {
+    const stored = input.comboStore.load();
+    if (stored !== null)
+      maps.combos = new Map(stored.map((row) => [row.id, row]));
+    input.comboStore.save([...maps.combos.values()]);
+  }
+  let committedCombos = structuredClone([...maps.combos.values()]);
   const users = new Map(),
     sessions = new Map(),
     orders = new Map(),
@@ -977,12 +984,34 @@ function createMemoryServer(input) {
       message = "Yêu cầu được xử lý thành công.",
     ) => {
       if (
+        input.comboStore &&
+        method !== "GET" &&
+        /^\/(?:admin\/)?combos(?:\/|$)/.test(path)
+      ) {
+        try {
+          input.comboStore.save([...maps.combos.values()]);
+          committedCombos = structuredClone([...maps.combos.values()]);
+        } catch {
+          maps.combos = new Map(
+            structuredClone(committedCombos).map((row) => [row.id, row]),
+          );
+          fail(
+            503,
+            "COMBO_STORE_UNAVAILABLE",
+            "Chưa lưu được combo vào ổ đĩa. Vui lòng kiểm tra quyền ghi và thử lại.",
+          );
+        }
+      }
+      if (
         method !== "GET" &&
         /^\/(movies|cinemas|rooms|seats|showtimes|combos)(\/|$)/.test(path)
       )
         programmePointers.clear();
       return send(response, code, {
         success: true,
+        ...(method === "GET" && /^\/(?:admin\/)?combos$/.test(path)
+          ? { combos: data.items }
+          : {}),
         data,
         message,
       });
@@ -1158,7 +1187,15 @@ function createMemoryServer(input) {
       auth(request, ["ADMIN"]);
       const id = comboAdminRoute[1];
       if (method === "GET")
-        return json(pageOf([...maps.combos.values()], query));
+        return json(
+          pageOf(
+            [...maps.combos.values()].sort(
+              (a, b) =>
+                a.name.localeCompare(b.name, "vi") || a.id.localeCompare(b.id),
+            ),
+            query,
+          ),
+        );
       if (comboAdminRoute[2] && method === "PATCH") {
         const item = model("combos", id);
         if (comboAdminRoute[2] === "status") {

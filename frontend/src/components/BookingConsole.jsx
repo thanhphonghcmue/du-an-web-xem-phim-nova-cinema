@@ -1322,6 +1322,7 @@ function LiveBookingConsole({
 
               {!holding && (
                 <div className="live-combos">
+                  <h4>🍿 Chọn bắp nước</h4>
                   <div
                     role="group"
                     aria-label="Khẩu vị combo"
@@ -1604,6 +1605,25 @@ function LiveBookingConsole({
               <small className="booking-dock-hint">
                 Giữ chỗ trong 5 phút sau khi hệ thống xác nhận
               </small>
+            )}
+            {!holding && (
+              <button
+                type="button"
+                className="button button-glass"
+                disabled={!selected.length}
+                onClick={() => {
+                  const target = document.querySelector(".live-combos");
+                  target?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  });
+                  target
+                    ?.querySelector("input")
+                    ?.focus({ preventScroll: true });
+                }}
+              >
+                Tiếp tục: Chọn bắp nước →
+              </button>
             )}
             <button
               className="button button-primary booking-dock-action"

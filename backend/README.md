@@ -1,5 +1,7 @@
 # NOVA Cinema Backend — Phase 10
 
+Sửa Admin/Combo: [nguyên nhân thực, file thay đổi và kết quả kiểm chứng](../docs/qa/admin-combo-connection-2026-11-07.md). Chạy migration mới; local RAM lưu riêng catalogue combo tại `.runtime/combos.json`, PostgreSQL vẫn dùng Prisma hiện hữu.
+
 Backend NestJS của NOVA CINEMA (INFINITY), triển khai tuần tự theo yêu cầu của bạn. **Phase 0–10 hoàn tất**: nền tảng/auth/catalog/showtimes, booking/payment/realtime, một vé QR cho từng ghế SOLD của booking PAID (giữ nguyên vé nhóm cũ), email SMTP có durable retry, owner ticket/calendar APIs, check-in STAFF/ADMIN nguyên tử và báo cáo doanh thu ADMIN. Frontend Next.js ở `frontend/` đã nối qua BFF cùng origin, cookie HttpOnly và API thật.
 
 Bản vá FR08/FR12: tách FAILED/CANCELLED, metadata và quản trị combo, giữ QR từng ghế. Xem [RCA, ma trận và lệnh kiểm chứng](../docs/qa/failed-payment-combos-2026-11-07.md). Chạy migration trước khi khởi động backend riêng.

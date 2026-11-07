@@ -19,6 +19,9 @@ export class CombosRepository {
   find(id: string) {
     return this.prisma.combo.findUnique({ where: { id } });
   }
+  remove(id: string) {
+    return this.prisma.combo.delete({ where: { id } });
+  }
   page(query: PaginationDto, tx: Prisma.TransactionClient, admin = false) {
     return Promise.all([
       tx.combo.findMany({

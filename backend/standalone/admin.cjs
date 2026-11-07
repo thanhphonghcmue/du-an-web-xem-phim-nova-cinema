@@ -58,17 +58,53 @@ exports.createAdmin = (c) => {
     );
   function validate(kind, row, id) {
     if (kind === "movies") {
-      assert(
-        typeof row.title === "string" &&
-          row.title.trim().length > 0 &&
+      const fieldErrors = [
+        [
+          "title",
+          typeof row.title === "string" &&
+            row.title.trim().length > 0 &&
+            row.title.length <= 200,
+          "Tên phim phải có từ 1 đến 200 ký tự.",
+        ],
+        [
+          "description",
           typeof row.description === "string" &&
+            row.description.trim().length > 0 &&
+            row.description.length <= 20000,
+          "Vui lòng nhập nội dung phim.",
+        ],
+        [
+          "durationMinutes",
           Number.isInteger(row.durationMinutes) &&
-          row.durationMinutes >= 1 &&
-          row.durationMinutes <= 600 &&
-          ["P", "K", "T13", "T16", "T18"].includes(row.ageRating) &&
-          ["NOW_SHOWING", "COMING_SOON", "ENDED"].includes(row.status) &&
+            row.durationMinutes >= 1 &&
+            row.durationMinutes <= 600,
+          "Thời lượng phải là số nguyên từ 1 đến 600 phút.",
+        ],
+        [
+          "ageRating",
+          ["P", "K", "T13", "T16", "T18"].includes(row.ageRating),
+          "Chọn nhãn tuổi hợp lệ.",
+        ],
+        [
+          "status",
+          ["NOW_SHOWING", "COMING_SOON", "ENDED"].includes(row.status),
+          "Chọn trạng thái phim hợp lệ.",
+        ],
+        [
+          "releaseDate",
           Number.isFinite(Date.parse(row.releaseDate)),
-      );
+          "Ngày phát hành chưa hợp lệ.",
+        ],
+      ]
+        .filter(([, valid]) => !valid)
+        .map(([field, , message]) => ({ field, messages: [message] }));
+      if (fieldErrors.length)
+        fail(
+          400,
+          "VALIDATION_ERROR",
+          "Vui lòng kiểm tra thông tin phim được đánh dấu.",
+          { fieldErrors },
+        );
       assert(
         !values("movies").some(
           (m) => m.id !== id && words(m.title) === words(row.title),

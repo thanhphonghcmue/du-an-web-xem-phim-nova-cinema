@@ -302,7 +302,10 @@ const usersStore = new Map([
 const developmentAccounts = require("../content/development-accounts.json");
 function createDemoData() {
   return {
-    movies: catalogMovies,
+    movies: catalogMovies.map((movie) => ({
+      ...movie,
+      description: movie.description || movie.title,
+    })),
     cinemas,
     rooms,
     showtimes,
@@ -328,7 +331,14 @@ function createDemoData() {
 }
 if (require.main === module) {
   const { createMemoryServer } = require("./standalone/runtime.cjs");
-  const server = createMemoryServer(createDemoData());
+  const { comboFileStore } = require("./standalone/combo-file-store.cjs");
+  const server = createMemoryServer({
+    ...createDemoData(),
+    comboStore: comboFileStore(
+      process.env.NOVA_COMBO_STORE_PATH ||
+        resolve(root, ".runtime/combos.json"),
+    ),
+  });
   const port = Number(process.env.NOVA_API_PORT || process.env.PORT || 4000);
   server.listen(port, process.env.HOST || "127.0.0.1", () => {
     console.log(

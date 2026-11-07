@@ -1022,6 +1022,42 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
       "until",
     ]);
   });
+  it("FR12 combo list retains pagination plus combos alias; Admin deletes unused items and customer cannot", async () => {
+    const created = entity(
+      await request(server)
+        .post("/api/v1/admin/combos")
+        .auth(admin, { type: "bearer" })
+        .send({
+          name: prefix + " delete combo",
+          description: "Owned deletion",
+          price: "49000",
+        })
+        .expect(201),
+    );
+    try {
+      const response = await request(server)
+        .get("/api/v1/combos?limit=100")
+        .expect(200);
+      const payload = JSON.parse(response.text) as {
+        combos: unknown[];
+        data: { items: unknown[] };
+      };
+      expect(payload.combos).toEqual(payload.data.items);
+      await request(server)
+        .delete(`/api/v1/admin/combos/${created.id}`)
+        .auth(customer, { type: "bearer" })
+        .expect(403);
+      await request(server)
+        .delete(`/api/v1/admin/combos/${created.id}`)
+        .auth(admin, { type: "bearer" })
+        .expect(200);
+      expect(
+        await prisma.combo.findUnique({ where: { id: created.id } }),
+      ).toBeNull();
+    } finally {
+      await prisma.combo.deleteMany({ where: { id: created.id } });
+    }
+  });
   it("FR12 Admin combo aliases persist metadata, no-store public reads, explicit status is idempotent and roles stay enforced", async () => {
     const created = entity(
       await request(server)

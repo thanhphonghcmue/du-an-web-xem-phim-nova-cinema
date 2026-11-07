@@ -218,3 +218,8 @@ Chuẩn hóa ba mẫu combo bằng migration có điều kiện, sửa ưu tiên
 ## Đối soát năm ca FR07/FR08/TC-12/TC-13 — 07/11/2026
 
 Alias ADMIN và cập nhật mềm suất có transaction/release; form chỉ gửi trường đổi để giữ độ chính xác giờ. FAILED/CANCELLED có responseCode, modal và huy hiệu riêng. Lookup thêm tổng đơn/ghế đối chiếu, endpoint nhân viên được bảo vệ và không check-in; quyền QR từng ghế và owner-only giữ nguyên. [Tệp sửa, contract và kiểm chứng](../../docs/qa/five-cases-atomic-2026-11-07.md). Không thay trạng thái Phase11–12.
+
+
+## Sửa kết nối Admin/Combo — 07/11/2026
+
+Sửa description seed RAM, poster local bị HTML URL chặn và phân trang Admin RAM; bổ sung DELETE an toàn, file combo local có rollback khi lỗi ghi và gói Party Mặn119K. [RCA và kiểm chứng hai chế độ](../../docs/qa/admin-combo-connection-2026-11-07.md). Không chuyển trạng thái Phase11–12.

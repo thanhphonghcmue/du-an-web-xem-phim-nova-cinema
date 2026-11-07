@@ -78,7 +78,7 @@ const specs = {
     ],
   },
   combos: {
-    label: "Bắp nước",
+    label: "🍿 Quản lý Party Combo",
     fields: [
       ["name", "Tên combo"],
       ["tasteTag", "Khẩu vị", ["NGỌT", "MẶN", "PHÔ_MAI", "CARAMEL", "MIX"]],
@@ -247,7 +247,12 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
   async function remove(item) {
     setBusy(true);
     try {
-      await readCommand(`/${kind}/${item.id}`, undefined, {}, "DELETE");
+      await readCommand(
+        `/${kind === "combos" ? "admin/combos" : kind}/${item.id}`,
+        undefined,
+        {},
+        "DELETE",
+      );
       setRevision((v) => v + 1);
       setMessage("Đã xóa mục chưa có lịch sử sử dụng.");
       void catalog.reload().catch((error) => setMessage(error.message));
@@ -335,7 +340,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                         aria-describedby={
                           fieldErrors[key] ? `catalog-error-${key}` : undefined
                         }
-                        type={type}
+                        type={key === "posterUrl" ? "text" : type}
                         value={draft[key] || ""}
                         min={type === "number" ? 1 : undefined}
                         required={
@@ -362,7 +367,9 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                 );
               })}
               <button className="button button-primary" disabled={busy}>
-                Lưu {specs[kind].label.toLowerCase()}
+                {kind === "combos"
+                  ? "Lưu bắp nước"
+                  : `Lưu ${specs[kind].label.toLowerCase()}`}
               </button>
               {editId && (
                 <button
@@ -531,15 +538,15 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                             : "🔓 Mở lại suất chiếu"}
                         </button>
                       )}
-                      {kind !== "combos" && (
+                      {
                         <button
                           className="text-button"
                           disabled={busy}
                           onClick={() => remove(item)}
                         >
-                          Xóa
+                          {kind === "combos" ? "Xóa combo" : "Xóa"}
                         </button>
-                      )}
+                      }
                     </td>
                   </tr>
                 ))}

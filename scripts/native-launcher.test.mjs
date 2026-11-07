@@ -31,17 +31,28 @@ async function freePort() {
 }
 
 // Kiểm tra orchestration với các service stub trên loopback, không giả đây là test PostgreSQL.
-for (const failure of ["none", "backend", "redis", "memory", "busy-web"])
+for (const failure of [
+  "none",
+  "backend",
+  "redis",
+  "memory",
+  "busy-web",
+  "strict-redis",
+  "strict-backend",
+  "strict-seed",
+])
   test(
-    failure === "busy-web"
-      ? "an old frontend occupying the port fails clearly before seed or backend startup"
-      : failure === "memory"
-        ? "explicit memory mode ignores an unavailable placeholder SQL configuration"
-        : failure === "redis"
-          ? "unavailable Redis selects RAM before seed/build and starts a usable frontend"
-          : failure === "backend"
-            ? "native startup failure falls back before frontend starts, without exposing an unusable API"
-            : "npm dev prepares schema/seed then builds a missing native entrypoint before starting either server",
+    failure.startsWith("strict-")
+      ? `native-only startup rejects ${failure.slice(7)} failure without launching RAM or frontend`
+      : failure === "busy-web"
+        ? "an old frontend occupying the port fails clearly before seed or backend startup"
+        : failure === "memory"
+          ? "explicit memory mode ignores an unavailable placeholder SQL configuration"
+          : failure === "redis"
+            ? "unavailable Redis selects RAM before seed/build and starts a usable frontend"
+            : failure === "backend"
+              ? "native startup failure falls back before frontend starts, without exposing an unusable API"
+              : "npm dev prepares schema/seed then builds a missing native entrypoint before starting either server",
     { timeout: 45000 },
     async (t) => {
       const dir = mkdtempSync(join(tmpdir(), "nova-owned-native-launcher-"));
@@ -77,7 +88,7 @@ for (const failure of ["none", "backend", "redis", "memory", "busy-web"])
         'require("node:http").createServer((q,s)=>{s.setHeader("content-type","application/json");s.end(JSON.stringify({fresh:true,service:"backend-stub"}));}).listen(Number(process.env.PORT),"127.0.0.1");';
       writeFileSync(
         join(dir, "prepare.cjs"),
-        `const fs=require("node:fs"); const step=process.argv[2]; fs.appendFileSync("steps.txt",step+"\\n"); if(step==="build")fs.writeFileSync("backend/dist/main.js",${JSON.stringify(failure === "backend" ? "process.exit(1);" : healthyEntry)});`,
+        `const fs=require("node:fs"); const step=process.argv[2]; if(step==="seed" && process.env.NOVA_TEST_SEED_FAILURE==="true")process.exit(1); fs.appendFileSync("steps.txt",step+"\\n"); if(step==="build")fs.writeFileSync("backend/dist/main.js",${JSON.stringify(["backend", "strict-backend"].includes(failure) ? "process.exit(1);" : healthyEntry)});`,
       );
       writeFileSync(
         join(dir, "node_modules/next/dist/bin/next"),
@@ -109,11 +120,17 @@ for (const failure of ["none", "backend", "redis", "memory", "busy-web"])
         env: {
           ...process.env,
           NODE_ENV: "development",
+          NOVA_REQUIRE_DATABASE: String(failure.startsWith("strict-")),
+          NOVA_TEST_SEED_FAILURE: String(failure === "strict-seed"),
           npm_execpath: npmCli,
           NOVA_BACKEND_MODE: failure === "memory" ? "memory" : "postgres",
           DATABASE_URL: `postgresql://${failure === "memory" ? "offline:offline" : "unused:unused"}@127.0.0.1:${port}/nova_owned_launcher_test`,
           REDIS_HOST: "127.0.0.1",
-          REDIS_PORT: String(failure === "redis" ? await freePort() : port),
+          REDIS_PORT: String(
+            ["redis", "strict-redis"].includes(failure)
+              ? await freePort()
+              : port,
+          ),
           NOVA_REFRESH_PROGRAMME: "true",
           NOVA_API_PORT: String(apiPort),
           NOVA_WEB_PORT: String(webPort),
@@ -129,6 +146,22 @@ for (const failure of ["none", "backend", "redis", "memory", "busy-web"])
         await new Promise((done) => probe.close(done));
         rmSync(dir, { recursive: true, force: true });
       });
+      if (failure.startsWith("strict-")) {
+        const code = child.exitCode ?? (await once(child, "exit"))[0];
+        assert.equal(code, 1);
+        for (const port of [apiPort, webPort]) {
+          await assert.rejects(
+            fetch(`http://127.0.0.1:${port}`, {
+              signal: AbortSignal.timeout(1000),
+            }),
+          );
+        }
+        assert.equal(
+          existsSync(join(dir, "steps.txt")),
+          failure === "strict-backend",
+        );
+        return;
+      }
       if (failure === "busy-web") {
         const code = child.exitCode ?? (await once(child, "exit"))[0];
         assert.equal(code, 1);

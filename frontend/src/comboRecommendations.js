@@ -1,7 +1,7 @@
 export const comboTastes = [
   ["all", "Tất cả"],
   ["NGỌT", "Ngọt Caramel"],
-  ["PHÔ_MAI", "Phô Mai"],
+  ["PHÔ_MAI", "Phô Mai Hoàng Kim"],
   ["MẶN", "Mặn Truyền Thống"],
   ["MIX", "Mix 2 vị"],
 ];
@@ -63,10 +63,10 @@ export function comboTasteLabel(combo) {
 }
 export function recommendationBadge(count) {
   return count === 1
-    ? "✨ ĐỀ XUẤT TỐI ƯU CHO 1 VÉ (SOLO COMBO)"
+    ? "✨ GỢI Ý CHO 1 VÉ: SINGLE / SOLO COMBO"
     : count === 2
-      ? "💑 ĐỀ XUẤT TỐI ƯU CHO 2 VÉ (COUPLE COMBO)"
-      : `🔥 ƯU TIÊN ĐỀ XUẤT CHO NHÓM ${count} VÉ (PARTY COMBO)`;
+      ? "💑 GỢI Ý CHO 2 VÉ: COUPLE COMBO"
+      : `🔥 ƯU TIÊN NỔI BẬT CHO NHÓM ${count} VÉ: PARTY COMBO`;
 }
 
 export function normalizedTasteTag(tag) {

@@ -23,3 +23,7 @@ nova-web/
 **/figma-lab04-screens/
 **/figma-bundle.css
 **/figma-native-builder.js
+
+# Generated database backup; restore explicitly, never commit live catalogue exports.
+/data/combos.json
+/data/combos.json.*.tmp

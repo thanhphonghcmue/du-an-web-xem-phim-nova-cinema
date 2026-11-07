@@ -32,7 +32,9 @@
     "milestones:setup": "node scripts/setup-github-milestones.mjs",
     "seed:admission": "npm run build:backend && npm run db:migrate --workspace backend && node backend/scripts/seed-admission.cjs",
     "seed:admission:data": "node backend/scripts/seed-admission.cjs",
-    "test:batch:1": "node scripts/test-batch-1.mjs"
+    "test:batch:1": "node scripts/test-batch-1.mjs",
+    "test:batch:2": "node scripts/test-batch-2.mjs",
+    "dev:native": "node scripts/dev-native.cjs"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",

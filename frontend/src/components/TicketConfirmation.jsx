@@ -8,7 +8,7 @@ const delivery = {
   QUEUED: "Thư đang chờ gửi",
   UNKNOWN: "Chưa có trạng thái gửi trong hệ thống",
 };
-export default function TicketConfirmation({ ticketId }) {
+export default function TicketConfirmation({ ticketId, confirmationPath }) {
   const [open, setOpen] = useState(false),
     [message, setMessage] = useState(null),
     [error, setError] = useState(""),
@@ -17,7 +17,9 @@ export default function TicketConfirmation({ ticketId }) {
     setLoading(true);
     setError("");
     try {
-      setMessage(await read(`/tickets/${ticketId}/confirmation`));
+      setMessage(
+        await read(confirmationPath || `/tickets/${ticketId}/confirmation`),
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -72,8 +74,11 @@ export default function TicketConfirmation({ ticketId }) {
                   ` · ${new Date(message.acceptedAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}`}
               </p>
               <p className="confirmation-note">
-                Nội dung từ vé thực của bạn. Bản xem trước không gửi lại thư;
-                trạng thái SMTP chưa xác nhận thư đã vào hộp thư đến.
+                {confirmationPath
+                  ? "Bản lưu email của đơn đặt vé."
+                  : "Nội dung từ vé thực của bạn."}{" "}
+                Bản xem trước không gửi lại thư; trạng thái SMTP chưa xác nhận
+                thư đã vào hộp thư đến.
               </p>
               <iframe
                 title="Nội dung email NOVA Cinema"

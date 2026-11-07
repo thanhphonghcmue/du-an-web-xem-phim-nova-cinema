@@ -291,6 +291,7 @@ model BookingCombo {
 }
 
 model ETicket {
+  emailLogs EmailLog[]
   id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   bookingId          String    @map("booking_id") @db.Uuid
   bookingSeatId      String?   @unique @map("booking_seat_id") @db.Uuid
@@ -313,6 +314,28 @@ model ETicket {
   @@index([bookingId])
   @@index([checkedInByStaffId])
   @@map("e_tickets")
+}
+
+model EmailLog {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId String @unique @map("event_id") @db.Uuid
+  ticketId String @map("ticket_id") @db.Uuid
+  bookingId String @map("booking_id") @db.Uuid
+  recipient String @db.VarChar(254)
+  subject String @db.Text
+  html String @db.Text
+  text String @db.Text
+  deliveryStatus String @default("QUEUED") @map("delivery_status") @db.VarChar(32)
+  attempts Int @default(0)
+  acceptedAt DateTime? @map("accepted_at") @db.Timestamptz(3)
+  lastErrorCode String? @map("last_error_code") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  ticket ETicket @relation(fields: [ticketId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([bookingId, createdAt])
+  @@index([ticketId])
+  @@map("email_logs")
 }
 
 model RefreshToken {

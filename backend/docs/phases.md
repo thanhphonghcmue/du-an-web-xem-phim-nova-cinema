@@ -228,3 +228,10 @@ Sửa description seed RAM, poster local bị HTML URL chặn và phân trang Ad
 ## Kiểm toán Đợt 1 FR01–FR06 và FR11 — 07/11/2026
 
 Bổ sung metadata phim lưu PostgreSQL, tài khoản GOLD `.local`, alias Admin và sửa mặc định trạng thái form tạo lịch. Admin chỉnh từng ghế/ma trận cho phòng chưa có lịch; gợi ý nhóm lớn trên hai hàng kề nhau. Có script native riêng, kiểm race F08, SOLD, lock/release và seed bảo toàn. [Ma trận, contract và cách chạy](../../docs/qa/batch-1-2026-11-07.md). Giữ nguyên trạng thái Phase11–12.
+
+
+## Kiểm toán Đợt 2 FR07/FR08/FR09/FR10/FR12/FR13 — 07/11/2026
+
+Thêm quản lý đơn/ghế cho ADMIN, nhật ký email cùng transaction vé/outbox và ghi nhận SMTP retry/acceptance; preview email owner/Admin theo quyền. Snapshot combo file ghi nguyên tử từ PostgreSQL, nhãn gợi ý theo yêu cầu mới. Script Đợt2 kiểm trạng thái DB thật, QR từng ghế, lookup/check-in, email/.ics; RTM tổng hợp [13 yêu cầu](../../docs/qa/batch-2-rtm-2026-11-07.md). Không chuyển Phase11–12.
+
+Đợt2 kiểm chứng cuối: 404 backend/DB, 123 Node, 22 browser và cả hai script Batch đều PASS. `dev:native` mới được smoke qua BFF với PostgreSQL/Redis/BullMQ UP; có ba ca launcher lỗi không chuyển RAM.

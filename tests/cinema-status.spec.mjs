@@ -713,18 +713,22 @@ test("TC_FR12_01: persisted seat ranges rank Solo, Couple and Party69K; taste ch
   await expect(labels.first()).toContainText("Single / Solo Combo");
   await expect(labels.first()).toContainText("1 bắp nhỏ + 1 nước");
   await expect(labels.first()).toContainText("Ngọt Caramel");
-  await expect(labels.first()).toContainText("ĐỀ XUẤT TỐI ƯU CHO 1 VÉ");
+  await expect(labels.first()).toContainText(
+    "GỢI Ý CHO 1 VÉ: SINGLE / SOLO COMBO",
+  );
   await seat(11).click();
   await expect(labels.first()).toContainText("Couple Combo");
   await expect(labels.first()).toContainText("1 bắp lớn + 2 nước");
-  await expect(labels.first()).toContainText("ĐỀ XUẤT TỐI ƯU CHO 2 VÉ");
+  await expect(labels.first()).toContainText("GỢI Ý CHO 2 VÉ: COUPLE COMBO");
   await seat(12).click();
   await seat(13).click();
   await expect(labels.first()).toContainText("Party Combo 69K");
   await expect(labels.first()).toContainText(
     "2 bắp lớn + 4 nước + snack đi kèm",
   );
-  await expect(labels.first()).toContainText("ƯU TIÊN ĐỀ XUẤT CHO NHÓM 4 VÉ");
+  await expect(labels.first()).toContainText(
+    "ƯU TIÊN NỔI BẬT CHO NHÓM 4 VÉ: PARTY COMBO",
+  );
   await expect(page.locator(".combo-recommendation-banner")).toContainText(
     "4 vé -> Tự động ưu tiên gợi ý:",
   );
@@ -734,7 +738,7 @@ test("TC_FR12_01: persisted seat ranges rank Solo, Couple and Party69K; taste ch
   await expect(labels.first().getByRole("spinbutton")).toHaveValue("1");
   await page
     .getByRole("group", { name: "Khẩu vị combo" })
-    .getByRole("button", { name: "Phô Mai", exact: true })
+    .getByRole("button", { name: "Phô Mai Hoàng Kim", exact: true })
     .click();
   await expect(labels).toContainText(["Couple Combo"]);
   await page
@@ -976,4 +980,131 @@ test("TC_FR12_02: another customer refreshes hidden combos and removes an unheld
   } finally {
     await admin.close();
   }
+});
+
+test("FR07/FR10 Admin sees the real paid order, sold seat map and persisted SMTP email without receiving customer QR tokens", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  const data = fixture();
+  expect(
+    (
+      await page.request.post("/api/v1/auth/login", {
+        data: { email: data.accounts.cmember.email, password: data.password },
+      })
+    ).status(),
+  ).toBe(200);
+  const show = data.programmeShowtimes[2];
+  const seats = (await read(page, `/showtimes/${show.id}/seats`)).seats
+    .filter((s) => s.status === "AVAILABLE" && s.type === "STANDARD")
+    .slice(0, 2);
+  expect(seats).toHaveLength(2);
+  const held = await page.request.post("/api/v1/bookings/hold", {
+    data: { showtimeId: show.id, seatIds: seats.map((s) => s.seatId) },
+  });
+  expect(held.status()).toBe(201);
+  const order = (await held.json()).data;
+  const checkout = await page.request.post(
+    "/api/v1/payments/create-sandbox-url",
+    {
+      data: {
+        bookingId: order.id,
+        returnUrl: new URL(
+          "/booking/result",
+          test.info().project.use.baseURL,
+        ).toString(),
+      },
+    },
+  );
+  expect(checkout.status()).toBe(201);
+  const signed = Object.fromEntries(
+    new URL((await checkout.json()).data.url).searchParams,
+  );
+  expect(
+    (
+      await page.request.post("/api/v1/payments/sandbox/confirm", {
+        data: { ...signed, result: "SUCCESS" },
+      })
+    ).status(),
+  ).toBe(200);
+  let tickets = [];
+  await expect
+    .poll(async () => {
+      tickets = (await read(page, "/tickets/me?limit=100")).items.filter(
+        (t) => t.bookingId === order.id,
+      );
+      return tickets.length;
+    })
+    .toBe(2);
+  await expect
+    .poll(
+      async () =>
+        (await read(page, `/tickets/${tickets[0].id}/confirmation`))
+          .deliveryStatus,
+      { timeout: 15000 },
+    )
+    .toBe("SMTP_ACCEPTED");
+  expect(
+    (
+      await page.request.post("/api/v1/auth/login", {
+        data: { email: data.accounts.admin.email, password: data.password },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.goto("/admin");
+  await page
+    .getByRole("button", {
+      name: "📋 Quản lý Đơn đặt vé & Trạng thái ghế",
+      exact: true,
+    })
+    .click();
+  const panel = page.getByRole("region", {
+    name: "Quản lý đơn đặt vé và trạng thái ghế",
+    exact: true,
+  });
+  await panel
+    .getByRole("searchbox", { name: "Tìm đơn đặt vé" })
+    .fill(order.orderCode);
+  await expect(panel.locator("tbody tr")).toHaveCount(1);
+  await expect(panel.locator("tbody tr")).toContainText("Đã thanh toán");
+  await panel
+    .getByRole("button", { name: "Xem đơn & ghế", exact: true })
+    .click();
+  const detail = panel.getByRole("region", {
+    name: "Chi tiết đơn quản trị",
+    exact: true,
+  });
+  await expect(detail).toContainText(order.orderCode);
+  for (const seat of seats)
+    await expect(
+      detail.getByLabel(`${seat.row}${seat.column}: SOLD`, { exact: true }),
+    ).toHaveText("✕");
+  await expect(
+    detail.getByRole("button", { name: "Xem email xác nhận", exact: true }),
+  ).toHaveCount(2);
+  await detail
+    .getByRole("button", { name: "Xem email xác nhận", exact: true })
+    .first()
+    .click();
+  await expect(detail.locator(".confirmation-delivery")).toContainText(
+    "Máy chủ SMTP đã tiếp nhận thư",
+  );
+  await expect(
+    detail
+      .frameLocator('iframe[title="Nội dung email NOVA Cinema"]')
+      .locator("body"),
+  ).toContainText(order.orderCode);
+  const saved = await read(page, `/admin/bookings/${order.id}`);
+  expect(
+    saved.tickets.every(
+      (t) => !t.ticketHash && !t.qrPayload && !t.qrCodeBase64,
+    ),
+  ).toBe(true);
+  await page.setViewportSize({ width: 375, height: 900 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await capture(page, "batch2-admin-orders-email-mobile");
 });

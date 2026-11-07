@@ -57,6 +57,7 @@ import { ShowtimesModule } from "./modules/showtimes/showtimes.module";
 import { BookingsModule } from "./modules/bookings/bookings.module";
 import { RealtimeModule } from "./realtime/realtime.module";
 import { ReportsModule } from "./modules/reports/reports.module";
+import { AdminBookingsModule } from "./modules/bookings/admin-bookings.module";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -88,6 +89,7 @@ import { ReportsModule } from "./modules/reports/reports.module";
     PaymentsModule,
     NotificationsModule,
     ReportsModule,
+    AdminBookingsModule,
   ],
   controllers: [AppController],
   providers: [

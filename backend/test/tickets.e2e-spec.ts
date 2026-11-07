@@ -426,7 +426,13 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     } finally {
       spy.mockRestore();
     }
+    expect(
+      await prisma.emailLog.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(0);
     await generate(f);
+    expect(
+      await prisma.emailLog.count({ where: { bookingId: f.booking.id } }),
+    ).toBe(2);
     expect(
       await prisma.eTicket.count({ where: { bookingId: f.booking.id } }),
     ).toBe(2);
@@ -1301,6 +1307,12 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         .expect(200),
     ) as { deliveryStatus: string };
     expect(retryPreview.deliveryStatus).toBe("RETRYING");
+    const retryLog = await prisma.emailLog.findUniqueOrThrow({
+      where: { eventId: event.id },
+    });
+    expect(retryLog.deliveryStatus).toBe("RETRYING");
+    expect(retryLog.acceptedAt).toBeNull();
+    expect(retryLog.attempts).toBeGreaterThanOrEqual(1);
     expect(failed.availableAt.getTime()).toBeGreaterThan(Date.now());
     expect(
       (await prisma.booking.findUniqueOrThrow({ where: { id: f.booking.id } }))
@@ -1309,6 +1321,16 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
     await retryEvent(event.id);
     await delivered(event.id);
     expect(messages(event.id)).toHaveLength(1);
+    const acceptedLog = await prisma.emailLog.findUniqueOrThrow({
+      where: { eventId: event.id },
+    });
+    expect(acceptedLog.deliveryStatus).toBe("SMTP_ACCEPTED");
+    expect(acceptedLog.acceptedAt).not.toBeNull();
+    expect(acceptedLog.html).toBe(retryLog.html);
+    expect(acceptedLog.lastErrorCode).toBeNull();
+    expect(await prisma.emailLog.count({ where: { eventId: event.id } })).toBe(
+      1,
+    );
     expect(
       (await prisma.eTicket.findUniqueOrThrow({ where: { id: ticket.id } }))
         .qrCodeBase64,

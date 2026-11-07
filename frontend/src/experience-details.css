@@ -1322,3 +1322,15 @@
 .membership-card > p {
   margin: 24px 0;
 }
+
+/* FR07/FR10: bảng quản trị giữ khung đọc được trên màn hình hẹp. */
+.admin-bookings { min-width: 0; }
+.admin-bookings .admin-table-scroll { overflow-x: auto; max-width: 100%; }
+.admin-bookings .admin-table { min-width: 680px; width: 100%; }
+.admin-bookings .admin-filter-bar { flex-wrap: wrap; gap: 12px; }
+.admin-bookings .admin-filter-bar label { min-width: 0; max-width: 100%; }
+.admin-bookings input, .admin-bookings select { max-width: 100%; }
+.admin-bookings .confirmation-panel { overflow-wrap: anywhere; }
+.admin-bookings .order-failed { color: #ff8599; }
+.admin-bookings .order-cancelled { color: #c9b99d; }
+.admin-bookings .order-paid { color: #69e7a3; }

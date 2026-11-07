@@ -1,3 +1,4 @@
+import { EmailLogsRepository } from "./email-logs.repository";
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { isUUID } from "class-validator";
@@ -18,6 +19,7 @@ export class NotificationService {
     private readonly events: OutboxRepository,
     private readonly tickets: TicketsRepository,
     private readonly mailer: SmtpMailer,
+    private readonly logs: EmailLogsRepository,
   ) {
     this.settings = config.getOrThrow<NotificationSettings>("notification");
   }
@@ -47,22 +49,43 @@ export class NotificationService {
         ticket.booking.seats.some((seat) => seat.status !== "SOLD")
       )
         throw new Error("Ticket is not eligible for email delivery.");
-      await this.mailer.send(ticketEmail(ticket, event.id, this.settings.from));
-      const ack = await this.database.transaction((tx) =>
-        this.events.acknowledge(event.id, owner, tx),
-      );
+      const message = ticketEmail(ticket, event.id, this.settings.from);
+      const log = await this.logs.enqueue({
+        eventId: event.id,
+        ticketId: ticket.id,
+        bookingId: ticket.bookingId,
+        recipient: message.to,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+      await this.logs.attempted(event.id, event.attempts);
+      await this.mailer.send({
+        ...message,
+        to: log.recipient,
+        subject: log.subject,
+        html: log.html,
+        text: log.text,
+      });
+      const ack = await this.database.transaction(async (tx) => {
+        const result = await this.events.acknowledge(event.id, owner, tx);
+        if (result.count === 1)
+          await this.logs.accepted(event.id, new Date(), tx);
+        return result;
+      });
       if (ack.count !== 1)
         throw new Error("Email acknowledgement lease was lost.");
     } catch {
-      await this.database.transaction((tx) =>
-        this.events.retry(
+      await this.database.transaction(async (tx) => {
+        await this.logs.retry(event.id, tx);
+        return this.events.retry(
           event.id,
           owner,
           event.attempts,
           tx,
           "EMAIL_DELIVERY_FAILED",
-        ),
-      );
+        );
+      });
       this.logger.warn(
         "Ticket email delivery deferred; payment remains committed.",
       );

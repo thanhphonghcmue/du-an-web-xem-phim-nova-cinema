@@ -19,6 +19,9 @@ export class CombosRepository {
   find(id: string) {
     return this.prisma.combo.findUnique({ where: { id } });
   }
+  snapshot() {
+    return this.prisma.combo.findMany({ orderBy: { id: "asc" } });
+  }
   remove(id: string) {
     return this.prisma.combo.delete({ where: { id } });
   }

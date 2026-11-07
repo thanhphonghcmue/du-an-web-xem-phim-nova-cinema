@@ -828,3 +828,8 @@ Redis và toàn bộ booking/payment/QR. Chạy `prisma:generate`, `db:migrate` 
 
 
 Kiểm toán Đợt 1 FR01–FR06/FR11: từ root chạy `npm run test:batch:1` với PostgreSQL/Redis test native. Pull bản mới cần `npm run setup:local` để áp dụng migration metadata phim. [Phạm vi, tệp sửa và ma trận kiểm chứng](../docs/qa/batch-1-2026-11-07.md).
+
+
+Đợt 2 FR07/FR08/FR09/FR10/FR12/FR13: root có `npm run test:batch:2` kiểm PostgreSQL/Redis và SMTP loopback thực. Chạy `npm run setup:local` sau pull để tạo bảng `email_logs`. Tab Admin mới xem đơn/ghế/email; nội dung gửi có log theo từng QR. Snapshot combo ghi `data/combos.json` (hoặc `NOVA_COMBO_STORE_PATH`), PostgreSQL vẫn xác nhận giá khi đặt vé. [Ma trận RTM đủ13 yêu cầu và cách chạy](../docs/qa/batch-2-rtm-2026-11-07.md).
+
+Chạy dữ liệu SQL bắt buộc bằng `npm run dev:native` từ root: nếu PostgreSQL/Redis, migration/build hoặc health lỗi thì dừng, không tự chuyển RAM. `dev` cũ giữ cơ chế tương thích.

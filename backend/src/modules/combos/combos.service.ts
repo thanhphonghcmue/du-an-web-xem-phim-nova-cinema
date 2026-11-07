@@ -1,3 +1,4 @@
+import { ComboBackupService } from "./combo-backup.service";
 import { Injectable } from "@nestjs/common";
 import { Combo, Prisma } from "@prisma/client";
 import { ApiException } from "../../common/exceptions/api.exception";
@@ -10,12 +11,14 @@ export class CombosService {
   constructor(
     private readonly combos: CombosRepository,
     private readonly database: UnitOfWork,
+    private readonly backup: ComboBackupService,
   ) {}
   private serialize(row: Combo) {
     return { ...row, price: row.price.toFixed(2) };
   }
   async remove(id: string) {
     await this.combos.remove(id);
+    await this.backup.sync();
     return { id, deleted: true };
   }
   list(query: PaginationDto, admin = false) {
@@ -43,11 +46,14 @@ export class CombosService {
     const row = await this.combos.find(id);
     if (!row)
       throw new ApiException(404, "COMBO_NOT_FOUND", "Không tìm thấy combo.");
+    await this.backup.sync();
     return this.serialize(row);
   }
   async create(dto: CreateComboDto) {
     this.validateRange(dto.suggestedMinSeats ?? 1, dto.suggestedMaxSeats);
-    return this.serialize(await this.combos.create(dto));
+    const row = await this.combos.create(dto);
+    await this.backup.sync();
+    return this.serialize(row);
   }
   async update(id: string, dto: UpdateComboDto) {
     const current = await this.combos.find(id);
@@ -59,6 +65,8 @@ export class CombosService {
     );
     if (!current)
       throw new ApiException(404, "COMBO_NOT_FOUND", "Combo was not found.");
-    return this.serialize(await this.combos.update(id, dto));
+    const row = await this.combos.update(id, dto);
+    await this.backup.sync();
+    return this.serialize(row);
   }
 }

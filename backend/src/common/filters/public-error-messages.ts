@@ -52,8 +52,8 @@ export const publicErrorMessages: Record<string, string> = {
   SHOWTIME_CONFLICT:
     "Phòng đã có suất trùng giờ, bao gồm cả thời gian dọn phòng. Hãy đổi phòng hoặc giờ chiếu.",
   SHOWTIME_IN_USE: "Suất đã có lịch sử đặt vé nên không thể sửa hoặc xóa.",
-  TICKET_NOT_FOUND: "Không tìm thấy định danh vé trong hệ thống.",
-  TICKET_ALREADY_USED: "Vé đã được soát trước đó, không thể sử dụng lại.",
+  TICKET_NOT_FOUND: "Mã vé không tồn tại hoặc không hợp lệ!",
+  TICKET_ALREADY_USED: "Vé đã được sử dụng!",
   TICKET_SHOWTIME_MISMATCH: "Vé không đúng suất hoặc ngày chiếu được chọn.",
   CHECK_IN_OUTSIDE_WINDOW: "Chưa đến hoặc đã quá thời gian vào rạp của vé này.",
   TICKET_BOOKING_NOT_PAID:

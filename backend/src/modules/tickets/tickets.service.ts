@@ -1,3 +1,4 @@
+import { EmailLogsRepository } from "../notifications/email-logs.repository";
 import { extractNormalizedCode } from "../../../../shared/ticket-input.cjs";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -39,6 +40,7 @@ export class TicketsService {
     private readonly bookings: BookingsRepository,
     private readonly tickets: TicketsRepository,
     private readonly events: OutboxRepository,
+    private readonly emailLogs: EmailLogsRepository,
   ) {
     this.ticketSigningKey = config.getOrThrow<JwtSettings>("jwt").accessSecret;
     this.settings = config.getOrThrow<NotificationSettings>("notification");
@@ -102,10 +104,28 @@ export class TicketsService {
               tx,
             );
             issued.push(ticket);
-            await this.events.add(
+            const event = await this.events.add(
               EMAIL_REQUESTED,
               bookingId,
               { bookingId, ticketId: ticket.id },
+              tx,
+            );
+            // FR10: nội dung chờ gửi được lưu cùng transaction phát hành vé.
+            const message = ticketEmail(
+              { ...ticket, booking },
+              event.id,
+              this.settings.from,
+            );
+            await this.emailLogs.enqueue(
+              {
+                eventId: event.id,
+                ticketId: ticket.id,
+                bookingId,
+                recipient: message.to,
+                subject: message.subject,
+                html: message.html,
+                text: message.text,
+              },
               tx,
             );
           }
@@ -296,20 +316,25 @@ export class TicketsService {
   ): Promise<TicketConfirmationDto> {
     const row = await this.requireOwned(id, userId);
     const event = await this.tickets.emailStatus(row.bookingId, row.id);
-    const message = ticketEmail(row, event?.id ?? row.id, this.settings.from);
+    const log = await this.emailLogs.byTicket(row.id);
+    const message = log
+      ? { subject: log.subject, to: log.recipient, html: log.html }
+      : ticketEmail(row, event?.id ?? row.id, this.settings.from);
     return {
       subject: message.subject,
       to: message.to,
       html: message.html.replace("cid:nova-ticket-qr", row.qrCodeBase64),
-      deliveryStatus: !event
-        ? "UNKNOWN"
-        : event.processedAt
-          ? "SMTP_ACCEPTED"
-          : event.lastError
-            ? "RETRYING"
-            : "QUEUED",
-      acceptedAt: event?.processedAt ?? null,
-      attempts: event?.attempts ?? 0,
+      deliveryStatus: log
+        ? (log.deliveryStatus as TicketConfirmationDto["deliveryStatus"])
+        : !event
+          ? "UNKNOWN"
+          : event.processedAt
+            ? "SMTP_ACCEPTED"
+            : event.lastError
+              ? "RETRYING"
+              : "QUEUED",
+      acceptedAt: log?.acceptedAt ?? event?.processedAt ?? null,
+      attempts: log?.attempts ?? event?.attempts ?? 0,
     };
   }
   verify(

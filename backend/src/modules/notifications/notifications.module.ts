@@ -1,3 +1,4 @@
+import { EmailLogsModule } from "./email-logs.module";
 import { Module } from "@nestjs/common";
 import { OutboxModule } from "../../queues/outbox/outbox.module";
 import { QueuesModule } from "../../queues/queues.module";
@@ -7,7 +8,7 @@ import { SmtpMailer } from "./smtp-mailer.service";
 import { TicketEmailProcessor } from "./ticket-email.processor";
 import { FulfillmentRelay } from "./fulfillment-relay.service";
 @Module({
-  imports: [TicketsModule, QueuesModule, OutboxModule],
+  imports: [TicketsModule, QueuesModule, OutboxModule, EmailLogsModule],
   providers: [
     NotificationService,
     SmtpMailer,

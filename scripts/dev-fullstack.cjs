@@ -8,6 +8,7 @@ require("node:module")
 const apiPort = Number(process.env.NOVA_API_PORT || 4000),
   webPort = Number(process.env.NOVA_WEB_PORT || 3000);
 const children = [];
+const requireDatabase = process.env.NOVA_REQUIRE_DATABASE === "true";
 let stopping = false;
 function stop(code = 0) {
   if (stopping) return;
@@ -115,6 +116,13 @@ async function main() {
       process.env.REDIS_HOST || "127.0.0.1",
     ));
   let useStandaloneBackend = !hasDb || !hasRedis;
+  if (useStandaloneBackend && requireDatabase) {
+    console.error(
+      "[NOVA] Native-only startup requires reachable PostgreSQL and Redis. Check backend/.env; no RAM backend was started.",
+    );
+    stop(1);
+    return;
+  }
   if (useStandaloneBackend)
     console.log(
       "[NOVA] PostgreSQL/Redis unavailable/unconfigured; automatic native RAM fallback (data resets on restart).",
@@ -150,6 +158,13 @@ async function main() {
         seed.once("exit", (code) => resolveCode(code));
       });
       if (code !== 0 || stopping) {
+        if (requireDatabase) {
+          console.error(
+            "[NOVA] Native preparation failed. Fix the database/migration/build error above, then retry dev:native.",
+          );
+          stop(1);
+          return;
+        }
         if (!stopping)
           console.error(
             "[NOVA] Native preparation failed; using the approved disposable RAM fallback.",
@@ -187,6 +202,13 @@ async function main() {
   let ready = await waitForBackend(apiPort, backend);
   // Chỉ fallback lúc khởi động; không thay dữ liệu SQL bằng RAM giữa phiên đặt vé.
   if (!ready && !useStandaloneBackend && !stopping) {
+    if (requireDatabase) {
+      console.error(
+        "[NOVA] Native backend failed readiness. Check PostgreSQL/Redis/config; no RAM backend was started.",
+      );
+      stop(1);
+      return;
+    }
     console.error(
       "[NOVA] Native backend failed readiness (PostgreSQL/Redis/config). Switching to disposable RAM; SQL data is unchanged.",
     );

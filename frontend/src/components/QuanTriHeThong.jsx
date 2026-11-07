@@ -43,6 +43,7 @@ function revenueShare(value, ticketAmount, comboAmount) {
     : "0%";
 }
 import AdminAudit from "./AdminAudit.jsx";
+import AdminBookings from "./AdminBookings.jsx";
 import AdminReconciliation from "./AdminReconciliation.jsx";
 import { uniqueRecords } from "@/uniqueRecords.js";
 import OperationalCatalog from "./OperationalCatalog.jsx";
@@ -339,6 +340,12 @@ export default function QuanTriHeThong({
         {/* Navigation Tabs */}
         <div className="admin-tabs">
           <button
+            className={`admin-tab ${activeTab === "bookings" ? "active" : ""}`}
+            onClick={() => setActiveTab("bookings")}
+          >
+            📋 Quản lý Đơn đặt vé &amp; Trạng thái ghế
+          </button>
+          <button
             className={`admin-tab ${activeTab === "reconciliation" ? "active" : ""}`}
             onClick={() => setActiveTab("reconciliation")}
           >
@@ -396,6 +403,7 @@ export default function QuanTriHeThong({
 
         {/* Content Body */}
         <div className="admin-content-body">
+          {activeTab === "bookings" && <AdminBookings />}
           {activeTab === "audit" && <AdminAudit />}
           {activeTab === "reconciliation" && <AdminReconciliation />}
           {/* TAB 1: DOANH THU & BÁO CÁO */}

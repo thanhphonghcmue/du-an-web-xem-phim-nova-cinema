@@ -1,3 +1,4 @@
+import { twoRowGroup } from "../../../../shared/group-fallback.cjs";
 import { SeatType } from "@prisma/client";
 export interface GroupCandidate {
   seatId: string;
@@ -21,7 +22,8 @@ export function findGroupSeats(
   }
   let best:
     { row: GroupCandidate[]; start: number; distance: number } | undefined;
-  for (const label of [...rows.keys()].sort()) {
+  const labels = [...rows.keys()].sort();
+  for (const label of labels) {
     const row = rows.get(label);
     if (!row?.length) continue;
     if (
@@ -51,7 +53,10 @@ export function findGroupSeats(
     for (let index = 0; index < row.length; index++) {
       const seat = row[index];
       if (!seat) continue;
-      if (seat.status !== "AVAILABLE" || (type !== undefined && seat.type !== type)) {
+      if (
+        seat.status !== "AVAILABLE" ||
+        (type !== undefined && seat.type !== type)
+      ) {
         run = 0;
         previous = undefined;
         continue;
@@ -69,7 +74,9 @@ export function findGroupSeats(
         (invalidPairs[index + 1] ?? 0) - (invalidPairs[start] ?? 0) > 0
       )
         continue;
-      const distance = Math.abs((beginning.column + seat.column) / 2 - center);
+      const distance =
+        Math.abs((beginning.column + seat.column) / 2 - center) +
+        Math.abs(labels.indexOf(label) - (labels.length - 1) / 2) * 2;
       // Rows and columns are already ordered, so equal scores retain the deterministic first candidate.
       if (!best || distance < best.distance) best = { row, start, distance };
     }
@@ -78,5 +85,5 @@ export function findGroupSeats(
     ? best.row
         .slice(best.start, best.start + quantity)
         .map((seat) => seat.seatId)
-    : [];
+    : twoRowGroup(seats, quantity, type);
 }

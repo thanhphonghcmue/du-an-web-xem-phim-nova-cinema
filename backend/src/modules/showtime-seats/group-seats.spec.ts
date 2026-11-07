@@ -71,6 +71,52 @@ describe("group seat sliding windows", () => {
       ),
     ).toEqual(["H3", "H4"]);
   });
+  it("FR11 prioritizes central rows and joins exactly two adjacent rows for twenty guests", () => {
+    const seats = Array.from("ABCDEFGHIJ").flatMap((label) =>
+      row(
+        label,
+        Array.from({ length: 14 }, (_, i) => i + 1),
+      ),
+    );
+    for (const quantity of [1, 2, 5])
+      expect(
+        findGroupSeats(seats, quantity).every(
+          (id) => id.startsWith("E") || id.startsWith("F"),
+        ),
+      ).toBe(true);
+    const group = findGroupSeats(seats, 20);
+    expect(group).toHaveLength(20);
+    expect(new Set(group).size).toBe(20);
+    expect([...new Set(group.map((id) => id[0]))]).toEqual(["E", "F"]);
+    expect(
+      findGroupSeats(
+        [...row("E", [1, 2, 3, 4, 5, 6]), ...row("G", [1, 2, 3, 4, 5, 6])],
+        10,
+      ),
+    ).toEqual([]);
+  });
+  it("joins adjacent central runs for a large group when occupied seats split longer rows", () => {
+    const seats = Array.from("ABCDEFGHIJ")
+      .flatMap((label) =>
+        row(
+          label,
+          Array.from({ length: 24 }, (_, i) => i + 1),
+        ),
+      )
+      .map((seat) => ({
+        ...seat,
+        status: seat.column === 12 ? "SOLD" : "AVAILABLE",
+      }));
+    const group = findGroupSeats(seats, 20);
+    expect(group).toHaveLength(20);
+    expect(new Set(group.map((id) => id[0]))).toEqual(new Set(["E", "F"]));
+    expect(
+      group.every(
+        (id) =>
+          seats.find((seat) => seat.seatId === id)?.status === "AVAILABLE",
+      ),
+    ).toBe(true);
+  });
   it("handles empty/full rooms and a 20-seat window", () => {
     expect(findGroupSeats([], 1)).toEqual([]);
     expect(

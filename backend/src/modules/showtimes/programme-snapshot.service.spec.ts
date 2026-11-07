@@ -49,6 +49,8 @@ describe("bounded optional programme transport preserves the legacy catalogue co
       id: randomUUID(),
       title: `Owned movie ${String(index)}`,
       description: "漢".repeat(20000),
+      genre: "",
+      subtitle: "",
       durationMinutes: 120,
       releaseDate: new Date("2042-01-01T00:00:00Z"),
       ageRating: "P",

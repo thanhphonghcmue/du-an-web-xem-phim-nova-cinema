@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Put,
   Post,
   Query,
 } from "@nestjs/common";
@@ -71,6 +72,34 @@ export class MoviesController {
   @CatalogWrite()
   @ApiDataResponse(DeletedDto)
   delete(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() actor: UserProfileDto,
+  ) {
+    return this.service.delete(id, actor.id);
+  }
+}
+
+@ApiTags("Admin Movies")
+@Controller("admin/movies")
+export class AdminMoviesController {
+  constructor(private readonly service: MoviesService) {}
+  @Get() @CatalogWrite() list(@Query() query: ListMoviesDto) {
+    return this.service.list(query);
+  }
+  @Post() @CatalogWrite() create(
+    @Body() dto: CreateMovieDto,
+    @CurrentUser() actor: UserProfileDto,
+  ) {
+    return this.service.create(dto, actor.id);
+  }
+  @Put(":id") @CatalogWrite() update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateMovieDto,
+    @CurrentUser() actor: UserProfileDto,
+  ) {
+    return this.service.update(id, dto, actor.id);
+  }
+  @Delete(":id") @CatalogWrite() remove(
     @Param("id", ParseUUIDPipe) id: string,
     @CurrentUser() actor: UserProfileDto,
   ) {

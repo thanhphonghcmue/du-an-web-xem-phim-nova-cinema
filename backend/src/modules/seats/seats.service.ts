@@ -129,6 +129,16 @@ export class SeatsService {
       );
   }
   generate(roomId: string, dto: GenerateSeatsDto): Promise<GeneratedSeatsDto> {
+    return this.configure(roomId, dto, false);
+  }
+  resize(roomId: string, dto: GenerateSeatsDto): Promise<GeneratedSeatsDto> {
+    return this.configure(roomId, dto, true);
+  }
+  private configure(
+    roomId: string,
+    dto: GenerateSeatsDto,
+    resize: boolean,
+  ): Promise<GeneratedSeatsDto> {
     if (dto.rows.length * dto.columns > 300)
       throw new ApiException(
         400,
@@ -153,7 +163,7 @@ export class SeatsService {
         "VIP/Sweetbox rows must belong to rows and cannot overlap.",
       );
     return this.mutate(roomId, async (tx) => {
-      if (await this.rooms.seatCount(roomId, tx))
+      if (!resize && (await this.rooms.seatCount(roomId, tx)))
         throw new ApiException(
           409,
           "SEAT_LAYOUT_EXISTS",
@@ -175,11 +185,14 @@ export class SeatsService {
             priceModifier: new Prisma.Decimal(MODIFIERS[seatType]),
           });
       }
-      const created = await this.seats.createMany(data, tx);
+      // FR03: giữ ID ghế còn trong ma trận; chỉ chỉnh phòng chưa có lịch dưới khóa phòng.
+      const createdCount = resize
+        ? await this.seats.configure(roomId, data, tx)
+        : (await this.seats.createMany(data, tx)).count;
       const room = await this.rooms.syncSeatCount(roomId, tx);
       return {
         roomId,
-        createdCount: created.count,
+        createdCount,
         totalSeats: room.totalSeats,
       };
     });

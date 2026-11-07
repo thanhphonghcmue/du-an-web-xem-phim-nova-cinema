@@ -14,6 +14,8 @@ export default function RoomLayoutBuilder() {
     [roomRows, catalog.rooms],
   );
   const [existing, setExisting] = useState(null);
+  const [editingSeat, setEditingSeat] = useState(null);
+  const [resizing, setResizing] = useState(false);
   const [rows, setRows] = useState(8),
     [columns, setColumns] = useState(20);
   const [types, setTypes] = useState({
@@ -56,7 +58,7 @@ export default function RoomLayoutBuilder() {
     count > 300;
   const oddSweetbox =
     columns % 2 !== 0 && rowLabels.some((row) => types[row] === "SWEETBOX");
-  const locked = existing?.length > 0;
+  const locked = existing?.length > 0 && !resizing;
   useEffect(() => {
     if (!roomId) return;
     let active = true;
@@ -91,14 +93,20 @@ export default function RoomLayoutBuilder() {
     setNotice("");
     setFieldErrors({});
     try {
-      const result = await readCommand(`/rooms/${roomId}/seats/generate`, {
-        rows: rowLabels,
-        columns: Number(columns),
-        vipRows: rowLabels.filter((row) => types[row] === "VIP"),
-        sweetboxRows: rowLabels.filter((row) => types[row] === "SWEETBOX"),
-      });
+      const result = await readCommand(
+        `/rooms/${roomId}/seats/${resizing ? "layout" : "generate"}`,
+        {
+          rows: rowLabels,
+          columns: Number(columns),
+          vipRows: rowLabels.filter((row) => types[row] === "VIP"),
+          sweetboxRows: rowLabels.filter((row) => types[row] === "SWEETBOX"),
+        },
+        {},
+        resizing ? "PUT" : "POST",
+      );
       setNotice(`Đã lưu sơ đồ ${result.totalSeats} ghế vào phòng chiếu.`);
       setExisting(null);
+      setResizing(false);
       setRevision((v) => v + 1);
       void catalog.reload().catch((error) => setError(error.message));
     } catch (err) {
@@ -131,6 +139,8 @@ export default function RoomLayoutBuilder() {
               value={roomId}
               onChange={(e) => {
                 setRoomId(e.target.value);
+                setEditingSeat(null);
+                setResizing(false);
                 setExisting(null);
                 setError("");
                 setNotice("");
@@ -274,13 +284,17 @@ export default function RoomLayoutBuilder() {
                 <strong>{row}</strong>
                 <div>
                   {seats.map((seat) => (
-                    <span
+                    <button
+                      type="button"
+                      disabled={!locked || busy || !roomId}
+                      onClick={() => setEditingSeat({ ...seat })}
                       title={`${row}${seat.seatColumn} · ${labels[seat.seatType]}`}
+                      aria-label={`${row}${seat.seatColumn} · ${labels[seat.seatType]}`}
                       className={`layout-seat layout-${seat.seatType.toLowerCase()}`}
                       key={seat.seatColumn}
                     >
                       {seat.seatColumn}
-                    </span>
+                    </button>
                   ))}
                 </div>
                 {!locked && (
@@ -310,6 +324,44 @@ export default function RoomLayoutBuilder() {
             </span>
           ))}
         </div>
+        {locked && (
+          <button
+            type="button"
+            className="button button-glass"
+            disabled={busy}
+            onClick={() => {
+              const grouped = Object.groupBy(existing, (seat) => seat.seatRow);
+              setRows(
+                Math.min(
+                  15,
+                  Math.max(
+                    ...existing.map((seat) => seat.seatRow.charCodeAt(0) - 64),
+                  ),
+                ),
+              );
+              setColumns(Math.max(...existing.map((seat) => seat.seatColumn)));
+              setTypes(
+                Object.fromEntries(
+                  Object.entries(grouped).map(([row, seats]) => [
+                    row,
+                    seats[0].seatType,
+                  ]),
+                ),
+              );
+              setEditingSeat(null);
+              setResizing(true);
+              setNotice("");
+            }}
+          >
+            Chỉnh số hàng / cột
+          </button>
+        )}
+        {resizing && (
+          <p className="layout-info">
+            Lưu sẽ áp dụng loại ghế theo từng hàng trong sơ đồ xem trước. Chỉ
+            phòng chưa có lịch được phép đổi ma trận.
+          </p>
+        )}
         {!locked && (
           <button
             className="button button-primary"
@@ -332,6 +384,101 @@ export default function RoomLayoutBuilder() {
           </p>
         )}
       </form>
+      {editingSeat && (
+        <form
+          className="live-admin-form"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setBusy(true);
+            setError("");
+            try {
+              await readCommand(
+                `/seats/${editingSeat.id}`,
+                {
+                  seatRow: editingSeat.seatRow,
+                  seatColumn: Number(editingSeat.seatColumn),
+                  seatType: editingSeat.seatType,
+                },
+                {},
+                "PATCH",
+              );
+              setRevision((value) => value + 1);
+              setEditingSeat(null);
+              setNotice("Đã lưu ghế vào database.");
+            } catch (cause) {
+              setError(cause.message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <p>
+            Chỉnh từng ghế trong phòng chưa có lịch. Phòng đã có lịch/vé giữ
+            nguyên cấu trúc để bảo toàn dữ liệu.
+          </p>
+          <label>
+            Hàng ghế
+            <input
+              disabled={busy}
+              aria-label="Hàng ghế chỉnh sửa"
+              required
+              value={editingSeat.seatRow}
+              onChange={(event) =>
+                setEditingSeat({
+                  ...editingSeat,
+                  seatRow: event.target.value.toUpperCase(),
+                })
+              }
+            />
+          </label>
+          <label>
+            Cột ghế
+            <input
+              disabled={busy}
+              required
+              aria-label="Cột ghế chỉnh sửa"
+              type="number"
+              min="1"
+              max="24"
+              value={editingSeat.seatColumn}
+              onChange={(event) =>
+                setEditingSeat({
+                  ...editingSeat,
+                  seatColumn: event.target.value,
+                })
+              }
+            />
+          </label>
+          <label>
+            Loại ghế
+            <select
+              disabled={busy}
+              aria-label="Loại ghế chỉnh sửa"
+              value={editingSeat.seatType}
+              onChange={(event) =>
+                setEditingSeat({ ...editingSeat, seatType: event.target.value })
+              }
+            >
+              {Object.entries(labels).map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="button button-primary" disabled={busy}>
+            Lưu cấu hình ghế
+          </button>
+          <button
+            type="button"
+            className="button button-glass"
+            disabled={busy}
+            onClick={() => setEditingSeat(null)}
+          >
+            Hủy chỉnh ghế
+          </button>
+        </form>
+      )}
     </section>
   );
 }

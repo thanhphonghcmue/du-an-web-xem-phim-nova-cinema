@@ -1,5 +1,12 @@
 [
   {
+    "email": "cmember@nova.local",
+    "fullName": "Lâm Thanh Phong",
+    "role": "CUSTOMER",
+    "tier": "GOLD",
+    "points": 50000
+  },
+  {
     "email": "customer@nova.vn",
     "fullName": "NOVA Development Customer",
     "role": "CUSTOMER",

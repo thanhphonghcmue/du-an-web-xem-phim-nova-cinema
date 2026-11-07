@@ -177,6 +177,9 @@ export class ShowtimesController {
 @ApiTags("Admin Showtimes")
 @Controller("admin/showtimes")
 export class AdminShowtimesController {
+  @Post() @CatalogWrite() create(@Body() dto: CreateShowtimeDto) {
+    return this.service.create(dto);
+  }
   constructor(private readonly service: ShowtimesService) {}
 
   @Patch(":id/status")

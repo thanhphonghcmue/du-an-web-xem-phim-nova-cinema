@@ -66,10 +66,10 @@ export default function DangNhap_DangKy({ onSuccess }) {
         : "Nhập email đúng định dạng."
       : "",
     password:
-      fields.password.length < (tab === "signup" ? 12 : 1)
+      fields.password.length < (tab === "signup" ? 6 : 1)
         ? language === "en"
-          ? "Use at least 12 characters."
-          : "Mật khẩu cần ít nhất 12 ký tự."
+          ? "Use at least 6 characters."
+          : "Mật khẩu cần ít nhất 6 ký tự."
         : "",
     confirm:
       fields.confirm !== fields.password
@@ -96,8 +96,8 @@ export default function DangNhap_DangKy({ onSuccess }) {
     if (raw.includes("already registered") || raw.includes("exists")) {
       return "Email này đã được đăng ký. Vui lòng đăng nhập hoặc dùng email khác.";
     }
-    if (raw.includes("Password must be at least 12")) {
-      return "Mật khẩu cần tối thiểu 12 ký tự.";
+    if (raw.includes("Password must be at least 6")) {
+      return "Mật khẩu cần tối thiểu 6 ký tự.";
     }
     return raw;
   }
@@ -270,7 +270,7 @@ export default function DangNhap_DangKy({ onSuccess }) {
                     {t(label)}
                   </label>
                   {id === "password" && tab === "signup" && (
-                    <span className="auth-field-hint">Tối thiểu 12 ký tự</span>
+                    <span className="auth-field-hint">Tối thiểu 6 ký tự</span>
                   )}
                 </div>
 

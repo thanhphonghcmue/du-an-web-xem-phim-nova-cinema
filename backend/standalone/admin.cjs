@@ -27,6 +27,8 @@ exports.createAdmin = (c) => {
       .trim();
   const fields = {
     movies: [
+      "genre",
+      "subtitle",
       "title",
       "description",
       "durationMinutes",
@@ -302,12 +304,13 @@ exports.createAdmin = (c) => {
         ],
       });
     }
-    match = path.match(/^\/rooms\/([^/]+)\/seats(\/generate)?$/);
+    match = path.match(/^\/rooms\/([^/]+)\/seats(\/(generate|layout))?$/);
     if (match) {
       auth(request, ["ADMIN"]);
       const room = model("rooms", match[1]);
       if (method === "GET") return json(pageOf(physical(room.id), query));
-      assert(method === "POST" && match[2]);
+      const resizing = match[3] === "layout" && method === "PUT";
+      assert(resizing || (method === "POST" && match[3] === "generate"));
       const { rows, columns, vipRows = [], sweetboxRows = [] } = body;
       assert(
         Array.isArray(rows) &&
@@ -330,7 +333,9 @@ exports.createAdmin = (c) => {
         "Ghế đôi cần cặp đủ hai chỗ.",
       );
       assert(
-        physical(room.id).length === 0 && !inUse(room.id),
+        (resizing || physical(room.id).length === 0) &&
+          !inUse(room.id) &&
+          !values("showtimes").some((show) => show.roomId === room.id),
         "ROOM_LAYOUT_EXISTS",
         "Chỉ tạo sơ đồ cho phòng trống.",
         409,
@@ -355,7 +360,10 @@ exports.createAdmin = (c) => {
       );
       layouts.set(room.id, seats);
       room.totalSeats = seats.length;
-      return json({ roomId: room.id, totalSeats: seats.length, seats }, 201);
+      return json(
+        { roomId: room.id, totalSeats: seats.length, seats },
+        resizing ? 200 : 201,
+      );
     }
     match = path.match(
       /^\/(movies|cinemas|rooms|showtimes|combos)(?:\/([^/]+))?$/,

@@ -522,16 +522,28 @@ describe("Phase 1 demo seed", () => {
     const accounts = await prisma.user.findMany({
       where: {
         email: {
-          in: ["admin@nova.local", "staff@nova.local", "customer@nova.local"],
+          in: [
+            "admin@nova.local",
+            "staff@nova.local",
+            "customer@nova.local",
+            "cmember@nova.local",
+          ],
         },
       },
     });
-    expect(accounts).toHaveLength(3);
+    expect(accounts).toHaveLength(4);
     const secret = process.env.SEED_DEMO_PASSWORD;
     if (!secret) throw new Error("Private seed password missing.");
     for (const account of accounts) {
       expect(await verify(account.passwordHash, secret)).toBe(true);
     }
+    expect(
+      accounts.find((account) => account.email === "cmember@nova.local"),
+    ).toMatchObject({
+      fullName: "Lâm Thanh Phong",
+      role: "CUSTOMER",
+      cMemberTier: "GOLD",
+    });
     const movieId = seedId("movie:dune");
     const original = await prisma.movie.findUniqueOrThrow({
       where: { id: movieId },
@@ -611,6 +623,7 @@ describe("Phase 1 demo seed", () => {
       ).toBe("69000.00");
       expect(accounts.map((row) => row.role).sort()).toEqual([
         "ADMIN",
+        "CUSTOMER",
         "CUSTOMER",
         "STAFF",
       ]);

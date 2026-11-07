@@ -37,6 +37,8 @@ export class MoviesService {
           {
             title: this.title(dto.title),
             description: dto.description,
+            genre: dto.genre ?? "",
+            subtitle: dto.subtitle ?? "",
             durationMinutes: dto.durationMinutes,
             releaseDate: new Date(dto.releaseDate),
             ageRating: dto.ageRating,
@@ -77,6 +79,8 @@ export class MoviesService {
             "Duration cannot change after showtimes reference this movie.",
           );
         const changes: Prisma.MovieUpdateInput = {
+          ...(dto.genre !== undefined ? { genre: dto.genre } : {}),
+          ...(dto.subtitle !== undefined ? { subtitle: dto.subtitle } : {}),
           ...(dto.title !== undefined ? { title: this.title(dto.title) } : {}),
           ...(dto.description !== undefined
             ? { description: dto.description }
@@ -144,6 +148,8 @@ export class MoviesService {
   private snapshot(movie: MovieDto): Prisma.InputJsonObject {
     return {
       title: movie.title,
+      genre: movie.genre,
+      subtitle: movie.subtitle,
       description: movie.description,
       durationMinutes: movie.durationMinutes,
       releaseDate: movie.releaseDate.toISOString(),

@@ -1291,6 +1291,11 @@ function LiveBookingConsole({
                   ))}
                 </div>
               </div>
+              <p className="booking-dock-hint">
+                Gợi ý 1–20 người ưu tiên trung tâm; nhóm vượt một hàng được ghép
+                hai hàng liền kề. Gợi ý chưa giữ ghế, trạng thái sẽ được kiểm
+                tra lại khi xác nhận.
+              </p>
               <div className="seat-legend">
                 {[
                   ["standard", "Thường"],

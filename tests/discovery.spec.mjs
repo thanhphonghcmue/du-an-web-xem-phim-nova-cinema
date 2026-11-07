@@ -638,6 +638,47 @@ test("admin seat builder validates capacity and persists the displayed row types
       .filter((seat) => seat.seatType === "VIP")
       .every((seat) => seat.seatRow === "B" && seat.priceModifier === "1.20"),
   ).toBe(true);
+  await builder
+    .getByRole("button", { name: "A1 · Thường", exact: true })
+    .click();
+  await builder
+    .getByRole("combobox", { name: "Loại ghế chỉnh sửa" })
+    .selectOption("VIP");
+  const changed = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      new URL(response.url()).pathname.startsWith("/api/v1/seats/"),
+  );
+  await builder
+    .getByRole("button", { name: "Lưu cấu hình ghế", exact: true })
+    .click();
+  expect((await changed).status()).toBe(200);
+  await expect(builder.locator(".layout-preview .layout-vip")).toHaveCount(7);
+  await builder
+    .getByRole("button", { name: "Chỉnh số hàng / cột", exact: true })
+    .click();
+  await builder.getByRole("spinbutton", { name: "Số cột ghế" }).fill("8");
+  const resized = page.waitForResponse(
+    (r) =>
+      r.request().method() === "PUT" &&
+      r.url().endsWith(`/rooms/${room.body.data.id}/seats/layout`),
+  );
+  await builder
+    .getByRole("button", { name: "Lưu sơ đồ ghế", exact: true })
+    .click();
+  expect((await resized).status()).toBe(200);
+  await expect(builder.locator(".layout-preview .layout-seat")).toHaveCount(16);
+
+  const updated = (
+    await (
+      await page.request.get(
+        `/api/v1/rooms/${room.body.data.id}/seats?limit=100`,
+      )
+    ).json()
+  ).data;
+  expect(
+    updated.items.find((seat) => seat.seatRow === "A" && seat.seatColumn === 1),
+  ).toMatchObject({ seatType: "VIP", priceModifier: "1.20" });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(

@@ -223,3 +223,8 @@ Alias ADMIN và cập nhật mềm suất có transaction/release; form chỉ g�
 ## Sửa kết nối Admin/Combo — 07/11/2026
 
 Sửa description seed RAM, poster local bị HTML URL chặn và phân trang Admin RAM; bổ sung DELETE an toàn, file combo local có rollback khi lỗi ghi và gói Party Mặn119K. [RCA và kiểm chứng hai chế độ](../../docs/qa/admin-combo-connection-2026-11-07.md). Không chuyển trạng thái Phase11–12.
+
+
+## Kiểm toán Đợt 1 FR01–FR06 và FR11 — 07/11/2026
+
+Bổ sung metadata phim lưu PostgreSQL, tài khoản GOLD `.local`, alias Admin và sửa mặc định trạng thái form tạo lịch. Admin chỉnh từng ghế/ma trận cho phòng chưa có lịch; gợi ý nhóm lớn trên hai hàng kề nhau. Có script native riêng, kiểm race F08, SOLD, lock/release và seed bảo toàn. [Ma trận, contract và cách chạy](../../docs/qa/batch-1-2026-11-07.md). Giữ nguyên trạng thái Phase11–12.

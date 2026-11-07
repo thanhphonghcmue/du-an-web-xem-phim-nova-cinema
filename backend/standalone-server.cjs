@@ -305,6 +305,10 @@ function createDemoData() {
     movies: catalogMovies.map((movie) => ({
       ...movie,
       description: movie.description || movie.title,
+      genre:
+        movie.genre ||
+        (movie.key === "dune" ? "Khoa học viễn tưởng" : "Điện ảnh"),
+      subtitle: movie.subtitle || "Phụ đề Việt",
     })),
     cinemas,
     rooms,

@@ -39,6 +39,8 @@ const specs = {
     fields: [
       ["title", "Tên phim"],
       ["description", "Nội dung"],
+      ["genre", "Thể loại"],
+      ["subtitle", "Phụ đề / Ngôn ngữ"],
       ["durationMinutes", "Thời lượng (phút)", "number"],
       ["releaseDate", "Ngày phát hành", "datetime-local"],
       ["ageRating", "Nhãn tuổi", ["P", "K", "T13", "T16", "T18"]],
@@ -92,6 +94,7 @@ const specs = {
     ],
   },
 };
+const emptyDraft = (kind) => (kind === "showtimes" ? { status: "ACTIVE" } : {});
 export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
   const catalog = useCatalog();
   const [kind, setKind] = useState(() =>
@@ -104,7 +107,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
     [meta, setMeta] = useState(null),
     [page, setPage] = useState(1),
     [keyword, setKeyword] = useState(""),
-    [draft, setDraft] = useState({}),
+    [draft, setDraft] = useState(() => emptyDraft(initialKind)),
     [originalDraft, setOriginalDraft] = useState({}),
     [editId, setEditId] = useState(null),
     [message, setMessage] = useState(""),
@@ -160,7 +163,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
     setMeta(null);
     setItems([]);
     setKeyword("");
-    setDraft({});
+    setDraft(emptyDraft(value));
     setEditId(null);
     setMessage("");
   }
@@ -199,7 +202,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
       setPage(1);
       setMessage("Đã lưu thành công.");
       if (kind === "combos") setComboEditing(false);
-      setDraft({});
+      setDraft(emptyDraft(kind));
       setEditId(null);
       setRevision((v) => v + 1);
       void catalog.reload().catch((error) => setMessage(error.message));
@@ -348,6 +351,8 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                           ![
                             "posterUrl",
                             "trailerUrl",
+                            "genre",
+                            "subtitle",
                             "suggestedMaxSeats",
                           ].includes(key)
                         }
@@ -377,7 +382,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                   className="text-button"
                   onClick={() => {
                     setEditId(null);
-                    setDraft({});
+                    setDraft(emptyDraft(kind));
                     setFieldErrors({});
                   }}
                 >

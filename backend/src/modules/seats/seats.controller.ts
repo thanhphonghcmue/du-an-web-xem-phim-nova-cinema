@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
 } from "@nestjs/common";
 import {
@@ -70,6 +71,15 @@ export class SeatsController {
     @Body() dto: GenerateSeatsDto,
   ) {
     return this.service.generate(roomId, dto);
+  }
+  @Put("rooms/:roomId/seats/layout")
+  @CatalogWrite()
+  @ApiDataResponse(GeneratedSeatsDto)
+  resize(
+    @Param("roomId", ParseUUIDPipe) roomId: string,
+    @Body() dto: GenerateSeatsDto,
+  ) {
+    return this.service.resize(roomId, dto);
   }
   @Patch("seats/:id")
   @CatalogWrite()

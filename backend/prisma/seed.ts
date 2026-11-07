@@ -164,7 +164,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<void> {
         },
         {
           email: "staff@nova.local",
-          fullName: "NOVA Demo Staff",
+          fullName: "NV01 · NOVA Demo Staff",
           role: UserRole.STAFF,
           tier: CMemberTier.GOLD,
         },
@@ -241,6 +241,8 @@ export async function seedDatabase(prisma: PrismaClient): Promise<void> {
             id: seedId(`movie:${movie.key}`),
             title: movie.title,
             description: movie.description,
+            genre: movie.key === "dune" ? "Khoa học viễn tưởng" : "Điện ảnh",
+            subtitle: "Phụ đề Việt",
             durationMinutes: movie.durationMinutes,
             ageRating: movie.ageRating,
             releaseDate: new Date(`${movie.releaseDate}T00:00:00.000Z`),

@@ -30,6 +30,56 @@ export class SeatsRepository {
       select: { id: true, seatRow: true, seatColumn: true },
     });
   }
+  async configure(
+    roomId: string,
+    data: Prisma.SeatCreateManyInput[],
+    tx: Prisma.TransactionClient,
+  ): Promise<number> {
+    const existing = await this.positions(roomId, tx);
+    const wanted = new Set(
+      data.map((seat) => `${seat.seatRow}:${String(seat.seatColumn)}`),
+    );
+    await tx.seat.deleteMany({
+      where: {
+        roomId,
+        id: {
+          in: existing
+            .filter(
+              (seat) =>
+                !wanted.has(`${seat.seatRow}:${String(seat.seatColumn)}`),
+            )
+            .map((seat) => seat.id),
+        },
+      },
+    });
+    const positions = new Map(
+      existing.map((seat) => [
+        `${seat.seatRow}:${String(seat.seatColumn)}`,
+        seat.id,
+      ]),
+    );
+    const added: Prisma.SeatCreateManyInput[] = [];
+    const groups = new Map<
+      string,
+      { ids: string[]; seat: Prisma.SeatCreateManyInput }
+    >();
+    for (const seat of data) {
+      const id = positions.get(`${seat.seatRow}:${String(seat.seatColumn)}`);
+      if (!id) {
+        added.push(seat);
+        continue;
+      }
+      const group = groups.get(seat.seatType) ?? { ids: [], seat };
+      group.ids.push(id);
+      groups.set(seat.seatType, group);
+    }
+    for (const { ids, seat } of groups.values())
+      await tx.seat.updateMany({
+        where: { id: { in: ids }, roomId },
+        data: { seatType: seat.seatType, priceModifier: seat.priceModifier },
+      });
+    return (await this.createMany(added, tx)).count;
+  }
   create(data: Prisma.SeatUncheckedCreateInput, tx: Prisma.TransactionClient) {
     return tx.seat.create({ data });
   }

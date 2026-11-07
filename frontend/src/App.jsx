@@ -1140,6 +1140,8 @@ export default function App() {
                 <dl>
                   <dt>{t("Thể loại")} </dt>
                   <dd>{t(activeMovie.genre)}</dd>
+                  <dt>Ngôn ngữ / Phụ đề</dt>
+                  <dd>{activeMovie.subtitle || "Đang cập nhật"}</dd>
                   <dt>{t("Đạo diễn")} </dt>
                   <dd>{activeMovie.director}</dd>
                   <dt>{t("Diễn viên")} </dt>

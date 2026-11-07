@@ -546,7 +546,8 @@ describe("Phase 7 seat snapshots, group suggestions and real Socket.IO/Redis del
     const result = data(
       await suggest(f.showtime.id, { quantity: 3 }).expect(200),
     ) as { seatIds: string[] };
-    expect(result.seatIds).toEqual([id(f, 2), id(f, 3), id(f, 4)]);
+    // FR11: hàng giữa B được ưu tiên so với hàng đầu A.
+    expect(result.seatIds).toEqual([id(f, 10), id(f, 11), id(f, 12)]);
     const vip = data(
       await suggest(f.showtime.id, { quantity: 3, seatType: "VIP" }).expect(
         200,

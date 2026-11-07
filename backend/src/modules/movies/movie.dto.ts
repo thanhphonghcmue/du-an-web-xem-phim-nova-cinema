@@ -19,6 +19,16 @@ import { PaginationDto } from "../../common/dto/pagination.dto";
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === "string" ? value.trim() : value;
 export class CreateMovieDto {
+  @ApiPropertyOptional()
+  @ValidateIf((_o: unknown, value: unknown) => value !== undefined)
+  @IsString()
+  @MaxLength(200)
+  genre?: string;
+  @ApiPropertyOptional()
+  @ValidateIf((_o: unknown, value: unknown) => value !== undefined)
+  @IsString()
+  @MaxLength(200)
+  subtitle?: string;
   @ApiProperty({ maxLength: 200 })
   @Transform(trim)
   @IsString()
@@ -41,6 +51,9 @@ export class CreateMovieDto {
   @ApiProperty({ enum: AgeRating }) @IsEnum(AgeRating) ageRating!: AgeRating;
   @ApiPropertyOptional({ enum: MovieStatus, default: MovieStatus.COMING_SOON })
   @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
+  @Transform(({ value }: { value: unknown }) =>
+    value === "STOPPED" ? MovieStatus.ENDED : value,
+  )
   @IsEnum(MovieStatus)
   status?: MovieStatus;
   @ApiPropertyOptional({ type: String, nullable: true, maxLength: 2048 })
@@ -68,6 +81,9 @@ export class UpdateMovieDto extends PartialType(CreateMovieDto, {
 export class ListMoviesDto extends PaginationDto {
   @ApiPropertyOptional({ enum: MovieStatus })
   @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    value === "STOPPED" ? MovieStatus.ENDED : value,
+  )
   @IsEnum(MovieStatus)
   status?: MovieStatus;
   @ApiPropertyOptional({ enum: AgeRating })
@@ -82,6 +98,8 @@ export class ListMoviesDto extends PaginationDto {
   keyword?: string;
 }
 export class MovieDto {
+  @ApiProperty() genre!: string;
+  @ApiProperty() subtitle!: string;
   @ApiProperty({ format: "uuid" }) id!: string;
   @ApiProperty() title!: string;
   @ApiProperty() description!: string;

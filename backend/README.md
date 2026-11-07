@@ -825,3 +825,6 @@ nguyên tử, API nhật ký chỉ ADMIN, API ghế kiểm tra 300 ghế/15 hàn
 Redis và toàn bộ booking/payment/QR. Chạy `prisma:generate`, `db:migrate` (và
 `db:migrate:test` trước test), rồi build. Bằng chứng 336 ca và phạm vi chưa triển khai:
 [báo cáo giao diện & danh mục](../docs/design/catalog-operations-readability.md).
+
+
+Kiểm toán Đợt 1 FR01–FR06/FR11: từ root chạy `npm run test:batch:1` với PostgreSQL/Redis test native. Pull bản mới cần `npm run setup:local` để áp dụng migration metadata phim. [Phạm vi, tệp sửa và ma trận kiểm chứng](../docs/qa/batch-1-2026-11-07.md).

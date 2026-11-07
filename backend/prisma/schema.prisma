@@ -102,6 +102,8 @@ model User {
 }
 
 model Movie {
+  genre           String      @default("") @db.VarChar(200)
+  subtitle        String      @default("") @db.VarChar(200)
   id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title           String      @db.VarChar(200)
   description     String      @db.Text

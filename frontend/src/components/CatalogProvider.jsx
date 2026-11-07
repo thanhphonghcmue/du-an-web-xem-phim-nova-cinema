@@ -116,6 +116,7 @@ function processCatalogSnapshot(rawSnapshot) {
         ...art,
         ...m,
         artId: art?.id,
+        genre: m.genre || art?.genre || "Điện ảnh",
         id: m.id,
         short: art?.short || m.title,
         original: art?.original || m.title,

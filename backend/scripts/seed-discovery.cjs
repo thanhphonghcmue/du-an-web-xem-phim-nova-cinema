@@ -74,6 +74,8 @@ async function main() {
             create: {
               id: movieId,
               title: movie.title,
+              genre: movie.genre || "Điện ảnh",
+              subtitle: "Phụ đề Việt",
               description: movie.description,
               durationMinutes: movie.duration,
               ageRating: movie.age,

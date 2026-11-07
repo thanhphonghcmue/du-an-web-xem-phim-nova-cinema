@@ -1,3 +1,4 @@
+const { twoRowGroup } = require("../../shared/group-fallback.cjs");
 const { extractNormalizedCode } = require("../../shared/ticket-input.cjs");
 const { ticketErrorFields } = require("../../shared/ticket-errors.cjs");
 // Single-process, disposable RAM adapter. It mirrors the public NestJS contracts;
@@ -342,6 +343,18 @@ function createMemoryServer(input) {
     assert(map.canBook, "SHOWTIME_STARTED", "Suất đã bắt đầu.", 409);
     assert(!type || ["STANDARD", "VIP", "SWEETBOX"].includes(type));
     const seats = map.seats;
+    const byRow = new Map();
+    for (const seat of seats) {
+      if (!byRow.has(seat.row)) byRow.set(seat.row, []);
+      byRow.get(seat.row).push(seat);
+    }
+    const labels = [...byRow.keys()].sort();
+    const centers = new Map(
+      labels.map((label) => {
+        const row = byRow.get(label);
+        return [label, (row[0].column + row[row.length - 1].column) / 2];
+      }),
+    );
     let run = 0,
       best = null;
     for (let i = 0; i < seats.length; i++) {
@@ -365,12 +378,15 @@ function createMemoryServer(input) {
         (seat.type === "SWEETBOX" && seat.column % 2 === 1)
       )
         continue;
-      const score = Math.abs((first.column + seat.column) / 2 - 10.5);
+      const center = centers.get(first.row);
+      const score =
+        Math.abs((first.column + seat.column) / 2 - center) +
+        Math.abs(labels.indexOf(first.row) - (labels.length - 1) / 2) * 2;
       if (!best || score < best.score) best = { start, score };
     }
     return best
       ? seats.slice(best.start, best.start + quantity).map((s) => s.seatId)
-      : [];
+      : twoRowGroup(seats, quantity, type);
   }
   function hold(user, body, key) {
     assert(
@@ -969,14 +985,19 @@ function createMemoryServer(input) {
   }
   async function route(request, response, url, body) {
     const path = (url.pathname.replace(/^\/api\/v1/, "") || "/").replace(
-        /^\/admin\/showtimes(?=\/)/,
-        "/showtimes",
+        /^\/admin\/(showtimes|movies)(?=\/|$)/,
+        "/$1",
       ),
       method = request.method,
       query = url.searchParams;
-    if (/^\/api\/v1\/admin\/showtimes\//.test(url.pathname)) {
+    if (/^\/api\/v1\/admin\/showtimes(?:\/|$)/.test(url.pathname)) {
       auth(request, ["ADMIN"]);
-      assert(method === "PATCH", "NOT_FOUND", "Không tìm thấy chức năng.", 404);
+      assert(
+        ["PATCH", "POST"].includes(method),
+        "NOT_FOUND",
+        "Không tìm thấy chức năng.",
+        404,
+      );
     }
     const json = (
       data,
@@ -1269,9 +1290,9 @@ function createMemoryServer(input) {
       invalidField(
         "password",
         typeof body.password === "string" &&
-          body.password.length >= 12 &&
+          body.password.length >= 6 &&
           body.password.length <= 128,
-        "Mật khẩu cần từ 12 đến 128 ký tự.",
+        "Mật khẩu cần từ 6 đến 128 ký tự.",
       );
       invalidField(
         "fullName",
@@ -1878,6 +1899,11 @@ function createMemoryServer(input) {
       const user = auth(request, ["ADMIN", "STAFF"]);
       await demoFixtures();
       return json(admission(body, user, path.endsWith("check-in")));
+    }
+    if (/^\/api\/v1\/admin\/movies(?:\/|$)/.test(url.pathname)) {
+      auth(request, ["ADMIN"]);
+      if (request.method === "PUT")
+        Object.defineProperty(request, "method", { value: "PATCH" });
     }
     const handled = admin(request, path, query, body, json);
     if (handled !== false) return handled;

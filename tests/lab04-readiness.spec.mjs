@@ -170,6 +170,51 @@ test("LAB04 admin receives field-level duration and duplicate-title errors from 
     "true",
   );
   await expect(form.locator("#catalog-error-title")).not.toHaveText("");
+  const title = f.prefix + " metadata roundtrip";
+  await form.getByLabel("Tên phim", { exact: true }).fill(title);
+  await form
+    .getByLabel("Thể loại", { exact: true })
+    .fill("Khoa học viễn tưởng");
+  await form
+    .getByLabel("Phụ đề / Ngôn ngữ", { exact: true })
+    .fill("Phụ đề Việt");
+  const created = page.waitForResponse(
+    (r) =>
+      r.request().method() === "POST" &&
+      new URL(r.url()).pathname === "/api/v1/movies",
+  );
+  await form.getByRole("button", { name: "Lưu phim", exact: true }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  const movie = (await response.json()).data;
+  await page
+    .getByRole("searchbox", { name: "Tìm trong danh mục quản trị" })
+    .fill(title);
+  await page
+    .locator(`tr[data-entity-id="${movie.id}"]`)
+    .getByRole("button", { name: "Sửa", exact: true })
+    .click();
+  await expect(form.getByLabel("Thể loại", { exact: true })).toHaveValue(
+    "Khoa học viễn tưởng",
+  );
+  await form
+    .getByLabel("Trạng thái", { exact: true })
+    .selectOption("COMING_SOON");
+  const changed = page.waitForResponse(
+    (r) =>
+      r.request().method() === "PATCH" &&
+      new URL(r.url()).pathname === `/api/v1/movies/${movie.id}`,
+  );
+  await form.getByRole("button", { name: "Lưu phim", exact: true }).click();
+  expect((await changed).status()).toBe(200);
+  const saved = (
+    await (await page.request.get(`/api/v1/movies/${movie.id}`)).json()
+  ).data;
+  expect(saved).toMatchObject({
+    genre: "Khoa học viễn tưởng",
+    subtitle: "Phụ đề Việt",
+    status: "COMING_SOON",
+  });
 });
 
 test("LAB04 capture layouts keep booking in normal flow and authentication controls in a grid at desktop, tablet and mobile", async ({

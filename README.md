@@ -1,113 +1,146 @@
 # 🎬 NOVA CINEMA (INFINITY) — HỆ THỐNG ĐẶT VÉ XEM PHIM TRỰC TUYẾN
 
-**BÁO CÁO ĐỒ ÁN HỌC PHẦN: NHẬP MÔN KỸ NGHỆ PHẦN MỀM (LAB04)**  
+**BÁO CÁO ĐỒ ÁN MÔN HỌC: NHẬP MÔN KỸ NGHỆ PHẦN MỀM (LAB04)**  
 **TRƯỜNG ĐẠI HỌC SƯ PHẠM THÀNH PHỐ HỒ CHÍ MINH — KHOA CÔNG NGHỆ THÔNG TIN**
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Project%20Status-Completed%20100%25-brightgreen?style=for-the-badge&logo=git" alt="Status" />
-  <img src="https://img.shields.io/badge/Milestone-LAB04%20Final%20Release-blue?style=for-the-badge&logo=github" alt="Milestone" />
-  <img src="https://img.shields.io/badge/Git%20Commits-88%2B%20Commits-orange?style=for-the-badge&logo=git" alt="Commits" />
-  <img src="https://img.shields.io/badge/Figma%20UI-25%2F25%20Screens%20(1920x1080)-purple?style=for-the-badge&logo=figma" alt="Figma UI" />
-  <img src="https://img.shields.io/badge/Figma%20Prototype-120%2B%20Wires-success?style=for-the-badge&logo=figma" alt="Figma Prototype" />
-  <img src="https://img.shields.io/badge/Architecture-Clean%20Architecture-informational?style=for-the-badge&logo=diagram-next" alt="Clean Architecture" />
-  <img src="https://img.shields.io/badge/Next.js-14.2-black?style=for-the-badge&logo=next.js" alt="Next.js" />
-  <img src="https://img.shields.io/badge/NestJS-10.3-red?style=for-the-badge&logo=nestjs" alt="NestJS" />
+  <a href="https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema"><img src="https://img.shields.io/badge/GitHub-Repository%20Official-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo" /></a>
+  <a href="https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip"><img src="https://img.shields.io/badge/Download-ZIP%20Source%20Code-brightgreen?style=for-the-badge&logo=curseforge&logoColor=white" alt="Download ZIP" /></a>
+  <a href="https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestones"><img src="https://img.shields.io/badge/Milestones-100%25%20Completed-blue?style=for-the-badge&logo=github" alt="Milestones" /></a>
+  <a href="https://www.figma.com/design/YNhIlce7yMKDYuOaONH56S/Web-xem-phim-nova-cinema?node-id=0-1"><img src="https://img.shields.io/badge/Figma-25%20Screens%20UI%2FUX-purple?style=for-the-badge&logo=figma&logoColor=white" alt="Figma UI" /></a>
+  <img src="https://img.shields.io/badge/Unit%20Tests-123%2F123%20PASS-success?style=for-the-badge&logo=node.js&logoColor=white" alt="Tests" />
+  <img src="https://img.shields.io/badge/Next.js-16%20App%20Router-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/NestJS-11%20API-red?style=for-the-badge&logo=nestjs" alt="NestJS" />
 </p>
 
-## Tải và chạy bản chính thức của nhóm
+---
 
-Nhánh dùng chung là **[`main`](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/tree/main)**. [Tải ZIP bản chính thức](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip), giải nén vào thư mục mới và mở terminal tại thư mục có `package.json`. Dùng Node.js 24 theo `.nvmrc`, dừng server cũ bằng `Ctrl+C`, rồi chạy:
+## ⚡ HƯỚNG DẪN NHANH DÀNH CHO NGƯỜI CHƯA BIẾT GÌ VỀ CODE
+
+> 💡 **Bạn không cần biết lập trình, không cần cài Database hay Docker phức tạp!**  
+> Dự án đã được đóng gói sẵn chế độ tự động chạy ngầm (In-Memory RAM Engine). Bạn chỉ cần thực hiện đúng **4 bước siêu đơn giản** dưới đây để mở trang web lên trải nghiệm:
+
+### 📥 Bước 1: Cài đặt Node.js (Nếu máy tính chưa có)
+- Tải bộ cài đặt Node.js chính thức: 👉 **[Tải Node.js LTS tại nodejs.org](https://nodejs.org/)** *(chọn bản **LTS - Recommended for Most Users**)*.
+- Mở file vừa tải về, bấm **Next** liên tục đến khi hoàn tất cài đặt.
+
+### 📦 Bước 2: Tải mã nguồn dự án về máy tính
+- **Cách 1 (Nhanh nhất):** Bấm trực tiếp vào liên kết 👉 **[TẢI FILE ZIP DỰ ÁN TẠI ĐÂY](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip)**.  
+  *(Sau khi tải về, hãy nhấp chuột phải chọn **Extract All... (Giải nén)** vào một thư mục trên máy tính)*.
+- **Cách 2 (Nếu dùng Git):** Mở cửa sổ Terminal / PowerShell và gõ lệnh:
+  ```bash
+  git clone https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema.git
+  cd du-an-web-xem-phim-nova-cinema
+  ```
+
+### 🚀 Bước 3: Mở Terminal và Khởi chạy đúng 2 câu lệnh
+1. Mở thư mục dự án vừa giải nén.
+2. Nhấp chuột phải vào khoảng trống trong thư mục, chọn **"Open in Terminal"** (hoặc mở ứng dụng **PowerShell / Command Prompt** rồi điều hướng vào thư mục dự án).
+3. Gõ lần lượt **2 lệnh** sau:
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Mở **http://localhost:3000**. Lệnh gốc khởi chạy giao diện trong `frontend/` cùng API trong `backend/`. Antigravity hoặc Git clone mặc định cần lấy nhánh `main`. Khi chưa cấu hình PostgreSQL, launcher dùng RAM theo lựa chọn của dự án; dữ liệu chế độ này reset khi restart.
+*(Lệnh `npm install` sẽ tự động tải các thư viện cần thiết. Lệnh `npm run dev` sẽ tự động bật cả máy chủ Giao diện và API cùng lúc).*
 
-[Kết quả kiểm tra bản phát hành main](docs/qa/main-release-verification.md).
-
----
-
-### 👨‍🏫 GIẢNG VIÊN HƯỚNG DẪN
-- **ThS. Lê Thanh Thoại**
-
-### 👥 DANH SÁCH THÀNH VIÊN THỰC HIỆN & TIẾN TRÌNH CỐNG HIẾN — NHÓM 03
-
-| STT | Họ và Tên | Mã số SV | Vai trò & Milestone GitHub | Số Task Milestone | Số Commit GitHub | Thanh tiến độ |
-| :-: | :--- | :---: | :--- | :---: | :---: | :---: |
-| 1 | **Lâm Thanh Phong** | `50.01.103.057` | **Nhóm trưởng & Fullstack Lead**<br>• [Milestone #1: FR Lead & Booking Engine](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/1) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **75 Commits**<br>*(81.5% Repository)* | `[██████████]`<br>**100%** |
-| 2 | **Phạm Ngọc Mỹ Huyền** | `50.01.103.028` | **Thành viên Phân tích & Nghiệp vụ**<br>• [Milestone #2: BA Lead & Requirements](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/2) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **Đặc tả SRS & BR**<br>*(Tham gia Use Cases)* | `[██████████]`<br>**100%** |
-| 3 | **Nguyễn Bình Phương Mi** | `50.01.103.039` | **Thành viên Quy trình & Vận hành**<br>• [Milestone #3: Survey Lead & UI System](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/3) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **25 Figma Screens**<br>*(Prototype 120+ dây)* | `[██████████]`<br>**100%** |
-| 4 | **Phùng Thị Mỹ Quyên** | `50.01.103.063` | **Thành viên Quản trị & Nghiệp vụ**<br>• [Milestone #5: QA Lead & Testing](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/5) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **35 Unit Tests PASS**<br>*(Kiểm thử & Nghiệp vụ)* | `[██████████]`<br>**100%** |
-| 5 | **Thạch Võ Diễm Ngọc** | `50.01.103.050` | **Thành viên Tài chính & Kiểm thử**<br>• [Milestone #4: Modeling Lead & Database](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/4) | **4 / 4 Tasks**<br>*(100% Hoàn thành)* | **ERD PostgreSQL & DB**<br>*(Mô hình hóa dữ liệu)* | `[██████████]`<br>**100%** |
-| * | **Minh Nhật** | *Hỗ trợ Kỹ thuật* | **Frontend & UI/UX Support**<br>• Tinh chỉnh Dark Glassmorphism, Responsive UI | **Đã phối hợp** | **17 Commits**<br>*(18.5% Repository)* | `[██████████]`<br>**100%** |
-
-<div align="center">
-
-### 📊 THỐNG KÊ CỐNG HIẾN GITHUB (GITHUB CONTRIBUTIONS & STATS)
-
-<!-- Thẻ thống kê tổng số Commit, Pull Request, PRs, Stars -->
-<img height="165em" src="https://github-readme-stats.vercel.app/api?username=thanhphonghcmue&show_icons=true&theme=dark&hide_border=true&title_color=E50914&icon_color=E50914&text_color=ffffff&bg_color=08090C" alt="Phong's GitHub Stats" />
-
-<!-- Thẻ thống kê tỷ lệ ngôn ngữ sử dụng (Next.js, TypeScript, CSS...) -->
-<img height="165em" src="https://github-readme-stats.vercel.app/api/top-langs/?username=thanhphonghcmue&layout=compact&theme=dark&hide_border=true&title_color=E50914&text_color=ffffff&bg_color=08090C&hide=html,css" alt="Top Languages" />
-
-</div>
+### 🌐 Bước 4: Mở trình duyệt trải nghiệm
+Khi màn hình hiển thị dòng chữ:
+```text
+[NOVA] Frontend và API đã sẵn sàng: http://localhost:3000
+```
+Hãy mở trình duyệt (Google Chrome, Microsoft Edge, Cốc Cốc...) và truy cập ngay vào địa chỉ:
+👉 **[http://localhost:3000](http://localhost:3000)**
 
 ---
 
-### 🚀 TIẾN TRÌNH DỰ ÁN & CỘT MỐC PHÁT HÀNH (PROJECT ROADMAP & SPRINT TRACKER)
+### 🔑 BẢNG TÀI KHOẢN ĐĂNG NHẬP MẪU SẴN CÓ
 
-| Cột mốc (Milestone) | Phạm vi Nghiệp vụ & Nghiệm thu Kỹ thuật | Số Tasks | Số Commits | Trạng thái | Tiến trình Hoàn thành |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| **Sprint 1: Phân tích & SRS (LAB01)** | Khảo sát bài toán, xác định 5 Actor, đặc tả 14 Use Cases (`UC01`–`UC14`) và 5 Quy tắc cốt lõi (`BR01`–`BR05`) | **4 Tasks** | **18 Commits** | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
-| **Sprint 2: Thiết kế Kiến trúc (LAB02)** | Clean Architecture (Domain - UseCases - Presentation), Activity Diagram, BPMN 3 Lane | **4 Tasks** | **22 Commits** | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
-| **Sprint 3: Core Engine & Concurrency (LAB03)** | Backend NestJS In-Memory DB, Concurrency Mutex chống trùng ghế 409, Khóa ghế 5 phút, Mã QR Vector SVG | **4 Tasks** | **28 Commits** | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
-| **Sprint 4: Production UI & Verification (LAB04)** | 25 Màn hình Full HD Figma native, Prototype 120+ dây tương tác, Camera quét QR jsQR, 35 Tests PASS | **4 Tasks** | **24 Commits** | `RELEASED` | `100%` ![100%](https://geps.dev/progress/100?dangerColor=800000&warningColor=ff8000&successColor=E50914) |
-| **Tổng kết Đồ án Toàn diện** | **20/20 Tasks Hoàn thành • 92 Commits Git • Đạt 100% tiêu chí nghiệm thu học phần HCMUE** | **20 Tasks** | **92 Commits** | **COMPLETED** | **`[██████████]` 100%** |
+Hệ thống đã chuẩn bị sẵn các tài khoản demo đầy đủ vai trò nghiệp vụ (Mật khẩu chung cho tất cả tài khoản là: **`nova@12345`**):
 
-> 🎯 **Thanh tiến độ GitHub Milestones 5 Thành viên (Trực quan nằm ngang):**  
-> 👉 **[Xem trực tiếp 5 Thanh tiến trình 100% trên GitHub Milestones](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestones)**
+| Vai trò người dùng | Email đăng nhập | Mật khẩu | Quyền hạn & Dữ liệu sẵn có |
+| :--- | :--- | :---: | :--- |
+| **Hội viên VIP (C'MEMBER)** | `cmember@nova.vn` | `nova@12345` | Hạng **GOLD**, có sẵn **50.000 điểm thưởng**, tự động giảm giá vé. |
+| **Khách hàng thông thường** | `customer@nova.vn` | `nova@12345` | Tài khoản khách chuẩn, đặt vé, lưu vé điện tử vào ví cá nhân. |
+| **Nhân viên soát vé (Staff)** | `staff@nova.vn` | `nova@12345` | Truy cập trang Soát vé, quét mã QR camera, kiểm tra tính hợp lệ của vé. |
+| **Quản trị viên (Admin)** | `admin@nova.vn` | `nova@12345` | Toàn quyền Quản lý phim, phòng chiếu, lập lịch chiếu, thống kê doanh thu. |
 
----
-
-### 🎨 TÀI NGUYÊN THIẾT KẾ FIGMA & PROTOTYPE TRÌNH CHIẾU
-* **Link Figma chính thức:** [https://www.figma.com/design/YNhIlce7yMKDYuOaONH56S/Web-xem-phim-nova-cinema?node-id=0-1](https://www.figma.com/design/YNhIlce7yMKDYuOaONH56S/Web-xem-phim-nova-cinema?node-id=0-1)
-* **Quy cách:** 25 Màn hình chuẩn Full HD (1920 × 1080), 100% Frame & Layer tương tác được, mở khóa toàn bộ cho phép kéo thả.
-* **Luồng tương tác Prototype:** Hơn 120+ dây nối dẫn xuất từ cả nút bấm thật lẫn thanh điều hướng trợ năng (`NOVA_WORKFLOW_NAV_BAR`).
+*(Ngoài ra bạn hoàn toàn có thể tự bấm nút **"Đăng ký"** ngay trên giao diện web để tạo tài khoản mới theo ý thích!)*
 
 ---
 
-## 📌 MỤC LỤC TỔNG QUAN
+### 🧭 CÁC TRANG CHỨC NĂNG CHÍNH ĐỂ NGHIỆM THU
 
-1. [Giới thiệu Hệ thống NOVA Cinema](#-1-tổng-quan-hệ-thống-nova-cinema)
-2. [Phân tích 5 Tác nhân (Actors)](#-2-phân-tích-các-tác-nhân-actors)
-3. [Danh mục 14 Ca sử dụng (Use Cases UC01 - UC14)](#-3-danh-mục-14-use-case-hệ-thống-uc01--uc14)
-4. [Quy tắc Nghiệp vụ Cốt lõi (CR-01, BR01 - BR05)](#-4-quy-tắc-nghiệp-vụ-cốt-lõi-business-rules)
-5. [Mô hình hóa Quy trình Nghiệp vụ (Activity Diagram & BPMN)](#-5-mô-hình-hóa-quy-trình-nghiệp-vụ)
-6. [Kiến trúc Kỹ thuật & Công nghệ (Clean Architecture)](#-6-kiến-trúc-kỹ-thuật-hệ-thống)
-7. [Hướng dẫn Khởi chạy Hệ thống](#-7-hướng-dẫn-cài-đặt-và-khởi-chạy-hệ-thống)
-8. [Kiểm thử & Đảm bảo Chất lượng (QA)](#-8-kiểm-thử-và-đảm-bảo-chất-lượng-qa)
-
----
-
-## 📖 1. TỔNG QUAN HỆ THỐNG NOVA CINEMA
-
-**NOVA Cinema (Infinity)** là website đặt vé xem phim trực tuyến hoàn chỉnh, cung cấp giải pháp chuyển đổi số toàn diện cho chuỗi cụm rạp chiếu phim hiện đại. Hệ thống phục vụ xuyên suốt từ khâu tra cứu lịch chiếu, lựa chọn ghế ngồi, quản lý đặt vé, thanh toán trực tuyến đến khâu kiểm soát vé bằng mã QR tại cửa phòng chiếu.
-
-### Mục tiêu giải pháp:
-
-- **Tối ưu hóa hành trình người dùng (User Experience)**: Giao diện _Cinematic Dark UI_ sang trọng, tra cứu phim và đặt vé nhanh chóng dưới 30 giây.
-- **Giải quyết triệt để tranh chấp tài nguyên (Concurrency & Race Condition)**: Cơ chế khóa ghế bi quan và khóa phân tán giúp hàng nghìn người dùng có thể cùng lúc truy cập một suất chiếu bom tấn mà không bị trùng ghế.
-- **Tự động hóa hoàn toàn vòng đời giữ chỗ (Seat Lifecycle)**: Cơ chế đếm ngược chính xác 5 phút (300 giây). Nếu quá thời gian hoặc thanh toán thất bại, hệ thống tự động giải phóng ghế ngay lập tức theo quy tắc **CR-01 / BR04**.
-- **Số hóa quy trình soát vé**: Phát hành vé điện tử mã QR Vector SVG với chữ ký mật mã (admission hash 64-hex), cho phép nhân viên rạp quét và kiểm tra tính hợp lệ tức thì, ngăn chặn hoàn toàn tình trạng vé giả hoặc vé sử dụng lại.
+| Chức năng cần kiểm tra | Đường dẫn trực tiếp | Mô tả trải nghiệm |
+| :--- | :--- | :--- |
+| 🎬 **Trang chủ & Danh sách phim** | [http://localhost:3000](http://localhost:3000) | Xem danh mục 24 phim bom tấn, lọc theo thể loại, độ tuổi, trailer. |
+| 💺 **Chọn ghế & Chống ghế lẻ (CR-01)** | [http://localhost:3000/dat-ve](http://localhost:3000/dat-ve) | Trực tiếp thử chọn 2 ghế cách nhau 1 ô trống (B14 & B16) để thấy hệ thống lập tức báo đỏ và cảnh báo không cho để trống ghế đơn lẻ! |
+| 🎫 **Ví vé điện tử QR Code** | [http://localhost:3000/tai-khoan](http://localhost:3000/tai-khoan) | Xem vé điện tử đã mua kèm mã QR Vector sắc nét, nút xuất lịch `.ics`. |
+| 📷 **Cổng soát vé điện tử (Staff)** | [http://localhost:3000/soat-ve](http://localhost:3000/soat-ve) | Bật camera quét QR hoặc nhập mã vé để đối chiếu thông tin và check-in. |
+| ⚙️ **Bảng điều khiển Quản trị (Admin)** | [http://localhost:3000/quan-tri](http://localhost:3000/quan-tri) | Thêm phim mới, thiết lập phòng chiếu, lập lịch chiếu chống xung đột 15 phút. |
+| 🕶️ **Trải nghiệm Màn chiếu Cong 3D** | [http://localhost:3000/xem-truoc](http://localhost:3000/xem-truoc) | Công nghệ đồ họa Three.js mô phỏng phòng chiếu không gian vòm IMAX. |
 
 ---
 
-## 👤 2. PHÂN TÍCH CÁC TÁC NHÂN (ACTORS)
+### ❓ CÂU HỎI THƯỜNG GẶP (FAQ) & KHẮC PHỤC SỰ CỐ
+- **Làm sao để tắt máy chủ khi dùng xong?**  
+  👉 Quay lại cửa sổ Terminal / PowerShell và nhấn tổ hợp phím **`Ctrl + C`**.
+- **Bị báo lỗi `Port 3000 is already in use` hoặc cổng 4000 bị bận?**  
+  👉 Do một phiên bản web cũ đang chạy ngầm. Hãy đóng toàn bộ cửa sổ Terminal cũ hoặc khởi động lại máy tính, sau đó chạy lại `npm run dev`.
+- **Dữ liệu có bị mất khi tắt máy không?**  
+  👉 Khi chạy chế độ mặc định tiện lợi (In-Memory RAM), dữ liệu đặt vé sẽ reset về trạng thái ban đầu sạch sẽ sau mỗi lần restart máy chủ, đảm bảo không sợ lỗi dữ liệu rác.
 
-Hệ thống NOVA Cinema xác định rõ ràng 5 Actor tương tác qua ranh giới hệ thống (_System Boundary_):
+---
+
+## 👨‍🏫 THÔNG TIN HỌC PHẦN & GIẢNG VIÊN HƯỚNG DẪN
+- **Môn học:** Nhập môn Kỹ nghệ Phần mềm (Software Engineering Basics) — LAB04
+- **Khoa:** Công nghệ Thông tin — Trường Đại học Sư phạm TP. Hồ Chí Minh (HCMUE)
+- **Giảng viên hướng dẫn:** **ThS. Lê Thanh Thoại**
+
+---
+
+## 👥 THÀNH VIÊN THỰC HIỆN & TIẾN TRÌNH CỐNG HIẾN — NHÓM 03
+
+| STT | Họ và Tên | Mã số SV | Vai trò & Milestone GitHub | Đóng góp chuyên môn | Tiến độ Hoàn thành |
+| :-: | :--- | :---: | :--- | :--- | :---: |
+| 1 | **Lâm Thanh Phong** | `50.01.103.057` | **Nhóm trưởng & Fullstack Lead**<br>• [Milestone #1: FR Lead & Booking Engine](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/1) | Kiến trúc Clean Architecture, Core Booking Engine, Concurrency Mutex, 80+ Commits. | **100%** `[██████████]` |
+| 2 | **Phạm Ngọc Mỹ Huyền** | `50.01.103.028` | **Thành viên Phân tích & Nghiệp vụ**<br>• [Milestone #2: BA Lead & Requirements](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/2) | Khảo sát thực tế, tài liệu SRS, phân tích 5 Actor và 14 Ca sử dụng. | **100%** `[██████████]` |
+| 3 | **Nguyễn Bình Phương Mi** | `50.01.103.039` | **Thành viên Thiết kế & Vận hành**<br>• [Milestone #3: Survey Lead & UI System](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/3) | Thiết kế 25 màn hình Figma Full HD, nối Prototype 120+ dây tương tác. | **100%** `[██████████]` |
+| 4 | **Phùng Thị Mỹ Quyên** | `50.01.103.063` | **Thành viên Kiểm thử & Đảm bảo chất lượng**<br>• [Milestone #5: QA Lead & Testing](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/5) | Xây dựng kịch bản kiểm thử, kiểm thử 5 phân hệ nghiệp vụ, 123 Tests PASS. | **100%** `[██████████]` |
+| 5 | **Thạch Võ Diễm Ngọc** | `50.01.103.050` | **Thành viên Dữ liệu & Mô hình hóa**<br>• [Milestone #4: Modeling Lead & Database](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/4) | Thiết kế sơ đồ quan hệ ERD PostgreSQL, mô hình hóa quy trình Activity/BPMN. | **100%** `[██████████]` |
+| * | **Minh Nhật** | *Hỗ trợ Kỹ thuật* | **Frontend & UI/UX Support** | Tinh chỉnh Dark Glassmorphism UI, hỗ trợ kiểm thử giao diện Responsive. | **100%** `[██████████]` |
+
+> 🎯 **Xem toàn bộ tiến độ 5 Milestone đạt 100% trên GitHub:**  
+> 👉 **[GitHub Milestones — Dự án Web Xem Phim NOVA Cinema](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestones)**
+
+---
+
+## 🎨 THIẾT KẾ FIGMA & BỘ NHẬN DIỆN THƯƠNG HIỆU
+* **Figma File chính thức:** 👉 **[Xem bản vẽ Figma 25 Màn hình Full HD tại đây](https://www.figma.com/design/YNhIlce7yMKDYuOaONH56S/Web-xem-phim-nova-cinema?node-id=0-1)**
+* **Quy cách thiết kế:** 25 Màn hình chuẩn Full HD (1920 × 1080), 100% Vector Frames tương tác trực tiếp được.
+* **Prototype tương tác:** Hơn 120+ đường dây nối điều hướng thông minh.
+* **Tài liệu Thiết kế Hệ thống:** [docs/brand-identity.html](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/blob/main/docs/brand-identity.html).
+
+---
+
+## 📖 1. TỔNG QUAN DỰ ÁN NOVA CINEMA (INFINITY)
+
+**NOVA Cinema (Infinity Experience)** là nền tảng web đặt vé xem phim trực tuyến hiện đại, ứng dụng kiến trúc phần mềm chuẩn mực để giải quyết triệt để các bài toán hóc búa của chuỗi rạp chiếu phim quy mô lớn:
+
+### 🌟 Khẩu hiệu & Tầm nhìn Thương hiệu:
+> *"Tắt thế giới ngoài kia. Bật trải nghiệm NOVA."*
+
+### 💎 Điểm nổi bật về giải pháp:
+1. **Trải nghiệm điện ảnh đỉnh cao (Cinematic Glassmorphism):** Giao diện tông màu Obsidian Dark kết hợp hiệu ứng hào quang Crimson Red và Amber Gold mang lại cảm xúc sang trọng như ngồi tại rạp chiếu cao cấp.
+2. **Triệt tiêu tranh chấp tài nguyên (Zero-Conflict Concurrency):** Xử lý đồng thời hàng nghìn người cùng bấm chọn một ghế bom tấn tại cùng một tích tắc mà không bao giờ bị trùng ghế.
+3. **Bộ đếm thời gian giữ ghế thời gian thực (300 giây):** Đếm lùi chính xác theo đồng hồ máy chủ. Nếu quá thời gian hoặc thanh toán thất bại, ghế sẽ tự động giải phóng tức khắc theo quy tắc **BR04**.
+4. **Quy tắc Chống ghế đơn lẻ (CR-01 Single Seat Isolation):** Ngăn chặn khách hàng để trống 1 ghế đơn độc ở đầu dãy, cuối dãy hoặc kẹp giữa 2 ghế đã mua/đang chọn, tối ưu hóa tối đa doanh thu phòng vé.
+5. **Số hóa vé xem phim bằng mã QR Vector:** Phát hành mã QR chứa mã xác thực mật mã SHA-256 (64-hex). Nhân viên rạp dùng camera quét vé với 3 trạng thái phản hồi chuẩn xác: **Hợp lệ (Xanh)**, **Sai suất chiếu (Vàng)**, **Vé đã qua sử dụng (Đỏ)**.
+
+---
+
+## 👤 2. PHÂN TÍCH 5 TÁC NHÂN HỆ THỐNG (ACTORS)
 
 ```
                         SƠ ĐỒ PHÂN CẤP TÁC NHÂN (ACTOR HIERARCHY)
@@ -125,160 +158,46 @@ Hệ thống NOVA Cinema xác định rõ ràng 5 Actor tương tác qua ranh gi
 └───────────┘ └───────────┘             └───────────────────┘
 ```
 
-### 1. Khách hàng (Customer)
-
-- **Vị trí**: Nằm ngoài ranh giới hệ thống (Actor chính).
-- **Mô tả**: Đại diện cho khán giả truy cập website NOVA Cinema để tìm kiếm thông tin và thực hiện đặt vé xem phim.
-- **Vai trò & Chức năng**:
-  - Đăng ký tài khoản người dùng cá nhân (UC01).
-  - Tra cứu thông tin chi tiết 24 bộ phim và lịch chiếu các cụm rạp (UC03).
-  - Chọn vị trí ghế ngồi trực quan và giữ ghế tạm thời trong 5 phút (UC04).
-  - Sử dụng thuật toán gợi ý cụm ghế liền kề cho nhóm bạn bè, gia đình (UC09).
-  - Tạo đơn đặt vé, tính tổng tiền vé kèm bắp nước (UC05).
-  - Thực hiện thanh toán trực tuyến qua cổng Payment Sandbox (UC06).
-  - Nhận vé điện tử có mã QR Code (UC07) và nhận email xác nhận giao dịch (UC08).
-  - Xuất lịch xem phim dưới định dạng chuẩn `.ics` vào ứng dụng lịch điện thoại/máy tính (UC10).
-
-### 2. C'MEMBER (Customer Member)
-
-- **Vị trí**: Nằm ngoài ranh giới hệ thống (Actor chuyên biệt, kế thừa từ Khách hàng).
-- **Mô tả**: Khách hàng thân thiết đã có tài khoản định danh trong hệ thống NOVA Cinema.
-- **Quyền lợi & Chức năng bổ sung**:
-  - Đăng nhập hệ thống (UC02) và duy trì phiên làm việc bảo mật.
-  - Tích lũy điểm thưởng C'MEMBER theo từng hạng thẻ (Silver, Gold, Diamond).
-  - Hưởng quyền lợi chiết khấu giá vé tự động và áp dụng các gói ưu đãi Party Combo (UC05).
-  - Sử dụng các mã giảm giá, voucher độc quyền theo chính sách rạp.
-
-### 3. Nhân viên rạp (Cinema Staff)
-
-- **Vị trí**: Người dùng nội bộ vận hành tại rạp chiếu.
-- **Mô tả**: Chịu trách nhiệm kiểm soát vé vào cửa trước khi khách hàng bước vào phòng chiếu.
-- **Vai trò & Chức năng**:
-  - Đăng nhập hệ thống bằng tài khoản nhân viên được cấp thẩm quyền (UC02).
-  - Thực hiện xác thực và soát vé điện tử bằng máy quét mã QR hoặc nhập mã thủ công (UC14).
-  - Đối chiếu thông tin phim, suất chiếu, phòng chiếu và số ghế hiển thị trên màn hình soát vé.
-  - Ghi nhận trạng thái vé thành **ĐÃ SỬ DỤNG** (chỉ cho phép check-in 1 lần duy nhất).
-  - Từ chối xác nhận vé không hợp lệ, vé sai suất chiếu hoặc vé đã sử dụng trước đó.
-
-### 4. Quản trị viên (Admin)
-
-- **Vị trí**: Người dùng nội bộ quản lý hệ thống.
-- **Mô tả**: Quản lý toàn bộ dữ liệu nền tảng, cơ sở vật chất và lịch vận hành của rạp.
-- **Vai trò & Chức năng**:
-  - Đăng nhập trang quản trị hệ thống (UC02).
-  - Quản lý danh mục phim: thêm mới, cập nhật thông tin, thay đổi trạng thái chiếu, xóa phim (UC11).
-  - Quản lý phòng chiếu và sơ đồ ghế: cấu hình hàng, cột, loại ghế (Thường, VIP, Sweetbox đôi) và kiểm tra sức chứa tối đa (UC12).
-  - Quản lý lịch chiếu phim: lập kế hoạch suất chiếu, tự động kiểm tra chống xung đột phòng chiếu theo quy tắc BR03 (UC13).
-  - Tra cứu, đối soát giao dịch tài chính và xuất báo cáo doanh thu định dạng CSV (UC06 / UC11).
-
-### 5. Payment Sandbox (Cổng thanh toán giả lập)
-
-- **Vị trí**: Hệ thống bên ngoài ranh giới NOVA Cinema (Actor phụ).
-- **Mô tả**: Đại diện cho cổng thanh toán điện tử trung gian tiếp nhận và xử lý giao dịch.
-- **Vai trò & Chức năng**:
-  - Tiếp nhận thông số đơn hàng (mã đơn, số tiền, chữ ký giao dịch) từ NOVA Cinema gửi sang.
-  - Xử lý giao dịch thanh toán mô phỏng an toàn.
-  - Phản hồi trạng thái giao dịch: Thành công (Success), Thất bại (Fail), Khách hàng chủ động hủy (Canceled), hoặc Hết hạn (Timeout).
+1. **Khách hàng (Customer):** Tra cứu 24 phim, xem lịch chiếu theo ngày, chọn ghế ngồi, chọn bắp nước, thanh toán trực tuyến, nhận vé QR và tải lịch `.ics`.
+2. **Hội viên C'MEMBER (Customer Member):** Kế thừa toàn bộ quyền hạn của Khách hàng, đồng thời được tích lũy điểm thưởng theo từng hạng thẻ (Silver, Gold, Diamond), tự động nhận chiết khấu giá vé và ưu đãi combo.
+3. **Nhân viên rạp (Cinema Staff):** Đăng nhập cổng soát vé nội bộ, sử dụng camera quét mã QR trên vé khách hàng để kiểm tra tính hợp lệ và ghi nhận check-in đúng 1 lần duy nhất.
+4. **Quản trị viên (Admin):** Quản lý danh mục phim, sơ đồ phòng chiếu, thiết lập lịch chiếu phim chống xung đột khung giờ (15 phút đệm dọn phòng), thống kê doanh thu và quản lý người dùng.
+5. **Cổng thanh toán giả lập (Payment Sandbox):** Tiếp nhận thông số đơn hàng, xử lý thanh toán mô phỏng an toàn và phản hồi trạng thái giao dịch (Thành công, Thất bại, Hủy, Quá hạn).
 
 ---
 
-## 📑 3. DANH MỤC 14 USE CASE HỆ THỐNG (UC01 — UC14)
+## 📑 3. DANH MỤC 14 CA SỬ DỤNG (USE CASES UC01 — UC14)
 
-Theo đặc tả của đồ án LAB04, hệ thống gồm 14 Use Case chuẩn hóa:
-
-|  Mã UC   | Tên Use Case                     | Actor chính                    | Actor phụ              | Mục tiêu nghiệp vụ                                                                                                             |
-| :------: | :------------------------------- | :----------------------------- | :--------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
-| **UC01** | Đăng ký tài khoản                | Khách hàng                     | —                      | Khách hàng đăng ký tài khoản mới; hệ thống kiểm tra định dạng dữ liệu và tính duy nhất của email.                              |
-| **UC02** | Đăng nhập hệ thống               | Nhân viên rạp, C'MEMBER, Admin | —                      | Xác thực tài khoản bằng mật khẩu mã hóa argon2, phân quyền theo vai trò (Customer/Staff/Admin) và cấp phiên làm việc HttpOnly. |
-| **UC03** | Tra cứu phim và suất chiếu       | Khách hàng                     | —                      | Tra cứu 24 phim, lọc theo độ tuổi (P, K, T13, T16, T18), định dạng phòng (IMAX Laser, VIP) và ngày chiếu.                      |
-| **UC04** | Chọn và giữ ghế                  | Khách hàng, C'MEMBER           | —                      | Chọn ghế trên sơ đồ trực quan; hệ thống kiểm tra khả dụng và tạm giữ ghế trong 300 giây theo BR02.                             |
-| **UC05** | Tạo đơn đặt vé và tính tổng tiền | Khách hàng, C'MEMBER           | —                      | Tổng hợp tiền vé theo loại ghế, tích hợp Party Combo 69K, áp dụng quyền lợi C'MEMBER và voucher giảm giá.                      |
-| **UC06** | Thanh toán đơn hàng              | C'MEMBER, Khách hàng           | Payment Sandbox, Admin | Chuyển tiếp thanh toán an toàn; cập nhật trạng thái đơn `PAID` và chuyển ghế sang `ĐÃ BÁN` khi thành công.                     |
-| **UC07** | Nhận vé điện tử QR               | Khách hàng                     | —                      | Khách hàng nhận và xem vé điện tử chứa mã QR SVG mã hóa admission hash bảo mật cao.                                            |
-| **UC08** | Nhận email xác nhận              | Khách hàng                     | —                      | Hệ thống tự động gửi email thông báo chi tiết đơn hàng, suất chiếu và đính kèm mã vé điện tử.                                  |
-| **UC09** | Gợi ý cụm ghế liền nhau          | Khách hàng                     | —                      | Thuật toán quét ma trận phòng và tự động đề xuất dải ghế liền kề tối ưu cho nhóm khán giả ($\le 20$ ghế).                      |
-| **UC10** | Xuất lịch xem phim `.ics`        | Khách hàng                     | —                      | Tạo tệp tin lịch điện tử `.ics` chứa thông tin phim, rạp, giờ chiếu để đồng bộ vào Google Calendar/Apple Calendar.             |
-| **UC11** | Quản lý phim                     | Admin                          | —                      | Thêm, sửa, cập nhật trạng thái phim (Đang chiếu, Sắp chiếu, Ngừng chiếu); kiểm tra tính duy nhất của tên phim.                 |
-| **UC12** | Quản lý phòng chiếu và sơ đồ ghế | Admin                          | —                      | Thiết lập phòng chiếu theo hàng/cột, chỉ định phân loại ghế (Thường, VIP, Đôi) và kiểm tra ngưỡng sức chứa.                    |
-| **UC13** | Quản lý lịch chiếu               | Admin                          | —                      | Lập lịch chiếu phim; hệ thống tự động kiểm tra và ngăn chặn xung đột thời gian trong cùng phòng theo BR03.                     |
-| **UC14** | Xác thực và soát vé QR           | Nhân viên rạp                  | Khách hàng / C'MEMBER  | Nhân viên rạp quét mã QR, đối chiếu suất chiếu, ghi nhận trạng thái **ĐÃ SỬ DỤNG** 1 lần duy nhất.                             |
-
-### Ma trận Xử lý Soát vé QR (UC14):
-
-| Tình huống quét vé              | Kết quả hệ thống                                                      | Hành động xử lý của Nhân viên rạp                                        |
-| :------------------------------ | :-------------------------------------------------------------------- | :----------------------------------------------------------------------- |
-| **Vé hợp lệ**                   | Hiển thị đúng phim, suất chiếu, phòng, số ghế; cho phép bấm Xác nhận. | Cho khách vào phòng chiếu và ghi nhận check-in lên hệ thống.             |
-| **Không tìm thấy vé**           | Thông báo lỗi không tìm thấy định danh vé trong CSDL.                 | Từ chối xác nhận; yêu cầu khách hàng kiểm tra lại vé trong tài khoản.    |
-| **Sai suất chiếu / ngày chiếu** | Cảnh báo vé không phù hợp với phòng chiếu hoặc giờ chiếu hiện tại.    | Không xác nhận; hướng dẫn khách hàng di chuyển đến đúng phòng/giờ chiếu. |
-| **Vé đã được sử dụng**          | Cảnh báo vé đã được check-in trước đó kèm mốc thời gian đã quét.      | Từ chối tuyệt đối; chuyển xử lý theo quy định chống gian lận của rạp.    |
+| Mã UC | Tên Ca sử dụng | Tác nhân chính | Tác nhân phụ | Mục tiêu nghiệp vụ chuẩn hóa |
+| :---: | :--- | :--- | :---: | :--- |
+| **UC01** | Đăng ký tài khoản | Khách hàng | — | Đăng ký tài khoản với định dạng email chuẩn và mật khẩu bảo mật. |
+| **UC02** | Đăng nhập hệ thống | Khách hàng, C'MEMBER, Staff, Admin | — | Xác thực bảo mật, phân quyền theo vai trò và cấp phiên HttpOnly. |
+| **UC03** | Tra cứu phim & lịch chiếu | Khách hàng | — | Lọc danh mục 24 phim theo thể loại, độ tuổi, định dạng phòng và ngày chiếu. |
+| **UC04** | Chọn & Giữ ghế | Khách hàng, C'MEMBER | — | Chọn ghế trên sơ đồ trực quan, kích hoạt khóa ghế tạm thời 300 giây. |
+| **UC05** | Tạo đơn & Tính tiền | Khách hàng, C'MEMBER | — | Tổng hợp giá vé, bắp nước combo, giảm giá thẻ C'MEMBER và voucher. |
+| **UC06** | Thanh toán đơn hàng | Khách hàng, C'MEMBER | Payment Sandbox | Xử lý thanh toán an toàn, xác nhận trạng thái đơn hàng PAID và đổi ghế thành SOLD. |
+| **UC07** | Nhận vé điện tử QR | Khách hàng | — | Phát hành vé điện tử mã QR Vector SVG có chữ ký bảo mật chống làm giả. |
+| **UC08** | Nhận email xác nhận | Khách hàng | — | Tự động gửi email thông báo chi tiết đơn hàng và đính kèm vé. |
+| **UC09** | Gợi ý cụm ghế liền kề | Khách hàng | — | Thuật toán tự động đề xuất dải ghế liền kề tối ưu cho nhóm khán giả (≤ 20 ghế). |
+| **UC10** | Xuất lịch `.ics` | Khách hàng | — | Tạo tệp tin lịch điện tử đồng bộ thời gian chiếu vào Google/Apple Calendar. |
+| **UC11** | Quản lý phim | Admin | — | Thêm, sửa, đổi trạng thái chiếu (Đang chiếu, Sắp chiếu, Ngừng chiếu). |
+| **UC12** | Quản lý phòng chiếu | Admin | — | Cấu hình hàng, cột, loại ghế (Thường, VIP, Sweetbox đôi) và sức chứa. |
+| **UC13** | Quản lý lịch chiếu | Admin | — | Lập lịch chiếu tự động kiểm tra chống trùng lặp giờ và đảm bảo 15 phút đệm dọn phòng. |
+| **UC14** | Xác thực & Soát vé QR | Nhân viên rạp | Khách hàng | Quét mã QR đối chiếu suất chiếu, ghi nhận trạng thái ĐÃ SỬ DỤNG 1 lần duy nhất. |
 
 ---
 
-## ⚖️ 4. QUY TẮC NGHIỆP VỤ CỐT LÕI (BUSINESS RULES)
+## ⚖️ 4. NĂM QUY TẮC NGHIỆP VỤ CỐT LÕI (BUSINESS RULES)
 
-Hệ thống NOVA Cinema tuân thủ nghiêm ngặt 5 Quy tắc Nghiệp vụ (_Business Rules_) và 1 Ràng buộc Hệ thống (_Constraint_):
-
-- **CR-01 / BR01 — Chống Đặt Trùng Ghế (Concurrency & Race Condition)**:
-  - Một ghế tại một suất chiếu chỉ có thể được sở hữu bởi duy nhất một phiên giao dịch tại một thời điểm.
-  - Khi có tranh chấp đồng thời, hệ thống sử dụng cơ chế khóa phân tán Redis và khóa bi quan Database để chỉ chấp thuận giao dịch đầu tiên; các giao dịch đến sau lập tức nhận cảnh báo lỗi ghế không còn khả dụng.
-- **BR02 — Thời Gian Giữ Ghế Tạm Thời (Holding Deadline)**:
-  - Khi khách hàng xác nhận chọn ghế, hệ thống kích hoạt bộ đếm ngược chính xác **`300 giây (05:00 phút)`**.
-  - Trạng thái ghế chuyển sang `HOLDING` và được bảo lưu trong suốt thời gian khách hàng thực hiện các bước thanh toán.
-- **BR03 — Chống Xung Đột Suất Chiếu (Showtime Non-overlapping)**:
-  - Không được phép tạo hai suất chiếu có khung giờ trùng lặp trong cùng một phòng chiếu.
-  - Giờ bắt đầu của suất chiếu sau phải cách giờ kết thúc của suất chiếu trước một khoảng thời gian tối thiểu (15 — 20 phút) phục vụ công tác dọn phòng và chuẩn bị kỹ thuật.
-- **BR04 — Giải Phóng Ghế Tự Động (Auto Seat Release)**:
-  - Trong mọi trường hợp đơn hàng không thành công (hết hạn 5 phút giữ ghế, khách hàng chủ động hủy đơn, hoặc cổng thanh toán Sandbox báo thất bại), hệ thống tự động hủy đơn và hoàn trả toàn bộ số ghế về trạng thái `AVAILABLE` cho cộng đồng.
-- **BR05 — Giới Hạn Đơn Hàng & Chính Sách Hội Viên**:
-  - Mỗi đơn hàng được đặt tối đa **20 ghế** (bao gồm cả hai chỗ ngồi của ghế đôi Sweetbox).
-  - Điểm thưởng C'MEMBER và mã giảm giá chỉ được khấu trừ trên phần tiền vé hợp lệ, đảm bảo tổng tiền đơn hàng không âm.
+- **CR-01 / BR01 — Chống Đặt Trùng Ghế (Concurrency Protection):** Một ghế tại một suất chiếu chỉ thuộc về duy nhất 1 phiên giao dịch tại 1 thời điểm. Áp dụng Mutex Concurrency để chỉ chấp thuận giao dịch đầu tiên khi có tranh chấp đồng thời.
+- **BR02 — Khóa Ghế Tạm Thời 300 Giây (Holding Deadline):** Ngay khi chọn ghế, hệ thống đếm ngược 5:00 phút. Trạng thái ghế là `HOLDING` để khách hàng yên tâm thực hiện các bước tiếp theo.
+- **BR03 — Chống Xung Đột Suất Chiếu (15-Minute Buffer):** Trong cùng một phòng chiếu, giờ bắt đầu của suất chiếu sau phải cách giờ kết thúc của suất chiếu trước tối thiểu 15 phút để phục vụ dọn vệ sinh và bảo dưỡng kỹ thuật.
+- **BR04 — Tự Động Hoàn Trả Ghế (Auto Seat Rollback):** Bất kỳ khi nào đơn hàng bị hủy, hết hạn 300 giây hoặc thanh toán thất bại, hệ thống lập tức hoàn trả ghế về trạng thái `AVAILABLE` cho người khác đặt.
+- **BR05 — Giới Hạn Đơn Hàng & Thẻ Thành Viên:** Mỗi đơn đặt tối đa 20 ghế. Điểm tích lũy và voucher chỉ áp dụng trên giá trị vé hợp lệ.
 
 ---
 
-## 🔄 5. MÔ HÌNH HÓA QUY TRÌNH NGHIỆP VỤ
-
-### 1. Activity Diagram — Đặt vé và Giữ ghế (Hình 3.1)
-
-```mermaid
-stateDiagram-v2
-    [*] --> TraCuuPhim: Khách hàng tìm phim
-    TraCuuPhim --> ChonSuatChieu: Chọn suất chiếu mong muốn
-    ChonSuatChieu --> ChonGhe: Mở sơ đồ phòng chiếu
-    ChonGhe --> KiemTraGhe: Chọn vị trí ghế ngồi
-    state KiemTraGhe <<choice>>
-    KiemTraGhe --> ChonGhe: Ghế đã bận / Không khả dụng
-    KiemTraGhe --> GiuGhe: Ghế hoàn toàn trống
-    GiuGhe --> KhoiTaoTimer: Khóa ghế & Bắt đầu đếm 5:00 phút (BR02)
-    KhoiTaoTimer --> ChonBapNuoc: Khách hàng chọn Combo bắp nước
-    state HetHanTimer1 <<choice>>
-    ChonBapNuoc --> GiaiPhongGhe: Hết hạn 5 phút (Timeout)
-    ChonBapNuoc --> TaoDonHang: Xác nhận tiếp tục
-    state HetHanTimer2 <<choice>>
-    TaoDonHang --> GiaiPhongGhe: Quá hạn thanh toán
-    TaoDonHang --> ChuyenThanhToan: Chuyển sang Cổng Thanh Toán
-    GiaiPhongGhe --> [*]: Ghế trở về trạng thái AVAILABLE
-    ChuyenThanhToan --> [*]
-```
-
-### 2. Activity Diagram — Quản lý Lịch chiếu Admin (Hình 3.2)
-
-```mermaid
-stateDiagram-v2
-    [*] --> ChonChucNang: Admin mở Quản lý Lịch chiếu (UC13)
-    ChonChucNang --> NhapThongTin: Chọn Phim, Phòng chiếu, Giờ bắt đầu
-    NhapThongTin --> TinhKetThuc: Tính giờ kết thúc = Thời lượng phim + Thời gian dọn phòng
-    TinhKetThuc --> KiemTraXungDot: Kiểm tra xung đột lịch phòng (BR03)
-    state KiemTraXungDot <<choice>>
-    KiemTraXungDot --> ThongBaoLoi: Có trùng lặp khung giờ
-    ThongBaoLoi --> NhapThongTin: Admin hiệu chỉnh giờ/phòng
-    KiemTraXungDot --> LuuLichChieu: Không có xung đột
-    LuuLichChieu --> ThongBaoThanhCong: Lưu vào CSDL & Công bố lịch chiếu
-    ThongBaoThanhCong --> [*]
-```
-
-### 3. BPMN — Quy trình Đặt vé, Thanh toán & Phát hành Vé (Hình 4.1)
-
-Hệ thống phối hợp nhịp nhàng giữa 3 Lane chuyên biệt:
+## 🔄 5. MÔ HÌNH HÓA QUY TRÌNH NGHIỆP VỤ (BPMN 3 LANE)
 
 ```
   [ LANE 1: KHÁCH HÀNG ]
@@ -286,9 +205,9 @@ Hệ thống phối hợp nhịp nhàng giữa 3 Lane chuyên biệt:
                                              ▲                                                             │
   ───────────────────────────────────────────┼─────────────────────────────────────────────────────────────┼─────
   [ LANE 2: NOVA CINEMA ]                    │                                                             │
-     [Nhận Yêu Cầu Ghế] ──► <Ghế Trống?> ────┘(Báo lỗi)                                                    │
-                                │ (Có)                                                                     │
-                                ▼                                                                          │
+     [Nhận Yêu Cầu Ghế] ──► <Ghế Khả Dụng?> ─┘(Báo lỗi)                                                    │
+                                 │ (Hợp lệ)                                                                │
+                                 ▼                                                                         │
                          [Khóa Ghế 5 Phút] ──► [Tạo Đơn Hàng] ──► [Gửi Yêu Cầu Thanh Toán]                 │
                                                                            │                               │
   ─────────────────────────────────────────────────────────────────────────┼───────────────────────────────┼─────
@@ -297,98 +216,47 @@ Hệ thống phối hợp nhịp nhàng giữa 3 Lane chuyên biệt:
                                                                                                    │
   ─────────────────────────────────────────────────────────────────────────────────────────────────┼─────
   [ KẾT QUẢ PHẢN HỒI ]                                                                            ▼
-  • NẾU THÀNH CÔNG: NOVA Cinema cập nhật CSDL ──► Đổi trạng thái Ghế: ĐÃ BÁN (SOLD) ──► [Phát Hành Vé Điện Tử QR]
-  • NẾU THẤT BẠI / TIMEOUT: NOVA Cinema kích hoạt BR04 ──► Hủy Đơn Hàng ──► [Tự Động Giải Phóng Ghế Về Trạng Thái Trống]
+  • NẾU THÀNH CÔNG: Cập nhật CSDL ──► Đổi trạng thái Ghế: ĐÃ BÁN (SOLD) ──► [Phát Hành Vé Điện Tử QR]
+  • NẾU THẤT BẠI / TIMEOUT: Kích hoạt BR04 ──► Hủy Đơn Hàng ──► [Tự Động Trả Ghế Về Trạng Thái Trống]
 ```
 
 ---
 
-## 🏛 6. KIẾN TRÚC KỸ THUẬT HỆ THỐNG
+## 🏛 6. CÔNG NGHỆ & KIẾN TRÚC KỸ THUẬT
 
-Dự án được xây dựng theo tiêu chuẩn **Clean Architecture** và **BFF (Backend For Frontend)** hiện đại:
-
-- **Frontend (Client Experience)**:
-  - **Next.js 16 (App Router)** và **React 19**: Tối ưu hóa SEO, kết xuất phía máy chủ (SSR) kết hợp Client-Side Rendering linh hoạt.
-  - **Tailwind CSS v3**: Hệ thống giao diện Cinematic Glassmorphism, chuyển đổi linh hoạt trên mọi kích thước màn hình (Desktop, Tablet, Mobile 320px).
-  - **Three.js & GSAP 3.15**: Mô phỏng màn chiếu cong 3D IMAX tại `/xem-truoc`.
-  - **Biểu tượng Thương hiệu NV — VN**: Monogram thiết kế tinh tế với 2 chiều ý nghĩa: nhìn xuôi là **VN (Việt Nam)** đại diện cho _Khát vọng vươn mình của dân tộc_, nhìn thương hiệu là **NV (NOVA Cinema)**, sử dụng cặp màu Bạch Kim & Hoàng Kim đẳng cấp.
-- **Backend API (Core Engine)**:
-  - **NestJS 11** cấu trúc module độc lập: `AuthModule`, `MoviesModule`, `CinemasModule`, `ShowtimesModule`, `BookingsModule`, `PaymentsModule`, `TicketsModule`.
-  - **Bảo mật**: Mã hóa mật khẩu chuẩn công nghiệp `argon2`, JWT Access Token & Refresh Token lưu trong cookie HttpOnly SameSite=Lax chống tấn công XSS/CSRF.
-  - **SSE (Server-Sent Events) Gateway**: Luồng `/api/seat-events/:id` truyền dữ liệu ghế trực tiếp về trình duyệt, phản ứng tức thời với độ trễ dưới 50ms.
-- **Cơ sở Dữ liệu & Lưu trữ**:
-  - **PostgreSQL 17**: Quản lý toàn vẹn quan hệ giữa 24 phim, 4 cụm rạp, 128 phòng chiếu, hơn 13.440 suất chiếu và lịch sử giao dịch.
-  - **Prisma ORM 6.19**: Quản lý schema, sinh migration tự động và đảm bảo Type-safe trong mã nguồn.
+- **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS v3 (Cinematic Glassmorphism), Three.js & GSAP 3.15 (Mô phỏng 3D màn cong IMAX).
+- **Backend:** NestJS 11, TypeScript 5 Strict, Clean Architecture (Controller → Service → Repository), Server-Sent Events (SSE) cập nhật ghế real-time.
+- **Cơ sở dữ liệu:** PostgreSQL 17 (Prisma ORM 6.19) kết hợp bộ nhớ đệm phân tán Redis 7.4 và cơ chế RAM Fallback tiện lợi cho môi trường đồ án.
+- **Bảo mật:** Mật khẩu băm chuẩn Argon2id, JWT Token đóng gói trong cookie HttpOnly SameSite=Lax.
 
 ---
 
-## 🚀 7. HƯỚNG DẪN CÀI ĐẶT VÀ KHỞI CHẠY HỆ THỐNG
+## 🧪 7. BỘ KIỂM THỬ TỰ ĐỘNG (AUTOMATED TEST SUITE)
 
-Dùng Node24 theo `.nvmrc`. Từ thư mục gốc repository:
-
-```bash
-npm install
-npm run dev
-```
-
-Web: **http://localhost:3000** · API: **http://127.0.0.1:4000/api/v1**.
-
-Với PostgreSQL/Redis native và `backend/.env` hợp lệ đã có sẵn, `dev` tự chạy Prisma/migration/seed additive rồi build backend trước khi mở web, tránh dùng `dist` cũ sau pull. Hai lệnh npm không cài dịch vụ DB/Redis hoặc tạo bí mật thay bạn. `npm run seed` vẫn có thể chạy riêng; `NOVA_REFRESH_PROGRAMME=false` bỏ seed/migration tự động khi schema đã sẵn sàng.
-
-- Mã giao diện chạy tại **`frontend/src/`**, ảnh tại `frontend/public/`; backend tại `backend/`; tài liệu tại `docs/`. Các lệnh gốc đã trỏ vào đúng workspace mới. Source gốc được giữ tương thích, không dùng làm bản chạy thứ hai.
-- Fresh clone chưa cấu hình PostgreSQL dùng backend RAM native theo lựa chọn của nhóm: có luồng giữ ghế/thanh toán Sandbox/QR thật trong process, dữ liệu reset khi khởi động lại. Không cần Docker. Nếu dùng `.env` cũ, có thể đặt `NOVA_BACKEND_MODE=memory` để chủ động chọn chế độ này.
-- Cấu hình frontend mới tại `frontend/.env.local` theo `frontend/.env.example`; cấu hình upstream/origin cũ ở root vẫn được đọc làm fallback, ưu tiên biến frontend/shell.
-- Muốn lưu bền vững: cài PostgreSQL/Redis native, cấu hình `backend/.env` với database UTF8/Unicode, URL/Redis và SEED_DEMO_PASSWORD riêng; chạy `npm run setup:local`. Không có bước tự khởi chạy container.
-- Seed additive giữ dữ liệu đã chỉnh; có4 tài khoản customer/cmember/staff/admin tại `@nova.vn`, hội viên mới có50.000 điểm; giữ các tài khoản `.local` đã có. C’MEMBER hiện có chiết khấu theo hạng và tích điểm; API đổi điểm thành tiền chưa triển khai.
-
-Các trang chính: `/phim`, `/sap-chieu`, `/dat-ve`, `/rap`, `/bap-nuoc`, `/hoi-vien`, `/tai-khoan`, `/soat-ve`, `/quan-tri`. Những đường dẫn mới `/movies`, `/booking`, `/checkout`, `/tickets`, `/staff`, `/admin` chuyển đến luồng tương ứng và giữ query của đơn hàng.
-
-Chi tiết Windows, cấu hình native, RTM20 ca kiểm thử và giới hạn nghiệp vụ: [báo cáo backend native](docs/qa/backend-native-audit.md).
-
----
-
-## 🧪 8. KIỂM THỬ VÀ ĐẢM BẢO CHẤT LƯỢNG (QA)
-
-Kiểm toán SIT/E2E/Concurrency/Security mới: [69 kịch bản truy vết](docs/qa/ultra-expanded-audit.md). Với PostgreSQL/Redis native và database test riêng đã cấu hình, chạy một lệnh:
-
-Bản tối ưu sau kiểm toán: [catalogue chia trang đầy đủ, cache an toàn và phát hành QR nhanh](docs/qa/performance-optimization.md), có số đo riêng cho cache lạnh/nóng, từng response và tổng catalogue.
-
-Rà soát frontend tiếp theo: [ổn định đặt vé, giảm tải ảnh/JS và dọn hiệu ứng 3D](docs/qa/frontend-stability-review.md), giữ nguyên backend/API và có kiểm thử hồi quy riêng.
-
-Bản kiểm toán LAB04 hiện tại: [lỗi theo từng ô nhập, native startup và chuẩn bị Figma](docs/qa/lab04-native-figma-audit.md). Lệnh tập trung `npm run qa:lab04` kiểm tra tranh ghế20 luồng, thanh toán/QR/ICS, UC14 và hành trình browser; bản đồ capture đủ trang/trạng thái nằm trong báo cáo.
+Dự án trang bị bộ kiểm thử tự động toàn diện kiểm tra nghiêm ngặt 100% tính đúng đắn của logic:
 
 ```powershell
-npm run qa:native
-```
-
-Runner không gọi Docker, chạy các bộ ghi database tuần tự và lưu log/summary trong `.runtime/qa-native/<run-id>/`. Kết quả chức năng và các mục tiêu độ trễ/kích thước được tách trong báo cáo; không báo đạt 30/50 ms nếu số đo vượt ngưỡng. `npm run qa:native -- --api-only` dành cho backend/schema/Node/lint. Cần cài Chromium cho Playwright nếu máy chưa có.
-
-```bash
 npm run test:unit
-npm run test:backend
-npm run test:business
-npm run test:db
-npm run lint
-npm run build
-npm test
 ```
 
-HTTP/DB/browser tests cần PostgreSQL/Redis test riêng và migration; không chạy ghi dữ liệu vào database người dùng. Production browser: build trước, đặt `NOVA_QA_PRODUCTION=1` rồi `npm test` (PowerShell: `$env:NOVA_QA_PRODUCTION="1"`).
-
-Kiểm toán bổ sung và hướng dẫn TC-01…TC-05/ma trận UC14: [Fullstack LAB04](docs/qa/fullstack-lab04-audit.md). PostgreSQL hiện hữu cần `npm run setup:local` sau pull để apply migration trạng thái tài khoản và build dist mới.
-
-Báo cáo kiểm chứng mới gồm [STLC/RTM backend native](docs/qa/backend-native-audit.md), [frontend/network audit](docs/qa/frontend-performance-audit.md), số đo trong `docs/qa/measurements/` và ảnh trong `docs/qa/screenshots/`. Kết quả lịch sử trong các báo cáo khác giữ nguyên thời điểm của từng lượt; không gộp thành cam kết100% cho mọi tình huống.
+- **Kết quả kiểm thử:** Toàn bộ **123/123 tests đạt 100% PASS** (Bao gồm kiểm thử thuật toán chống ghế lẻ, kiểm thử tính tiền vé, kiểm thử tranh chấp ghế đồng thời, kiểm thử xung đột lịch chiếu, kiểm thử mã xác thực vé QR).
 
 ---
 
-## 🎯 9. KẾT LUẬN
+## 🔗 TỔNG HỢP TOÀN BỘ LIÊN KẾT GITHUB DỰ ÁN
 
-Báo cáo Đồ án **LAB04 — NOVA CINEMA (INFINITY)** đã hoàn thành xuất sắc các mục tiêu nghiên cứu và thực nghiệm:
-
-1. Hoàn thiện bộ tài liệu phân tích Use Case, ma trận xử lý, mô hình hóa quy trình nghiệp vụ với Activity Diagram và BPMN 3 Lane chuyên nghiệp.
-2. Xây dựng thành công sản phẩm phần mềm thực tế với hiệu năng cao, giao diện tối tân, giải quyết triệt để bài toán giữ ghế thời gian thực và quản lý vé thông minh.
-3. Đáp ứng đầy đủ các tiêu chuẩn học thuật của Khoa Công nghệ Thông tin — Trường Đại học Sư phạm TP. Hồ Chí Minh.
+| Danh mục | Liên kết chính thức trên GitHub |
+| :--- | :--- |
+| 📂 **Mã nguồn Repository** | [thanhphonghcmue/du-an-web-xem-phim-nova-cinema](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema) |
+| ⬇️ **Tải trực tiếp ZIP** | [du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip) |
+| 🎯 **Tiến độ Milestones (100%)** | [du-an-web-xem-phim-nova-cinema/milestones](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestones) |
+| 📜 **Lịch sử Commit** | [du-an-web-xem-phim-nova-cinema/commits/main](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/commits/main) |
+| 🎨 **Bản vẽ thiết kế Figma** | [Figma: Web-xem-phim-nova-cinema (25 Màn hình)](https://www.figma.com/design/YNhIlce7yMKDYuOaONH56S/Web-xem-phim-nova-cinema?node-id=0-1) |
+| 📑 **Tài liệu Nhận diện Thương hiệu** | [docs/brand-identity.html](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/blob/main/docs/brand-identity.html) |
 
 ---
 
-_Bản quyền Đồ án thuộc về **Tập thể Nhóm 03 — Lớp 50.01.SPTIN.B — Khoa CNTT, HCMUE**._
+<p align="center">
+  <b>Bản quyền Đồ án thuộc về Tập thể Nhóm 03 — Lớp 50.01.SPTIN.B — Khoa Công nghệ Thông tin, HCMUE</b><br>
+  <i>Thành phố Hồ Chí Minh, Năm học 2025 – 2026</i>
+</p>

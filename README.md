@@ -15,6 +15,21 @@
 
 ---
 
+## 🔑 BẢNG TÀI KHOẢN ĐĂNG NHẬP NGHIỆM THU (DÀNH CHO THẦY CÔ & GIẢNG VIÊN)
+
+> 💡 **Tất cả tài khoản dưới đây đã được khởi tạo sẵn trong cơ sở dữ liệu Supabase Cloud & Local RAM.**  
+> Thầy/Cô chỉ cần chọn tài khoản theo vai trò mong muốn và nhập mật khẩu chung: **`nova@12345`**
+
+| Vai trò Actor | Email đăng nhập | Mật khẩu chung | Trang kiểm tra nghiệp vụ | Nghiệp vụ chính cần nghiệm thu |
+| :--- | :--- | :---: | :---: | :--- |
+| 👑 **Quản trị viên (Admin)** | **`admin@nova.vn`** | **`nova@12345`** | `/quan-tri` hoặc `/admin` | • **Lập lịch chiếu chống xung đột 15 phút (BR03)**<br>• Quản lý 24 phim, phòng chiếu, loại ghế<br>• Xem thống kê doanh thu bán vé trực tiếp |
+| 🛡️ **Nhân viên soát vé (Staff)** | **`staff@nova.vn`** | **`nova@12345`** | `/soat-ve` hoặc `/staff` | • **Soát vé thông minh bằng Camera QR (BR05)**<br>• Xác thực tính hợp lệ của vé điện tử<br>• Cảnh báo vé giả, sai suất chiếu hoặc vé đã dùng |
+| 🍿 **Khách hàng / VIP C'MEMBER** | **`cmember@nova.vn`** *(hoặc `customer@nova.vn`)* | **`nova@12345`** | `/dat-ve` hoặc `/booking` | • **Thuật toán chống đặt ghế trống kẹp giữa (CR-01)**<br>• Khóa ghế đôi Sweetbox, đếm ngược 300 giây<br>• Áp dụng mã Voucher, tích điểm C'MEMBER |
+
+*(Ngoài ra Thầy/Cô cũng có thể bấm nút **"Đăng ký thành viên"** ngay trên giao diện web để tạo tài khoản mới độc lập).*
+
+---
+
 ## ⚡ HƯỚNG DẪN NHANH DÀNH CHO NGƯỜI CHƯA BIẾT GÌ VỀ CODE
 
 > 💡 **Bạn không cần biết lập trình, không cần cài Database hay Docker phức tạp!**  
@@ -55,21 +70,6 @@ Hãy mở trình duyệt (Google Chrome, Microsoft Edge, Cốc Cốc...) và tru
 
 ---
 
-### 🔑 BẢNG TÀI KHOẢN ĐĂNG NHẬP MẪU SẴN CÓ
-
-Hệ thống đã chuẩn bị sẵn các tài khoản demo đầy đủ vai trò nghiệp vụ (Mật khẩu chung cho tất cả tài khoản là: **`nova@12345`**):
-
-| Vai trò người dùng | Email đăng nhập | Mật khẩu | Quyền hạn & Dữ liệu sẵn có |
-| :--- | :--- | :---: | :--- |
-| **Hội viên VIP (C'MEMBER)** | `cmember@nova.vn` | `nova@12345` | Hạng **GOLD**, có sẵn **50.000 điểm thưởng**, tự động giảm giá vé. |
-| **Khách hàng thông thường** | `customer@nova.vn` | `nova@12345` | Tài khoản khách chuẩn, đặt vé, lưu vé điện tử vào ví cá nhân. |
-| **Nhân viên soát vé (Staff)** | `staff@nova.vn` | `nova@12345` | Truy cập trang Soát vé, quét mã QR camera, kiểm tra tính hợp lệ của vé. |
-| **Quản trị viên (Admin)** | `admin@nova.vn` | `nova@12345` | Toàn quyền Quản lý phim, phòng chiếu, lập lịch chiếu, thống kê doanh thu. |
-
-*(Ngoài ra bạn hoàn toàn có thể tự bấm nút **"Đăng ký"** ngay trên giao diện web để tạo tài khoản mới theo ý thích!)*
-
----
-
 ### 🧭 CÁC TRANG CHỨC NĂNG CHÍNH ĐỂ NGHIỆM THU
 
 | Chức năng cần kiểm tra | Đường dẫn trực tiếp | Mô tả trải nghiệm |
@@ -97,65 +97,40 @@ Hệ thống đã chuẩn bị sẵn các tài khoản demo đầy đủ vai tr�
 - **Môn học:** Nhập môn Kỹ nghệ Phần mềm (Software Engineering Basics) — LAB04
 - **Khoa:** Công nghệ Thông tin — Trường Đại học Sư phạm TP. Hồ Chí Minh (HCMUE)
 - **Giảng viên hướng dẫn:** **ThS. Lê Thanh Thoại**
+- **Nhóm sinh viên thực hiện:** Nhóm 03 — Lớp 50.01.SPTIN.B
+- **Thành viên tiêu biểu:** **Lâm Thanh Phong** (MSSV: 50.01.103.057)
 
 ---
 
-## 👥 THÀNH VIÊN THỰC HIỆN & TIẾN TRÌNH CỐNG HIẾN — NHÓM 03
+## 📐 1. TỔNG QUAN HỆ THỐNG NOVA CINEMA (INFINITY)
 
-| STT | Họ và Tên | Mã số SV | Vai trò & Milestone GitHub | Đóng góp chuyên môn | Tiến độ Hoàn thành |
-| :-: | :--- | :---: | :--- | :--- | :---: |
-| 1 | **Lâm Thanh Phong** | `50.01.103.057` | **Nhóm trưởng & Fullstack Lead**<br>• [Milestone #1: FR Lead & Booking Engine](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/1) | Kiến trúc Clean Architecture, Core Booking Engine, Concurrency Mutex, 80+ Commits. | **100%** `[██████████]` |
-| 2 | **Phạm Ngọc Mỹ Huyền** | `50.01.103.028` | **Thành viên Phân tích & Nghiệp vụ**<br>• [Milestone #2: BA Lead & Requirements](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/2) | Khảo sát thực tế, tài liệu SRS, phân tích 5 Actor và 14 Ca sử dụng. | **100%** `[██████████]` |
-| 3 | **Nguyễn Bình Phương Mi** | `50.01.103.039` | **Thành viên Thiết kế & Vận hành**<br>• [Milestone #3: Survey Lead & UI System](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/3) | Thiết kế 25 màn hình Figma Full HD, nối Prototype 120+ dây tương tác. | **100%** `[██████████]` |
-| 4 | **Phùng Thị Mỹ Quyên** | `50.01.103.063` | **Thành viên Kiểm thử & Đảm bảo chất lượng**<br>• [Milestone #5: QA Lead & Testing](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/5) | Xây dựng kịch bản kiểm thử, kiểm thử 5 phân hệ nghiệp vụ, 123 Tests PASS. | **100%** `[██████████]` |
-| 5 | **Thạch Võ Diễm Ngọc** | `50.01.103.050` | **Thành viên Dữ liệu & Mô hình hóa**<br>• [Milestone #4: Modeling Lead & Database](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestone/4) | Thiết kế sơ đồ quan hệ ERD PostgreSQL, mô hình hóa quy trình Activity/BPMN. | **100%** `[██████████]` |
-| * | **Minh Nhật** | *Hỗ trợ Kỹ thuật* | **Frontend & UI/UX Support** | Tinh chỉnh Dark Glassmorphism UI, hỗ trợ kiểm thử giao diện Responsive. | **100%** `[██████████]` |
-
-> 🎯 **Xem toàn bộ tiến độ 5 Milestone đạt 100% trên GitHub:**  
-> 👉 **[GitHub Milestones — Dự án Web Xem Phim NOVA Cinema](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestones)**
+Hệ thống **NOVA CINEMA** được thiết kế đáp ứng đầy đủ tiêu chuẩn phần mềm rạp chiếu phim thương mại hiện đại:
+- **Tốc độ phản hồi cực nhanh:** Áp dụng kiến trúc Next.js App Router (SSR) kết hợp bộ nhớ đệm phân tán.
+- **Tính toàn vẹn dữ liệu ghế ngồi:** Đảm bảo không bao giờ xảy ra tình trạng 2 khách hàng đặt trùng 1 ghế trong cùng một thời điểm.
+- **Giao diện chuẩn Cinematic:** Phong cách thiết kế Glassmorphism tối màu, lấy cảm hứng từ các rạp chiếu phim IMAX cao cấp.
 
 ---
 
-## 🎨 THIẾT KẾ FIGMA & BỘ NHẬN DIỆN THƯƠNG HIỆU
-* **Figma File chính thức:** 👉 **[Xem bản vẽ Figma 25 Màn hình Full HD tại đây](https://www.figma.com/design/YNhIlce7yMKDYuOaONH56S/Web-xem-phim-nova-cinema?node-id=0-1)**
-* **Quy cách thiết kế:** 25 Màn hình chuẩn Full HD (1920 × 1080), 100% Vector Frames tương tác trực tiếp được.
-* **Prototype tương tác:** Hơn 120+ đường dây nối điều hướng thông minh.
-* **Tài liệu Thiết kế Hệ thống:** [docs/brand-identity.html](https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/blob/main/docs/brand-identity.html).
-
----
-
-## 📖 1. TỔNG QUAN DỰ ÁN NOVA CINEMA (INFINITY)
-
-**NOVA Cinema (Infinity Experience)** là nền tảng web đặt vé xem phim trực tuyến hiện đại, ứng dụng kiến trúc phần mềm chuẩn mực để giải quyết triệt để các bài toán hóc búa của chuỗi rạp chiếu phim quy mô lớn:
-
-### 🌟 Khẩu hiệu & Tầm nhìn Thương hiệu:
-> *"Tắt thế giới ngoài kia. Bật trải nghiệm NOVA."*
-
-### 💎 Điểm nổi bật về giải pháp:
-1. **Trải nghiệm điện ảnh đỉnh cao (Cinematic Glassmorphism):** Giao diện tông màu Obsidian Dark kết hợp hiệu ứng hào quang Crimson Red và Amber Gold mang lại cảm xúc sang trọng như ngồi tại rạp chiếu cao cấp.
-2. **Triệt tiêu tranh chấp tài nguyên (Zero-Conflict Concurrency):** Xử lý đồng thời hàng nghìn người cùng bấm chọn một ghế bom tấn tại cùng một tích tắc mà không bao giờ bị trùng ghế.
-3. **Bộ đếm thời gian giữ ghế thời gian thực (300 giây):** Đếm lùi chính xác theo đồng hồ máy chủ. Nếu quá thời gian hoặc thanh toán thất bại, ghế sẽ tự động giải phóng tức khắc theo quy tắc **BR04**.
-4. **Quy tắc Chống ghế đơn lẻ (CR-01 Single Seat Isolation):** Ngăn chặn khách hàng để trống 1 ghế đơn độc ở đầu dãy, cuối dãy hoặc kẹp giữa 2 ghế đã mua/đang chọn, tối ưu hóa tối đa doanh thu phòng vé.
-5. **Số hóa vé xem phim bằng mã QR Vector:** Phát hành mã QR chứa mã xác thực mật mã SHA-256 (64-hex). Nhân viên rạp dùng camera quét vé với 3 trạng thái phản hồi chuẩn xác: **Hợp lệ (Xanh)**, **Sai suất chiếu (Vàng)**, **Vé đã qua sử dụng (Đỏ)**.
-
----
-
-## 👤 2. PHÂN TÍCH 5 TÁC NHÂN HỆ THỐNG (ACTORS)
+## 👥 2. SƠ ĐỒ PHÂN QUYỀN TÁC NHÂN (ACTORS)
 
 ```
-                        SƠ ĐỒ PHÂN CẤP TÁC NHÂN (ACTOR HIERARCHY)
-
-            ┌────────────────┐                    ┌─────────────────┐
-            │   Khách hàng   │◄───────────────────┤    C'MEMBER     │
-            │   (Customer)   │  (Generalization)  │ (Thành viên rạp)│
-            └───────┬────────┘                    └─────────────────┘
-                    │
-      ┌─────────────┼─────────────────────────────┐
-      ▼             ▼                             ▼
-┌───────────┐ ┌───────────┐             ┌───────────────────┐
-│   Admin   │ │ Nhân viên │             │  Payment Sandbox  │
-│ (Quản trị)│ │  (Staff)  │             │(Cổng thanh toán)  │
-└───────────┘ └───────────┘             └───────────────────┘
+                     ┌───────────────────┐
+                     │    Khách hàng     │
+                     │  (Vãng lai/Guest) │
+                     └─────────┬─────────┘
+                               │ (Đăng ký / Đăng nhập)
+                               ▼
+                     ┌───────────────────┐             ┌─────────────────┐
+                     │    Khách hàng     │────────────►│  Hội viên VIP   │
+                     │   (Customer)      │ (Nâng hạng) │   (C'MEMBER)    │
+                     └─────────┬─────────┘             └─────────────────┘
+                               │
+         ┌─────────────────────┼─────────────────────┐
+         ▼                     ▼                     ▼
+   ┌───────────┐         ┌───────────┐         ┌───────────────────┐
+   │   Admin   │         │ Nhân viên │         │  Payment Sandbox  │
+   │ (Quản trị)│         │  (Staff)  │         │ (Cổng thanh toán) │
+   └───────────┘         └───────────┘         └───────────────────┘
 ```
 
 1. **Khách hàng (Customer):** Tra cứu 24 phim, xem lịch chiếu theo ngày, chọn ghế ngồi, chọn bắp nước, thanh toán trực tuyến, nhận vé QR và tải lịch `.ics`.

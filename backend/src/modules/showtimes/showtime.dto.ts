@@ -17,11 +17,17 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  ValidateIf,
   Matches,
 } from "class-validator";
 import { PaginationDto } from "../../common/dto/pagination.dto";
 
 export class CreateShowtimeDto {
+  @ApiPropertyOptional({ enum: ["ACTIVE", "LOCKED", "CANCELED"] })
+  @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
+  @IsIn(["ACTIVE", "LOCKED", "CANCELED"])
+  status?: string;
+
   @ApiProperty({ format: "uuid" })
   @IsUUID()
   movieId!: string;

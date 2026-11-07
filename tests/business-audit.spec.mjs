@@ -296,7 +296,7 @@ test("payment gateways and signed Sandbox actions fit their cards on narrow and 
       });
   }
   await page
-    .getByRole("button", { name: "Hủy giao dịch", exact: true })
+    .getByRole("button", { name: "✕ Hủy thanh toán (Hủy giao dịch)", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Giao dịch đã được hủy bỏ" }),

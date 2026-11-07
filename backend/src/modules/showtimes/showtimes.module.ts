@@ -5,13 +5,16 @@ import { ProgrammeSnapshotService } from "./programme-snapshot.service";
 import { ProgrammeInvalidationInterceptor } from "./programme-invalidation.interceptor";
 import { MoviesModule } from "../movies/movies.module";
 import { RoomsModule } from "../rooms/rooms.module";
-import { ShowtimesController } from "./showtimes.controller";
+import {
+  ShowtimesController,
+  AdminShowtimesController,
+} from "./showtimes.controller";
 import { ShowtimesRepository } from "./showtimes.repository";
 import { ShowtimesService } from "./showtimes.service";
 
 @Module({
   imports: [MoviesModule, RoomsModule, BookingsModule],
-  controllers: [ShowtimesController],
+  controllers: [ShowtimesController, AdminShowtimesController],
   providers: [
     ShowtimesService,
     ShowtimesRepository,

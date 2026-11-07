@@ -269,8 +269,8 @@ export default function CatalogProvider({ children }) {
     [index],
   );
   const contextFor = useCallback(
-    (showtimeId) => {
-      const show = index.shows.get(showtimeId);
+    (showtimeId, fallbackShowtime) => {
+      const show = index.shows.get(showtimeId) || fallbackShowtime;
       if (!show) return null;
       const movie = data.movies.find((m) => m.id === show.movieId);
       const cinema = data.cinemas.find(

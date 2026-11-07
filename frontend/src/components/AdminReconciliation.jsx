@@ -9,8 +9,8 @@ const labels = {
   HOLDING: "Đang giữ ghế",
   PENDING: "Đang chờ",
   EXPIRED: "Đã hết hạn",
-  CANCELLED: "Đã hủy",
-  FAILED: "Thất bại",
+  CANCELLED: "CANCELLED - Đã hủy giao dịch",
+  FAILED: "FAILED - Thanh toán thất bại",
   SUCCESS: "Thành công",
 };
 export default function AdminReconciliation() {
@@ -129,7 +129,13 @@ export default function AdminReconciliation() {
             </div>
             <div>
               <dt>Trạng thái đơn</dt>
-              <dd>{labels[result.bookingStatus] || result.bookingStatus}</dd>
+              <dd>
+                <span
+                  className={`status-badge ${result.bookingStatus.toLowerCase()}`}
+                >
+                  {labels[result.bookingStatus] || result.bookingStatus}
+                </span>
+              </dd>
             </div>
             <div>
               <dt>Số tiền xác nhận</dt>
@@ -160,7 +166,13 @@ export default function AdminReconciliation() {
                   {payments.map((payment) => (
                     <tr key={payment.transactionCode}>
                       <td className="break-all">{payment.transactionCode}</td>
-                      <td>{labels[payment.status] || payment.status}</td>
+                      <td>
+                        <span
+                          className={`status-badge ${payment.status.toLowerCase()}`}
+                        >
+                          {labels[payment.status] || payment.status}
+                        </span>
+                      </td>
                       <td>{money(payment.amount)}</td>
                     </tr>
                   ))}

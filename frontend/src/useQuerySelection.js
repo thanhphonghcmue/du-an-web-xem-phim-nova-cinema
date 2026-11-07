@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 // Navigation may retain App and the timeline. A changed URL must take precedence
@@ -8,5 +8,9 @@ export function useQuerySelection(key) {
   const incoming = params.get(key) || "";
   const [choice, setChoice] = useState({ source: incoming, value: incoming });
   const value = choice.source === incoming ? choice.value : incoming;
-  return [value, (next) => setChoice({ source: incoming, value: next })];
+  const select = useCallback(
+    (next) => setChoice({ source: incoming, value: next }),
+    [incoming],
+  );
+  return [value, select];
 }

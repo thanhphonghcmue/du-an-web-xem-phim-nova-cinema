@@ -1077,6 +1077,48 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         .isCheckedIn,
     ).toBe(false);
   });
+  it("TC12/TC13 exact owner/staff single lookup includes booking context without consuming or disclosing foreign tickets", async () => {
+    const f = await fixture(30 * 60000, 2);
+    await pay(f);
+    const ticket = await app.get(TicketsService).generateETicket(f.booking.id);
+    const code = ticket.ticketCode;
+    const lookup = (path: string, auth: string) =>
+      request(server).get(path).query({ code }).auth(auth, { type: "bearer" });
+    const ownerPath = "/api/v1/tickets/lookup";
+    const own = data(await lookup(ownerPath, token).expect(200)) as {
+      found: boolean;
+      ticket: Ticket & { bookingSeats: unknown[]; paymentStatus: string };
+    };
+    expect(own.found).toBe(true);
+    expect(own.ticket.seats).toHaveLength(1);
+    expect(own.ticket.bookingSeats).toHaveLength(2);
+    expect(own.ticket.amount).toBe(f.booking.finalAmount);
+    expect(own.ticket.paymentStatus).toBe("PAID");
+    expect(own.ticket.isCheckedIn).toBe(false);
+    const staffPath = "/api/v1/staff/tickets/lookup";
+    const preview = data(await lookup(staffPath, staffToken).expect(200)) as {
+      ticket: Ticket;
+    };
+    expect(preview.ticket.id).toBe(ticket.id);
+    expect(preview.ticket.isCheckedIn).toBe(false);
+    await lookup(staffPath, token).expect(403);
+    for (const [value, auth] of [
+      [code, foreignToken],
+      ["QR_INVALID_999", token],
+      ["V999_FAKE", token],
+    ] as const) {
+      const failed = await request(server)
+        .get(ownerPath)
+        .query({ code: value })
+        .auth(auth, { type: "bearer" })
+        .expect(404);
+      expect(JSON.parse(failed.text)).toMatchObject({
+        found: false,
+        data: null,
+        message: "Không tìm thấy mã vé hoặc mã vé không hợp lệ!",
+      });
+    }
+  });
   it("returns404 for unknown nonempty codes and400 for non-string or mass-assigned payloads", async () => {
     expect(
       error(await check(randomBytes(32).toString("hex")).expect(404)),

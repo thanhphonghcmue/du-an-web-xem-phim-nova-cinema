@@ -38,7 +38,7 @@ exports.createAdmin = (c) => {
     ],
     cinemas: ["name", "city", "address"],
     rooms: ["cinemaId", "name", "roomType", "totalSeats"],
-    showtimes: ["movieId", "roomId", "startTime", "baseTicketPrice"],
+    showtimes: ["movieId", "roomId", "startTime", "baseTicketPrice", "status"],
     combos: [
       "name",
       "description",
@@ -116,6 +116,7 @@ exports.createAdmin = (c) => {
       row.price = fixed(money(row.price));
     }
     if (kind === "showtimes") {
+      assert(["ACTIVE", "LOCKED", "CANCELED"].includes(row.status));
       const film = model("movies", row.movieId);
       model("rooms", row.roomId);
       assert(

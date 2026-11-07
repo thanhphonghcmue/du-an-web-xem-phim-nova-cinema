@@ -557,6 +557,15 @@ function createMemoryServer(input) {
       bookingStatus: s,
       transactionCode: payment?.transactionCode || null,
       paymentStatus: payment?.status || null,
+      responseCode:
+        payment?.status === "FAILED"
+          ? "99_PAYMENT_FAILED"
+          : payment?.status === "CANCELLED" &&
+              order.failureReason === "CUSTOMER_ABORTED"
+            ? "24_USER_CANCELLED"
+            : payment?.status === "SUCCESS"
+              ? "00_SUCCESS"
+              : null,
       amount: order.finalAmount,
       currency: "VND",
       expiredAt: order.expiredAt,
@@ -952,9 +961,16 @@ function createMemoryServer(input) {
     });
   }
   async function route(request, response, url, body) {
-    const path = url.pathname.replace(/^\/api\/v1/, "") || "/",
+    const path = (url.pathname.replace(/^\/api\/v1/, "") || "/").replace(
+        /^\/admin\/showtimes(?=\/)/,
+        "/showtimes",
+      ),
       method = request.method,
       query = url.searchParams;
+    if (/^\/api\/v1\/admin\/showtimes\//.test(url.pathname)) {
+      auth(request, ["ADMIN"]);
+      assert(method === "PATCH", "NOT_FOUND", "Không tìm thấy chức năng.", 404);
+    }
     const json = (
       data,
       code = 200,
@@ -1022,8 +1038,12 @@ function createMemoryServer(input) {
       sample.checkedInBy = null;
       return json({ reset: true, ticket: ticketData(sample, false) });
     }
-    if (path === "/tickets/lookup" && method === "GET") {
-      const user = auth(request);
+    if (
+      ["/tickets/lookup", "/staff/tickets/lookup"].includes(path) &&
+      method === "GET"
+    ) {
+      const staffLookup = path === "/staff/tickets/lookup";
+      const user = auth(request, staffLookup ? ["STAFF", "ADMIN"] : undefined);
       await demoFixtures();
       const code = extractNormalizedCode(query.get("code"));
       assert(code, "TICKET_CODE_REQUIRED", "Vui lòng nhập hoặc quét mã vé!");
@@ -1037,13 +1057,28 @@ function createMemoryServer(input) {
       const ticket = matches.length === 1 && matches[0];
       assert(
         ticket &&
-          orders.get(ticket.bookingId)?.userId === user.id &&
+          (staffLookup || orders.get(ticket.bookingId)?.userId === user.id) &&
           orders.get(ticket.bookingId)?.status === "PAID",
         "TICKET_NOT_FOUND",
-        "Không tìm thấy vé hoặc mã vé không hợp lệ!",
+        "Không tìm thấy mã vé hoặc mã vé không hợp lệ!",
         404,
       );
-      return json({ found: true, ticket: ticketData(ticket) });
+      const order = orders.get(ticket.bookingId);
+      const seats = physical(model("showtimes", order.showtimeId).roomId);
+      return json({
+        found: true,
+        ticket: {
+          ...ticketData(ticket),
+          bookingSeats: order.seats.map((line) => {
+            const seat = seats.find((s) => s.id === line.seatId);
+            return {
+              label: `${seat.seatRow}${seat.seatColumn}`,
+              type: seat.seatType,
+              price: line.price,
+            };
+          }),
+        },
+      });
     }
     if (
       ["/staff/verify-ticket", "/staff/checkin"].includes(path) &&
@@ -1153,9 +1188,16 @@ function createMemoryServer(input) {
       programmePointers.clear();
       return handled;
     }
-    const statusRoute = path.match(/^\/showtimes\/([^/]+)\/status$/);
+    const statusRoute =
+      path.match(/^\/showtimes\/([^/]+)\/status$/) ||
+      (method === "PATCH" &&
+      body.status !== undefined &&
+      Object.keys(body).length === 1
+        ? path.match(/^\/showtimes\/([^/]+)$/)
+        : null);
     if (statusRoute && method === "PATCH") {
       auth(request, ["ADMIN"]);
+      assert(Object.keys(body).every((key) => key === "status"));
       assert(["ACTIVE", "LOCKED", "CANCELED"].includes(body.status));
       const show = model("showtimes", statusRoute[1]);
       show.status = body.status;
@@ -1881,7 +1923,12 @@ function createMemoryServer(input) {
         ...(["SHOWTIME_UNAVAILABLE", "ORDER_EXPIRED_TIMEOUT"].includes(
           error.code,
         )
-          ? { errorCode: error.code }
+          ? {
+              errorCode:
+                error.code === "SHOWTIME_UNAVAILABLE"
+                  ? "SHOWTIME_LOCKED_OR_CANCELED"
+                  : error.code,
+            }
           : {}),
         message: error.status
           ? error.message

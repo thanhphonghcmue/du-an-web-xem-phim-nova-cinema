@@ -374,6 +374,12 @@ export class PaymentsService {
       transactionCode: dto.transactionCode,
       amount: dto.amount,
       status: dto.status,
+      responseCode:
+        dto.status === "FAILED"
+          ? "99_PAYMENT_FAILED"
+          : dto.status === "CANCELLED"
+            ? "24_USER_CANCELLED"
+            : "00_SUCCESS",
       timestamp: dto.timestamp,
     };
     if (dto.status === "SUCCESS") {
@@ -542,6 +548,15 @@ export class PaymentsService {
       bookingStatus: projectExpiredBooking(booking, now).status,
       transactionCode: payment?.transactionCode ?? null,
       paymentStatus: payment?.status ?? null,
+      responseCode:
+        payment?.status === "FAILED"
+          ? "99_PAYMENT_FAILED"
+          : payment?.status === "CANCELLED" &&
+              booking.failureReason === "CUSTOMER_ABORTED"
+            ? "24_USER_CANCELLED"
+            : payment?.status === "SUCCESS"
+              ? "00_SUCCESS"
+              : null,
       amount: booking.finalAmount.toFixed(2),
       currency: "VND" as const,
       expiredAt: booking.expiredAt,

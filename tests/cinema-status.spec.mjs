@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { verifyRuntimeConsole } from "./runtime-console.mjs";
+verifyRuntimeConsole(test, expect);
 import { readFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { createRequire } from "node:module";
@@ -97,9 +99,15 @@ async function gateway(page) {
   return card;
 }
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() =>
-    sessionStorage.setItem("nova-welcome-seen", "1"),
-  );
+  await page.addInitScript(() => {
+    // Script khởi tạo Playwright cũng chạy trong iframe email sandbox.
+    if (window.top !== window) return;
+    try {
+      sessionStorage.setItem("nova-welcome-seen", "1");
+    } catch {
+      /* Storage có thể bị chặn. */
+    }
+  });
   const Redis = req("ioredis");
   const redis = new Redis({
     host: process.env.TEST_REDIS_HOST,
@@ -186,21 +194,27 @@ test("Sandbox transaction QR and actions fit 375, 768 and 1440px; cancel release
   }
   await capture(page, "14-sandbox-gateway");
   await card
-    .getByRole("button", { name: "Hủy giao dịch", exact: true })
+    .getByRole("button", {
+      name: "✕ Hủy thanh toán (Hủy giao dịch)",
+      exact: true,
+    })
     .click();
   const canceled = page.getByRole("dialog", {
-    name: "Giao dịch đã được hủy bỏ",
+    name: "Giao dịch đã được hủy bỏ (Trạng thái đơn: CANCELLED)",
     exact: true,
   });
   await expect(canceled).toContainText(order.orderCode);
-  expect(page.url()).toBe(originalUrl);
+  expect(new URL(page.url()).pathname).toBe(new URL(originalUrl).pathname);
+  expect(new URL(page.url()).searchParams.has("booking")).toBe(false);
   expect((await read(page, `/bookings/${order.id}`)).status).toBe("CANCELLED");
   const map = await read(page, `/showtimes/${show.id}/seats`);
   expect(map.seats.find((s) => s.seatId === order.seats[0].seatId).status).toBe(
     "AVAILABLE",
   );
   await capture(page, "16-cancelled");
-  await canceled.getByRole("button", { name: "Thử thanh toán lại →" }).click();
+  await canceled
+    .getByRole("button", { name: "Quay lại sơ đồ chọn ghế →" })
+    .click();
   const next = await hold(page, "A2");
   expect(next.id).not.toBe(order.id);
   expect(next.seats[0].seatId).toBe(order.seats[0].seatId);
@@ -227,10 +241,16 @@ test("failed completion request unlocks actions and never invents PAID or a QR t
   await expect(page.locator(".booking-issued-ticket")).toHaveCount(0);
   await page.unroute("**/api/v1/payments/sandbox/confirm");
   await card
-    .getByRole("button", { name: "Hủy giao dịch", exact: true })
+    .getByRole("button", {
+      name: "✕ Hủy thanh toán (Hủy giao dịch)",
+      exact: true,
+    })
     .click();
   await expect(
-    page.getByRole("dialog", { name: "Giao dịch đã được hủy bỏ", exact: true }),
+    page.getByRole("dialog", {
+      name: "Giao dịch đã được hủy bỏ (Trạng thái đơn: CANCELLED)",
+      exact: true,
+    }),
   ).toBeVisible();
 });
 test("actual expired backend hold shows selected seat names and returns to the same room for a fresh hold", async ({
@@ -352,6 +372,30 @@ test("TC_FR07_05: Admin locks a booked show, releases only unpaid holds and clie
   page,
   browser,
 }) => {
+  // Compile các chunk quản trị trước khi giữ ghế trong Next dev; HMR không phải sự kiện nghiệp vụ.
+  const warm = await browser.newContext({
+    baseURL: test.info().project.use.baseURL,
+  });
+  try {
+    const data = fixture();
+    expect(
+      (
+        await warm.request.post("/api/v1/auth/login", {
+          data: { email: data.accounts.admin.email, password: data.password },
+        })
+      ).status(),
+    ).toBe(200);
+    const adminPage = await warm.newPage();
+    await adminPage.goto("/admin");
+    await adminPage
+      .getByRole("button", { name: "Rạp, Phim & Suất Chiếu", exact: true })
+      .click();
+    await adminPage
+      .getByRole("button", { name: "Suất chiếu", exact: true })
+      .click();
+  } finally {
+    await warm.close();
+  }
   const show = await start(page);
   const order = await hold(page, "A7");
   const checkoutResponse = await page.request.post(
@@ -417,11 +461,50 @@ test("TC_FR07_05: Admin locks a booked show, releases only unpaid holds and clie
         })
       ).status(),
     ).toBe(403);
-    const changed = await admin.request.patch(
-      `/api/v1/showtimes/${show.id}/status`,
-      { data: { status: "LOCKED" } },
+    const adminPage = await admin.newPage();
+    // Chỉ lọc danh sách về phòng fixture; mutation vẫn đi qua BFF/Nest/PostgreSQL thật.
+    await adminPage.route("**/api/v1/showtimes?*", async (route) => {
+      const url = new URL(route.request().url());
+      url.searchParams.set("roomId", show.roomId);
+      await route.continue({ url: url.toString() });
+    });
+    await adminPage.goto("/admin");
+    await adminPage
+      .getByRole("button", { name: "Rạp, Phim & Suất Chiếu", exact: true })
+      .click();
+    await adminPage
+      .getByRole("button", { name: "Suất chiếu", exact: true })
+      .click();
+    const row = adminPage.locator(`[data-entity-id="${show.id}"]`);
+    const locked = adminPage.waitForResponse(
+      (r) =>
+        r.url().endsWith(`/admin/showtimes/${show.id}/status`) &&
+        r.request().method() === "PATCH",
     );
+    await row
+      .getByRole("button", { name: "🔒 Khóa / Hủy suất chiếu", exact: true })
+      .click();
+    expect((await locked).status()).toBe(200);
+    await expect(
+      row.getByRole("button", { name: "🔓 Mở lại suất chiếu", exact: true }),
+    ).toBeVisible();
+    await row
+      .getByRole("button", { name: "✏️ Sửa suất chiếu", exact: true })
+      .click();
+    await adminPage
+      .getByLabel("Trạng thái suất", { exact: true })
+      .selectOption("CANCELED");
+    const edited = adminPage.waitForResponse(
+      (r) =>
+        r.url().endsWith(`/admin/showtimes/${show.id}`) &&
+        r.request().method() === "PATCH",
+    );
+    await adminPage
+      .getByRole("button", { name: "Lưu suất chiếu", exact: true })
+      .click();
+    const changed = await edited;
     expect(changed.status()).toBe(200);
+    expect(changed.request().postDataJSON()).toEqual({ status: "CANCELED" });
     expect((await read(page, `/bookings/${order.id}`)).status).toBe(
       "CANCELLED",
     );
@@ -432,13 +515,16 @@ test("TC_FR07_05: Admin locks a booked show, releases only unpaid holds and clie
       data: { showtimeId: show.id, seatIds: [order.seats[0].seatId] },
     });
     expect(refused.status()).toBe(409);
-    expect((await refused.json()).errorCode).toBe("SHOWTIME_UNAVAILABLE");
+    expect((await refused.json()).errorCode).toBe(
+      "SHOWTIME_LOCKED_OR_CANCELED",
+    );
     const forbiddenPayment = await page.request.post(
       "/api/v1/payments/sandbox/confirm",
       { data: { ...signed, result: "SUCCESS" } },
     );
     expect(forbiddenPayment.status()).toBe(409);
     expect((await forbiddenPayment.json()).error).toBe("SHOWTIME_UNAVAILABLE");
+    await page.bringToFront();
     await page.evaluate(() => window.dispatchEvent(new Event("focus")));
     const notice = page.getByRole("dialog", {
       name: "Thông báo thay đổi suất chiếu",
@@ -450,8 +536,64 @@ test("TC_FR07_05: Admin locks a booked show, releases only unpaid holds and clie
     );
     await notice.getByRole("button", { name: "Chọn suất chiếu khác" }).click();
     await expect(notice).toHaveCount(0);
+    await page
+      .getByRole("combobox", { name: "Chọn suất chiếu", exact: true })
+      .click();
+    await expect(
+      page.getByRole("option").filter({ hasText: "Đã hủy" }).first(),
+    ).toBeDisabled();
   } finally {
     await admin.request.patch(`/api/v1/showtimes/${show.id}/status`, {
+      data: { status: "ACTIVE" },
+    });
+    await admin.close();
+  }
+});
+
+test("FR07 recovery: reloading dat-ve after Admin locks the hold restores the unavailable dialog from owned backend data", async ({
+  page,
+  browser,
+}) => {
+  const show = await start(page, 2);
+  const order = await hold(page, "A16");
+  expect(new URL(page.url()).searchParams.get("booking")).toBe(order.id);
+  const admin = await browser.newContext({
+    baseURL: test.info().project.use.baseURL,
+  });
+  try {
+    const data = fixture();
+    expect(
+      (
+        await admin.request.post("/api/v1/auth/login", {
+          data: { email: data.accounts.admin.email, password: data.password },
+        })
+      ).status(),
+    ).toBe(200);
+    expect(
+      (
+        await admin.request.patch(`/api/v1/admin/showtimes/${show.id}/status`, {
+          data: { status: "LOCKED" },
+        })
+      ).status(),
+    ).toBe(200);
+    await page.reload();
+    const notice = page.getByRole("dialog", {
+      name: "Thông báo thay đổi suất chiếu",
+      exact: true,
+    });
+    await expect(notice).toContainText(
+      "Rất tiếc, suất chiếu này đã bị hủy hoặc thay đổi. Vui lòng chọn suất khác",
+      { timeout: 15000 },
+    );
+    expect((await read(page, `/bookings/${order.id}`)).status).toBe(
+      "CANCELLED",
+    );
+    await notice
+      .getByRole("button", { name: "Chọn suất chiếu khác", exact: true })
+      .click();
+    expect(new URL(page.url()).searchParams.has("booking")).toBe(false);
+  } finally {
+    await admin.request.patch(`/api/v1/admin/showtimes/${show.id}/status`, {
       data: { status: "ACTIVE" },
     });
     await admin.close();

@@ -94,6 +94,11 @@ export class SandboxUrlDto {
   @ApiProperty() url!: string;
 }
 export class PaymentStateDto {
+  @ApiProperty({
+    nullable: true,
+    enum: ["99_PAYMENT_FAILED", "24_USER_CANCELLED", "00_SUCCESS"],
+  })
+  responseCode!: string | null;
   @ApiProperty({ format: "uuid" }) bookingId!: string;
   @ApiProperty({ enum: BookingStatus }) bookingStatus!: BookingStatus;
   @ApiPropertyOptional({ nullable: true, type: String }) transactionCode!:

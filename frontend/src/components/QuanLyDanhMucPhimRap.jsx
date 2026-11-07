@@ -74,6 +74,7 @@ const specs = {
       ["roomId", "Phòng", "rooms"],
       ["startTime", "Bắt đầu", "datetime-local"],
       ["baseTicketPrice", "Giá vé cơ bản (VND)"],
+      ["status", "Trạng thái suất", ["ACTIVE", "LOCKED", "CANCELED"]],
     ],
   },
   combos: {
@@ -104,6 +105,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
     [page, setPage] = useState(1),
     [keyword, setKeyword] = useState(""),
     [draft, setDraft] = useState({}),
+    [originalDraft, setOriginalDraft] = useState({}),
     [editId, setEditId] = useState(null),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
@@ -171,6 +173,8 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
       const body = {};
       for (const [key, , type] of specs[kind].fields) {
         const value = draft[key];
+        // PATCH chỉ gửi trường đã đổi, tránh làm tròn giây/mili giây của lịch cũ.
+        if (editId && value === originalDraft[key]) continue;
         if (key === "suggestedMaxSeats" && value === "") {
           body[key] = null;
           continue;
@@ -186,7 +190,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                 : value;
       }
       await readCommand(
-        `/${kind === "combos" ? "admin/combos" : kind}${editId ? "/" + editId : ""}`,
+        `/${kind === "combos" ? "admin/combos" : kind === "showtimes" && editId ? "admin/showtimes" : kind}${editId ? "/" + editId : ""}`,
         body,
         {},
         editId ? (kind === "combos" ? "PUT" : "PATCH") : "POST",
@@ -221,23 +225,23 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
     if (kind === "combos") setComboEditing(true);
     setFieldErrors({});
     setEditId(item.id);
-    setDraft(
-      Object.fromEntries(
-        specs[kind].fields.map(([key, , type]) => [
-          key,
-          type === "datetime-local"
-            ? new Date(
-                new Date(item[key]).getTime() -
-                  new Date(item[key]).getTimezoneOffset() * 60000,
-              )
-                .toISOString()
-                .slice(0, 16)
-            : key === "tasteTag"
-              ? normalizedTasteTag(item[key])
-              : String(item[key] ?? ""),
-        ]),
-      ),
+    const values = Object.fromEntries(
+      specs[kind].fields.map(([key, , type]) => [
+        key,
+        type === "datetime-local"
+          ? new Date(
+              new Date(item[key]).getTime() -
+                new Date(item[key]).getTimezoneOffset() * 60000,
+            )
+              .toISOString()
+              .slice(0, 16)
+          : key === "tasteTag"
+            ? normalizedTasteTag(item[key])
+            : String(item[key] ?? ""),
+      ]),
     );
+    setDraft(values);
+    setOriginalDraft(values);
     setMessage("");
   }
   async function remove(item) {
@@ -455,7 +459,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                         NOW_SHOWING: "Đang chiếu",
                         ENDED: "Ngừng chiếu",
                         ACTIVE: "Đang mở",
-                        LOCKED: "Đã khóa",
+                        LOCKED: "Tạm khóa",
                         CANCELED: "Đã hủy",
                         STANDARD_2D: "2D",
                         IMAX_70MM_LASER: "IMAX Laser",
@@ -467,7 +471,7 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                         className="text-button"
                         onClick={() => edit(item)}
                       >
-                        Sửa
+                        {kind === "showtimes" ? "✏️ Sửa suất chiếu" : "Sửa"}
                       </button>
                       {kind === "combos" && (
                         <button
@@ -503,12 +507,12 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                             setBusy(true);
                             try {
                               await readCommand(
-                                `/showtimes/${item.id}/status`,
+                                `/admin/showtimes/${item.id}/status`,
                                 {
                                   status:
-                                    item.status === "LOCKED"
-                                      ? "ACTIVE"
-                                      : "LOCKED",
+                                    item.status === "ACTIVE"
+                                      ? "LOCKED"
+                                      : "ACTIVE",
                                 },
                                 {},
                                 "PATCH",
@@ -522,7 +526,9 @@ export default function QuanLyDanhMucPhimRap({ initialKind = "movies" }) {
                             }
                           }}
                         >
-                          {item.status === "LOCKED" ? "Mở suất" : "Khóa suất"}
+                          {item.status === "ACTIVE"
+                            ? "🔒 Khóa / Hủy suất chiếu"
+                            : "🔓 Mở lại suất chiếu"}
                         </button>
                       )}
                       {kind !== "combos" && (

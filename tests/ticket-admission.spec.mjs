@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { verifyRuntimeConsole } from "./runtime-console.mjs";
+verifyRuntimeConsole(test, expect);
 import { readFileSync } from "node:fs";
 const fixture = () =>
   JSON.parse(
@@ -36,9 +38,15 @@ async function login(page, role) {
       })
     ).status(),
   ).toBe(200);
-  await page.addInitScript(() =>
-    sessionStorage.setItem("nova-welcome-seen", "1"),
-  );
+  await page.addInitScript(() => {
+    // Script khởi tạo Playwright cũng chạy trong iframe email sandbox.
+    if (window.top !== window) return;
+    try {
+      sessionStorage.setItem("nova-welcome-seen", "1");
+    } catch {
+      /* Storage có thể bị chặn. */
+    }
+  });
 }
 async function staff(page) {
   await login(page, "staff");
@@ -60,12 +68,18 @@ test("FR09 single lookup V1 resolves exact aliases and QR JSON, hides the genera
   await page.goto("/tai-khoan");
   const form = page.getByRole("region", { name: "Tra cứu mã vé riêng lẻ" });
   await form.getByLabel("Mã vé riêng lẻ", { exact: true }).fill("V1");
-  await form.getByRole("button", { name: "Tra cứu vé", exact: true }).click();
+  await form
+    .getByRole("button", { name: "🔍 Tìm kiếm / Tra cứu vé", exact: true })
+    .click();
   const result = page.locator(".ticket-lookup-result");
   await expect(result).toContainText("NOVA-20261102-8F9A");
   await expect(result).toContainText("Dune: Hành Tinh Cát 2");
   await expect(result).toContainText("Hall 1");
-  await expect(result).toContainText("F8 (VIP)");
+  await expect(result).toContainText("F08 (VIP)");
+  await expect(result).toContainText("Ghế trong đơn đã thanh toán: F08, F09");
+  await expect(result).toContainText("315.270");
+  await expect(result).toContainText("19:30 - Hôm nay");
+  await expect(result).toContainText("1x Party Combo 69K");
   await expect(result.locator("svg.ticket-qr-svg")).toBeVisible();
   await expect(page.locator(".ticket-search-bar")).toBeHidden();
   for (const code of [
@@ -84,6 +98,39 @@ test("FR09 single lookup V1 resolves exact aliases and QR JSON, hides the genera
   const row = (await other.json()).data.ticket;
   expect(row.seats).toHaveLength(1);
   expect(row.seats[0].label).toBe("F9");
+});
+
+test("TC-12/TC-13 staff single lookup is read-only, shows booking context and rejects fake codes", async ({
+  page,
+}) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await staff(page);
+  const before = await page.request.get("/api/v1/staff/tickets/lookup?code=V1");
+  expect(before.status()).toBe(200);
+  const prior = (await before.json()).data.ticket;
+  const panel = page.getByRole("region", { name: "Tra cứu mã vé riêng lẻ" });
+  await panel.getByLabel("Mã vé riêng lẻ", { exact: true }).fill("V1");
+  await panel
+    .getByRole("button", { name: "🔍 Tìm kiếm / Tra cứu vé", exact: true })
+    .click();
+  await expect(panel.locator(".ticket-lookup-result")).toContainText("315.270");
+  await expect(panel.locator(".ticket-lookup-result")).toContainText(
+    "F08, F09",
+  );
+  const after = await page.request.get("/api/v1/staff/tickets/lookup?code=V1");
+  expect((await after.json()).data.ticket.isCheckedIn).toBe(prior.isCheckedIn);
+  await panel
+    .getByLabel("Mã vé riêng lẻ", { exact: true })
+    .fill("QR_INVALID_999");
+  await panel
+    .getByRole("button", { name: "🔍 Tìm kiếm / Tra cứu vé", exact: true })
+    .click();
+  await expect(panel.getByRole("alert")).toContainText(
+    "Không tìm thấy mã vé hoặc mã vé không hợp lệ!",
+  );
+  await expect(panel.locator(".ticket-lookup-result")).toHaveCount(0);
+  expect(errors).toEqual([]);
 });
 test("TC_FR09_02 valid V1 upload decodes actual QR bytes despite a fake filename; verification automatically consumes the seat", async ({
   page,
@@ -193,11 +240,11 @@ test("FR09 fake/foreign lookup returns 404 data:null; no fallback tickets, no un
   await page
     .getByLabel("Mã vé riêng lẻ", { exact: true })
     .fill("QR_INVALID_999");
-  await page.getByRole("button", { name: "Tra cứu vé", exact: true }).click();
+  await page
+    .getByRole("button", { name: "🔍 Tìm kiếm / Tra cứu vé", exact: true })
+    .click();
   await expect(
-    page
-      .getByRole("alert")
-      .filter({ hasText: "Hệ thống bảo mật không hiển thị" }),
+    page.getByRole("alert").filter({ hasText: "Hệ thống từ chối mã giả" }),
   ).toBeVisible();
   await expect(page.locator(".ticket-lookup-result")).toHaveCount(0);
   await expect(page.locator(".ticket-search-bar")).toBeHidden();
@@ -208,6 +255,10 @@ test("FR09 fake/foreign lookup returns 404 data:null; no fallback tickets, no un
   expect((await fake.json()).data).toBeNull();
   for (const code of [
     "FAKE_123",
+    "FAKE123",
+    "V999",
+    "ABCXYZ",
+    "V999_FAKE",
     "' OR '1'='1'; --",
     "<script>alert('x')</script>",
   ]) {
@@ -273,7 +324,7 @@ test("FR09 a slow QR image cannot overwrite a newer scan or submit after the sca
   });
   await page.goto("/ve");
   await page
-    .getByRole("button", { name: "📷 Quét QR vé", exact: true })
+    .getByRole("button", { name: "📷 Quét mã QR vé", exact: true })
     .click();
   const file = (index) => ({
     name: "qr.png",
@@ -300,7 +351,7 @@ test("FR09 a slow QR image cannot overwrite a newer scan or submit after the sca
   await upload.setInputFiles(file(0));
   await expect.poll(() => page.evaluate(() => window.qrWaiting)).toBe(3);
   await page
-    .getByRole("button", { name: "📷 Quét QR vé", exact: true })
+    .getByRole("button", { name: "📷 Quét mã QR vé", exact: true })
     .first()
     .click();
   await expect(page.locator(".qr-capture")).toHaveCount(0);

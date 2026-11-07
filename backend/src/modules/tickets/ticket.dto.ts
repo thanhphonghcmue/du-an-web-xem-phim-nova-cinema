@@ -140,6 +140,12 @@ export class LookupTicketDto {
   @Matches(/^[a-f0-9]{64}$/) ticketHash!: string;
 }
 export class TicketDto extends TicketDetailsDto {
+  @ApiPropertyOptional({
+    type: [TicketSeatDto],
+    description:
+      "Owner/staff lookup only: booking context; the QR still admits only seats.",
+  })
+  bookingSeats?: TicketSeatDto[];
   @ApiProperty() qrPayload!: string;
   @ApiProperty() ticketQrToken!: string;
   @ApiProperty() ticketHash!: string;

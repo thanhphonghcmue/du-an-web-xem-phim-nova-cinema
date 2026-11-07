@@ -52,7 +52,8 @@ module.exports.seedMemoryAdmission = ({
   const mainShow = randomUUID(),
     lateShow = randomUUID();
   const combo = [...maps.combos.values()].find(
-    (c) => c.isActive && Number(c.price) === 69000,
+    (c) =>
+      c.isActive && Number(c.price) === 69000 && c.name === "Party Combo 69K",
   );
   for (let i = 0; i < 3; i++) {
     const showtimeId = i === 2 ? lateShow : mainShow,

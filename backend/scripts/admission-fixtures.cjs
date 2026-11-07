@@ -68,7 +68,7 @@ async function seedAdmissionFixtures(
           }),
         );
       const combo = await tx.combo.findFirst({
-        where: { isActive: true, price: "69000" },
+        where: { isActive: true, price: "69000", name: "Party Combo 69K" },
       });
       const result = [];
       for (let index = 0; index < 3; index++) {

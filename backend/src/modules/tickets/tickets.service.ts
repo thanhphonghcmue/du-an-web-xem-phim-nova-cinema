@@ -203,7 +203,7 @@ export class TicketsService {
       return { reset: true, ticket: ticketDetails(row) };
     });
   }
-  async lookupCode(raw: string, userId: string) {
+  async lookupCode(raw: string, userId: string, staffLookup = false) {
     const code = extractNormalizedCode(raw);
     if (!code)
       throw new ApiException(
@@ -218,11 +218,18 @@ export class TicketsService {
     if (
       !row ||
       (row.demoOnly && process.env.NODE_ENV === "production") ||
-      row.booking.userId !== userId ||
+      (!staffLookup && row.booking.userId !== userId) ||
       row.booking.status !== "PAID"
     )
       throw missing();
-    return { found: true, ticket: this.serialize(row) };
+    const ticket = this.serialize(row);
+    // Chủ vé/nhân viên đối chiếu toàn bộ đơn; QR vẫn chỉ cấp quyền cho ghế trên vé.
+    ticket.bookingSeats = row.booking.seats.map((line) => ({
+      label: `${line.seat.seatRow}${String(line.seat.seatColumn)}`,
+      type: line.seat.seatType,
+      price: line.price.toFixed(2),
+    }));
+    return { found: true, ticket };
   }
   async verifyCode(
     raw: string,

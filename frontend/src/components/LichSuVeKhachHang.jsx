@@ -544,11 +544,15 @@ export default function LichSuVeKhachHang({ member, onResume }) {
                 <article key={order.id}>
                   <strong>{order.orderCode}</strong>
                   <p>
-                    {order.status === "EXPIRED"
-                      ? "Đã hết hạn giữ ghế"
-                      : order.status === "FAILED"
-                        ? "Thanh toán không thành công"
-                        : "Đã hủy"}{" "}
+                    <span
+                      className={`status-badge ${order.status.toLowerCase()}`}
+                    >
+                      {order.status === "EXPIRED"
+                        ? "Đã hết hạn giữ ghế"
+                        : order.status === "FAILED"
+                          ? "FAILED - Thanh toán thất bại"
+                          : "CANCELLED - Đã hủy giao dịch"}
+                    </span>{" "}
                     · {money(order.finalAmount)}
                   </p>
                 </article>

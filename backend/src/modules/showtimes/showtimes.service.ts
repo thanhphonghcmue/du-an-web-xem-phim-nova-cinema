@@ -53,22 +53,30 @@ export class ShowtimesService {
     return this.database.transaction(async (tx) => {
       await this.showtimes.lock(id, tx);
       await this.requireShowtime(id, tx);
-      const row = await this.showtimes.update(id, { status }, tx);
-      if (status !== "ACTIVE") {
-        const held = await this.bookings.activeInShowtime(id, tx);
-        for (const item of held) {
-          await this.bookings.lockBooking(item.id, tx);
-          const order = await this.bookings.find(item.id, tx);
-          if (
-            order &&
-            ["HOLDING", "PENDING"].includes(order.status) &&
-            !order.seats.some((s) => s.status === "SOLD")
-          )
-            await this.heldSeats.releaseLocked(order, "CANCELLED", tx);
-        }
-      }
-      return this.serialize(row);
+      return this.applyStatus(id, status, tx);
     });
+  }
+
+  private async applyStatus(
+    id: string,
+    status: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    const row = await this.showtimes.update(id, { status }, tx);
+    if (status !== "ACTIVE") {
+      const held = await this.bookings.activeInShowtime(id, tx);
+      for (const item of held) {
+        await this.bookings.lockBooking(item.id, tx);
+        const order = await this.bookings.find(item.id, tx);
+        if (
+          order &&
+          ["HOLDING", "PENDING"].includes(order.status) &&
+          !order.seats.some((s) => s.status === "SOLD")
+        )
+          await this.heldSeats.releaseLocked(order, "CANCELLED", tx);
+      }
+    }
+    return this.serialize(row);
   }
 
   async get(id: string): Promise<ShowtimeDto> {
@@ -239,6 +247,7 @@ export class ShowtimesService {
             startTime,
             endTime,
             baseTicketPrice: new Prisma.Decimal(dto.baseTicketPrice),
+            status: dto.status ?? "ACTIVE",
           },
           tx,
         ),
@@ -287,14 +296,23 @@ export class ShowtimesService {
         startTime.getTime() === current.startTime.getTime() &&
         price.equals(current.baseTicketPrice)
       )
-        return this.serialize(current);
+        return dto.status === undefined || dto.status === current.status
+          ? this.serialize(current)
+          : this.applyStatus(id, dto.status, tx);
       await this.requireUnused(id, tx);
       const endTime = await this.endTime(movieId, roomId, startTime, tx);
       await this.validateNoScheduleConflict(roomId, startTime, endTime, tx, id);
       return this.serialize(
         await this.showtimes.update(
           id,
-          { movieId, roomId, startTime, endTime, baseTicketPrice: price },
+          {
+            movieId,
+            roomId,
+            startTime,
+            endTime,
+            baseTicketPrice: price,
+            status: dto.status ?? current.status,
+          },
           tx,
         ),
       );

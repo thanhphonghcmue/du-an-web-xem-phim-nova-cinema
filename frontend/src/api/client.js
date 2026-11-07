@@ -28,6 +28,18 @@
 
 // Địa chỉ cổng API Gateway nội bộ trên Next.js
 export const API_BASE = "/api/v1";
+// ID chỉ dùng phục hồi UI; backend luôn kiểm tra chủ sở hữu trước khi trả đơn.
+export function rememberBooking(id) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set("booking", id);
+  else url.searchParams.delete("booking");
+  window.history.replaceState(
+    window.history.state,
+    "",
+    url.pathname + url.search + url.hash,
+  );
+}
 import { apiErrorMessage } from "./errorMessage.js";
 import { notifyApiError } from "./notice.js";
 import { uniqueRecords } from "../uniqueRecords.js";

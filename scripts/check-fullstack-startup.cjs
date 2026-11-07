@@ -194,7 +194,25 @@ async function main() {
       timeZone: "Asia/Ho_Chi_Minh",
     }),
   );
-  await chooseOption(page, "Chọn suất chiếu", show.id);
+  try {
+    await chooseOption(page, "Chọn suất chiếu", show.id);
+  } catch (cause) {
+    const query = new URLSearchParams({
+      cinemaId: room.cinemaId,
+      movieId: show.movieId,
+      date: new Date(show.startTime).toLocaleDateString("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      }),
+    });
+    const response = await page.request.get(
+      `${origin}/api/v1/showtimes?${query}`,
+    );
+    const payload = await response.json();
+
+    throw new Error(
+      `RAM schedule selection: HTTP ${response.status()}, target=${payload.data?.items?.some((item) => item.id === show.id)}, options=${JSON.stringify(await page.getByRole("option").allTextContents())}; ${cause.message}`,
+    );
+  }
   await page
     .locator("#booking")
     .getByRole("button", { name: "Đặt ngay", exact: true })

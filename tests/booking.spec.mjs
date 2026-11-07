@@ -1,6 +1,8 @@
 import { chooseOption, chooseDate } from "./ui-choices.mjs";
 import { useLegacyProgramme } from "./programme-routes.mjs";
 import { test, expect } from "@playwright/test";
+import { verifyRuntimeConsole } from "./runtime-console.mjs";
+verifyRuntimeConsole(test, expect);
 import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -54,9 +56,15 @@ async function restoredSeatScreen(page) {
   return dialog;
 }
 async function login(page, role = "customer") {
-  await page.addInitScript(() =>
-    sessionStorage.setItem("nova-welcome-seen", "1"),
-  );
+  await page.addInitScript(() => {
+    // Script khởi tạo Playwright cũng chạy trong iframe email sandbox.
+    if (window.top !== window) return;
+    try {
+      sessionStorage.setItem("nova-welcome-seen", "1");
+    } catch {
+      /* Storage có thể bị chặn. */
+    }
+  });
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
   const account = fixture().accounts[role];
@@ -73,9 +81,15 @@ async function login(page, role = "customer") {
   );
 }
 async function seats(page) {
-  await page.addInitScript(() =>
-    sessionStorage.setItem("nova-welcome-seen", "1"),
-  );
+  await page.addInitScript(() => {
+    // Script khởi tạo Playwright cũng chạy trong iframe email sandbox.
+    if (window.top !== window) return;
+    try {
+      sessionStorage.setItem("nova-welcome-seen", "1");
+    } catch {
+      /* Storage có thể bị chặn. */
+    }
+  });
   const { showtime } = fixture();
   await page.goto("/");
   await expect(page.locator(".site-header")).toBeVisible();
@@ -127,9 +141,14 @@ async function cancelAll(page) {
 // Reset only this run's limiter namespace between independent cases. Production
 // limits remain enabled; the explicit limiter case below verifies them.
 test.beforeEach(async ({ context }) => {
-  await context.addInitScript(() =>
-    sessionStorage.setItem("nova-welcome-seen", "1"),
-  );
+  await context.addInitScript(() => {
+    if (window.top !== window) return;
+    try {
+      sessionStorage.setItem("nova-welcome-seen", "1");
+    } catch {
+      /* Iframe/storage riêng tư được phép chặn truy cập. */
+    }
+  });
   req("dotenv").config({
     path: new URL("../backend/.env", import.meta.url).pathname,
     quiet: true,
@@ -537,8 +556,8 @@ test("refresh restores the same hold and deadline, cancel releases it", async ({
 });
 
 for (const [button, state] of [
-  ["Mô phỏng thất bại", "FAILED"],
-  ["Hủy giao dịch", "CANCELLED"],
+  ["⚠️ Xác nhận Thanh toán Thất bại (Lỗi giao dịch)", "FAILED"],
+  ["✕ Hủy thanh toán (Hủy giao dịch)", "CANCELLED"],
 ])
   test(`Sandbox ${button} returns verified state and releases seats`, async ({
     page,
@@ -568,15 +587,21 @@ for (const [button, state] of [
       page.getByRole("dialog", {
         name:
           state === "FAILED"
-            ? "Thanh toán không thành công"
-            : "Giao dịch đã được hủy bỏ",
+            ? "Thanh toán Sandbox thất bại (Trạng thái đơn: FAILED)"
+            : "Giao dịch đã được hủy bỏ (Trạng thái đơn: CANCELLED)",
       }),
     ).toBeVisible();
     expect(
-      (await read(page, `/payments/${order.id}/status`)).body.data
-        .bookingStatus,
-    ).toBe(state);
-    await page.getByRole("button", { name: "Thử thanh toán lại →" }).click();
+      (await read(page, `/payments/${order.id}/status`)).body.data,
+    ).toMatchObject({
+      bookingStatus: state,
+      paymentStatus: state,
+      responseCode:
+        state === "FAILED" ? "99_PAYMENT_FAILED" : "24_USER_CANCELLED",
+    });
+    await page
+      .getByRole("button", { name: "Quay lại sơ đồ chọn ghế →" })
+      .click();
     const restored = await restoredSeatScreen(page);
     await expect(
       restored.getByRole("button", { name: "Ghế A1, còn trống", exact: true }),
@@ -591,7 +616,9 @@ for (const [button, state] of [
         .locator(".history-archive article")
         .filter({ hasText: order.orderCode }),
     ).toContainText(
-      state === "FAILED" ? "Thanh toán không thành công" : "Đã hủy",
+      state === "FAILED"
+        ? "FAILED - Thanh toán thất bại"
+        : "CANCELLED - Đã hủy giao dịch",
     );
   });
 
@@ -686,6 +713,17 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
   expect(new Set(tickets.map((t) => t.ticketCode)).size).toBe(2);
   expect(tickets.map((t) => t.seats.length)).toEqual([1, 1]);
   const ticket = tickets[0];
+  const isolated = (
+    await read(
+      page,
+      `/tickets/lookup?code=${encodeURIComponent(ticket.ticketCode)}`,
+    )
+  ).body.data;
+  expect(isolated.found).toBe(true);
+  expect(isolated.ticket.id).toBe(ticket.id);
+  expect(isolated.ticket.seats).toHaveLength(1);
+  expect(isolated.ticket.bookingSeats).toHaveLength(2);
+  expect(isolated.ticket.amount).toBe(order.finalAmount);
   const png = req("pngjs").PNG.sync.read(
     Buffer.from(ticket.qrCodeBase64.split(",")[1], "base64"),
   );

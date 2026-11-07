@@ -89,7 +89,7 @@ export default function SandboxGateway({
           disabled={busy}
           onClick={() => onResult("CANCELLED")}
         >
-          Hủy giao dịch
+          ✕ Hủy thanh toán (Hủy giao dịch)
         </button>
         <button
           type="button"
@@ -103,11 +103,11 @@ export default function SandboxGateway({
       </div>
       <button
         type="button"
-        className="text-button sandbox-fail-action"
+        className="button sandbox-fail-action"
         disabled={busy || expired}
         onClick={() => onResult("FAILED")}
       >
-        Mô phỏng thất bại
+        ⚠️ Xác nhận Thanh toán Thất bại (Lỗi giao dịch)
       </button>
       <button
         type="button"

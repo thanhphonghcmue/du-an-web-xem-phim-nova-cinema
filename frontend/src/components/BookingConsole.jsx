@@ -59,6 +59,7 @@ import {
   readCommand,
   invalidateProgramme,
   getBackendKind,
+  rememberBooking,
 } from "@/api/client.js";
 
 function getAgeRestriction(ageRating) {
@@ -430,6 +431,7 @@ function LiveBookingConsole({
     if (!Array.isArray(map?.seats) || typeof map.canBook !== "boolean")
       throw new Error("Chưa nhận được sơ đồ ghế hợp lệ. Hãy thử lại.");
     if (map.showtimeStatus && map.showtimeStatus !== "ACTIVE") {
+      window.dispatchEvent(new Event("nova-showtime-status"));
       setUnavailable(true);
       setSandbox(null);
       setShowPaymentReview(false);
@@ -521,7 +523,13 @@ function LiveBookingConsole({
       } catch (err) {
         if (active && revision === orderRevision.current)
           setNotice(err.message);
-        if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+        if (
+          [
+            "SHOWTIME_LOCKED_OR_CANCELED",
+            "SHOWTIME_UNAVAILABLE",
+            "MOVIE_NOT_ON_SALE",
+          ].includes(err.code)
+        )
           setUnavailable(true);
       } finally {
         running = false;
@@ -616,6 +624,7 @@ function LiveBookingConsole({
     [order?.id],
   );
   const exitExpiredBooking = useCallback(() => {
+    rememberBooking(null);
     setShowExpiredNotice(false);
     setSandbox(null);
     setOrder(null);
@@ -727,7 +736,13 @@ function LiveBookingConsole({
       );
     } catch (err) {
       setNotice(err.message);
-      if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+      if (
+        [
+          "SHOWTIME_LOCKED_OR_CANCELED",
+          "SHOWTIME_UNAVAILABLE",
+          "MOVIE_NOT_ON_SALE",
+        ].includes(err.code)
+      )
         setUnavailable(true);
     } finally {
       setBusy(false);
@@ -774,6 +789,7 @@ function LiveBookingConsole({
           "Máy chủ chưa trả đủ thông tin đơn. Hãy kiểm tra tài khoản trước khi thử lại.",
         );
       activeOrderId.current = result.id;
+      rememberBooking(result.id);
       setOrder(result);
       setSelected(result.seats.map((s) => s.seatId));
       void refresh().catch((err) => {
@@ -782,7 +798,13 @@ function LiveBookingConsole({
     } catch (err) {
       if (err.code === "SEAT_UNAVAILABLE") revealConflict.current = true;
       setNotice(err.message);
-      if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+      if (
+        [
+          "SHOWTIME_LOCKED_OR_CANCELED",
+          "SHOWTIME_UNAVAILABLE",
+          "MOVIE_NOT_ON_SALE",
+        ].includes(err.code)
+      )
         setUnavailable(true);
       if (err.code === "SEAT_UNAVAILABLE") {
         const blockedIds = Array.isArray(err.details?.seatIds)
@@ -831,6 +853,7 @@ function LiveBookingConsole({
     setBusy(true);
     try {
       const result = await apiCancelBooking(order.id);
+      rememberBooking(null);
       setOrder(result);
       setShowPaymentReview(false);
       setSandbox(null);
@@ -843,7 +866,13 @@ function LiveBookingConsole({
       setNotice("Đã hủy đơn và trả ghế.");
     } catch (err) {
       setNotice(err.message);
-      if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+      if (
+        [
+          "SHOWTIME_LOCKED_OR_CANCELED",
+          "SHOWTIME_UNAVAILABLE",
+          "MOVIE_NOT_ON_SALE",
+        ].includes(err.code)
+      )
         setUnavailable(true);
     } finally {
       changingOrder.current = false;
@@ -868,7 +897,13 @@ function LiveBookingConsole({
       setShowPaymentReview(false);
     } catch (err) {
       setNotice(err.message);
-      if (["SHOWTIME_UNAVAILABLE", "MOVIE_NOT_ON_SALE"].includes(err.code))
+      if (
+        [
+          "SHOWTIME_LOCKED_OR_CANCELED",
+          "SHOWTIME_UNAVAILABLE",
+          "MOVIE_NOT_ON_SALE",
+        ].includes(err.code)
+      )
         setUnavailable(true);
     } finally {
       setBusy(false);
@@ -903,6 +938,7 @@ function LiveBookingConsole({
             status: confirmed.status,
             orderCode: confirmed.orderCode,
           });
+        if (confirmed.status !== "EXPIRED") rememberBooking(null);
       }
       void refresh().catch((error) => setNotice(error.message));
     } catch (error) {
@@ -922,7 +958,11 @@ function LiveBookingConsole({
         }
       }
       if (
-        ["SHOWTIME_UNAVAILABLE", "BOOKING_NOT_PAYABLE"].includes(error.code)
+        [
+          "SHOWTIME_LOCKED_OR_CANCELED",
+          "SHOWTIME_UNAVAILABLE",
+          "BOOKING_NOT_PAYABLE",
+        ].includes(error.code)
       ) {
         const show = await apiGetShowtimeSeats(showtimeId).catch(() => null);
         if (show && !show.canBook) {
@@ -1831,8 +1871,8 @@ function LiveBookingConsole({
           className="cinema-state-card cinema-state-red booking-cancelled-modal"
           title={
             cancelledNotice.status === "FAILED"
-              ? "Thanh toán không thành công"
-              : "Giao dịch đã được hủy bỏ"
+              ? "Thanh toán Sandbox thất bại (Trạng thái đơn: FAILED)"
+              : "Giao dịch đã được hủy bỏ (Trạng thái đơn: CANCELLED)"
           }
           onClose={() => setCancelledNotice(null)}
         >
@@ -1841,14 +1881,14 @@ function LiveBookingConsole({
           </div>
           <h2>
             {cancelledNotice.status === "FAILED"
-              ? "Thanh toán không thành công"
-              : "Giao dịch đã được hủy bỏ"}
+              ? "Thanh toán Sandbox thất bại (Trạng thái đơn: FAILED)"
+              : "Giao dịch đã được hủy bỏ (Trạng thái đơn: CANCELLED)"}
           </h2>
           <p>
             Đơn <strong>{cancelledNotice.orderCode}</strong>:{" "}
             {cancelledNotice.status === "FAILED"
-              ? "Cổng Sandbox từ chối giao dịch (PAYMENT_DECLINED). Có thể thử phương thức mô phỏng khác sau khi chọn và giữ lại ghế."
-              : "Bạn đã hủy giao dịch (CUSTOMER_ABORTED). Ghế đã được giải phóng."}{" "}
+              ? "Cổng Sandbox trả về mã phản hồi thất bại. Đơn hàng đã được cập nhật trạng thái Thanh toán thất bại (FAILED) và ghế ngồi đã được giải phóng."
+              : "Bạn đã nhấn hủy thanh toán trên cổng Sandbox. Đơn hàng đã cập nhật trạng thái là CANCELLED và hệ thống tự động đưa bạn quay lại trang chọn ghế ban đầu."}{" "}
             Đây là Sandbox, không thu tiền thật.
           </p>
           <div className="cinema-state-actions">
@@ -1863,7 +1903,7 @@ function LiveBookingConsole({
                 void refresh().catch((error) => setNotice(error.message));
               }}
             >
-              Thử thanh toán lại →
+              Quay lại sơ đồ chọn ghế →
             </button>
           </div>
         </Modal>

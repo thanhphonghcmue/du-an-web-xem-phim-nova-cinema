@@ -938,7 +938,7 @@ test("TC_FR07_05 RAM soft-lock keeps booking records, frees held seats and preve
   assert.equal(
     (
       await f.call(
-        `/showtimes/${f.showtimeId}/status`,
+        `/admin/showtimes/${f.showtimeId}/status`,
         { status: "LOCKED" },
         f.customer.accessToken,
         "PATCH",
@@ -969,6 +969,7 @@ test("TC_FR07_05 RAM soft-lock keeps booking records, frees held seats and preve
   );
   assert.equal(denied.status, 409);
   assert.equal(denied.body.error, "SHOWTIME_UNAVAILABLE");
+  assert.equal(denied.body.errorCode, "SHOWTIME_LOCKED_OR_CANCELED");
   assert.equal(
     (
       await f.call(

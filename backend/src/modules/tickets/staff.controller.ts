@@ -1,4 +1,12 @@
-import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  Query,
+  HttpCode,
+  Post,
+} from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -20,6 +28,7 @@ import {
   VerifyTicketDto,
   StaffTicketCodeDto,
   ResetDemoTicketDto,
+  TicketCodeQueryDto,
 } from "./ticket.dto";
 import { TicketsService } from "./tickets.service";
 @ApiTags("Staff")
@@ -33,6 +42,14 @@ import { TicketsService } from "./tickets.service";
 @Controller("staff")
 export class StaffController {
   constructor(private readonly service: TicketsService) {}
+  @Get("tickets/lookup")
+  @Header("Cache-Control", "no-store")
+  lookupCode(
+    @CurrentUser() user: UserProfileDto,
+    @Query() dto: TicketCodeQueryDto,
+  ) {
+    return this.service.lookupCode(dto.code, user.id, true);
+  }
   @Get("demo-fixtures")
   demoFixtures() {
     return this.service.demoFixtures();

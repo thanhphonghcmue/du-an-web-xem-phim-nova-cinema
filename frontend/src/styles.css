@@ -6252,7 +6252,8 @@ button:focus-visible {
 
 .status-badge.paid { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
 .status-badge.pending, .status-badge.holding { background: rgba(234, 179, 8, 0.2); color: #facc15; }
-.status-badge.cancelled, .status-badge.failed { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.status-badge.failed { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.status-badge.cancelled { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
 .status-badge.expired { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); }
 
 /* Presets & Header for Admin Tab 1 */
@@ -7541,3 +7542,6 @@ button:focus-visible {
 .live-combos > .combo-recommended-party { border-color: #fbbf24; box-shadow: 0 0 35px #f59e0b4d; }
 .combo-recommendation-banner { padding: 14px; border: 1px solid #475569; border-radius: 12px; background: #152033; margin-bottom: 12px; }
 .combo-recommendation-banner .button { white-space: normal; max-width: 100%; }
+
+.sandbox-fail-action { background: #7c2d12; border: 1px solid #fb923c; color: #ffedd5; width: 100%; max-width: 100%; white-space: normal; }
+.ticket-lookup-panel .cinema-status-pill { white-space: normal; }

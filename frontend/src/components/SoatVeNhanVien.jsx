@@ -20,6 +20,7 @@ import {
   Calendar,
 } from "lucide-react";
 import QrCapture from "./QrCapture.jsx";
+import SingleTicketLookup from "./SingleTicketLookup.jsx";
 import ticketInput from "../../../shared/ticket-input.cjs";
 import Modal from "./Modal.jsx";
 import { createPortal } from "react-dom";
@@ -549,6 +550,8 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           </p>
         </div>
       </div>
+
+      <SingleTicketLookup staffMode />
 
       <div className="admission-steps">
         <span className={!preview && !result ? "active" : ""}>

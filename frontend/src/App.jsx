@@ -72,6 +72,8 @@ import {
   apiLogout,
   apiGetMyBookings,
   memberProfile,
+  read,
+  rememberBooking,
 } from "./api/client.js";
 import CinematicBackdrop from "./components/CinematicBackdrop.jsx";
 import { useI18n } from "./i18n.js";
@@ -229,17 +231,26 @@ export default function App() {
     if (!id && restoredMember.current === memberId) return;
     let active = true;
     apiGetMyBookings()
-      .then((orders) => {
+      .then(async (orders) => {
         const order = id
           ? orders.find((o) => o.id === id)
           : orders.find((o) => ["HOLDING", "PENDING"].includes(o.status));
-        const context = order && contextFor(order.showtimeId);
+        const show =
+          order && !contextFor(order.showtimeId)
+            ? await read(`/showtimes/${order.showtimeId}`)
+            : undefined;
+        const context = order && contextFor(order.showtimeId, show);
         if (active && context) {
           restoredMember.current = memberId;
           setBooking((current) =>
             id || !current ? { ...context, orderId: order.id } : current,
           );
-          if (id) window.history.replaceState({}, "", "/");
+          if (id) {
+            setCinemaId(context.cinema.id);
+            setMovieId(context.movie.id);
+            setDateId(context.date.id);
+            setTimeId(context.time.id);
+          }
         } else if (active && !id) restoredMember.current = memberId;
       })
       .catch((err) => {
@@ -248,7 +259,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [memberId, contextFor, view, isLive]);
+  }, [memberId, contextFor, view, isLive, setCinemaId, setMovieId]);
   const [city, setCity] = useState("Tất cả");
 
   const dates = getDates(language);
@@ -298,7 +309,7 @@ export default function App() {
     const time = getShowtimes(resolvedCinemaId, movieId, dateId).find(
       (t) => t.id === timeId,
     );
-    if (!time) {
+    if (!time || (time.status !== undefined && time.status !== "ACTIVE")) {
       setTimeId("");
       notifyApiError(
         "Hãy chọn đủ rạp, phim, ngày và suất chiếu còn mở bán trước khi đặt vé.",
@@ -411,7 +422,7 @@ export default function App() {
               <Ticket size={20} />
             </Link>
             <Link className="text-button" href="/ve">
-              Tra cứu vé
+              🔍 Tra cứu mã vé
             </Link>
             <span className="nav-divider" />
             {member?.role === "ADMIN" && (
@@ -913,7 +924,10 @@ export default function App() {
           booking={booking}
           member={member}
           onMemberUpdate={setMember}
-          onClose={() => setBooking(null)}
+          onClose={() => {
+            rememberBooking(null);
+            setBooking(null);
+          }}
           onTimeout={() => window.location.assign("/dat-ve")}
           onViewTickets={(orderId) => {
             setBooking(null);

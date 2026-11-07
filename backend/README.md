@@ -10,6 +10,8 @@ FR09 cập nhật: mặc định soát ngay khi kiểm tra, có preview tùy ch�
 
 FR12/FR08 hoàn thiện: ba mẫu combo chuẩn, tab Party Combo, PUT invalidation/no-store/status và Sandbox ép hạn rồi xác nhận riêng. [Đối chiếu trước/sau và test3 bước](../docs/qa/combo-expiry-refinement-2026-11-07.md). Chạy hai migration mới trước khi mở backend riêng; không reset tùy chỉnh Admin.
 
+Năm ca FR07/FR08/TC-12/TC-13: alias quản trị suất, PATCH chỉ trường đổi, responseCode và nhãn FAILED/CANCELLED riêng, lookup chủ vé/nhân viên chỉ đọc. [Danh sách tệp, contract, hướng dẫn và bằng chứng](../docs/qa/five-cases-atomic-2026-11-07.md). Giữ một QR riêng cho từng ghế; không cần migration mới cho đợt vá này.
+
 Kiến trúc: Controller → Service → Repository → Prisma. Quyết định nghiệp vụ/transaction/concurrency: [docs/architecture.md](docs/architecture.md). Kế hoạch các phase: [docs/phases.md](docs/phases.md). Evidence: [Phase 1](docs/validation-phase-1.md) · [Phase 2](docs/validation-phase-2.md) · [Phase 3](docs/validation-phase-3.md) · [Phase 4](docs/validation-phase-4.md) · [Phase 5](docs/validation-phase-5.md) · [Phase 6](docs/validation-phase-6.md) · [Phase 7](docs/validation-phase-7.md) · [Phase 8](docs/validation-phase-8.md) · [Phase 9](docs/validation-phase-9.md) · [Phase 10](docs/validation-phase-10.md).
 
 Bổ sung ngày 05/11/2026: [vé theo từng ghế, mã ngắn, ví vé và soát vé](../docs/qa/per-seat-ticket-wallet.md).

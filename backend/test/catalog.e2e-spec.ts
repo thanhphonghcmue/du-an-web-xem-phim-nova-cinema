@@ -143,6 +143,33 @@ describe("Phase 4 real PostgreSQL/Redis catalog", () => {
     });
     return { film, venue, auditorium, chair, showtime };
   }
+  it("FR07 admin aliases edit an unused schedule and soft-cancel/reopen without deleting it; roles remain enforced", async () => {
+    const f = await referenced();
+    const path = `admin/showtimes/${f.showtime.id}`;
+    expect(
+      entity(
+        await patch(path, {
+          baseTicketPrice: "95000",
+          status: "LOCKED",
+        }).expect(200),
+      ),
+    ).toMatchObject({ baseTicketPrice: "95000.00", status: "LOCKED" });
+    await patch(path + "/status", { status: "CANCELED" }).expect(200);
+    await patch(path, { status: "ACTIVE" }).expect(200);
+    expect(
+      (
+        await prisma.showtime.findUniqueOrThrow({
+          where: { id: f.showtime.id },
+        })
+      ).status,
+    ).toBe("ACTIVE");
+    for (const role of [staff, customer])
+      await request(server)
+        .patch(`/api/v1/${path}/status`)
+        .auth(role, { type: "bearer" })
+        .send({ status: "LOCKED" })
+        .expect(403);
+  });
   beforeAll(async () => {
     app = await createApplication({ logger: false });
     await app.listen(0, "127.0.0.1");

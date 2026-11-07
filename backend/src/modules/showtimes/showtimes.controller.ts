@@ -173,3 +173,27 @@ export class ShowtimesController {
     return this.service.delete(id);
   }
 }
+
+@ApiTags("Admin Showtimes")
+@Controller("admin/showtimes")
+export class AdminShowtimesController {
+  constructor(private readonly service: ShowtimesService) {}
+
+  @Patch(":id/status")
+  @CatalogWrite()
+  setStatus(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: ShowtimeStatusDto,
+  ) {
+    return this.service.setStatus(id, dto.status);
+  }
+
+  @Patch(":id")
+  @CatalogWrite()
+  update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateShowtimeDto,
+  ) {
+    return this.service.update(id, dto);
+  }
+}

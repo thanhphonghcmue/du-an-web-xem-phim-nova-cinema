@@ -685,9 +685,9 @@ export default function QuanTriHeThong({
                                     : b.status === "EXPIRED"
                                       ? "⏱️ Hết hạn 5 phút"
                                       : b.status === "FAILED"
-                                        ? "❌ Thanh toán thất bại"
+                                        ? "FAILED - Thanh toán thất bại"
                                         : b.status === "CANCELLED"
-                                          ? "❌ Đã hủy"
+                                          ? "CANCELLED - Đã hủy giao dịch"
                                           : b.status}
                               </span>
                             </td>

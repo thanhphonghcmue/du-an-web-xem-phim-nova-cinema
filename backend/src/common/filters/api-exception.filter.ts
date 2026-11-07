@@ -105,6 +105,11 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
     if (statusCode < 500 && publicErrorMessages[error])
       message = publicErrorMessages[error];
+    if (
+      error === "TICKET_NOT_FOUND" &&
+      request.path.endsWith("/tickets/lookup")
+    )
+      message = "Không tìm thấy mã vé hoặc mã vé không hợp lệ!";
     if (statusCode >= 500)
       this.logger.error(
         `request=${request.correlationId || "unknown"} error=${error}`,
@@ -118,7 +123,12 @@ export class ApiExceptionFilter implements ExceptionFilter {
       statusCode,
       error,
       ...(["SHOWTIME_UNAVAILABLE", "ORDER_EXPIRED_TIMEOUT"].includes(error)
-        ? { errorCode: error }
+        ? {
+            errorCode:
+              error === "SHOWTIME_UNAVAILABLE"
+                ? "SHOWTIME_LOCKED_OR_CANCELED"
+                : error,
+          }
         : {}),
       message,
       timestamp: new Date().toISOString(),

@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import { useCatalog } from "@/catalog.js";
 import { useI18n } from "@/i18n.js";
+import { useEffect, useState } from "react";
+import { apiList } from "@/api/client.js";
+import { timeLabel } from "@/catalog.js";
 
 export default function DatVeNhanh({
   cinemaId,
@@ -39,8 +42,50 @@ export default function DatVeNhanh({
   const cinema = cinemas.find((item) => item.id === cinemaId);
   const films = movies.filter((movie) => cinema?.movies.includes(movie.id));
   const dates = getDates("vi", cinemaId, movieId);
-  const times =
+  const cachedTimes =
     dateId && movieId ? getShowtimes(cinemaId, movieId, dateId) : [];
+  const scheduleKey = `${cinemaId}/${movieId}/${dateId}`;
+  const [schedule, setSchedule] = useState(null);
+  useEffect(() => {
+    if (!cinemaId || !movieId || !dateId || !isLive) return;
+    let active = true;
+    const sync = async () => {
+      try {
+        const items = await apiList("/showtimes", {
+          cinemaId,
+          movieId,
+          date: dateId,
+        });
+        if (active)
+          setSchedule({
+            key: scheduleKey,
+            items: items.filter(
+              (time) => Date.parse(time.startTime) > Date.now(),
+            ),
+          });
+      } catch {
+        /* Catalogue đã tải vẫn cho chọn; backend luôn kiểm tra lại trạng thái. */
+      }
+    };
+    void sync();
+    window.addEventListener("focus", sync);
+    window.addEventListener("nova-showtime-status", sync);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", sync);
+      window.removeEventListener("nova-showtime-status", sync);
+    };
+  }, [cinemaId, movieId, dateId, isLive, scheduleKey]);
+  const times = (
+    schedule?.key === scheduleKey ? schedule.items : cachedTimes
+  ).map((time) => ({
+    ...time,
+    displayTime: time.displayTime || timeLabel(time.startTime),
+    roomName:
+      time.roomName ||
+      rooms.find((room) => room.id === time.roomId)?.name ||
+      "",
+  }));
   const movie = films.find((movie) => movie.id === movieId);
   const selectedTime = times.find((time) => time.id === timeId);
 
@@ -131,7 +176,8 @@ export default function DatVeNhanh({
             searchable={false}
             items={times.map((time) => ({
               id: time.id,
-              name: time.displayTime,
+              name: `${time.displayTime}${time.status === "LOCKED" ? " · Tạm khóa" : time.status === "CANCELED" ? " · Đã hủy" : ""}`,
+              disabled: time.status !== undefined && time.status !== "ACTIVE",
               description: time.roomName,
               detail: `Từ ${money(time.baseTicketPrice)} · ${t("Xem ghế trống")}`,
             }))}
@@ -144,7 +190,11 @@ export default function DatVeNhanh({
         </label>
         <button
           className="button button-primary express-submit"
-          disabled={!isLive}
+          disabled={
+            !isLive ||
+            (selectedTime?.status !== undefined &&
+              selectedTime.status !== "ACTIVE")
+          }
         >
           {t("Đặt ngay")} <ArrowRight size={18} />
         </button>

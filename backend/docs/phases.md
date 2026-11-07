@@ -214,3 +214,7 @@ Theo prompt mới: verify-ticket mặc định auto check-in, vẫn có autoChec
 ## Hoàn thiện FR12 và Sandbox hết hạn — 07/11/2026
 
 Chuẩn hóa ba mẫu combo bằng migration có điều kiện, sửa ưu tiên giữa nhiều gói đủ điều kiện, thêm banner/áp dụng nhanh và tab quản trị rõ ràng. PUT invalidation, no-store và status rõ giá trị giữ dữ liệu menu mới; Sandbox ép hạn rồi xác nhận bằng hai thao tác, vẫn JSON409/không QR và giữ CSS. [Báo cáo trước/sau, phạm vi kiểm chứng và test3 bước](../../docs/qa/combo-expiry-refinement-2026-11-07.md). Giữ nguyên trạng thái Phase11–12.
+
+## Đối soát năm ca FR07/FR08/TC-12/TC-13 — 07/11/2026
+
+Alias ADMIN và cập nhật mềm suất có transaction/release; form chỉ gửi trường đổi để giữ độ chính xác giờ. FAILED/CANCELLED có responseCode, modal và huy hiệu riêng. Lookup thêm tổng đơn/ghế đối chiếu, endpoint nhân viên được bảo vệ và không check-in; quyền QR từng ghế và owner-only giữ nguyên. [Tệp sửa, contract và kiểm chứng](../../docs/qa/five-cases-atomic-2026-11-07.md). Không thay trạng thái Phase11–12.

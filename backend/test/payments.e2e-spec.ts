@@ -594,6 +594,8 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
       expect(data(await webhook(signed).expect(200)) as State).toMatchObject({
         bookingStatus: outcome,
         paymentStatus: outcome,
+        responseCode:
+          outcome === "FAILED" ? "99_PAYMENT_FAILED" : "24_USER_CANCELLED",
         duplicate: false,
       });
       expect((await stored(booking.id)).seats[0]?.status).toBe("AVAILABLE");
@@ -602,11 +604,8 @@ describe("Phase 8 real PostgreSQL/Redis Sandbox payment state machine", () => {
       );
       // Gọi hủy sau kết quả cuối không được đổi FAILED thành CANCELLED.
       expect(
-        (
-          await app
-            .get(SeatBookingService)
-            .releaseSeats(booking.id, userId)
-        ).status,
+        (await app.get(SeatBookingService).releaseSeats(booking.id, userId))
+          .status,
       ).toBe(outcome);
       expect((await stored(booking.id)).failureReason).toBe(
         outcome === "FAILED" ? "PAYMENT_DECLINED" : "CUSTOMER_ABORTED",

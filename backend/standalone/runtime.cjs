@@ -980,7 +980,47 @@ function createMemoryServer(input) {
       return json({
         enabled: process.env.NODE_ENV !== "production",
         showtimeId: sample ? orders.get(sample.bookingId).showtimeId : null,
+        tickets:
+          process.env.NODE_ENV === "production"
+            ? []
+            : [...tickets.values()]
+                .filter(
+                  (t) =>
+                    t.demoOnly &&
+                    ["V1", "V1B", "V2", "V3"].includes(t.shortCode),
+                )
+                .map((t) => ({
+                  code: t.shortCode,
+                  ticketCode: t.ticketCode,
+                  isCheckedIn: t.isCheckedIn,
+                  usedAt: t.checkedInAt,
+                })),
       });
+    }
+    if (path === "/staff/demo-fixtures/reset" && method === "POST") {
+      auth(request, ["ADMIN", "STAFF"]);
+      assert(
+        process.env.NODE_ENV !== "production",
+        "DEMO_DISABLED",
+        "Công cụ vé mẫu không khả dụng.",
+        404,
+      );
+      assert(
+        Object.keys(body).every((key) => key === "code") &&
+          (body.code === undefined || body.code === "V1"),
+      );
+      await demoFixtures();
+      const sample = [...tickets.values()].find(
+        (t) =>
+          t.demoOnly &&
+          t.shortCode === "V1" &&
+          orders.get(t.bookingId)?.status === "PAID",
+      );
+      assert(sample, "TICKET_NOT_FOUND", "Không tìm thấy vé mẫu.", 404);
+      sample.isCheckedIn = false;
+      sample.checkedInAt = null;
+      sample.checkedInBy = null;
+      return json({ reset: true, ticket: ticketData(sample, false) });
     }
     if (path === "/tickets/lookup" && method === "GET") {
       const user = auth(request);
@@ -1011,10 +1051,23 @@ function createMemoryServer(input) {
     ) {
       const user = auth(request, ["ADMIN", "STAFF"]);
       await demoFixtures();
+      assert(
+        Object.keys(body).every((key) =>
+          ["code", "showtimeId", "currentShowtime", "autoCheckin"].includes(
+            key,
+          ),
+        ) &&
+          typeof body.code === "string" &&
+          body.code.length <= 4096 &&
+          (body.autoCheckin == null || typeof body.autoCheckin === "boolean") &&
+          (body.currentShowtime == null ||
+            (typeof body.currentShowtime === "string" &&
+              body.currentShowtime.length <= 5)),
+      );
       const ticket = admission(
         body,
         user,
-        path.endsWith("checkin") || body.autoCheckin === true,
+        path.endsWith("checkin") || body.autoCheckin !== false,
       );
       return json({
         ...ticket,

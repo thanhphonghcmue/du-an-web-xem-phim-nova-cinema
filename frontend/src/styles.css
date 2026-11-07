@@ -7534,3 +7534,6 @@ button:focus-visible {
 .qr-capture .cinema-state-actions { flex-wrap: wrap; }
 .history-list[data-ticket-lookup-active="true"] > :not(.ticket-lookup-panel),
 .account-page:has(.history-list[data-ticket-lookup-active="true"]) #account-ticket-slot { display: none !important; }
+.admission-demo-reset { display: flex; max-width: 100%; box-sizing: border-box; margin: 12px 0 12px auto; white-space: normal; font-size: 12px; padding: 10px 14px; }
+.admission-auto-checkin { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+.admission-auto-checkin input { flex: 0 0 auto; width: 18px; height: 18px; }

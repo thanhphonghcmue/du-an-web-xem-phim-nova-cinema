@@ -779,6 +779,9 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
     await login(staff, "staff");
     await staff.getByRole("button", { name: "Soát vé", exact: true }).click();
     await staff
+      .getByRole("checkbox", { name: "Tự động check-in khi kiểm tra vé" })
+      .uncheck();
+    await staff
       .getByLabel("Mã đọc từ QR")
       .fill(ticket.ticketCode.toLowerCase());
     const wrongScreening = fixture().programmeShowtimes[0];
@@ -836,7 +839,7 @@ test("Sandbox success issues one QR per seat, searchable wallet, public lookup, 
       "Vé đã được sử dụng",
     );
     await expect(staff.locator(".admission-result.invalid")).toContainText(
-      "Đã soát lúc",
+      "Thời gian soát vé lần trước",
     );
     await expect(staff.locator(".admission-result.invalid")).toBeInViewport();
     await capture(staff, "21-used-ticket");

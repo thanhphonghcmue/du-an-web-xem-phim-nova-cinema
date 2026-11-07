@@ -94,7 +94,12 @@ export default function AdmissionStatus({
               Mã vé: <strong>{code}</strong> · Mã đơn: {details.orderCode}
             </p>
           )}
-          {used && error.at && <p>Đã soát lúc {time(error.at)}</p>}
+          {used && error.at && (
+            <p>
+              Thời gian soát vé lần trước: {time(error.at)}
+              {ago !== null ? ` (Cách đây ${ago} phút)` : ""}
+            </p>
+          )}
           <div className="cinema-state-actions">
             {(warning || used) && (
               <button

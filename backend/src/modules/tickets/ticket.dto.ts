@@ -158,3 +158,7 @@ export class StaffTicketCodeDto extends TicketCodeQueryDto {
   @IsOptional() @IsString() @MaxLength(5) currentShowtime?: string;
   @IsOptional() @IsBoolean() autoCheckin?: boolean;
 }
+
+export class ResetDemoTicketDto {
+  @IsOptional() @IsIn(["V1"]) code?: string;
+}

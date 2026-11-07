@@ -80,7 +80,9 @@ function playSuccessBeep() {
 export default function SoatVeNhanVien({ onClose, embedded = false }) {
   const { cinemas, rooms, movies, showtimes: catalogShowtimes } = useCatalog();
   const [mode, setMode] = useState("manual");
-  const [demo, setDemo] = useState(false);
+  const [demo, setDemo] = useState({ enabled: false, tickets: [] });
+  const [autoCheckin, setAutoCheckin] = useState(true);
+  const [lastCheckedCode, setLastCheckedCode] = useState("");
   const [guidance, setGuidance] = useState("");
   const [cinemaId, setCinemaId] = useState("");
   const [day, setDay] = useState(vietnamDate);
@@ -105,7 +107,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     read("/staff/demo-fixtures")
       .then((data) => {
         if (active) {
-          setDemo(data.enabled === true);
+          setDemo(data);
           if (data.showtimeId)
             setShowtimeId((current) => current || data.showtimeId);
         }
@@ -274,18 +276,23 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         // UC14: giữ nguyên suất nhân viên đang soát; không tự chuyển sang suất khác.
         setShowtimeId(currentShowtimeId);
         const ticket = admissionTicket(
-          await readCommand(
-            currentShowtimeId ? "/staff/verify" : "/staff/verify-ticket",
-            {
-              ...(currentShowtimeId
-                ? { ticketHash: target }
-                : { code: target }),
-              ...(currentShowtimeId ? { showtimeId: currentShowtimeId } : {}),
-            },
-          ),
+          await readCommand("/staff/verify-ticket", {
+            code: target,
+            ...(currentShowtimeId ? { showtimeId: currentShowtimeId } : {}),
+            autoCheckin,
+          }),
         );
-        setShowtimeId(currentShowtimeId);
-        setPreview({ ticket, hash: target, showtimeId: currentShowtimeId });
+        setShowtimeId(currentShowtimeId || ticket.showtimeId);
+        if (ticket.isCheckedIn) {
+          setResult(ticket);
+          setLastCheckedCode(ticket.ticketCode);
+          playSuccessBeep();
+        } else
+          setPreview({
+            ticket,
+            hash: target,
+            showtimeId: currentShowtimeId || ticket.showtimeId,
+          });
       } catch (err) {
         report(err, target);
       } finally {
@@ -293,7 +300,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         setBusy(false);
       }
     },
-    [showtimeId, screenings, stopCamera, report],
+    [showtimeId, screenings, stopCamera, report, autoCheckin],
   );
 
   async function admit() {
@@ -313,6 +320,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
         }),
       );
       setResult(ticket);
+      setLastCheckedCode(ticket.ticketCode);
       setPreview(null);
       playSuccessBeep();
     } catch (err) {
@@ -478,6 +486,27 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
     }
   };
 
+  async function resetSample() {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setBusy(true);
+    stopCamera();
+    clearResult();
+    try {
+      const data = await readCommand("/staff/demo-fixtures/reset", {});
+      setHash("V1");
+      setLastCheckedCode("");
+      setShowtimeId(data.ticket.showtimeId);
+      setGuidance(
+        "Đã reset vé mẫu V1 về Chưa sử dụng. Nhấn Kiểm tra vé để soát lại.",
+      );
+    } catch (err) {
+      report(err);
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  }
   const ticket = result || preview?.ticket;
   function repeatTicket() {
     void verify(hash);
@@ -514,8 +543,9 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
           <p className="nova-kicker">NOVA ADMISSION DESK</p>
           <h3>Đúng suất. Đúng vé. Một lần vào rạp.</h3>
           <p>
-            Kiểm tra thông tin trước, xác nhận cho vào rạp sau. Tự động nhận
-            diện mã QR qua camera hoặc nhập mã vé 8 ký tự.
+            Kiểm tra vé sẽ soát và ghi nhận vào rạp ngay. Có thể tắt tự động
+            check-in để xem trước rồi xác nhận. Quét camera, ảnh QR hoặc nhập mã
+            vé.
           </p>
         </div>
       </div>
@@ -672,12 +702,40 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
 
       <QrCapture
         disabled={busy}
-        demo={demo}
+        demo={demo.enabled}
+        demoTickets={demo.tickets || []}
+        repeatCode={lastCheckedCode}
         onCode={(code) => {
           setHash(code);
           void verify(code);
         }}
       />
+
+      {demo.enabled && demo.tickets?.some((t) => t.code === "V1") && (
+        <button
+          type="button"
+          className="button button-glass admission-demo-reset"
+          disabled={busy}
+          onClick={resetSample}
+        >
+          🔄 Reset trạng thái vé mẫu (Để test lại từ TC_FR09_02)
+        </button>
+      )}
+      {guidance && !error && !result && !preview && (
+        <p role="status">{guidance}</p>
+      )}
+      <label className="admission-auto-checkin">
+        <input
+          type="checkbox"
+          checked={autoCheckin}
+          disabled={busy}
+          onChange={(event) => {
+            setAutoCheckin(event.target.checked);
+            clearResult();
+          }}
+        />
+        Tự động check-in khi kiểm tra vé
+      </label>
 
       <form
         className="auth-form admission-form"
@@ -691,7 +749,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
             htmlFor="ticket-hash"
             className="text-sm font-medium text-slate-200"
           >
-            Mã QR hoặc mã vé 8 ký tự
+            Mã QR hoặc mã vé
           </label>
           <div className="flex items-center gap-2">
             <button
@@ -728,7 +786,7 @@ export default function SoatVeNhanVien({ onClose, embedded = false }) {
             }}
             autoComplete="off"
             spellCheck="false"
-            placeholder="Quét QR hoặc nhập mã vé, ví dụ NV-8K92FABC"
+            placeholder="Nhập mã vé, ví dụ V1, 8F9A, NOVA-20261102-8F9A"
             className="flex-1"
           />
           <button

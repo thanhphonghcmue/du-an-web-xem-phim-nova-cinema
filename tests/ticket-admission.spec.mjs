@@ -85,7 +85,7 @@ test("FR09 single lookup V1 resolves exact aliases and QR JSON, hides the genera
   expect(row.seats).toHaveLength(1);
   expect(row.seats[0].label).toBe("F9");
 });
-test("TC_FR09_02 valid V1 upload decodes actual QR bytes despite a fake filename; confirmation atomically consumes the seat", async ({
+test("TC_FR09_02 valid V1 upload decodes actual QR bytes despite a fake filename; verification automatically consumes the seat", async ({
   page,
 }) => {
   await login(page, "cmember");
@@ -117,9 +117,6 @@ test("TC_FR09_02 valid V1 upload decodes actual QR bytes despite a fake filename
   await expect(page.locator(".admission-result.valid")).toContainText(
     "NOVA-20261102-8F9A",
   );
-  await page
-    .getByRole("button", { name: "Xác nhận soát vé", exact: true })
-    .click();
   await expect(page.locator(".admission-result.valid")).toContainText(
     "Soát vé thành công - Hợp lệ",
   );
@@ -163,7 +160,9 @@ test("TC_FR09_04 arbitrary fake code reaches the API; wrong-showtime V3 stays un
 }) => {
   await staff(page);
   const response = page.waitForResponse(
-    (r) => r.url().endsWith("/staff/verify") && r.request().method() === "POST",
+    (r) =>
+      r.url().endsWith("/staff/verify-ticket") &&
+      r.request().method() === "POST",
   );
   await page.getByLabel("Mã đọc từ QR").fill("QR_INVALID_999");
   await page.getByRole("button", { name: "Kiểm tra vé", exact: true }).click();
@@ -308,4 +307,79 @@ test("FR09 a slow QR image cannot overwrite a newer scan or submit after the sca
   await page.evaluate(() => window.releaseQrDecode());
   await expect.poll(() => page.evaluate(() => window.qrResolved)).toBe(3);
   expect(lookups).toBe(1);
+});
+
+test("FR09 one-click scan uses database fixtures, resets only V1, and repeats the full valid-used-invalid cycle", async ({
+  page,
+}) => {
+  await staff(page);
+  const meta = await page.request.get("/api/v1/staff/demo-fixtures");
+  const data = (await meta.json()).data;
+  expect(data.tickets.find((t) => t.code === "V1").ticketCode).toBe(
+    "NOVA-20261102-8F9A",
+  );
+  const reset = page.getByRole("button", {
+    name: "🔄 Reset trạng thái vé mẫu (Để test lại từ TC_FR09_02)",
+    exact: true,
+  });
+  await reset.click();
+  const checkbox = page.getByRole("checkbox", {
+    name: "Tự động check-in khi kiểm tra vé",
+    exact: true,
+  });
+  await expect(checkbox).toBeChecked();
+  await page
+    .getByRole("button", {
+      name: "📷 Quét QR Vé Hợp Lệ (V1 / 8F9A)",
+      exact: true,
+    })
+    .click();
+  const green = page.locator(".admission-result.valid");
+  await expect(green).toContainText("Soát vé thành công - Hợp lệ");
+  await expect(green).toContainText("Trạng thái vé: Đã sử dụng / Đã check-in");
+  await expect(
+    page.getByRole("button", { name: "Xác nhận soát vé", exact: true }),
+  ).toHaveCount(0);
+  const prior = await page.request.post("/api/v1/staff/verify-ticket", {
+    data: { code: "V1" },
+  });
+  expect(prior.status()).toBe(409);
+  const usedAt = (await prior.json()).details.checkedInAt;
+  await page
+    .getByRole("button", {
+      name: "📲 Quét lại QR Vé Đã Soát (Test Lần 2 - TC_FR09_03)",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".admission-result.invalid")).toContainText(
+    "Vé đã được sử dụng!",
+  );
+  await expect(page.locator(".admission-result.invalid")).toContainText(
+    "Thời gian soát vé lần trước:",
+  );
+  const after = await page.request.post("/api/v1/staff/verify-ticket", {
+    data: { code: "V1" },
+  });
+  expect((await after.json()).details.checkedInAt).toBe(usedAt);
+  await reset.click();
+  await page.getByLabel("Mã đọc từ QR").fill("8F9A");
+  await page.getByRole("button", { name: "Kiểm tra vé", exact: true }).click();
+  await expect(green).toContainText("Soát vé thành công - Hợp lệ");
+  await page
+    .getByRole("button", {
+      name: "📷 Quét QR Giả / Không tồn tại (QR_INVALID_999)",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".admission-result.invalid")).toContainText(
+    "Mã vé không tồn tại hoặc không hợp lệ!",
+  );
+  for (const width of [375, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await reset.scrollIntoViewIfNeeded();
+    await expect(reset).toBeInViewport({ ratio: 1 });
+    const box = await reset.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+  }
 });

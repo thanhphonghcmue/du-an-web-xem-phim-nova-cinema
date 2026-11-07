@@ -1219,7 +1219,7 @@ test("FR09 full RAM demo exposes V1/V2/V3 with separate seat tickets and explici
   assert.equal(
     (
       await call(
-        "/staff/checkin",
+        "/staff/verify-ticket",
         { code: "V1", showtimeId: current },
         staffToken,
       )
@@ -1249,4 +1249,56 @@ test("FR09 full RAM demo exposes V1/V2/V3 with separate seat tickets and explici
     staffToken,
   );
   assert.equal(wrong.body.statusType, "WRONG_SHOWTIME");
+  assert.equal(
+    (await call("/staff/demo-fixtures/reset", {}, ownerToken)).status,
+    403,
+  );
+  assert.equal(
+    (await call("/staff/demo-fixtures/reset", { code: "V1B" }, staffToken))
+      .status,
+    400,
+  );
+  assert.equal(
+    (await call("/staff/demo-fixtures/reset", {}, staffToken)).status,
+    200,
+  );
+  const reset = (await call("/tickets/lookup?code=V1", undefined, ownerToken))
+    .body.data.ticket;
+  assert.equal(reset.ticketHash, one.body.data.ticket.ticketHash);
+  assert.equal(reset.isCheckedIn, false);
+  assert.equal(reset.checkedInAt, null);
+  assert.equal(
+    (
+      await call(
+        "/staff/verify-ticket",
+        { code: "V1", autoCheckin: "false" },
+        staffToken,
+      )
+    ).status,
+    400,
+  );
+  const preview = await call(
+    "/staff/verify-ticket",
+    { code: "V1", autoCheckin: false },
+    staffToken,
+  );
+  assert.equal(preview.body.data.isCheckedIn, false);
+  const again = await call("/staff/verify-ticket", { code: "V1" }, staffToken);
+  assert.equal(again.body.data.isCheckedIn, true);
+  const previousMode = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    assert.equal(
+      (await call("/staff/demo-fixtures/reset", {}, staffToken)).status,
+      404,
+    );
+    assert.deepEqual(
+      (await call("/staff/demo-fixtures", undefined, staffToken)).body.data
+        .tickets,
+      [],
+    );
+  } finally {
+    if (previousMode === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousMode;
+  }
 });

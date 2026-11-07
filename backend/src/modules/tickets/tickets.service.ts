@@ -153,14 +153,55 @@ export class TicketsService {
     };
   }
   async demoFixtures() {
-    if (process.env.NODE_ENV === "production") return { enabled: false };
-    const row = await this.database.transaction((tx) =>
-      this.tickets.byHash("V1", tx),
+    if (process.env.NODE_ENV === "production")
+      return { enabled: false, tickets: [], showtimeId: null };
+    const rows = await this.database.transaction((tx) =>
+      this.tickets.demoSamples(tx),
     );
     return {
       enabled: true,
-      showtimeId: row?.demoOnly ? row.booking.showtimeId : null,
+      showtimeId:
+        rows.find((row) => row.shortCode === "V1")?.booking.showtimeId ?? null,
+      tickets: rows.map((row) => ({
+        code: row.shortCode,
+        ticketCode: row.ticketCode,
+        isCheckedIn: row.isCheckedIn,
+        usedAt: row.checkedInAt,
+      })),
     };
+  }
+  async resetDemo(staffId: string, code = "V1") {
+    if (code !== "V1")
+      throw new ApiException(
+        400,
+        "VALIDATION_ERROR",
+        "Chỉ được reset vé mẫu V1.",
+      );
+    // Chỉ vé mẫu V1: tuyệt đối không mở lại quyền vào rạp của vé thật/production.
+    if (process.env.NODE_ENV === "production")
+      throw new ApiException(
+        404,
+        "DEMO_DISABLED",
+        "Công cụ vé mẫu không khả dụng.",
+      );
+    return this.database.transaction(async (tx) => {
+      const initial = await this.tickets.byHash("V1", tx);
+      if (!initial?.demoOnly || initial.shortCode !== "V1") throw missing();
+      await this.bookings.lockShowtime(initial.booking.showtimeId, tx);
+      await this.tickets.lockPaidBooking(initial.bookingId, tx);
+      const staff = await this.tickets.lockStaff(staffId, tx);
+      if (!staff || !["STAFF", "ADMIN"].includes(staff.role))
+        throw new ApiException(
+          403,
+          "FORBIDDEN",
+          "Chỉ nhân viên hoặc quản trị viên được đặt lại vé mẫu.",
+        );
+      if ((await this.tickets.resetDemo(initial.id, tx)).count !== 1)
+        throw missing();
+      const row = await this.tickets.find(initial.id, tx);
+      if (!row) throw missing();
+      return { reset: true, ticket: ticketDetails(row) };
+    });
   }
   async lookupCode(raw: string, userId: string) {
     const code = extractNormalizedCode(raw);

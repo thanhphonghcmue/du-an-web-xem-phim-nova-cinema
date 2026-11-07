@@ -1044,6 +1044,9 @@ test("E2E-01 GOLD member uses a suggested VIP pair and Party69K, receives QR/ICS
     ).toBe(200);
     const desk = await staff.newPage();
     await desk.goto(new URL("/soat-ve", page.url()).href);
+    await desk
+      .getByRole("checkbox", { name: "Tự động check-in khi kiểm tra vé" })
+      .uncheck();
     await desk.getByLabel("Ngày đang soát", { exact: true }).fill(
       new Date(f.showtime.startTime).toLocaleDateString("en-CA", {
         timeZone: "Asia/Ho_Chi_Minh",

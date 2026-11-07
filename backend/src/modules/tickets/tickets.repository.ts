@@ -72,6 +72,30 @@ export class TicketsRepository {
     });
     return rows.length === 1 ? (rows[0] ?? null) : null;
   }
+  demoSamples(tx: Prisma.TransactionClient) {
+    return tx.eTicket.findMany({
+      where: { demoOnly: true, shortCode: { in: ["V1", "V1B", "V2", "V3"] } },
+      select: {
+        ticketCode: true,
+        shortCode: true,
+        isCheckedIn: true,
+        checkedInAt: true,
+        booking: { select: { showtimeId: true } },
+      },
+      orderBy: { shortCode: "asc" },
+    });
+  }
+  resetDemo(id: string, tx: Prisma.TransactionClient) {
+    return tx.eTicket.updateMany({
+      where: {
+        id,
+        demoOnly: true,
+        shortCode: "V1",
+        booking: { status: "PAID" },
+      },
+      data: { isCheckedIn: false, checkedInAt: null, checkedInByStaffId: null },
+    });
+  }
   create(
     data: Prisma.ETicketUncheckedCreateInput,
     tx: Prisma.TransactionClient,

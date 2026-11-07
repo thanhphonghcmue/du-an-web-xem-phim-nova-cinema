@@ -205,3 +205,8 @@ Bổ sung FAILED/failure_reason và metadata combo qua migration additive; giữ
 ## Bản vá FR09 — 07/11/2026
 
 Mở rộng mã vé và alias chính xác, giữ token/QR cũ và check-in một lần trong transaction; thêm tra cứu một vé owner-only, camera/file fallback và seed demo tách biệt. Không thay trạng thái Phase11–12. [RCA/kiểm chứng](../../docs/qa/ticket-admission-fr09-2026-11-07.md).
+
+
+## FR09 tự động soát và reset mẫu — 07/11/2026
+
+Theo prompt mới: verify-ticket mặc định auto check-in, vẫn có autoCheckin=false để preview ở API và checkbox tùy chọn; reset chỉ demo V1/non-production, không sửa SOLD hoặc vé thật. [Đối chiếu và bằng chứng](../../docs/qa/fr09-auto-checkin-reset-2026-11-07.md). Không chuyển trạng thái Phase11–12.

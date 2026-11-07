@@ -3,10 +3,18 @@ import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import input from "../../../shared/ticket-input.cjs";
 const { extractNormalizedCode } = input;
-export default function QrCapture({ onCode, disabled = false, demo = false }) {
+export default function QrCapture({
+  onCode,
+  disabled = false,
+  demo = false,
+  demoTickets = [],
+  repeatCode = "",
+}) {
   const video = useRef(null),
     stream = useRef(null),
     frame = useRef(null),
+    demoTimer = useRef(null),
+    reticle = useRef(null),
     epoch = useRef(0),
     callback = useRef(onCode),
     blocked = useRef(disabled);
@@ -17,17 +25,18 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
   useEffect(() => {
     callback.current = onCode;
   }, [onCode]);
-  useEffect(() => {
-    blocked.current = disabled;
-    if (disabled) stop();
-  }, [disabled]);
   function stop() {
     epoch.current++;
+    clearTimeout(demoTimer.current);
     cancelAnimationFrame(frame.current);
     stream.current?.getTracks().forEach((t) => t.stop());
     stream.current = null;
     if (video.current) video.current.srcObject = null;
   }
+  useEffect(() => {
+    blocked.current = disabled;
+    if (disabled) stop();
+  }, [disabled]);
   useEffect(() => () => stop(), []);
   function decoded(source) {
     const canvas = document.createElement("canvas");
@@ -113,6 +122,21 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
       bitmap?.close();
     }
   }
+  function scanDemo(code) {
+    if (blocked.current) return;
+    stop();
+    const version = epoch.current;
+    setHint("Đang đưa thẻ QR vào máy quét…");
+    if (!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
+      reticle.current?.animate?.([{ opacity: 0.35 }, { opacity: 1 }], {
+        duration: 300,
+      });
+    demoTimer.current = setTimeout(() => {
+      if (version !== epoch.current || blocked.current) return;
+      setHint("Đã đọc mã từ thẻ mô phỏng.");
+      callback.current(code);
+    }, 300);
+  }
   return (
     <section className="qr-capture" aria-label="Quét QR vé">
       <div className="scanner-viewfinder">
@@ -123,7 +147,7 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
           className="camera-video-stream"
           hidden={!camera}
         />
-        <div className="scanner-reticle">
+        <div className="scanner-reticle" ref={reticle}>
           <div className="laser-scanner-line" />
         </div>
         <p className="scanner-overlay-hint">{hint}</p>
@@ -157,10 +181,18 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
       </div>
       {demo && (
         <div className="cinema-state-actions">
+          <p>Đưa thẻ QR vào máy quét (1-Click Scan) · Vé mẫu trong database</p>
           {[
-            ["Vé Hợp Lệ (V1 / 8F9A)", "V1"],
-            ["Vé Đã Dùng (Lần 2)", "V2"],
-            ["Vé Sai Suất (21:45)", "V3"],
+            ...demoTickets
+              .filter((t) => ["V1", "V2", "V3"].includes(t.code))
+              .map((t) => [
+                t.code === "V1"
+                  ? "Vé Hợp Lệ (V1 / 8F9A)"
+                  : t.code === "V2"
+                    ? "Vé Đã Dùng (Lần 2)"
+                    : "Vé Sai Suất (21:45)",
+                t.ticketCode,
+              ]),
             ["Giả / Không tồn tại (QR_INVALID_999)", "QR_INVALID_999"],
           ].map(([label, code]) => (
             <button
@@ -168,11 +200,21 @@ export default function QrCapture({ onCode, disabled = false, demo = false }) {
               type="button"
               disabled={disabled}
               className="button button-glass"
-              onClick={() => onCode(code)}
+              onClick={() => scanDemo(code)}
             >
               📷 Quét QR {label}
             </button>
           ))}
+          {repeatCode && (
+            <button
+              type="button"
+              className="button button-glass"
+              disabled={disabled}
+              onClick={() => scanDemo(repeatCode)}
+            >
+              📲 Quét lại QR Vé Đã Soát (Test Lần 2 - TC_FR09_03)
+            </button>
+          )}
         </div>
       )}
     </section>

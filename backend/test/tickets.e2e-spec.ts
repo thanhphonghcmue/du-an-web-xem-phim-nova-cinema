@@ -1641,6 +1641,98 @@ describe("Phase9 real QR tickets, SMTP/BullMQ recovery and atomic staff admissio
         .details.checkedInAt,
     ).toBeTruthy();
   });
+  it("FR09 default verification consumes once; demo reset is staff-only, V1-only and closed in production", async () => {
+    const f = await fixture(30 * 60000, 2);
+    await pay(f);
+    const first = await generate(f);
+    const real = await prisma.eTicket.findFirstOrThrow({
+      where: { bookingId: f.booking.id, id: { not: first.id } },
+    });
+    await prisma.eTicket.update({
+      where: { id: first.id },
+      data: { shortCode: "V1", aliases: ["8F9A"], demoOnly: true },
+    });
+    const verifySample = () =>
+      request(server)
+        .post("/api/v1/staff/verify-ticket")
+        .auth(staffToken, { type: "bearer" })
+        .send({ code: "V1", showtimeId: f.showtime.id });
+    const once = data(await verifySample().expect(200)) as {
+      isCheckedIn: boolean;
+      checkedInAt: string;
+    };
+    expect(once.isCheckedIn).toBe(true);
+    const twice = await verifySample().expect(409);
+    expect(
+      (JSON.parse(twice.text) as { details: { checkedInAt: string } }).details
+        .checkedInAt,
+    ).toBe(once.checkedInAt);
+    await check(real.ticketHash).expect(200);
+    await request(server)
+      .post("/api/v1/staff/demo-fixtures/reset")
+      .send({})
+      .expect(401);
+    await request(server)
+      .post("/api/v1/staff/demo-fixtures/reset")
+      .auth(token, { type: "bearer" })
+      .send({})
+      .expect(403);
+    await request(server)
+      .post("/api/v1/staff/demo-fixtures/reset")
+      .auth(staffToken, { type: "bearer" })
+      .send({ code: real.ticketCode })
+      .expect(400);
+    await request(server)
+      .post("/api/v1/staff/demo-fixtures/reset")
+      .auth(staffToken, { type: "bearer" })
+      .send({})
+      .expect(200);
+    const reset = await prisma.eTicket.findUniqueOrThrow({
+      where: { id: first.id },
+    });
+    expect(reset).toMatchObject({
+      isCheckedIn: false,
+      checkedInAt: null,
+      checkedInByStaffId: null,
+      ticketHash: first.ticketHash,
+    });
+    expect(
+      (await prisma.eTicket.findUniqueOrThrow({ where: { id: real.id } }))
+        .isCheckedIn,
+    ).toBe(true);
+    expect(
+      (
+        await prisma.bookingSeat.findMany({
+          where: { bookingId: f.booking.id },
+        })
+      ).every((row) => row.status === "SOLD"),
+    ).toBe(true);
+    await verifySample().expect(200);
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      await request(server)
+        .post("/api/v1/staff/demo-fixtures/reset")
+        .auth(staffToken, { type: "bearer" })
+        .send({})
+        .expect(404);
+      expect(
+        data(
+          await request(server)
+            .get("/api/v1/staff/demo-fixtures")
+            .auth(staffToken, { type: "bearer" })
+            .expect(200),
+        ),
+      ).toMatchObject({ enabled: false, tickets: [] });
+    } finally {
+      if (previous === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previous;
+    }
+    expect(
+      (await prisma.eTicket.findUniqueOrThrow({ where: { id: first.id } }))
+        .isCheckedIn,
+    ).toBe(true);
+  });
   it("documents owner ticket/calendar APIs and protected staff admission alongside Phase10 revenue reports", async () => {
     const spec = JSON.parse(
       (await request(server).get("/api/docs-json").expect(200)).text,

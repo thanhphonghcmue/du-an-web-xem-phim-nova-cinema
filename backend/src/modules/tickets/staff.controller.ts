@@ -19,6 +19,7 @@ import {
   TicketDetailsDto,
   VerifyTicketDto,
   StaffTicketCodeDto,
+  ResetDemoTicketDto,
 } from "./ticket.dto";
 import { TicketsService } from "./tickets.service";
 @ApiTags("Staff")
@@ -36,6 +37,14 @@ export class StaffController {
   demoFixtures() {
     return this.service.demoFixtures();
   }
+  @Post("demo-fixtures/reset")
+  @HttpCode(200)
+  resetDemo(
+    @CurrentUser() user: UserProfileDto,
+    @Body() dto: ResetDemoTicketDto,
+  ) {
+    return this.service.resetDemo(user.id, dto.code);
+  }
   @Post("verify-ticket")
   @HttpCode(200)
   verifyCode(
@@ -47,7 +56,7 @@ export class StaffController {
       user.id,
       dto.showtimeId,
       dto.currentShowtime,
-      dto.autoCheckin,
+      dto.autoCheckin ?? true,
     );
   }
   @Post("checkin")

@@ -4,6 +4,7 @@
 **TRƯỜNG ĐẠI HỌC SƯ PHẠM THÀNH PHỐ HỒ CHÍ MINH — KHOA CÔNG NGHỆ THÔNG TIN**
 
 <p align="center">
+  <a href="https://du-an-web-xem-phim-nova-cinema.vercel.app/"><img src="https://img.shields.io/badge/Trải%20nghiệm%20Live%20Demo-du--an--web--xem--phim--nova--cinema.vercel.app-0070f3?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
   <a href="https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema"><img src="https://img.shields.io/badge/GitHub-Repository%20Official-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo" /></a>
   <a href="https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/archive/refs/heads/main.zip"><img src="https://img.shields.io/badge/Download-ZIP%20Source%20Code-brightgreen?style=for-the-badge&logo=curseforge&logoColor=white" alt="Download ZIP" /></a>
   <a href="https://github.com/thanhphonghcmue/du-an-web-xem-phim-nova-cinema/milestones"><img src="https://img.shields.io/badge/Milestones-100%25%20Completed-blue?style=for-the-badge&logo=github" alt="Milestones" /></a>
@@ -13,6 +14,9 @@
   <img src="https://img.shields.io/badge/NestJS-11%20API-red?style=for-the-badge&logo=nestjs" alt="NestJS" />
 </p>
 
+> 🌐 **TRẢI NGHIỆM TRỰC TUYẾN (KHÔNG CẦN CÀI ĐẶT):**  
+> 👉 Truy cập ngay: **[https://du-an-web-xem-phim-nova-cinema.vercel.app/](https://du-an-web-xem-phim-nova-cinema.vercel.app/)**
+
 ---
 
 ## 🔑 BẢNG TÀI KHOẢN ĐĂNG NHẬP NGHIỆM THU (DÀNH CHO THẦY CÔ & GIẢNG VIÊN)
@@ -20,11 +24,11 @@
 > 💡 **Tất cả tài khoản dưới đây đã được khởi tạo sẵn trong cơ sở dữ liệu Supabase Cloud & Local RAM.**  
 > Thầy/Cô chỉ cần chọn tài khoản theo vai trò mong muốn và nhập mật khẩu chung: **`nova@12345`**
 
-| Vai trò Actor | Email đăng nhập | Mật khẩu chung | Trang kiểm tra nghiệp vụ | Nghiệp vụ chính cần nghiệm thu |
+| Vai trò Actor | Email đăng nhập | Mật khẩu chung | Trang kiểm tra nghiệp vụ (Bấm vào để mở) | Nghiệp vụ chính cần nghiệm thu |
 | :--- | :--- | :---: | :---: | :--- |
-| 👑 **Quản trị viên (Admin)** | **`admin@nova.vn`** | **`nova@12345`** | `/quan-tri` hoặc `/admin` | • **Lập lịch chiếu chống xung đột 15 phút (BR03)**<br>• Quản lý 24 phim, phòng chiếu, loại ghế<br>• Xem thống kê doanh thu bán vé trực tiếp |
-| 🛡️ **Nhân viên soát vé (Staff)** | **`staff@nova.vn`** | **`nova@12345`** | `/soat-ve` hoặc `/staff` | • **Soát vé thông minh bằng Camera QR (BR05)**<br>• Xác thực tính hợp lệ của vé điện tử<br>• Cảnh báo vé giả, sai suất chiếu hoặc vé đã dùng |
-| 🍿 **Khách hàng / VIP C'MEMBER** | **`cmember@nova.vn`** *(hoặc `customer@nova.vn`)* | **`nova@12345`** | `/dat-ve` hoặc `/booking` | • **Thuật toán chống đặt ghế trống kẹp giữa (CR-01)**<br>• Khóa ghế đôi Sweetbox, đếm ngược 300 giây<br>• Áp dụng mã Voucher, tích điểm C'MEMBER |
+| 👑 **Quản trị viên (Admin)** | **`admin@nova.vn`** | **`nova@12345`** | [Mở trang Quản trị](https://du-an-web-xem-phim-nova-cinema.vercel.app/quan-tri) | • **Lập lịch chiếu chống xung đột 15 phút (BR03)**<br>• Quản lý 24 phim, phòng chiếu, loại ghế<br>• Xem thống kê doanh thu bán vé trực tiếp |
+| 🛡️ **Nhân viên soát vé (Staff)** | **`staff@nova.vn`** | **`nova@12345`** | [Mở trang Soát vé](https://du-an-web-xem-phim-nova-cinema.vercel.app/soat-ve) | • **Soát vé thông minh bằng Camera QR (BR05)**<br>• Xác thực tính hợp lệ của vé điện tử<br>• Cảnh báo vé giả, sai suất chiếu hoặc vé đã dùng |
+| 🍿 **Khách hàng / VIP C'MEMBER** | **`cmember@nova.vn`** *(hoặc `customer@nova.vn`)* | **`nova@12345`** | [Mở trang Đặt vé](https://du-an-web-xem-phim-nova-cinema.vercel.app/dat-ve) | • **Thuật toán chống đặt ghế trống kẹp giữa (CR-01)**<br>• Khóa ghế đôi Sweetbox, đếm ngược 300 giây<br>• Áp dụng mã Voucher, tích điểm C'MEMBER |
 
 *(Ngoài ra Thầy/Cô cũng có thể bấm nút **"Đăng ký thành viên"** ngay trên giao diện web để tạo tài khoản mới độc lập).*
 

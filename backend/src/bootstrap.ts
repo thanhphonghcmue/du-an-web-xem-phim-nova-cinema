@@ -45,6 +45,17 @@ export function configureApplication(app: INestApplication): void {
     });
     next();
   });
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    if (request.path === "/" || request.path === "") {
+      return response.status(200).json({
+        status: "ok",
+        service: "NOVA Cinema Backend API",
+        environment: settings.environment,
+        timestamp: new Date().toISOString(),
+      });
+    }
+    next();
+  });
   app.use(helmet());
   // Compress public read-only catalogue/seat JSON, never authentication tokens or SSE.
   app.use(

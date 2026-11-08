@@ -122,14 +122,38 @@ async function proxy(request, context) {
     headers.set("accept-encoding", "identity");
   try {
     const target = upstream() + endpoint + new URL(request.url).search;
-    const result = await fetch(target, {
-      method: request.method,
-      headers,
-      body,
-      cache: "no-store",
-      redirect: "manual",
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(60000)]),
-    });
+    const isIdempotent =
+      ["GET", "HEAD"].includes(request.method) ||
+      Boolean(request.headers.get("idempotency-key"));
+    const maxAttempts = isIdempotent ? 3 : 1;
+    let result;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        result = await fetch(target, {
+          method: request.method,
+          headers,
+          body,
+          cache: "no-store",
+          redirect: "manual",
+          signal: AbortSignal.any([request.signal, AbortSignal.timeout(55000)]),
+        });
+
+        if (
+          isIdempotent &&
+          attempt < maxAttempts &&
+          [502, 503, 504].includes(result.status) &&
+          !request.signal.aborted
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
+          continue;
+        }
+        break;
+      } catch (error) {
+        if (request.signal.aborted || attempt >= maxAttempts) throw error;
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
+      }
+    }
 
     const type = result.headers.get("content-type") || "application/json";
     let response;

@@ -6,15 +6,15 @@ export function boundedPoolUrl(value: string): string {
   if (!url.searchParams.has("connection_limit"))
     url.searchParams.set("connection_limit", "10");
   for (const [key, maximum] of [
-    ["pool_timeout", 15],
-    ["connect_timeout", 30],
+    ["pool_timeout", 2],
+    ["connect_timeout", 3],
   ] as const) {
     const configured = Number(url.searchParams.get(key));
     url.searchParams.set(
       key,
       String(
         Number.isFinite(configured) && configured > 0
-          ? Math.max(configured, maximum)
+          ? Math.min(configured, maximum)
           : maximum,
       ),
     );

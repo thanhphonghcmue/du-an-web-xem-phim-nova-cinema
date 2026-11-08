@@ -104,7 +104,7 @@ export async function apiRequest(
     }
     const timedOut = budget.signal.reason?.name === "TimeoutError";
     const message = timedOut
-      ? "Máy chủ chưa phản hồi trong 8 giây. Vui lòng thử lại; đơn đang giữ có thể kiểm tra trong tài khoản."
+      ? "Máy chủ đang khởi động lại hoặc phản hồi chậm. Vui lòng tải lại hoặc thử lại sau giây lát."
       : options.signal?.aborted
         ? "Đã hủy yêu cầu."
         : "Kết nối bị gián đoạn. Vui lòng thử lại.";
@@ -186,18 +186,21 @@ async function requestWithinBudget(
       !options.method ||
       options.method === "GET" ||
       Boolean(options.headers?.["Idempotency-Key"]);
+    const maxRetries = typeof retry === "number" ? retry : retry ? 2 : 0;
     if (
-      retry &&
+      maxRetries > 0 &&
       safeToReplay &&
-      (response.status === 503 ||
-        payload.error === "RATE_LIMIT_UNAVAILABLE" ||
-        payload.code === "RATE_LIMIT_UNAVAILABLE")
+      ([502, 503, 504].includes(response.status) ||
+        payload?.error === "RATE_LIMIT_UNAVAILABLE" ||
+        payload?.code === "RATE_LIMIT_UNAVAILABLE" ||
+        payload?.code === "BACKEND_UNAVAILABLE")
     ) {
+      const delay = (3 - maxRetries) * 1200;
       await abortable(
-        new Promise((resolve) => setTimeout(resolve, 350)),
+        new Promise((resolve) => setTimeout(resolve, delay)),
         signal,
       );
-      return requestWithinBudget(endpoint, options, false, signal, notify);
+      return requestWithinBudget(endpoint, options, maxRetries - 1, signal, notify);
     }
     const msg = apiErrorMessage(
       payload,
@@ -262,7 +265,7 @@ export function readProgramme() {
   const key = "programme:transport";
   if (reads.has(key)) return reads.get(key);
   const epoch = catalogueEpoch;
-  const budget = requestBudget(undefined, 25000);
+  const budget = requestBudget(undefined, 50000);
   const task = abortable(
     loadProgramme(
       (path, options) =>
@@ -286,6 +289,23 @@ export function readProgramme() {
         }
       }
       return data;
+    })
+    .catch((error) => {
+      if (typeof window !== "undefined") {
+        try {
+          const fallback = sessionStorage.getItem("nova:programme:raw");
+          if (fallback) {
+            const parsed = JSON.parse(fallback);
+            if (parsed?.data) {
+              programmeCache = parsed;
+              return parsed.data;
+            }
+          }
+        } catch {
+          /* Fallback failure */
+        }
+      }
+      throw error;
     })
     .finally(() => {
       budget.dispose();

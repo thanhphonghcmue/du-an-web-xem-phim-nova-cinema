@@ -42,7 +42,10 @@ export function readBootstrapConfig(
     if (
       !["http:", "https:"].includes(parsed.protocol) ||
       parsed.username !== "" ||
-      parsed.password !== ""
+      parsed.password !== "" ||
+      (parsed.pathname !== "/" && parsed.pathname !== "") ||
+      parsed.search !== "" ||
+      parsed.hash !== ""
     ) {
       throw new Error(
         "CORS_ORIGINS must contain HTTP(S) origins without paths or credentials.",

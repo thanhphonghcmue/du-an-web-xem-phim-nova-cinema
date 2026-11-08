@@ -15,10 +15,14 @@ const publicRead = (method, endpoint) =>
 
 // Chỉ biến máy chủ này chọn upstream; trình duyệt không thể điều hướng sang host khác.
 const upstream = () => {
+  const defaultUrl =
+    process.env.NODE_ENV === "production" || process.env.VERCEL
+      ? "https://nova-cinema-backend.onrender.com/api/v1"
+      : "http://127.0.0.1:4000/api/v1";
   const target =
     process.env.BACKEND_API_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
-    "http://127.0.0.1:4000/api/v1";
+    defaultUrl;
   return target.replace(/\/$/, "").replace(/\/api\/v1$/, "") + "/api/v1";
 };
 
@@ -124,7 +128,7 @@ async function proxy(request, context) {
       body,
       cache: "no-store",
       redirect: "manual",
-      signal: AbortSignal.any([request.signal, AbortSignal.timeout(7500)]),
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(60000)]),
     });
 
     const type = result.headers.get("content-type") || "application/json";
@@ -229,17 +233,21 @@ async function proxy(request, context) {
       clear(response);
     return response;
   } catch {
+    const isDev = process.env.NODE_ENV !== "production" && !process.env.VERCEL;
     return NextResponse.json(
       {
         success: false,
         code: "BACKEND_UNAVAILABLE",
-        message:
-          "Không thể kết nối đến máy chủ Backend. Hãy chạy npm run dev:full ở thư mục gốc dự án rồi thử kết nối lại.",
+        message: isDev
+          ? "Không thể kết nối đến máy chủ Backend. Hãy chạy npm run dev:full ở thư mục gốc dự án rồi thử kết nối lại."
+          : "Máy chủ đang khởi động lại sau thời gian nghỉ (Cold Start) hoặc tạm thời gián đoạn. Vui lòng tải lại trang sau 15–30 giây.",
       },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
 }
+
+export const maxDuration = 60;
 
 export {
   proxy as GET,

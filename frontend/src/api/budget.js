@@ -1,4 +1,4 @@
-export const REQUEST_TIMEOUT_MS = 8000;
+export const REQUEST_TIMEOUT_MS = 45000;
 
 export function requestBudget(callerSignal, milliseconds = REQUEST_TIMEOUT_MS) {
   const controller = new AbortController();

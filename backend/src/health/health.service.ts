@@ -37,11 +37,12 @@ export class HealthService {
       this.status(() => this.queue.probe(this.timeoutMs)),
       this.status(() => this.realtime.ping()),
     ]);
-    const ready = [postgres, redis, queue, realtime].every(
+    const ready = postgres.status === "up";
+    const allUp = [postgres, redis, queue, realtime].every(
       (check) => check.status === "up",
     );
     const result: HealthDto = {
-      status: ready ? "ok" : "degraded",
+      status: allUp ? "ok" : "degraded",
       timestamp: new Date().toISOString(),
       checks: { postgres, redis, queue, realtime },
     };
@@ -49,7 +50,7 @@ export class HealthService {
       throw new ApiException(
         503,
         "HEALTH_UNAVAILABLE",
-        "One or more infrastructure services are unavailable.",
+        "Primary database service is unavailable.",
         result,
       );
     return result;

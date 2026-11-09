@@ -5,9 +5,13 @@ export function boundedPoolUrl(value: string): string {
   const url = new URL(value);
   if (!url.searchParams.has("connection_limit"))
     url.searchParams.set("connection_limit", "10");
+  const isLocal =
+    url.hostname === "localhost" ||
+    url.hostname === "127.0.0.1" ||
+    url.hostname === "::1";
   for (const [key, maximum] of [
-    ["pool_timeout", 2],
-    ["connect_timeout", 3],
+    ["pool_timeout", isLocal ? 2 : 10],
+    ["connect_timeout", isLocal ? 3 : 15],
   ] as const) {
     const configured = Number(url.searchParams.get(key));
     url.searchParams.set(

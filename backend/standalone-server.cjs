@@ -327,8 +327,8 @@ function createDemoData() {
         cMemberPoints: user.points,
         password:
           process.env.NOVA_DEMO_PASSWORD ||
-          process.env.SEED_DEMO_PASSWORD ||
-          usersStore.get("customer@nova.local").password,
+          user.password ||
+          "nova@12345",
       })),
     ],
   };

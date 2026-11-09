@@ -125,7 +125,9 @@ async function proxy(request, context) {
     const isIdempotent =
       ["GET", "HEAD"].includes(request.method) ||
       Boolean(request.headers.get("idempotency-key"));
-    const maxAttempts = isIdempotent ? 3 : 1;
+    const isProgramme = endpoint.startsWith("/showtimes/programme");
+    const timeoutMs = isProgramme ? 3000 : 55000;
+    const maxAttempts = isProgramme ? 1 : isIdempotent ? 3 : 1;
     let result;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -136,7 +138,7 @@ async function proxy(request, context) {
           body,
           cache: "no-store",
           redirect: "manual",
-          signal: AbortSignal.any([request.signal, AbortSignal.timeout(55000)]),
+          signal: AbortSignal.any([request.signal, AbortSignal.timeout(timeoutMs)]),
         });
 
         if (

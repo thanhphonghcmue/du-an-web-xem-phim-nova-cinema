@@ -290,7 +290,32 @@ export function readProgramme() {
       }
       return data;
     })
-    .catch((error) => {
+    .catch(async (error) => {
+      try {
+        const [moviesRes, cinemasRes, roomsRes, combosRes, showtimesRes] =
+          await Promise.all([
+            apiRequest("/movies?limit=100", {}, true, false),
+            apiRequest("/cinemas?limit=100", {}, true, false),
+            apiRequest("/rooms?limit=100", {}, true, false),
+            apiRequest("/combos?limit=100", {}, true, false),
+            apiRequest("/showtimes?limit=1000", {}, true, false),
+          ]);
+        const assembled = {
+          movies: moviesRes?.data?.items || moviesRes?.items || moviesRes?.data || [],
+          cinemas: cinemasRes?.data?.items || cinemasRes?.items || cinemasRes?.data || [],
+          rooms: roomsRes?.data?.items || roomsRes?.items || roomsRes?.data || [],
+          combos: combosRes?.data?.items || combosRes?.items || combosRes?.data || [],
+          showtimes: showtimesRes?.data?.items || showtimesRes?.items || showtimesRes?.data || [],
+          asOf: new Date().toISOString(),
+          until: new Date(Date.now() + 30 * 86400000).toISOString(),
+        };
+        if (assembled.movies.length > 0) {
+          programmeCache = { data: assembled, until: Date.now() + 120000 };
+          return assembled;
+        }
+      } catch {
+        /* Continue to sessionStorage fallback */
+      }
       if (typeof window !== "undefined") {
         try {
           const fallback = sessionStorage.getItem("nova:programme:raw");

@@ -298,7 +298,7 @@ export function readProgramme() {
             apiRequest("/cinemas?limit=100", {}, true, false),
             apiRequest("/rooms?limit=100", {}, true, false),
             apiRequest("/combos?limit=100", {}, true, false),
-            apiRequest("/showtimes?limit=1000", {}, true, false),
+            apiRequest("/showtimes?limit=100", {}, true, false),
           ]);
         const assembled = {
           movies: moviesRes?.data?.items || moviesRes?.items || moviesRes?.data || [],

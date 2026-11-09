@@ -87,7 +87,7 @@ Hãy mở trình duyệt (Google Chrome, Microsoft Edge, Cốc Cốc...) và tru
 
 ---
 
-### ❓ CÂU HỎI THƯỜNG GẶP (FAQ) & KHẮC PHỤC SỰ CỐ
+### ❓ CÂU HỎI THƯỜNG GẶP & KHẮC PHỤC SỰ CỐ
 - **Làm sao để tắt máy chủ khi dùng xong?**  
   👉 Quay lại cửa sổ Terminal / PowerShell và nhấn tổ hợp phím **`Ctrl + C`**.
 - **Bị báo lỗi `Port 3000 is already in use` hoặc cổng 4000 bị bận?**  

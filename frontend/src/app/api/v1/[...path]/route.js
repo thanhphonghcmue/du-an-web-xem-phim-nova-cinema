@@ -175,13 +175,20 @@ async function proxy(request, context) {
     if (endpoint.startsWith("/showtimes/programme") && (!result || !result.ok)) {
       const base = upstream();
       try {
-        const [mRes, cRes, rRes, cbRes, stRes] = await Promise.all([
+        const [mRes, cRes, rRes, cbRes, st1, st2, st3] = await Promise.all([
           fetch(`${base}/movies?limit=100`, { headers: { accept: "application/json" } }).then((r) => r.json()),
           fetch(`${base}/cinemas?limit=100`, { headers: { accept: "application/json" } }).then((r) => r.json()),
           fetch(`${base}/rooms?limit=100`, { headers: { accept: "application/json" } }).then((r) => r.json()),
           fetch(`${base}/combos?limit=100`, { headers: { accept: "application/json" } }).then((r) => r.json()),
-          fetch(`${base}/showtimes?limit=1000`, { headers: { accept: "application/json" } }).then((r) => r.json()),
+          fetch(`${base}/showtimes?limit=100&page=1`, { headers: { accept: "application/json" } }).then((r) => r.json()),
+          fetch(`${base}/showtimes?limit=100&page=2`, { headers: { accept: "application/json" } }).then((r) => r.json()),
+          fetch(`${base}/showtimes?limit=100&page=3`, { headers: { accept: "application/json" } }).then((r) => r.json()),
         ]);
+        const showtimes = [
+          ...(st1?.data?.items || st1?.items || []),
+          ...(st2?.data?.items || st2?.items || []),
+          ...(st3?.data?.items || st3?.items || [])
+        ];
         const assembled = {
           movies: mRes?.data?.items || mRes?.items || mRes?.data || [],
           cinemas: cRes?.data?.items || cRes?.items || cRes?.data || [],
@@ -190,7 +197,7 @@ async function proxy(request, context) {
             ...cb,
             price: Number(cb.price).toFixed(2),
           })),
-          showtimes: stRes?.data?.items || stRes?.items || stRes?.data || [],
+          showtimes,
           asOf: new Date().toISOString(),
           until: new Date(Date.now() + 30 * 86400000).toISOString(),
         };
